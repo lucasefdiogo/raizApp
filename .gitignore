@@ -73,3 +73,12 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Firebase — arquivos de configuração nativa (contêm chaves de API do projeto)
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
+# Variáveis de ambiente, se você vier a usar
+.env
+.env.local
+.env.*.local
