@@ -1,10 +1,10 @@
-# CLAUDE.md — Projeto Raiz
+# CLAUDE.md — Projeto Rootora
 
 Contexto persistente para o Claude Code neste repositório. Leia isto antes de qualquer alteração de código.
 
 ## O que é o projeto
 
-App mobile (nome interno **Raiz**, nome comercial ainda não definido) para combater procrastinação e uso
+App mobile **Rootora** (nome interno de desenvolvimento: Raiz) para combater procrastinação e uso
 problemático de smartphone via streak com sistema de perdão (escudo), tarefas fatiadas e recaída sem culpa.
 Fundamentação teórica completa em `fundamentacaoteoricaprojeto.pdf` — não reabrir decisões de produto sem
 pedido explícito do Lucas.
@@ -30,6 +30,8 @@ totalmente"), apontar o conflito antes de implementar.
 | Navegação | `@react-navigation` (native-stack + bottom-tabs) | ✅ |
 | Estado local leve | `@react-native-async-storage/async-storage` | ✅ |
 | Animações | `react-native-reanimated` | ✅ |
+| Linguagem | **TypeScript** (strict mode habilitado) — nada de novo arquivo `.js`/`.jsx` | ✅ |
+| Testes de componente | `@testing-library/react-native` (junto com Jest, desde o início do projeto) | ✅ |
 | Ambiente de build | WSL2 Ubuntu-22.04 (JDK 17, Gradle) + Android Studio no Windows para SDK/emulador | ✅ |
 
 **Novas dependências:** não instalar biblioteca nova (gerenciamento de estado, UI kit, etc.) para "resolver"
@@ -110,6 +112,9 @@ npm test                    # Jest
 
 ## Convenções de código
 
+- Projeto 100% TypeScript — arquivos `.ts`/`.tsx`, `strict: true` no `tsconfig.json`, sem `any` implícito
+- Tipos de domínio (streak, tarefa, dailyLog) vivem em `domain/types.ts` ou junto da função em `domain/`,
+  e são reaproveitados por `hooks/`, `components/` e `services/` — não redeclarar o mesmo shape em vários lugares
 - Componentes em `PascalCase`, hooks em `useCamelCase`
 - Nomes de campo no Firestore em `camelCase`, em português quando já usados nos schemas (`streakAtual`,
   `escudosDisponiveis`, `porqueTexto`) — manter consistência com o schema já definido, não traduzir
@@ -133,7 +138,9 @@ npm test                    # Jest
   concluída sem eles. Cobrir pelo menos:
   - Lógica de regras de negócio em `domain/` (ex: cálculo de streak, queda para 50%, ativação de escudo) —
     prioridade alta por ser a lógica mais sensível do produto, e a mais fácil de testar por ser pura
-  - Componentes com comportamento condicional (ex: `<RecoveryStateCard />` mudando de texto por `tipo`)
+  - Componentes com comportamento condicional (ex: `<RecoveryStateCard />` mudando de texto por `tipo`) —
+    usar `@testing-library/react-native`, nunca testar detalhe de implementação (queries por texto/role
+    visível ao usuário, não por classe interna)
   - Funções puras de formatação/validação em `utils/`
   - Se a funcionalidade mexer em Cloud Functions, testar com o emulador do Firebase antes de considerar pronta
   - Rodar `npm test` antes de abrir o PR/finalizar a branch; não deixar teste quebrado para "depois"
