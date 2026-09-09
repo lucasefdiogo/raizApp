@@ -9,9 +9,12 @@ import { theme } from '../theme';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
+import { useStreak } from '../hooks/useStreak';
+import { useRecoveryState } from '../hooks/useRecoveryState';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
@@ -22,6 +25,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Onboarding: undefined;
+  RecoveryState: undefined;
   Home: undefined;
 };
 
@@ -35,8 +39,19 @@ export function RootNavigator() {
   const tutorial = useTutorialStatus();
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
+  const streak = useStreak(auth.user?.uid ?? null);
+  const recovery = useRecoveryState(
+    streak.statusDiaAnterior,
+    streak.streakAtual,
+    streak.diasTotaisAtivos,
+  );
 
-  if (tutorial.carregando || auth.carregando || onboarding.carregando) {
+  if (
+    tutorial.carregando ||
+    auth.carregando ||
+    onboarding.carregando ||
+    (onboarding.completo && streak.carregando)
+  ) {
     return (
       <View style={styles.carregando}>
         <ActivityIndicator color={theme.colors.cobre} />
@@ -75,9 +90,27 @@ export function RootNavigator() {
             </Stack.Screen>
           </>
         ) : onboarding.completo ? (
-          <Stack.Screen name="Home">
-            {() => <HomeScreen uid={auth.user!.uid} />}
-          </Stack.Screen>
+          recovery.deveExibir && recovery.tipo && recovery.corpo !== null ? (
+            <Stack.Screen name="RecoveryState">
+              {() => (
+                <RecoveryStateScreen
+                  tipo={recovery.tipo!}
+                  corpo={recovery.corpo!}
+                  onConcluir={recovery.marcarComoExibido}
+                />
+              )}
+            </Stack.Screen>
+          ) : (
+            <Stack.Screen name="Home">
+              {() => (
+                <HomeScreen
+                  streakAtual={streak.streakAtual}
+                  escudosDisponiveis={streak.escudosDisponiveis}
+                  marcoAtingido={streak.marcoAtingido}
+                />
+              )}
+            </Stack.Screen>
+          )
         ) : (
           <Stack.Screen name="Onboarding">
             {() => (

@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
-import { useStreak } from '../hooks/useStreak';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { StreakCard } from '../components/StreakCard';
@@ -19,11 +18,16 @@ const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
 };
 
 interface HomeScreenProps {
-  uid: string;
+  streakAtual: number;
+  escudosDisponiveis: number;
+  marcoAtingido: number | null;
 }
 
-export function HomeScreen({ uid }: HomeScreenProps) {
-  const { streakAtual, escudosDisponiveis, marcoAtingido } = useStreak(uid);
+export function HomeScreen({
+  streakAtual,
+  escudosDisponiveis,
+  marcoAtingido,
+}: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const { tarefas, alternarTarefa, statusDia } = useDailyTasks();
