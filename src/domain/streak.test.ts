@@ -3,6 +3,7 @@ import {
   avaliarDiaCumprido,
   calcularStatusDia,
   deveRenovarEscudo,
+  existeEssencialConcluida,
   renovarEscudo,
   verificarMarco,
 } from './streak';
@@ -50,6 +51,28 @@ describe('avaliarDiaCumprido', () => {
       criarTarefa({ id: '3', concluida: false }),
     ];
     expect(avaliarDiaCumprido(tarefas)).toBe(false);
+  });
+});
+
+describe('existeEssencialConcluida', () => {
+  it('retorna true quando alguma tarefa essencial está concluída', () => {
+    const tarefas = [
+      criarTarefa({ id: '1', essencial: true, concluida: true }),
+      criarTarefa({ id: '2', essencial: false, concluida: false }),
+    ];
+    expect(existeEssencialConcluida(tarefas)).toBe(true);
+  });
+
+  it('retorna false quando nenhuma essencial está concluída, mesmo com outras tarefas concluídas', () => {
+    const tarefas = [
+      criarTarefa({ id: '1', essencial: true, concluida: false }),
+      criarTarefa({ id: '2', essencial: false, concluida: true }),
+    ];
+    expect(existeEssencialConcluida(tarefas)).toBe(false);
+  });
+
+  it('retorna false para lista vazia', () => {
+    expect(existeEssencialConcluida([])).toBe(false);
   });
 });
 

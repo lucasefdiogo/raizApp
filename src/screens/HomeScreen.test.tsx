@@ -15,6 +15,7 @@ const PROPS_PADRAO = {
   escudosDisponiveis: 1,
   marcoAtingido: null,
   onVerProgresso: jest.fn(),
+  avaliarAlertaRisco: jest.fn(),
 };
 
 beforeEach(() => {
@@ -95,5 +96,27 @@ describe('HomeScreen', () => {
     await fireEvent.press(screen.getByText('Ver progresso'));
 
     expect(onVerProgresso).toHaveBeenCalledTimes(1);
+  });
+
+  it('chama avaliarAlertaRisco(false) ao montar, sem nenhuma essencial concluída', async () => {
+    const avaliarAlertaRisco = jest.fn();
+    await render(
+      <HomeScreen {...PROPS_PADRAO} avaliarAlertaRisco={avaliarAlertaRisco} />,
+    );
+
+    expect(avaliarAlertaRisco).toHaveBeenCalledWith(false);
+  });
+
+  it('chama avaliarAlertaRisco(true) ao concluir a tarefa essencial', async () => {
+    const avaliarAlertaRisco = jest.fn();
+    await render(
+      <HomeScreen {...PROPS_PADRAO} avaliarAlertaRisco={avaliarAlertaRisco} />,
+    );
+
+    await fireEvent.press(
+      screen.getByText('Abrir o material de estudo por 5 minutos'),
+    );
+
+    expect(avaliarAlertaRisco).toHaveBeenLastCalledWith(true);
   });
 });

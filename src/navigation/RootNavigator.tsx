@@ -11,6 +11,7 @@ import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
 import { useStreak } from '../hooks/useStreak';
 import { useRecoveryState } from '../hooks/useRecoveryState';
+import { useLocalNotifications } from '../hooks/useLocalNotifications';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -48,6 +49,10 @@ export function RootNavigator() {
     streak.statusDiaAnterior,
     streak.streakAtual,
     streak.diasTotaisAtivos,
+  );
+  const notificacoes = useLocalNotifications(
+    auth.user?.uid ?? null,
+    !!auth.user && onboarding.completo,
   );
 
   if (
@@ -122,6 +127,7 @@ export function RootNavigator() {
                     escudosDisponiveis={streak.escudosDisponiveis}
                     marcoAtingido={streak.marcoAtingido}
                     onVerProgresso={() => navigation.navigate('Progresso')}
+                    avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
                   />
                 )}
               </Stack.Screen>
