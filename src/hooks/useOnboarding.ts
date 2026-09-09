@@ -6,6 +6,7 @@ import {
   validarTempoTelaEstimado,
 } from '../domain/onboarding';
 import { STORAGE_KEYS, salvarItem } from '../utils/storage';
+import { salvarOnboardingUsuario } from '../services/firestore';
 
 const DADOS_INICIAIS: OnboardingData = {
   porqueTexto: '',
@@ -16,10 +17,11 @@ const DADOS_INICIAIS: OnboardingData = {
 export const TOTAL_PASSOS_ONBOARDING = 3;
 
 interface UseOnboardingParams {
+  uid: string;
   onConcluir: () => void;
 }
 
-export function useOnboarding({ onConcluir }: UseOnboardingParams) {
+export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
   const [passo, setPasso] = useState(0);
   const [dados, setDados] = useState<OnboardingData>(DADOS_INICIAIS);
   const [salvando, setSalvando] = useState(false);
@@ -61,11 +63,12 @@ export function useOnboarding({ onConcluir }: UseOnboardingParams) {
     setSalvando(true);
     try {
       await salvarItem(STORAGE_KEYS.onboarding, dados);
+      await salvarOnboardingUsuario(uid, dados);
       onConcluir();
     } finally {
       setSalvando(false);
     }
-  }, [podeAvancar, passo, dados, onConcluir]);
+  }, [podeAvancar, passo, dados, uid, onConcluir]);
 
   return {
     passo,
