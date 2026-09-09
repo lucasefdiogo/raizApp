@@ -8,12 +8,19 @@ import {
 import { theme } from '../theme';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
+import { useAuth } from '../hooks/useAuth';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { SignInScreen } from '../screens/auth/SignInScreen';
+import { SignUpScreen } from '../screens/auth/SignUpScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 
 export type RootStackParamList = {
   Tutorial: undefined;
+  SignIn: undefined;
+  SignUp: undefined;
+  ForgotPassword: undefined;
   Onboarding: undefined;
   Home: undefined;
 };
@@ -26,9 +33,10 @@ const screenOptions: NativeStackNavigationOptions = {
 
 export function RootNavigator() {
   const tutorial = useTutorialStatus();
-  const onboarding = useOnboardingStatus();
+  const auth = useAuth();
+  const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
 
-  if (tutorial.carregando || onboarding.carregando) {
+  if (tutorial.carregando || auth.carregando || onboarding.carregando) {
     return (
       <View style={styles.carregando}>
         <ActivityIndicator color={theme.colors.cobre} />
@@ -41,17 +49,41 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={screenOptions}>
         {!tutorial.tutorialVisto ? (
           <Stack.Screen name="Tutorial">
-            {/* TODO: quando a AuthStack existir, "Começar" deve levar à
-                Onboarding/Home (fluxo atual) e "Já tenho conta" deve levar
-                à tela de login dentro da AuthStack. Por ora os dois botões
-                e o "pular" apontam para o mesmo fluxo pós-tutorial. */}
+            {/* TODO: diferenciar "Começar" (SignUp) de "Já tenho conta"
+                (SignIn) agora que a AuthStack existe — por ora os dois
+                botões e o "pular" só marcam a flag e caem na SignInScreen,
+                que já linka para as duas telas. */}
             {() => <TutorialScreen onConcluir={tutorial.marcarTutorialVisto} />}
           </Stack.Screen>
+        ) : !auth.user ? (
+          <>
+            <Stack.Screen name="SignIn">
+              {() => (
+                <SignInScreen
+                  signIn={auth.signIn}
+                  signInWithGoogle={auth.signInWithGoogle}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="SignUp">
+              {() => <SignUpScreen signUp={auth.signUp} />}
+            </Stack.Screen>
+            <Stack.Screen name="ForgotPassword">
+              {() => (
+                <ForgotPasswordScreen resetPassword={auth.resetPassword} />
+              )}
+            </Stack.Screen>
+          </>
         ) : onboarding.completo ? (
           <Stack.Screen name="Home" component={HomeScreen} />
         ) : (
           <Stack.Screen name="Onboarding">
-            {() => <OnboardingScreen onConcluir={onboarding.marcarComoCompleto} />}
+            {() => (
+              <OnboardingScreen
+                uid={auth.user!.uid}
+                onConcluir={onboarding.marcarComoCompleto}
+              />
+            )}
           </Stack.Screen>
         )}
       </Stack.Navigator>

@@ -10,10 +10,11 @@ import { OnboardingStepFoco } from '../components/onboarding/OnboardingStepFoco'
 import { OnboardingStepTempoTela } from '../components/onboarding/OnboardingStepTempoTela';
 
 interface OnboardingScreenProps {
+  uid: string;
   onConcluir: () => void;
 }
 
-export function OnboardingScreen({ onConcluir }: OnboardingScreenProps) {
+export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
   const {
     passo,
     totalPassos,
@@ -25,7 +26,7 @@ export function OnboardingScreen({ onConcluir }: OnboardingScreenProps) {
     definirTempoTela,
     avancar,
     voltar,
-  } = useOnboarding({ onConcluir });
+  } = useOnboarding({ uid, onConcluir });
 
   return (
     <SafeAreaView style={styles.container}>
