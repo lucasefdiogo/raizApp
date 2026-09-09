@@ -3,6 +3,9 @@ import {
   buscarUsuario,
   salvarOnboardingUsuario,
   buscarSystemMessage,
+  adicionarTarefaAoDailyLog,
+  atualizarStatusStreak,
+  buscarDailyLog,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -108,6 +111,65 @@ describe('services/firestore', () => {
     it('retorna null quando a chave não existe', async () => {
       const mensagem = await buscarSystemMessage('marco_inexistente');
       expect(mensagem).toBeNull();
+    });
+  });
+
+  describe('adicionarTarefaAoDailyLog', () => {
+    it('cria o dailyLogs/{data} quando ele ainda não existe', async () => {
+      await adicionarTarefaAoDailyLog('uid-1', '2026-09-10', {
+        id: 'inicial-1',
+        titulo: 'Guardar o celular na gaveta às 20h',
+        essencial: true,
+        concluida: false,
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-10');
+      expect(log).toMatchObject({
+        data: '2026-09-10',
+        tarefas: [
+          {
+            id: 'inicial-1',
+            titulo: 'Guardar o celular na gaveta às 20h',
+            essencial: true,
+            concluida: false,
+          },
+        ],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+    });
+
+    it('acrescenta à lista de tarefas existente sem apagar as anteriores', async () => {
+      await adicionarTarefaAoDailyLog('uid-1', '2026-09-10', {
+        id: '1',
+        titulo: 'Primeira',
+        essencial: false,
+        concluida: true,
+      });
+      await adicionarTarefaAoDailyLog('uid-1', '2026-09-10', {
+        id: '2',
+        titulo: 'Segunda',
+        essencial: true,
+        concluida: false,
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-10');
+      expect(log?.tarefas).toHaveLength(2);
+      expect(log?.tarefas.map(t => t.id)).toEqual(['1', '2']);
+    });
+  });
+
+  describe('atualizarStatusStreak', () => {
+    it('grava o novo statusStreak sem apagar o restante do documento', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+
+      await atualizarStatusStreak('uid-1', 'pausado');
+      expect((await buscarUsuario('uid-1'))?.statusStreak).toBe('pausado');
+
+      await atualizarStatusStreak('uid-1', 'ativo');
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.statusStreak).toBe('ativo');
+      expect(usuario?.email).toBe('a@a.com');
     });
   });
 });

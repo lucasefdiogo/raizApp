@@ -15,6 +15,7 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
+import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Onboarding: undefined;
+  ReturnAfterPause: undefined;
   RecoveryState: undefined;
   Home: undefined;
 };
@@ -90,7 +92,16 @@ export function RootNavigator() {
             </Stack.Screen>
           </>
         ) : onboarding.completo ? (
-          recovery.deveExibir && recovery.tipo && recovery.corpo !== null ? (
+          streak.statusStreak === 'pausado' ? (
+            <Stack.Screen name="ReturnAfterPause">
+              {() => (
+                <ReturnAfterPauseScreen
+                  uid={auth.user!.uid}
+                  onConcluir={streak.marcarRetornoConcluido}
+                />
+              )}
+            </Stack.Screen>
+          ) : recovery.deveExibir && recovery.tipo && recovery.corpo !== null ? (
             <Stack.Screen name="RecoveryState">
               {() => (
                 <RecoveryStateScreen

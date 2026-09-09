@@ -1,4 +1,4 @@
-export type StatusStreak = 'ativo' | 'em_risco' | 'perdido';
+export type StatusStreak = 'ativo' | 'em_risco' | 'perdido' | 'pausado';
 
 export type StatusDia = 'pendente' | 'cumprido' | 'nao_cumprido';
 

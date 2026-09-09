@@ -1,4 +1,10 @@
-import { EstadoStreak, StatusDia, StatusDiaResultante, Tarefa } from './types';
+import {
+  EstadoStreak,
+  StatusDia,
+  StatusDiaResultante,
+  StatusStreak,
+  Tarefa,
+} from './types';
 
 const PROPORCAO_MINIMA_CUMPRIMENTO = 0.6;
 
@@ -59,6 +65,7 @@ export interface ResultadoAplicacaoDia {
   escudosDisponiveis: number;
   marcosAtingidos: number[];
   statusDiaResultante: StatusDiaResultante;
+  statusStreak: StatusStreak;
   marcoAtingido: number | null;
 }
 
@@ -71,7 +78,9 @@ export interface ResultadoAplicacaoDia {
  * Se hoje estiver 2+ dias à frente de ultimoDiaAtivo, houve pelo menos dois
  * dias seguidos sem cumprir (o app nem chegou a ser aberto nesse intervalo),
  * o que zera o streak direto — o escudo não é consultado nesse caso, porque
- * ele protege uma falha isolada, não um sumiço de vários dias.
+ * ele protege uma falha isolada, não um sumiço de vários dias. statusStreak
+ * vira 'pausado' nesse caminho — só a tela de retorno após pausa reverte
+ * isso para 'ativo' de novo, essa função nunca reverte sozinha.
  */
 export function aplicarResultadoDia(
   estadoAtual: EstadoStreak,
@@ -90,6 +99,7 @@ export function aplicarResultadoDia(
       escudosDisponiveis: estadoAtual.escudosDisponiveis,
       marcosAtingidos: estadoAtual.marcosAtingidos,
       statusDiaResultante: 'perdido',
+      statusStreak: 'pausado',
       marcoAtingido: null,
     };
   }
@@ -110,6 +120,7 @@ export function aplicarResultadoDia(
           ? [...estadoAtual.marcosAtingidos, marco]
           : estadoAtual.marcosAtingidos,
       statusDiaResultante: 'cumprido',
+      statusStreak: estadoAtual.statusStreak,
       marcoAtingido: marco,
     };
   }
@@ -121,6 +132,7 @@ export function aplicarResultadoDia(
       escudosDisponiveis: 0,
       marcosAtingidos: estadoAtual.marcosAtingidos,
       statusDiaResultante: 'protegido_escudo',
+      statusStreak: estadoAtual.statusStreak,
       marcoAtingido: null,
     };
   }
@@ -131,6 +143,7 @@ export function aplicarResultadoDia(
     escudosDisponiveis: estadoAtual.escudosDisponiveis,
     marcosAtingidos: estadoAtual.marcosAtingidos,
     statusDiaResultante: 'perdido',
+    statusStreak: estadoAtual.statusStreak,
     marcoAtingido: null,
   };
 }
