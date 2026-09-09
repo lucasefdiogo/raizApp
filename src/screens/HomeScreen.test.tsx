@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { HomeScreen } from './HomeScreen';
 
 jest.mock('../hooks/useStreak');
@@ -9,6 +9,9 @@ jest.mock('../utils/taskFeedbackMessages');
 const {
   obterMensagemTarefaConcluida,
 } = require('../utils/taskFeedbackMessages');
+
+jest.mock('../services/firestore');
+const { buscarSystemMessage } = require('../services/firestore');
 
 beforeEach(() => {
   useStreak.mockReturnValue({
@@ -21,6 +24,11 @@ beforeEach(() => {
   });
   obterMensagemTarefaConcluida.mockClear();
   obterMensagemTarefaConcluida.mockReturnValue('Feito. Isso conta.');
+  buscarSystemMessage.mockReset();
+  buscarSystemMessage.mockResolvedValue({
+    titulo: 'Sete dias seguidos',
+    corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
+  });
 });
 
 describe('HomeScreen', () => {
@@ -62,5 +70,43 @@ describe('HomeScreen', () => {
 
     await fireEvent.press(tarefa); // desmarca
     expect(obterMensagemTarefaConcluida).toHaveBeenCalledTimes(1);
+  });
+
+  it('mostra o modal de marco quando useStreak expõe marcoAtingido', async () => {
+    useStreak.mockReturnValue({
+      streakAtual: 7,
+      diasTotaisAtivos: 7,
+      escudosDisponiveis: 1,
+      statusDiaAnterior: 'cumprido',
+      marcoAtingido: 7,
+      carregando: false,
+    });
+
+    await render(<HomeScreen uid="uid-teste" />);
+
+    await waitFor(() => expect(screen.getByText('Marco atingido')).toBeTruthy());
+    expect(
+      screen.getByText(
+        'Uma semana inteira sustentando o combinado com você mesmo.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('fecha o modal de marco ao tocar em Continuar e não reaparece', async () => {
+    useStreak.mockReturnValue({
+      streakAtual: 7,
+      diasTotaisAtivos: 7,
+      escudosDisponiveis: 1,
+      statusDiaAnterior: 'cumprido',
+      marcoAtingido: 7,
+      carregando: false,
+    });
+
+    await render(<HomeScreen uid="uid-teste" />);
+    await waitFor(() => expect(screen.getByText('Marco atingido')).toBeTruthy());
+
+    await fireEvent.press(screen.getByText('Continuar'));
+
+    expect(screen.queryByText('Marco atingido')).toBeNull();
   });
 });
