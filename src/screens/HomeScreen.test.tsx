@@ -14,6 +14,7 @@ const PROPS_PADRAO = {
   streakAtual: 4,
   escudosDisponiveis: 1,
   marcoAtingido: null,
+  onVerProgresso: jest.fn(),
 };
 
 beforeEach(() => {
@@ -85,5 +86,14 @@ describe('HomeScreen', () => {
     await fireEvent.press(screen.getByText('Continuar'));
 
     expect(screen.queryByText('Marco atingido')).toBeNull();
+  });
+
+  it('chama onVerProgresso ao tocar em Ver progresso', async () => {
+    const onVerProgresso = jest.fn();
+    await render(<HomeScreen {...PROPS_PADRAO} onVerProgresso={onVerProgresso} />);
+
+    await fireEvent.press(screen.getByText('Ver progresso'));
+
+    expect(onVerProgresso).toHaveBeenCalledTimes(1);
   });
 });

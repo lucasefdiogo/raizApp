@@ -6,6 +6,7 @@ import {
   adicionarTarefaAoDailyLog,
   atualizarStatusStreak,
   buscarDailyLog,
+  buscarUltimosDailyLogs,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -156,6 +157,34 @@ describe('services/firestore', () => {
       const log = await buscarDailyLog('uid-1', '2026-09-10');
       expect(log?.tarefas).toHaveLength(2);
       expect(log?.tarefas.map(t => t.id)).toEqual(['1', '2']);
+    });
+  });
+
+  describe('buscarUltimosDailyLogs', () => {
+    it('retorna só os dias que têm dailyLog, ignorando os que faltam', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-14T12:00:00Z'));
+
+      await adicionarTarefaAoDailyLog('uid-1', '2026-09-14', {
+        id: '1',
+        titulo: 'hoje',
+        essencial: true,
+        concluida: true,
+      });
+      await adicionarTarefaAoDailyLog('uid-1', '2026-09-12', {
+        id: '1',
+        titulo: 'dois dias atrás',
+        essencial: true,
+        concluida: false,
+      });
+
+      const logs = await buscarUltimosDailyLogs('uid-1', 7);
+
+      expect(logs.map(log => log.data).sort()).toEqual([
+        '2026-09-12',
+        '2026-09-14',
+      ]);
+
+      jest.useRealTimers();
     });
   });
 

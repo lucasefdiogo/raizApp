@@ -8,6 +8,7 @@ jest.mock('../hooks/useOnboardingStatus');
 jest.mock('../hooks/useStreak');
 jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
+jest.mock('../hooks/useProgressoSemanal');
 
 const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
@@ -15,6 +16,7 @@ const { useOnboardingStatus } = require('../hooks/useOnboardingStatus');
 const { useStreak } = require('../hooks/useStreak');
 const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
+const { useProgressoSemanal } = require('../hooks/useProgressoSemanal');
 
 const ESTADO_BASE_STREAK = {
   streakAtual: 5,
@@ -52,6 +54,12 @@ function configurarHooksPadrao() {
     corpoComTexto: 'Alguns dias passaram, e tudo bem.',
     carregando: false,
     enviarTarefaInicial: jest.fn().mockResolvedValue(undefined),
+  });
+  useProgressoSemanal.mockReturnValue({
+    historico: [],
+    streakAtual: 5,
+    diasTotaisAtivos: 10,
+    carregando: false,
   });
 }
 
@@ -197,5 +205,28 @@ describe('RootNavigator — retorno após pausa', () => {
 
     expect(marcarRetornoConcluido).not.toHaveBeenCalled();
     expect(screen.getByText('Voltar a começar')).toBeTruthy();
+  });
+});
+
+describe('RootNavigator — navegação pra tela de progresso', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    configurarHooksPadrao();
+    useRecoveryState.mockReturnValue({
+      deveExibir: false,
+      tipo: null,
+      corpo: null,
+      marcarComoExibido: jest.fn(),
+    });
+  });
+
+  it('toca em Ver progresso na Home e navega pra ProgressoScreen', async () => {
+    await render(<RootNavigator />);
+
+    expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Ver progresso'));
+
+    await waitFor(() => expect(screen.getByText('Seu progresso')).toBeTruthy());
   });
 });

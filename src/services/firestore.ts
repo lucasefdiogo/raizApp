@@ -151,6 +151,28 @@ export async function buscarDailyLog(
   return snapshot.exists() ? (snapshot.data() as DailyLog) : null;
 }
 
+/**
+ * Busca os dailyLogs dos últimos `quantidadeDias` dias (incluindo hoje).
+ * Datas sem documento correspondente simplesmente não aparecem no array —
+ * quem monta o histórico visual (domain/progress.ts) decide o que fazer com
+ * a ausência.
+ */
+export async function buscarUltimosDailyLogs(
+  uid: string,
+  quantidadeDias: number,
+): Promise<DailyLog[]> {
+  const hoje = new Date();
+  const datas: string[] = [];
+  for (let i = quantidadeDias - 1; i >= 0; i--) {
+    const data = new Date(hoje);
+    data.setUTCDate(data.getUTCDate() - i);
+    datas.push(data.toISOString().slice(0, 10));
+  }
+
+  const logs = await Promise.all(datas.map(data => buscarDailyLog(uid, data)));
+  return logs.filter((log): log is DailyLog => log !== null);
+}
+
 export interface SystemMessage {
   titulo: string;
   corpo: string;

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
@@ -21,12 +21,14 @@ interface HomeScreenProps {
   streakAtual: number;
   escudosDisponiveis: number;
   marcoAtingido: number | null;
+  onVerProgresso: () => void;
 }
 
 export function HomeScreen({
   streakAtual,
   escudosDisponiveis,
   marcoAtingido,
+  onVerProgresso,
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
@@ -58,6 +60,9 @@ export function HomeScreen({
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
         <TaskList tarefas={tarefas} onAlternar={handleAlternarTarefa} />
+        <Pressable accessibilityRole="button" onPress={onVerProgresso}>
+          <Text style={styles.link}>Ver progresso</Text>
+        </Pressable>
       </ScrollView>
       <TaskCompletedOverlay
         visible={overlayVisivel}
@@ -95,5 +100,12 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
+  },
+  link: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.musgo,
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
   },
 });
