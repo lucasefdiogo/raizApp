@@ -1,4 +1,4 @@
-package com.raizapp
+package com.lucas.rootora
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
