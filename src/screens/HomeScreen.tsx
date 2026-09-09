@@ -14,14 +14,18 @@ const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
   nao_cumprido: 'Ainda dá tempo de fazer valer o dia.',
 };
 
-export function HomeScreen() {
-  const { streak } = useStreak();
+interface HomeScreenProps {
+  uid: string;
+}
+
+export function HomeScreen({ uid }: HomeScreenProps) {
+  const { streakAtual, escudosDisponiveis } = useStreak(uid);
   const { tarefas, alternarTarefa, statusDia } = useDailyTasks();
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
-        <StreakCard streak={streak} />
+        <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
         <TaskList tarefas={tarefas} onAlternar={alternarTarefa} />

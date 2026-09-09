@@ -1,15 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react-native';
 import { StreakCard } from './StreakCard';
-import { Streak } from '../domain/types';
 
-const streakBase: Streak = {
+const streakBase = {
   streakAtual: 4,
-  diasTotaisAtivos: 11,
   escudosDisponiveis: 1,
-  marcosAtingidos: [3],
-  ultimoDiaAtivo: '2026-09-08',
-  statusStreak: 'ativo',
 };
 
 describe('StreakCard', () => {
