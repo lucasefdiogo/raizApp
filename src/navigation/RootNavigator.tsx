@@ -75,7 +75,9 @@ export function RootNavigator() {
             </Stack.Screen>
           </>
         ) : onboarding.completo ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Home">
+            {() => <HomeScreen uid={auth.user!.uid} />}
+          </Stack.Screen>
         ) : (
           <Stack.Screen name="Onboarding">
             {() => (

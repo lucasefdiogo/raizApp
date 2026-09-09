@@ -2,13 +2,21 @@ export type StatusStreak = 'ativo' | 'em_risco' | 'perdido';
 
 export type StatusDia = 'pendente' | 'cumprido' | 'nao_cumprido';
 
-export interface Streak {
+/**
+ * Resultado final (retrospectivo) da avaliação de um dia já fechado, usado
+ * por aplicarResultadoDia. Distinto de StatusDia, que descreve o dia em
+ * andamento (inclui 'pendente', que não faz sentido para um dia já fechado).
+ */
+export type StatusDiaResultante = 'cumprido' | 'protegido_escudo' | 'perdido';
+
+export interface EstadoStreak {
   streakAtual: number;
   diasTotaisAtivos: number;
   escudosDisponiveis: number;
   marcosAtingidos: number[];
   ultimoDiaAtivo: string;
   statusStreak: StatusStreak;
+  dataUltimaRenovacaoEscudo: string;
 }
 
 export interface Tarefa {

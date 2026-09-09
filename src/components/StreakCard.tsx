@@ -1,10 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../theme';
-import { Streak } from '../domain/types';
-
 interface StreakCardProps {
-  streak: Streak;
+  streak: {
+    streakAtual: number;
+    escudosDisponiveis: number;
+  };
 }
 
 export function StreakCard({ streak }: StreakCardProps) {
