@@ -13,3 +13,7 @@ export async function lerItem<T>(chave: string): Promise<T | null> {
   const bruto = await AsyncStorage.getItem(chave);
   return bruto ? (JSON.parse(bruto) as T) : null;
 }
+
+export function chaveRecoveryShown(data: string): string {
+  return `recovery_shown:${data}`;
+}

@@ -99,7 +99,7 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           totalPassos={TOTAL_PASSOS}
           eyebrow="Um dia sem fazer nada"
           titulo={'Um ramo fica mais fino.\nA raiz continua firme.'}
-          corpo={<RootProgressIcon variant="recaida" tamanho={112} />}
+          corpo={<RootProgressIcon variant="reduzido" tamanho={112} />}
           rodape="Você tem 1 dia de proteção por semana. Depois disso, o progresso cai, mas nunca some."
           botaoPrimario={{ titulo: 'Continuar', onPress: avancar }}
           onPular={onConcluir}
