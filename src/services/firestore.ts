@@ -6,7 +6,13 @@ import {
   setDoc,
   Timestamp,
 } from '@react-native-firebase/firestore';
-import { DailyLog, EstadoStreak, FocoProcrastinacao } from '../domain/types';
+import {
+  DailyLog,
+  EstadoStreak,
+  FocoProcrastinacao,
+  StatusStreak,
+  Tarefa,
+} from '../domain/types';
 
 export interface UsuarioDocumento {
   email: string;
@@ -20,7 +26,7 @@ export interface UsuarioDocumento {
   escudosDisponiveis: number;
   dataUltimaRenovacaoEscudo: Timestamp | null;
   ultimoDiaAtivo: string | null;
-  statusStreak: 'ativo' | 'em_risco' | 'perdido';
+  statusStreak: StatusStreak;
   marcosAtingidos: number[];
   notificacoesAtivas: boolean;
   horarioLembreteDiario: string | null;
@@ -156,4 +162,33 @@ export async function buscarSystemMessage(
   const referencia = doc(getFirestore(), 'systemMessages', key);
   const snapshot = await getDoc(referencia);
   return snapshot.exists() ? (snapshot.data() as SystemMessage) : null;
+}
+
+/**
+ * Acrescenta uma tarefa a dailyLogs/{data}, criando o documento se ainda não
+ * existir. Usado pela tela de retorno após pausa para registrar a tarefa
+ * pequena que o usuário escolhe pra recomeçar o dia.
+ */
+export async function adicionarTarefaAoDailyLog(
+  uid: string,
+  data: string,
+  tarefa: Tarefa,
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  const snapshot = await getDoc(referencia);
+  const logAtual = snapshot.exists() ? (snapshot.data() as DailyLog) : null;
+
+  await setDoc(referencia, {
+    data,
+    tarefas: [...(logAtual?.tarefas ?? []), tarefa],
+    statusDia: logAtual?.statusDia ?? 'pendente',
+    escudoUsado: logAtual?.escudoUsado ?? false,
+  });
+}
+
+export async function atualizarStatusStreak(
+  uid: string,
+  statusStreak: StatusStreak,
+): Promise<void> {
+  await setDoc(documentoUsuario(uid), { statusStreak }, { merge: true });
 }

@@ -205,6 +205,31 @@ describe('aplicarResultadoDia', () => {
     expect(resultado.escudosDisponiveis).toBe(1);
   });
 
+  it('2+ dias seguidos sem atividade: statusStreak vira pausado', () => {
+    const estado: EstadoStreak = {
+      ...estadoBase,
+      streakAtual: 10,
+      statusStreak: 'ativo',
+      ultimoDiaAtivo: '2026-09-05',
+    };
+    const resultado = aplicarResultadoDia(estado, 'nao_cumprido', true, '2026-09-09');
+
+    expect(resultado.statusStreak).toBe('pausado');
+  });
+
+  it('não mexe em statusStreak fora do caminho de gap (dia cumprido, escudo, ou perdido isolado)', () => {
+    const estadoPausado: EstadoStreak = { ...estadoBase, statusStreak: 'pausado' };
+
+    const cumprido = aplicarResultadoDia(estadoPausado, 'cumprido', true, '2026-09-09');
+    expect(cumprido.statusStreak).toBe('pausado');
+
+    const comEscudo = aplicarResultadoDia(estadoPausado, 'nao_cumprido', true, '2026-09-09');
+    expect(comEscudo.statusStreak).toBe('pausado');
+
+    const semEscudo = aplicarResultadoDia(estadoPausado, 'nao_cumprido', false, '2026-09-09');
+    expect(semEscudo.statusStreak).toBe('pausado');
+  });
+
   it('diasTotaisAtivos nunca reseta, nem no caminho de reset por gap', () => {
     const estado: EstadoStreak = {
       ...estadoBase,

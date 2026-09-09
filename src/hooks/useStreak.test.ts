@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useStreak } from './useStreak';
 
 jest.mock('../services/firestore');
@@ -96,6 +96,37 @@ describe('useStreak', () => {
 
     expect(result.current.statusDiaAnterior).toBe('protegido_escudo');
     expect(result.current.escudosDisponiveis).toBe(0);
+  });
+
+  it('2+ dias seguidos sem atividade: statusStreak vira pausado, e NÃO expõe statusDiaAnterior (evita disputar com a tela de recaída de 1 dia)', async () => {
+    mockAgora('2026-09-12'); // gap de 4 dias desde ultimoDiaAtivo (2026-09-08)
+    firestoreService.buscarEstadoStreak.mockResolvedValue({ ...ESTADO_BASE });
+    firestoreService.buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.statusStreak).toBe('pausado');
+    expect(result.current.statusDiaAnterior).toBeNull();
+    expect(firestoreService.atualizarEstadoStreak).toHaveBeenCalledWith(
+      'uid-1',
+      expect.objectContaining({ statusStreak: 'pausado' }),
+    );
+  });
+
+  it('marcarRetornoConcluido reverte statusStreak para ativo localmente', async () => {
+    mockAgora('2026-09-12');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({ ...ESTADO_BASE });
+    firestoreService.buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.statusStreak).toBe('pausado'));
+
+    await act(async () => {
+      result.current.marcarRetornoConcluido();
+    });
+
+    expect(result.current.statusStreak).toBe('ativo');
   });
 
   it('renova o escudo quando a última renovação foi em semana anterior', async () => {

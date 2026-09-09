@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { RootNavigator } from './RootNavigator';
 
 jest.mock('../hooks/useTutorialStatus');
@@ -7,20 +7,24 @@ jest.mock('../hooks/useAuth');
 jest.mock('../hooks/useOnboardingStatus');
 jest.mock('../hooks/useStreak');
 jest.mock('../hooks/useRecoveryState');
+jest.mock('../hooks/useReturnAfterPause');
 
 const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
 const { useOnboardingStatus } = require('../hooks/useOnboardingStatus');
 const { useStreak } = require('../hooks/useStreak');
 const { useRecoveryState } = require('../hooks/useRecoveryState');
+const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
 
 const ESTADO_BASE_STREAK = {
   streakAtual: 5,
   diasTotaisAtivos: 10,
   escudosDisponiveis: 1,
   statusDiaAnterior: null,
+  statusStreak: 'ativo',
   marcoAtingido: null,
   carregando: false,
+  marcarRetornoConcluido: jest.fn(),
 };
 
 function configurarHooksPadrao() {
@@ -43,6 +47,12 @@ function configurarHooksPadrao() {
     marcarComoCompleto: jest.fn(),
   });
   useStreak.mockReturnValue(ESTADO_BASE_STREAK);
+  useReturnAfterPause.mockReturnValue({
+    porqueTexto: 'Terminar meus estudos',
+    corpoComTexto: 'Alguns dias passaram, e tudo bem.',
+    carregando: false,
+    enviarTarefaInicial: jest.fn().mockResolvedValue(undefined),
+  });
 }
 
 describe('RootNavigator — tela de recaída', () => {
@@ -81,5 +91,111 @@ describe('RootNavigator — tela de recaída', () => {
 
     await fireEvent.press(screen.getByText('Ver tarefas de hoje'));
     expect(marcarComoExibido).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RootNavigator — retorno após pausa', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    configurarHooksPadrao();
+    useRecoveryState.mockReturnValue({
+      deveExibir: false,
+      tipo: null,
+      corpo: null,
+      marcarComoExibido: jest.fn(),
+    });
+  });
+
+  it('statusStreak ativo: não mostra ReturnAfterPauseScreen', async () => {
+    await render(<RootNavigator />);
+
+    expect(screen.queryByText('Voltar a começar')).toBeNull();
+  });
+
+  it('statusStreak pausado: mostra ReturnAfterPauseScreen com prioridade sobre a recaída de 1 dia', async () => {
+    useStreak.mockReturnValue({ ...ESTADO_BASE_STREAK, statusStreak: 'pausado' });
+    useRecoveryState.mockReturnValue({
+      deveExibir: true,
+      tipo: 'reduzido',
+      corpo: 'texto de recaída',
+      marcarComoExibido: jest.fn(),
+    });
+
+    await render(<RootNavigator />);
+
+    expect(screen.getByText('Voltar a começar')).toBeTruthy();
+    expect(screen.queryByText('Ver tarefas de hoje')).toBeNull();
+    expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+  });
+
+  it('navega pra Home só depois que enviarTarefaInicial resolve com sucesso', async () => {
+    let resolverEnvio: () => void = () => {};
+    const enviarTarefaInicial = jest.fn(
+      () => new Promise<void>(resolve => { resolverEnvio = resolve; }),
+    );
+    const marcarRetornoConcluido = jest.fn();
+
+    useStreak.mockReturnValue({
+      ...ESTADO_BASE_STREAK,
+      statusStreak: 'pausado',
+      marcarRetornoConcluido,
+    });
+    useReturnAfterPause.mockReturnValue({
+      porqueTexto: 'Terminar meus estudos',
+      corpoComTexto: 'Alguns dias passaram, e tudo bem.',
+      carregando: false,
+      enviarTarefaInicial,
+    });
+
+    await render(<RootNavigator />);
+
+    await fireEvent.changeText(
+      screen.getByPlaceholderText('ex: guardar o celular na gaveta às 20h'),
+      'Guardar o celular na gaveta às 20h',
+    );
+    await fireEvent.press(screen.getByText('Voltar a começar'));
+
+    expect(marcarRetornoConcluido).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolverEnvio();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(marcarRetornoConcluido).toHaveBeenCalledTimes(1);
+  });
+
+  it('não chama marcarRetornoConcluido quando a gravação falha', async () => {
+    const marcarRetornoConcluido = jest.fn();
+    const enviarTarefaInicial = jest.fn().mockRejectedValue(new Error('offline'));
+
+    useStreak.mockReturnValue({
+      ...ESTADO_BASE_STREAK,
+      statusStreak: 'pausado',
+      marcarRetornoConcluido,
+    });
+    useReturnAfterPause.mockReturnValue({
+      porqueTexto: 'Terminar meus estudos',
+      corpoComTexto: 'Alguns dias passaram, e tudo bem.',
+      carregando: false,
+      enviarTarefaInicial,
+    });
+
+    await render(<RootNavigator />);
+
+    await fireEvent.changeText(
+      screen.getByPlaceholderText('ex: guardar o celular na gaveta às 20h'),
+      'Guardar o celular na gaveta às 20h',
+    );
+    await fireEvent.press(screen.getByText('Voltar a começar'));
+    await waitFor(() =>
+      expect(
+        screen.getByText('Não deu pra salvar agora. Tenta de novo em instantes.'),
+      ).toBeTruthy(),
+    );
+
+    expect(marcarRetornoConcluido).not.toHaveBeenCalled();
+    expect(screen.getByText('Voltar a começar')).toBeTruthy();
   });
 });

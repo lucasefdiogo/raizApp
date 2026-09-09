@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   aplicarResultadoDia,
   avaliarDiaCumprido,
   deveRenovarEscudo,
   renovarEscudo,
 } from '../domain/streak';
-import { EstadoStreak, StatusDiaResultante } from '../domain/types';
+import { EstadoStreak, StatusDiaResultante, StatusStreak } from '../domain/types';
 import {
   atualizarEstadoStreak,
   buscarDailyLog,
@@ -17,8 +17,10 @@ interface UseStreakResultado {
   diasTotaisAtivos: number;
   escudosDisponiveis: number;
   statusDiaAnterior: StatusDiaResultante | null;
+  statusStreak: StatusStreak;
   marcoAtingido: number | null;
   carregando: boolean;
+  marcarRetornoConcluido: () => void;
 }
 
 function paraISO(data: Date): string {
@@ -86,10 +88,17 @@ export function useStreak(uid: string | null): UseStreakResultado {
           escudosDisponiveis: resultado.escudosDisponiveis,
           marcosAtingidos: resultado.marcosAtingidos,
           ultimoDiaAtivo: hojeISO,
+          statusStreak: resultado.statusStreak,
         };
 
         if (!cancelado) {
-          setStatusDiaAnterior(resultado.statusDiaResultante);
+          // Um evento de pausa (2+ dias) é resolvido pela tela de retorno
+          // após pausa, não pela de recaída de 1 dia — statusDiaAnterior só
+          // é exposto quando NÃO for esse o caso, senão as duas telas
+          // disputariam o mesmo evento.
+          if (resultado.statusStreak !== 'pausado') {
+            setStatusDiaAnterior(resultado.statusDiaResultante);
+          }
           setMarcoAtingido(resultado.marcoAtingido);
         }
       }
@@ -116,12 +125,18 @@ export function useStreak(uid: string | null): UseStreakResultado {
     };
   }, [uid]);
 
+  const marcarRetornoConcluido = useCallback(() => {
+    setEstado(atual => (atual ? { ...atual, statusStreak: 'ativo' } : atual));
+  }, []);
+
   return {
     streakAtual: estado?.streakAtual ?? 0,
     diasTotaisAtivos: estado?.diasTotaisAtivos ?? 0,
     escudosDisponiveis: estado?.escudosDisponiveis ?? 0,
     statusDiaAnterior,
+    statusStreak: estado?.statusStreak ?? 'ativo',
     marcoAtingido,
     carregando,
+    marcarRetornoConcluido,
   };
 }
