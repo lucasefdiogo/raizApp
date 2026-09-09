@@ -5,6 +5,11 @@ import { HomeScreen } from './HomeScreen';
 jest.mock('../hooks/useStreak');
 const { useStreak } = require('../hooks/useStreak');
 
+jest.mock('../utils/taskFeedbackMessages');
+const {
+  obterMensagemTarefaConcluida,
+} = require('../utils/taskFeedbackMessages');
+
 beforeEach(() => {
   useStreak.mockReturnValue({
     streakAtual: 4,
@@ -14,6 +19,8 @@ beforeEach(() => {
     marcoAtingido: null,
     carregando: false,
   });
+  obterMensagemTarefaConcluida.mockClear();
+  obterMensagemTarefaConcluida.mockReturnValue('Feito. Isso conta.');
 });
 
 describe('HomeScreen', () => {
@@ -34,5 +41,26 @@ describe('HomeScreen', () => {
     await render(<HomeScreen uid="uid-teste" />);
     expect(screen.getByText('4')).toBeTruthy();
     expect(screen.getByText('1 escudo disponível')).toBeTruthy();
+  });
+
+  it('mostra o overlay com a mensagem de reforço ao concluir uma tarefa', async () => {
+    await render(<HomeScreen uid="uid-teste" />);
+    await fireEvent.press(
+      screen.getByText('Guardar o celular durante o almoço'),
+    );
+
+    expect(screen.getByText('Feito. Isso conta.')).toBeTruthy();
+    expect(obterMensagemTarefaConcluida).toHaveBeenCalledTimes(1);
+  });
+
+  it('não dispara o overlay ao desmarcar uma tarefa já concluída', async () => {
+    await render(<HomeScreen uid="uid-teste" />);
+    const tarefa = screen.getByText('Guardar o celular durante o almoço');
+
+    await fireEvent.press(tarefa); // marca como concluída
+    expect(obterMensagemTarefaConcluida).toHaveBeenCalledTimes(1);
+
+    await fireEvent.press(tarefa); // desmarca
+    expect(obterMensagemTarefaConcluida).toHaveBeenCalledTimes(1);
   });
 });
