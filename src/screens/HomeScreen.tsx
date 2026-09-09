@@ -3,10 +3,12 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreak } from '../hooks/useStreak';
+import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
+import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { StatusDia } from '../domain/types';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 
@@ -21,7 +23,9 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ uid }: HomeScreenProps) {
-  const { streakAtual, escudosDisponiveis } = useStreak(uid);
+  const { streakAtual, escudosDisponiveis, marcoAtingido } = useStreak(uid);
+  const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
+    useStreakMilestone(marcoAtingido);
   const { tarefas, alternarTarefa, statusDia } = useDailyTasks();
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
@@ -56,6 +60,14 @@ export function HomeScreen({ uid }: HomeScreenProps) {
         mensagem={mensagemOverlay}
         onHide={esconderOverlay}
       />
+      {marcoParaExibir !== null && (
+        <StreakMilestoneModal
+          marco={marcoParaExibir}
+          corpo={corpoParaExibir}
+          visible={!overlayVisivel}
+          onDismiss={limparMarcoExibido}
+        />
+      )}
     </SafeAreaView>
   );
 }

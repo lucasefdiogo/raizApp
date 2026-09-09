@@ -2,6 +2,7 @@ import {
   criarDocumentoUsuario,
   buscarUsuario,
   salvarOnboardingUsuario,
+  buscarSystemMessage,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -81,6 +82,32 @@ describe('services/firestore', () => {
         tempoTelaEstimado: 3,
         streakAtual: 0,
       });
+    });
+  });
+
+  describe('buscarSystemMessage', () => {
+    it('lê o título e o corpo da chave informada', async () => {
+      const referencia = firestoreMock.doc(
+        firestoreMock.getFirestore(),
+        'systemMessages',
+        'marco_7',
+      );
+      await firestoreMock.setDoc(referencia, {
+        titulo: 'Sete dias seguidos',
+        corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
+      });
+
+      const mensagem = await buscarSystemMessage('marco_7');
+
+      expect(mensagem).toEqual({
+        titulo: 'Sete dias seguidos',
+        corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
+      });
+    });
+
+    it('retorna null quando a chave não existe', async () => {
+      const mensagem = await buscarSystemMessage('marco_inexistente');
+      expect(mensagem).toBeNull();
     });
   });
 });

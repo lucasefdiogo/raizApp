@@ -17,6 +17,7 @@ export const colors = {
   textSecondary: '#5C6B4A',
   accent: '#C1702F',
   border: '#E3D8C3',
+  overlay: 'rgba(43, 33, 24, 0.6)',
 } as const;
 
 export type ColorToken = keyof typeof colors;

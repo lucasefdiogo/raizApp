@@ -144,3 +144,16 @@ export async function buscarDailyLog(
   const snapshot = await getDoc(referencia);
   return snapshot.exists() ? (snapshot.data() as DailyLog) : null;
 }
+
+export interface SystemMessage {
+  titulo: string;
+  corpo: string;
+}
+
+export async function buscarSystemMessage(
+  key: string,
+): Promise<SystemMessage | null> {
+  const referencia = doc(getFirestore(), 'systemMessages', key);
+  const snapshot = await getDoc(referencia);
+  return snapshot.exists() ? (snapshot.data() as SystemMessage) : null;
+}
