@@ -8,6 +8,10 @@ import {
 
 const PROPORCAO_MINIMA_CUMPRIMENTO = 0.6;
 
+export function existeEssencialConcluida(tarefas: Tarefa[]): boolean {
+  return tarefas.some(tarefa => tarefa.essencial && tarefa.concluida);
+}
+
 /**
  * Dia cumprido = pelo menos 1 tarefa essencial concluída, ou 60% das tarefas
  * do dia concluídas (regra de negócio definida na fundamentação do produto).
@@ -17,10 +21,7 @@ export function avaliarDiaCumprido(tarefas: Tarefa[]): boolean {
     return false;
   }
 
-  const temEssencialConcluida = tarefas.some(
-    tarefa => tarefa.essencial && tarefa.concluida,
-  );
-  if (temEssencialConcluida) {
+  if (existeEssencialConcluida(tarefas)) {
     return true;
   }
 

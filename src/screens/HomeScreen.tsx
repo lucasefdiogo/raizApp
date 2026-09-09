@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
@@ -9,6 +9,7 @@ import { TaskList } from '../components/TaskList';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { StatusDia } from '../domain/types';
+import { existeEssencialConcluida } from '../domain/streak';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 
 const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
@@ -22,6 +23,7 @@ interface HomeScreenProps {
   escudosDisponiveis: number;
   marcoAtingido: number | null;
   onVerProgresso: () => void;
+  avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
 }
 
 export function HomeScreen({
@@ -29,12 +31,17 @@ export function HomeScreen({
   escudosDisponiveis,
   marcoAtingido,
   onVerProgresso,
+  avaliarAlertaRisco,
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const { tarefas, alternarTarefa, statusDia } = useDailyTasks();
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
+
+  useEffect(() => {
+    avaliarAlertaRisco(existeEssencialConcluida(tarefas));
+  }, [tarefas, avaliarAlertaRisco]);
 
   const handleAlternarTarefa = useCallback(
     (id: string) => {
