@@ -4,8 +4,8 @@ function getFirestore() {
   return {};
 }
 
-function doc(_firestoreInstance, collectionPath, id) {
-  return { __caminho: `${collectionPath}/${id}` };
+function doc(_firestoreInstance, ...segmentosCaminho) {
+  return { __caminho: segmentosCaminho.join('/') };
 }
 
 const getDoc = jest.fn(async ref => {

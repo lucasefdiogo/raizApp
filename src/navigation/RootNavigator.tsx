@@ -16,6 +16,7 @@ import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
+import { ProgressoScreen } from '../screens/progress/ProgressoScreen';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   ReturnAfterPause: undefined;
   RecoveryState: undefined;
   Home: undefined;
+  Progresso: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -112,15 +114,21 @@ export function RootNavigator() {
               )}
             </Stack.Screen>
           ) : (
-            <Stack.Screen name="Home">
-              {() => (
-                <HomeScreen
-                  streakAtual={streak.streakAtual}
-                  escudosDisponiveis={streak.escudosDisponiveis}
-                  marcoAtingido={streak.marcoAtingido}
-                />
-              )}
-            </Stack.Screen>
+            <>
+              <Stack.Screen name="Home">
+                {({ navigation }) => (
+                  <HomeScreen
+                    streakAtual={streak.streakAtual}
+                    escudosDisponiveis={streak.escudosDisponiveis}
+                    marcoAtingido={streak.marcoAtingido}
+                    onVerProgresso={() => navigation.navigate('Progresso')}
+                  />
+                )}
+              </Stack.Screen>
+              <Stack.Screen name="Progresso">
+                {() => <ProgressoScreen uid={auth.user!.uid} />}
+              </Stack.Screen>
+            </>
           )
         ) : (
           <Stack.Screen name="Onboarding">
