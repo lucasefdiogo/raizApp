@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
@@ -7,7 +7,8 @@ import { useDailyTasks } from '../hooks/useDailyTasks';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
-import { AddTaskForm } from '../components/home/AddTaskForm';
+import { EmptyState } from '../components/common/EmptyState';
+import { AddTaskForm, AddTaskFormRef } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { StatusDia } from '../domain/types';
@@ -49,6 +50,7 @@ export function HomeScreen({
   } = useDailyTasks(uid);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
+  const addTaskFormRef = useRef<AddTaskFormRef>(null);
 
   useEffect(() => {
     avaliarAlertaRisco(existeEssencialConcluida(tarefas));
@@ -82,9 +84,12 @@ export function HomeScreen({
         ) : (
           <>
             {tarefas.length === 0 ? (
-              <Text style={styles.vazio}>
-                Sem tarefas por enquanto. Adicione a primeira aqui embaixo.
-              </Text>
+              <EmptyState
+                titulo="Nenhuma tarefa ainda"
+                corpo="Adicione a primeira — pode ser bem pequena."
+                ctaLabel="+ adicionar tarefa"
+                onCtaPress={() => addTaskFormRef.current?.focar()}
+              />
             ) : (
               <TaskList
                 tarefas={tarefas}
@@ -94,6 +99,7 @@ export function HomeScreen({
               />
             )}
             <AddTaskForm
+              ref={addTaskFormRef}
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
             />
@@ -133,11 +139,6 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
   statusDia: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.body,
-    color: theme.colors.textSecondary,
-  },
-  vazio: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
