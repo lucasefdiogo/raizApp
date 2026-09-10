@@ -8,6 +8,7 @@ import {
   buscarDailyLog,
   buscarUltimosDailyLogs,
   salvarDailyLog,
+  atualizarPerfilUsuario,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -247,6 +248,44 @@ describe('services/firestore', () => {
       const usuario = await buscarUsuario('uid-1');
       expect(usuario?.statusStreak).toBe('ativo');
       expect(usuario?.email).toBe('a@a.com');
+    });
+  });
+
+  describe('atualizarPerfilUsuario', () => {
+    it('atualiza só os campos passados, sem apagar o restante do documento', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await atualizarPerfilUsuario('uid-1', {
+        porqueTexto: 'Terminar meus estudos',
+        notificacoesAtivas: true,
+        horarioLembreteDiario: '08:00',
+      });
+
+      await atualizarPerfilUsuario('uid-1', { notificacoesAtivas: false });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        email: 'a@a.com',
+        porqueTexto: 'Terminar meus estudos',
+        notificacoesAtivas: false,
+        horarioLembreteDiario: '08:00',
+      });
+    });
+
+    it('atualiza só o porquê sem mexer em notificacoesAtivas/horarioLembreteDiario', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await atualizarPerfilUsuario('uid-1', {
+        notificacoesAtivas: true,
+        horarioLembreteDiario: '20:00',
+      });
+
+      await atualizarPerfilUsuario('uid-1', { porqueTexto: 'Novo porquê' });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        porqueTexto: 'Novo porquê',
+        notificacoesAtivas: true,
+        horarioLembreteDiario: '20:00',
+      });
     });
   });
 });

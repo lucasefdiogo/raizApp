@@ -15,10 +15,16 @@ const screenOptions: NativeStackNavigationOptions = {
   headerShown: false,
 };
 
-export function PerfilStack() {
+interface PerfilStackProps {
+  uid: string;
+}
+
+export function PerfilStack({ uid }: PerfilStackProps) {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen name="Perfil" component={PerfilScreen} />
+      <Stack.Screen name="Perfil">
+        {() => <PerfilScreen uid={uid} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

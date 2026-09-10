@@ -20,9 +20,9 @@ jest.mock('./ProgressoStack', () => ({
   },
 }));
 jest.mock('./PerfilStack', () => ({
-  PerfilStack: () => {
+  PerfilStack: ({ uid }: { uid: string }) => {
     const { Text } = require('react-native');
-    return <Text>PerfilStack</Text>;
+    return <Text>PerfilStack uid={uid}</Text>;
   },
 }));
 
@@ -40,7 +40,7 @@ describe('MainTabNavigator', () => {
 
     expect(screen.getByText('HojeStack uid=uid-teste')).toBeTruthy();
     expect(screen.queryByText('ProgressoStack uid=uid-teste')).toBeNull();
-    expect(screen.queryByText('PerfilStack')).toBeNull();
+    expect(screen.queryByText('PerfilStack uid=uid-teste')).toBeNull();
   });
 
   it('mostra as 3 abas na tab bar', async () => {
@@ -65,7 +65,7 @@ describe('MainTabNavigator', () => {
 
     await fireEvent.press(screen.getByText('Perfil'));
 
-    expect(screen.getByText('PerfilStack')).toBeTruthy();
+    expect(screen.getByText('PerfilStack uid=uid-teste')).toBeTruthy();
     expect(screen.queryByText('HojeStack uid=uid-teste')).toBeNull();
   });
 
