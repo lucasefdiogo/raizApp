@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
+import { useBlockHardwareBack } from '../../hooks/useBlockHardwareBack';
 import { RecoveryStateCard } from '../../components/recovery/RecoveryStateCard';
 import { PrimaryButton } from '../../components/PrimaryButton';
 
@@ -16,6 +17,10 @@ export function RecoveryStateScreen({
   corpo,
   onConcluir,
 }: RecoveryStateScreenProps) {
+  // Não dá pra pular esse fluxo pelo botão voltar — ver princípio de
+  // recaída sem vergonha no CLAUDE.md.
+  useBlockHardwareBack();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.conteudo}>
