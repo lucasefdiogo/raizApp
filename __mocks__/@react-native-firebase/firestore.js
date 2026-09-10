@@ -65,6 +65,34 @@ const setDoc = jest.fn(async (ref, dados, options) => {
   }
 });
 
+const deleteDoc = jest.fn(async ref => {
+  delete armazenamento[ref.__caminho];
+});
+
+function writeBatch() {
+  const operacoes = [];
+  const lote = {
+    set(ref, dados, options) {
+      operacoes.push(() => setDoc(ref, dados, options));
+      return lote;
+    },
+    update(ref, dados) {
+      operacoes.push(() => setDoc(ref, dados, { merge: true }));
+      return lote;
+    },
+    delete(ref) {
+      operacoes.push(() => deleteDoc(ref));
+      return lote;
+    },
+    async commit() {
+      for (const operacao of operacoes) {
+        await operacao();
+      }
+    },
+  };
+  return lote;
+}
+
 const serverTimestamp = jest.fn(() => 'MOCK_SERVER_TIMESTAMP');
 
 function __reset() {
@@ -72,6 +100,7 @@ function __reset() {
   getDoc.mockClear();
   getDocs.mockClear();
   setDoc.mockClear();
+  deleteDoc.mockClear();
   serverTimestamp.mockClear();
 }
 
@@ -88,6 +117,8 @@ module.exports = {
   getDoc,
   getDocs,
   setDoc,
+  deleteDoc,
+  writeBatch,
   serverTimestamp,
   __reset,
   __dados,

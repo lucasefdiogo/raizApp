@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -9,6 +10,7 @@ import {
   serverTimestamp,
   setDoc,
   Timestamp,
+  writeBatch,
 } from '@react-native-firebase/firestore';
 import {
   DailyLog,
@@ -250,4 +252,58 @@ export async function atualizarPerfilUsuario(
   }>,
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), campos, { merge: true });
+}
+
+// Firestore aceita até 500 operações por batch. Ficamos abaixo pra ter
+// margem e paginamos a leitura — não dá pra assumir que a subcoleção é
+// pequena.
+const TAMANHO_PAGINA_EXCLUSAO = 400;
+
+const SUBCOLECOES_DO_USUARIO = ['dailyLogs', 'essentialTasks'] as const;
+
+/**
+ * Apaga todos os documentos de uma subcoleção de users/{uid}, em páginas.
+ * Cada volta relê do começo (getDocs sem cursor) e apaga o que leu, então o
+ * loop drena a coleção naturalmente. Subcoleção inexistente sai na primeira
+ * volta (página vazia).
+ */
+async function apagarSubcolecaoDoUsuario(
+  uid: string,
+  nomeSubcolecao: string,
+): Promise<void> {
+  const bd = getFirestore();
+  const referenciaColecao = collection(bd, 'users', uid, nomeSubcolecao);
+
+  for (;;) {
+    const pagina = await getDocs(
+      query(referenciaColecao, limit(TAMANHO_PAGINA_EXCLUSAO)),
+    );
+    if (pagina.empty) {
+      return;
+    }
+
+    const lote = writeBatch(bd);
+    pagina.forEach(documento => {
+      lote.delete(doc(bd, 'users', uid, nomeSubcolecao, documento.id));
+    });
+    await lote.commit();
+
+    if (pagina.size < TAMANHO_PAGINA_EXCLUSAO) {
+      return;
+    }
+  }
+}
+
+/**
+ * Apaga TODOS os dados do usuário no Firestore, na ordem: subcoleções
+ * primeiro (dailyLogs, essentialTasks), depois o documento users/{uid}.
+ * Feito client-side (dívida técnica registrada no CLAUDE.md) — exige que o
+ * Auth do usuário ainda esteja válido, então deve rodar ANTES de apagar a
+ * conta no Firebase Auth.
+ */
+export async function apagarTodosOsDadosDoUsuario(uid: string): Promise<void> {
+  for (const nomeSubcolecao of SUBCOLECOES_DO_USUARIO) {
+    await apagarSubcolecaoDoUsuario(uid, nomeSubcolecao);
+  }
+  await deleteDoc(documentoUsuario(uid));
 }

@@ -7,10 +7,13 @@ import DateTimePicker, {
 import { theme } from '../../theme';
 import { usePerfil } from '../../hooks/usePerfil';
 import { useAuth } from '../../hooks/useAuth';
+import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { LinkExterno } from '../../components/common/LinkExterno';
+import { ConfirmDeleteAccountModal } from '../../components/perfil/ConfirmDeleteAccountModal';
+import { ReauthPromptModal } from '../../components/perfil/ReauthPromptModal';
 import {
   ROTULO_POLITICA_PRIVACIDADE,
   ROTULO_TERMOS_DE_USO,
@@ -49,10 +52,20 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
     carregando,
   } = usePerfil(uid);
   const { signOut } = useAuth();
+  const {
+    excluirConta,
+    precisaReautenticar,
+    provedor,
+    reautenticar,
+    cancelarReautenticacao,
+    carregando: exclusaoCarregando,
+    erro: exclusaoErro,
+  } = useAccountDeletion();
 
   const [textoPorque, setTextoPorque] = useState('');
   const [salvoVisivel, setSalvoVisivel] = useState(false);
   const [seletorAberto, setSeletorAberto] = useState(false);
+  const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
 
   useEffect(() => {
     setTextoPorque(porqueTexto);
@@ -83,7 +96,18 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
     }
   };
 
+  const handleConfirmarExclusao = () => {
+    setConfirmacaoAberta(false);
+    excluirConta();
+  };
+
   if (carregando) {
+    return <LoadingIndicator variant="fullscreen" />;
+  }
+
+  // Exclusão em andamento — mas não enquanto o modal de reautenticação está
+  // pedindo a senha (aí a tela precisa continuar montada por baixo do modal).
+  if (exclusaoCarregando && !precisaReautenticar) {
     return <LoadingIndicator variant="fullscreen" />;
   }
 
@@ -141,7 +165,35 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
 
         <Text style={styles.secaoTitulo}>Sair</Text>
         <PrimaryButton titulo="Sair" onPress={signOut} />
+
+        <View style={styles.zonaExclusao}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setConfirmacaoAberta(true)}
+            style={styles.botaoExcluirConta}
+            hitSlop={8}
+          >
+            <Text style={styles.textoExcluirConta}>Excluir conta</Text>
+          </Pressable>
+          <Text style={styles.avisoExclusao}>
+            Apaga sua conta e todo o progresso. Não dá pra desfazer.
+          </Text>
+        </View>
       </ScrollView>
+
+      <ConfirmDeleteAccountModal
+        visible={confirmacaoAberta}
+        onConfirm={handleConfirmarExclusao}
+        onCancel={() => setConfirmacaoAberta(false)}
+      />
+      <ReauthPromptModal
+        visible={precisaReautenticar}
+        provedor={provedor}
+        erro={exclusaoErro}
+        carregando={exclusaoCarregando}
+        onSubmit={reautenticar}
+        onCancel={cancelarReautenticacao}
+      />
     </SafeAreaView>
   );
 }
@@ -189,5 +241,30 @@ const styles = StyleSheet.create({
   linkLegal: {
     fontSize: theme.typography.fontSize.md,
     paddingVertical: theme.spacing.xs,
+  },
+  zonaExclusao: {
+    marginTop: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    gap: theme.spacing.xs,
+  },
+  botaoExcluirConta: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: theme.colors.erro,
+    borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+  },
+  textoExcluirConta: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.erro,
+  },
+  avisoExclusao: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
 });

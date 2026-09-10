@@ -99,6 +99,13 @@ deixar os dois divergirem.
   Firestore (ver `firestore.rules`). Antes de escalar a base de usuários, endurecer para que só Cloud
   Functions com privilégio admin escrevam esses campos. Se for mexer em `firestore.rules`, mencionar esse
   ponto mesmo que não seja o objetivo da tarefa.
+- **Exclusão de conta apaga dados via client-side** (`apagarTodosOsDadosDoUsuario` em `services/firestore.ts`),
+  não via Cloud Function. Percorre e apaga as subcoleções (`dailyLogs`, `essentialTasks`) em páginas e depois
+  o documento `users/{uid}` — o Firestore não faz exclusão recursiva ao apagar o pai. Migrar para exclusão
+  recursiva via Admin SDK numa Cloud Function antes de escalar a base de usuários, mesmo racional já registrado
+  para o cálculo de streak. Risco atual: se a limpeza falhar no meio (rede), pode deixar subcoleção órfã; e há
+  o cenário de borda de os passos 1–4 concluírem mas o `delete()` do Auth falhar por rede (não por
+  `requires-recent-login`) — usuário fica sem dados no Firestore mas com conta no Auth, sem rollback automático.
 
 ## Comandos
 

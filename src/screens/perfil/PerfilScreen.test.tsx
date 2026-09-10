@@ -9,9 +9,11 @@ import {
 
 jest.mock('../../hooks/usePerfil');
 jest.mock('../../hooks/useAuth');
+jest.mock('../../hooks/useAccountDeletion');
 
 const { usePerfil } = require('../../hooks/usePerfil');
 const { useAuth } = require('../../hooks/useAuth');
+const { useAccountDeletion } = require('../../hooks/useAccountDeletion');
 
 function configurarPerfilPadrao(sobrescritas = {}) {
   usePerfil.mockReturnValue({
@@ -26,10 +28,24 @@ function configurarPerfilPadrao(sobrescritas = {}) {
   });
 }
 
+function configurarExclusaoPadrao(sobrescritas = {}) {
+  useAccountDeletion.mockReturnValue({
+    excluirConta: jest.fn().mockResolvedValue(undefined),
+    precisaReautenticar: false,
+    provedor: null,
+    reautenticar: jest.fn().mockResolvedValue(undefined),
+    cancelarReautenticacao: jest.fn(),
+    carregando: false,
+    erro: null,
+    ...sobrescritas,
+  });
+}
+
 describe('PerfilScreen', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     configurarPerfilPadrao();
+    configurarExclusaoPadrao();
     useAuth.mockReturnValue({
       user: { uid: 'uid-teste' },
       carregando: false,
@@ -222,5 +238,80 @@ describe('PerfilScreen', () => {
       expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy(),
     );
     expect(screen.queryByTestId('loading-indicator')).toBeNull();
+  });
+
+  describe('exclusão de conta', () => {
+    it('mostra o botão "Excluir conta" e o modal só abre ao tocar nele', async () => {
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      expect(screen.getByText('Excluir conta')).toBeTruthy();
+      expect(screen.queryByText('Excluir sua conta')).toBeNull();
+
+      await fireEvent.press(screen.getByText('Excluir conta'));
+
+      expect(screen.getByText('Excluir sua conta')).toBeTruthy();
+    });
+
+    it('confirmar no modal chama excluirConta do hook', async () => {
+      const excluirConta = jest.fn().mockResolvedValue(undefined);
+      configurarExclusaoPadrao({ excluirConta });
+
+      await render(<PerfilScreen uid="uid-teste" />);
+      await fireEvent.press(screen.getByText('Excluir conta'));
+      // botão "Excluir conta" dentro do modal (2ª confirmação)
+      await fireEvent.press(screen.getAllByText('Excluir conta')[1]);
+
+      expect(excluirConta).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancelar no modal fecha sem chamar excluirConta', async () => {
+      const excluirConta = jest.fn().mockResolvedValue(undefined);
+      configurarExclusaoPadrao({ excluirConta });
+
+      await render(<PerfilScreen uid="uid-teste" />);
+      await fireEvent.press(screen.getByText('Excluir conta'));
+      await fireEvent.press(screen.getByText('Cancelar'));
+
+      expect(excluirConta).not.toHaveBeenCalled();
+      expect(screen.queryByText('Excluir sua conta')).toBeNull();
+    });
+
+    it('mostra o LoadingIndicator fullscreen durante a exclusão (fora do fluxo de reautenticação)', async () => {
+      configurarExclusaoPadrao({ carregando: true, precisaReautenticar: false });
+
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+      expect(screen.queryByText('Seu porquê')).toBeNull();
+    });
+
+    it('mostra o ReauthPromptModal quando o hook pede reautenticação, com a tela ainda montada', async () => {
+      configurarExclusaoPadrao({
+        precisaReautenticar: true,
+        provedor: 'password',
+        carregando: false,
+      });
+
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      expect(screen.getByText('Confirme que é você')).toBeTruthy();
+      expect(screen.getByText('Seu porquê')).toBeTruthy();
+    });
+
+    it('enviar a senha no ReauthPromptModal chama reautenticar do hook', async () => {
+      const reautenticar = jest.fn().mockResolvedValue(undefined);
+      configurarExclusaoPadrao({
+        precisaReautenticar: true,
+        provedor: 'password',
+        reautenticar,
+      });
+
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      await fireEvent.changeText(screen.getByLabelText('Senha'), 'minhaSenha');
+      await fireEvent.press(screen.getByText('Confirmar e excluir'));
+
+      expect(reautenticar).toHaveBeenCalledWith('minhaSenha');
+    });
   });
 });

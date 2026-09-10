@@ -10,6 +10,7 @@ import {
   existeAlgumDailyLog,
   salvarDailyLog,
   atualizarPerfilUsuario,
+  apagarTodosOsDadosDoUsuario,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -326,6 +327,73 @@ describe('services/firestore', () => {
         notificacoesAtivas: true,
         horarioLembreteDiario: '20:00',
       });
+    });
+  });
+
+  describe('apagarTodosOsDadosDoUsuario', () => {
+    async function semearUsuarioComDados(uid: string) {
+      await criarDocumentoUsuario(uid, `${uid}@a.com`);
+      await salvarDailyLog(uid, '2026-09-01', {
+        data: '2026-09-01',
+        tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+      await salvarDailyLog(uid, '2026-09-02', {
+        data: '2026-09-02',
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+      const essencialRef = firestoreMock.doc(
+        firestoreMock.getFirestore(),
+        'users',
+        uid,
+        'essentialTasks',
+        'et-1',
+      );
+      await firestoreMock.setDoc(essencialRef, { titulo: 'antiga essencial' });
+    }
+
+    it('apaga dailyLogs, essentialTasks e o documento do usuário', async () => {
+      await semearUsuarioComDados('uid-1');
+
+      await apagarTodosOsDadosDoUsuario('uid-1');
+
+      expect(firestoreMock.__dados('users/uid-1')).toBeUndefined();
+      expect(
+        firestoreMock.__dados('users/uid-1/dailyLogs/2026-09-01'),
+      ).toBeUndefined();
+      expect(
+        firestoreMock.__dados('users/uid-1/dailyLogs/2026-09-02'),
+      ).toBeUndefined();
+      expect(
+        firestoreMock.__dados('users/uid-1/essentialTasks/et-1'),
+      ).toBeUndefined();
+      expect(await buscarUsuario('uid-1')).toBeNull();
+      expect(await existeAlgumDailyLog('uid-1')).toBe(false);
+    });
+
+    it('não toca nos dados de outro usuário', async () => {
+      await semearUsuarioComDados('uid-1');
+      await semearUsuarioComDados('uid-2');
+
+      await apagarTodosOsDadosDoUsuario('uid-1');
+
+      expect(await buscarUsuario('uid-2')).not.toBeNull();
+      expect(await existeAlgumDailyLog('uid-2')).toBe(true);
+      expect(
+        firestoreMock.__dados('users/uid-2/essentialTasks/et-1'),
+      ).toBeDefined();
+    });
+
+    it('não quebra quando não há subcoleções (só o documento do usuário)', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+
+      await expect(
+        apagarTodosOsDadosDoUsuario('uid-1'),
+      ).resolves.toBeUndefined();
+      expect(await buscarUsuario('uid-1')).toBeNull();
     });
   });
 });
