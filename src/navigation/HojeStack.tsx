@@ -1,13 +1,12 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { theme } from '../theme';
 import { useStreak } from '../hooks/useStreak';
 import { useRecoveryState } from '../hooks/useRecoveryState';
 import { useLocalNotifications } from '../hooks/useLocalNotifications';
+import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
@@ -45,11 +44,7 @@ export function HojeStack({ uid }: HojeStackProps) {
   const notificacoes = useLocalNotifications(uid, true);
 
   if (streak.carregando) {
-    return (
-      <View style={styles.carregando}>
-        <ActivityIndicator color={theme.colors.cobre} />
-      </View>
-    );
+    return <LoadingIndicator variant="fullscreen" />;
   }
 
   return (
@@ -89,12 +84,3 @@ export function HojeStack({ uid }: HojeStackProps) {
     </Stack.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  carregando: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.background,
-  },
-});

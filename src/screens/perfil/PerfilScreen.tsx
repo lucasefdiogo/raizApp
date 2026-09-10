@@ -9,6 +9,7 @@ import { usePerfil } from '../../hooks/usePerfil';
 import { useAuth } from '../../hooks/useAuth';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_PADRAO = '08:00';
@@ -38,6 +39,7 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
     salvarPorque,
     alternarNotificacoes,
     alterarHorario,
+    carregando,
   } = usePerfil(uid);
   const { signOut } = useAuth();
 
@@ -71,6 +73,10 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
       alterarHorario(dateParaHorario(data));
     }
   };
+
+  if (carregando) {
+    return <LoadingIndicator variant="fullscreen" />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>

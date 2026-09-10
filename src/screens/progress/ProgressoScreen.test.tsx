@@ -27,5 +27,24 @@ describe('ProgressoScreen', () => {
     await waitFor(() => expect(screen.getByText('6')).toBeTruthy());
     expect(screen.getByText('20')).toBeTruthy();
     expect(screen.getAllByTestId('day-status-pill-indicador')).toHaveLength(7);
+    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+  });
+
+  it('mostra o LoadingIndicator enquanto useProgressoSemanal ainda carrega, sem números de resumo', async () => {
+    useProgressoSemanal.mockReturnValue({
+      historico: [],
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      carregando: true,
+    });
+
+    await render(<ProgressoScreen uid="uid-1" />);
+
+    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.getByText('Calculando seu progresso')).toBeTruthy();
+    // o título fixo continua; os placeholders de resumo não aparecem
+    expect(screen.getByText('Seu progresso')).toBeTruthy();
+    expect(screen.queryByText('Últimos 7 dias')).toBeNull();
+    expect(screen.queryAllByTestId('day-status-pill-indicador')).toHaveLength(0);
   });
 });

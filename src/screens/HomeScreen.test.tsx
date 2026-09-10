@@ -270,18 +270,27 @@ describe('HomeScreen', () => {
     expect(avaliarAlertaRisco).toHaveBeenLastCalledWith(true);
   });
 
-  it('não mostra a lista de tarefas enquanto useDailyTasks ainda está carregando', async () => {
+  it('mostra o LoadingIndicator inline enquanto useDailyTasks carrega, com o header já visível e sem a lista', async () => {
     useDailyTasks.mockReturnValueOnce({
       tarefas: [],
       alternarTarefa: jest.fn(),
+      adicionarTarefa: jest.fn(),
+      editarTarefa: jest.fn(),
+      removerTarefa: jest.fn(),
       statusDia: 'pendente',
       carregando: true,
+      erro: null,
+      limiteEssenciaisAtingido: false,
     });
 
     await render(<HomeScreen {...PROPS_PADRAO} />);
 
+    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    // o header (streak + título) já aparece — variante inline
+    expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
     expect(
       screen.queryByText('Abrir o material de estudo por 5 minutos'),
     ).toBeNull();
+    expect(screen.queryByText('Adicionar tarefa')).toBeNull();
   });
 });
