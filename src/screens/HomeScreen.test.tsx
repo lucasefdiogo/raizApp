@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput } from 'react-native';
+import { ScrollView } from 'react-native';
 import {
   render,
   screen,
@@ -172,7 +172,7 @@ describe('HomeScreen', () => {
     ).toBeTruthy();
   });
 
-  it('quando todas as tarefas são removidas, mostra o EmptyState (não a lista em branco)', async () => {
+  it('quando todas as tarefas são removidas, mostra o EmptyState — sem CTA redundante, só o campo do AddTaskForm', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.queryByTestId('empty-state')).toBeNull();
 
@@ -187,34 +187,41 @@ describe('HomeScreen', () => {
 
     expect(screen.getByTestId('empty-state')).toBeTruthy();
     expect(screen.getByText('Nenhuma tarefa ainda')).toBeTruthy();
+    // o EmptyState não tem botão de adicionar — o AddTaskForm logo abaixo já é
+    // o caminho, ter os dois era redundante
+    expect(screen.queryByText('+ adicionar tarefa')).toBeNull();
+    expect(screen.getByLabelText('Nova tarefa')).toBeTruthy();
+    expect(screen.getByText('Adicionar tarefa')).toBeTruthy();
   });
 
-  it('o CTA do EmptyState foca o campo "Nova tarefa" (mesmo fluxo de adicionar, sem caminho paralelo)', async () => {
-    useDailyTasks.mockReturnValueOnce({
-      tarefas: [],
-      alternarTarefa: jest.fn(),
-      adicionarTarefa: jest.fn(),
-      editarTarefa: jest.fn(),
-      removerTarefa: jest.fn(),
-      statusDia: 'pendente',
-      carregando: false,
-      limiteEssenciaisAtingido: false,
-      recarregar: jest.fn().mockResolvedValue(undefined),
-    });
-
-    const focar = jest
-      .spyOn(TextInput.prototype, 'focus')
+  it('ao focar o campo "Nova tarefa", rola o conteúdo até o fim pra ele não ficar atrás do teclado', async () => {
+    const scrollToEnd = jest
+      .spyOn(ScrollView.prototype, 'scrollToEnd')
       .mockImplementation(() => {});
 
-    await render(<HomeScreen {...PROPS_PADRAO} />);
+    try {
+      useDailyTasks.mockReturnValueOnce({
+        tarefas: [],
+        alternarTarefa: jest.fn(),
+        adicionarTarefa: jest.fn(),
+        editarTarefa: jest.fn(),
+        removerTarefa: jest.fn(),
+        statusDia: 'pendente',
+        carregando: false,
+        limiteEssenciaisAtingido: false,
+        recarregar: jest.fn().mockResolvedValue(undefined),
+      });
 
-    // não existe um segundo campo/fluxo — o CTA reaproveita o AddTaskForm
-    expect(screen.queryByText('Adicionar tarefa')).toBeTruthy();
+      await render(<HomeScreen {...PROPS_PADRAO} />);
 
-    await fireEvent.press(screen.getByText('+ adicionar tarefa'));
+      fireEvent(screen.getByLabelText('Nova tarefa'), 'focus');
 
-    expect(focar).toHaveBeenCalledTimes(1);
-    focar.mockRestore();
+      await waitFor(() =>
+        expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
+      );
+    } finally {
+      scrollToEnd.mockRestore();
+    }
   });
 
   it('ao atingir 3 essenciais pela Home, mostra o aviso do teto (antes não aparecia)', async () => {
