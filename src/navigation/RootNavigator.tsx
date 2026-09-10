@@ -9,15 +9,9 @@ import { theme } from '../theme';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
-import { useStreak } from '../hooks/useStreak';
-import { useRecoveryState } from '../hooks/useRecoveryState';
-import { useLocalNotifications } from '../hooks/useLocalNotifications';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
-import { HomeScreen } from '../screens/HomeScreen';
-import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
-import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
-import { ProgressoScreen } from '../screens/progress/ProgressoScreen';
+import { MainTabNavigator } from './MainTabNavigator';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
@@ -28,10 +22,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Onboarding: undefined;
-  ReturnAfterPause: undefined;
-  RecoveryState: undefined;
-  Home: undefined;
-  Progresso: undefined;
+  Main: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,23 +35,8 @@ export function RootNavigator() {
   const tutorial = useTutorialStatus();
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
-  const streak = useStreak(auth.user?.uid ?? null);
-  const recovery = useRecoveryState(
-    streak.statusDiaAnterior,
-    streak.streakAtual,
-    streak.diasTotaisAtivos,
-  );
-  const notificacoes = useLocalNotifications(
-    auth.user?.uid ?? null,
-    !!auth.user && onboarding.completo,
-  );
 
-  if (
-    tutorial.carregando ||
-    auth.carregando ||
-    onboarding.carregando ||
-    (onboarding.completo && streak.carregando)
-  ) {
+  if (tutorial.carregando || auth.carregando || onboarding.carregando) {
     return (
       <View style={styles.carregando}>
         <ActivityIndicator color={theme.colors.cobre} />
@@ -99,44 +75,9 @@ export function RootNavigator() {
             </Stack.Screen>
           </>
         ) : onboarding.completo ? (
-          streak.statusStreak === 'pausado' ? (
-            <Stack.Screen name="ReturnAfterPause">
-              {() => (
-                <ReturnAfterPauseScreen
-                  uid={auth.user!.uid}
-                  onConcluir={streak.marcarRetornoConcluido}
-                />
-              )}
-            </Stack.Screen>
-          ) : recovery.deveExibir && recovery.tipo && recovery.corpo !== null ? (
-            <Stack.Screen name="RecoveryState">
-              {() => (
-                <RecoveryStateScreen
-                  tipo={recovery.tipo!}
-                  corpo={recovery.corpo!}
-                  onConcluir={recovery.marcarComoExibido}
-                />
-              )}
-            </Stack.Screen>
-          ) : (
-            <>
-              <Stack.Screen name="Home">
-                {({ navigation }) => (
-                  <HomeScreen
-                    uid={auth.user!.uid}
-                    streakAtual={streak.streakAtual}
-                    escudosDisponiveis={streak.escudosDisponiveis}
-                    marcoAtingido={streak.marcoAtingido}
-                    onVerProgresso={() => navigation.navigate('Progresso')}
-                    avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
-                  />
-                )}
-              </Stack.Screen>
-              <Stack.Screen name="Progresso">
-                {() => <ProgressoScreen uid={auth.user!.uid} />}
-              </Stack.Screen>
-            </>
-          )
+          <Stack.Screen name="Main">
+            {() => <MainTabNavigator uid={auth.user!.uid} />}
+          </Stack.Screen>
         ) : (
           <Stack.Screen name="Onboarding">
             {() => (
