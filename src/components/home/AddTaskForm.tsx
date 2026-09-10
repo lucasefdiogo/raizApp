@@ -1,34 +1,27 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
-import { TextField, TextFieldRef } from '../TextField';
+import { TextField } from '../TextField';
 import { PrimaryButton } from '../PrimaryButton';
 import { MENSAGEM_LIMITE_ESSENCIAIS } from '../../domain/dailyTasks';
 
 interface AddTaskFormProps {
   onAdicionar: (titulo: string, essencial: boolean) => void;
   limiteEssenciaisAtingido: boolean;
+  /**
+   * Chamado quando o campo "Nova tarefa" recebe foco. A Home usa isso pra
+   * rolar o conteúdo até o campo, pra ele não ficar atrás do teclado.
+   */
+  onFocarCampo?: () => void;
 }
 
-export interface AddTaskFormRef {
-  /** Foca o campo "Nova tarefa" — usado pelo CTA do estado vazio da Home. */
-  focar: () => void;
-}
-
-export const AddTaskForm = forwardRef<AddTaskFormRef, AddTaskFormProps>(
-  function AddTaskFormBase({ onAdicionar, limiteEssenciaisAtingido }, ref) {
-    const campoRef = useRef<TextFieldRef>(null);
-    const [titulo, setTitulo] = useState('');
-    const [essencial, setEssencial] = useState(false);
-
-    useImperativeHandle(ref, () => ({
-      focar: () => campoRef.current?.focus(),
-    }));
+export function AddTaskForm({
+  onAdicionar,
+  limiteEssenciaisAtingido,
+  onFocarCampo,
+}: AddTaskFormProps) {
+  const [titulo, setTitulo] = useState('');
+  const [essencial, setEssencial] = useState(false);
 
   const podeMarcarEssencial = !limiteEssenciaisAtingido;
   const essencialEfetivo = essencial && podeMarcarEssencial;
@@ -46,12 +39,12 @@ export const AddTaskForm = forwardRef<AddTaskFormRef, AddTaskFormProps>(
   return (
     <View style={styles.container}>
       <TextField
-        ref={campoRef}
         label="Nova tarefa"
         placeholder="ex: revisar o capítulo 3"
         value={titulo}
         onChangeText={setTitulo}
         onSubmitEditing={adicionar}
+        onFocus={onFocarCampo}
         returnKeyType="done"
       />
 
@@ -88,9 +81,8 @@ export const AddTaskForm = forwardRef<AddTaskFormRef, AddTaskFormProps>(
         desabilitado={tituloLimpo.length === 0}
       />
     </View>
-    );
-  },
-);
+  );
+}
 
 const styles = StyleSheet.create({
   container: {

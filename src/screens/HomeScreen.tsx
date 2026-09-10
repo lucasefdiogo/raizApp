@@ -8,12 +8,17 @@ import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { EmptyState } from '../components/common/EmptyState';
-import { AddTaskForm, AddTaskFormRef } from '../components/home/AddTaskForm';
+import { AddTaskForm } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { StatusDia } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
+
+// Espera curta antes de rolar até o campo "Nova tarefa": dá tempo do teclado
+// terminar de subir (e o ScrollView encolher com o adjustResize do Android),
+// senão o scrollToEnd mira numa altura que muda logo em seguida.
+const ATRASO_SCROLL_TECLADO_MS = 250;
 
 const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
   pendente: 'O dia ainda está começando.',
@@ -59,7 +64,7 @@ export function HomeScreen({
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
   const [atualizando, setAtualizando] = useState(false);
-  const addTaskFormRef = useRef<AddTaskFormRef>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     avaliarAlertaRisco(existeEssencialConcluida(tarefas));
@@ -82,6 +87,12 @@ export function HomeScreen({
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
 
+  const aoFocarCampoNovaTarefa = useCallback(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, ATRASO_SCROLL_TECLADO_MS);
+  }, []);
+
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
     try {
@@ -96,8 +107,10 @@ export function HomeScreen({
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         testID="home-scroll"
         contentContainerStyle={styles.conteudo}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             testID="home-refresh-control"
@@ -119,8 +132,6 @@ export function HomeScreen({
               <EmptyState
                 titulo="Nenhuma tarefa ainda"
                 corpo="Adicione a primeira — pode ser bem pequena."
-                ctaLabel="+ adicionar tarefa"
-                onCtaPress={() => addTaskFormRef.current?.focar()}
               />
             ) : (
               <TaskList
@@ -131,9 +142,9 @@ export function HomeScreen({
               />
             )}
             <AddTaskForm
-              ref={addTaskFormRef}
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
+              onFocarCampo={aoFocarCampoNovaTarefa}
             />
           </>
         )}
