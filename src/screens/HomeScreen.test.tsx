@@ -1,6 +1,12 @@
 import React from 'react';
 import { TextInput } from 'react-native';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react-native';
 import { HomeScreen } from './HomeScreen';
 
 jest.mock('../utils/taskFeedbackMessages');
@@ -50,6 +56,7 @@ jest.mock('../hooks/useDailyTasks', () => {
   return {
     useDailyTasks: jest.fn(() => {
       const [tarefas, setTarefas] = useState(TAREFAS_MOCK);
+      const recarregar = jest.fn().mockResolvedValue(undefined);
 
       const alternarTarefa = (id: string) => {
         setTarefas((atual: typeof TAREFAS_MOCK) =>
@@ -91,6 +98,7 @@ jest.mock('../hooks/useDailyTasks', () => {
         statusDia: calcularStatusDia(tarefas),
         carregando: false,
         limiteEssenciaisAtingido: limiteEssenciaisAtingido(tarefas),
+        recarregar,
       };
     }),
   };
@@ -104,6 +112,7 @@ const PROPS_PADRAO = {
   escudosDisponiveis: 1,
   marcoAtingido: null,
   avaliarAlertaRisco: jest.fn(),
+  recarregarStreak: jest.fn().mockResolvedValue(undefined),
 };
 
 beforeEach(() => {
@@ -190,6 +199,7 @@ describe('HomeScreen', () => {
       statusDia: 'pendente',
       carregando: false,
       limiteEssenciaisAtingido: false,
+      recarregar: jest.fn().mockResolvedValue(undefined),
     });
 
     const focar = jest
@@ -298,6 +308,7 @@ describe('HomeScreen', () => {
       statusDia: 'pendente',
       carregando: true,
       limiteEssenciaisAtingido: false,
+      recarregar: jest.fn().mockResolvedValue(undefined),
     });
 
     await render(<HomeScreen {...PROPS_PADRAO} />);
@@ -309,5 +320,42 @@ describe('HomeScreen', () => {
       screen.queryByText('Abrir o material de estudo por 5 minutos'),
     ).toBeNull();
     expect(screen.queryByText('Adicionar tarefa')).toBeNull();
+  });
+
+  it('tem RefreshControl e o puxar-pra-atualizar aciona recarregar() das tarefas e do streak', async () => {
+    const recarregar = jest.fn().mockResolvedValue(undefined);
+    const recarregarStreak = jest.fn().mockResolvedValue(undefined);
+    // impl estática (sem hooks) durante este teste — o refresh dispara
+    // re-renders e o factory padrão do mock chamaria hooks fora de ordem.
+    const implPadrao = useDailyTasks.getMockImplementation();
+    useDailyTasks.mockImplementation(() => ({
+      tarefas: [],
+      alternarTarefa: jest.fn(),
+      adicionarTarefa: jest.fn(),
+      editarTarefa: jest.fn(),
+      removerTarefa: jest.fn(),
+      statusDia: 'pendente',
+      carregando: false,
+      limiteEssenciaisAtingido: false,
+      recarregar,
+    }));
+
+    try {
+      await render(
+        <HomeScreen {...PROPS_PADRAO} recarregarStreak={recarregarStreak} />,
+      );
+
+      const scroll = screen.getByTestId('home-scroll');
+      expect(scroll.props.refreshControl).toBeTruthy();
+
+      await act(async () => {
+        await scroll.props.refreshControl.props.onRefresh();
+      });
+
+      expect(recarregar).toHaveBeenCalledTimes(1);
+      expect(recarregarStreak).toHaveBeenCalledTimes(1);
+    } finally {
+      useDailyTasks.mockImplementation(implPadrao);
+    }
   });
 });
