@@ -47,9 +47,24 @@ describe('TaskItem', () => {
     );
   });
 
-  it('não mostra o botão editar quando onEditar não é passado', async () => {
+  it('não mostra os botões editar/remover quando os handlers não são passados', async () => {
     await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
     expect(screen.queryByText('editar')).toBeNull();
+    expect(screen.queryByText('remover')).toBeNull();
+  });
+
+  it('chama onRemover com o id da tarefa ao tocar em remover', async () => {
+    const onRemover = jest.fn();
+    await render(
+      <TaskItem
+        tarefa={tarefaBase}
+        onAlternar={jest.fn()}
+        onRemover={onRemover}
+      />,
+    );
+
+    await fireEvent.press(screen.getByText('remover'));
+    expect(onRemover).toHaveBeenCalledWith('1');
   });
 
   it('edita o título inline e chama onEditar com id e novo texto ao salvar', async () => {

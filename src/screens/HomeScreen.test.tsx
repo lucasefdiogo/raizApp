@@ -21,6 +21,7 @@ jest.mock('../hooks/useDailyTasks', () => {
   const {
     adicionarTarefa: adicionarNoDia,
     editarTarefa: editarNoDia,
+    removerTarefa: removerNoDia,
     limiteEssenciaisAtingido,
   } = require('../domain/dailyTasks');
 
@@ -84,12 +85,17 @@ jest.mock('../hooks/useDailyTasks', () => {
           setErro(resultado.erro);
         }
       };
+      const removerTarefa = (id: string) => {
+        setErro(null);
+        setTarefas(removerNoDia(tarefas, id));
+      };
 
       return {
         tarefas,
         alternarTarefa,
         adicionarTarefa,
         editarTarefa,
+        removerTarefa,
         statusDia: calcularStatusDia(tarefas),
         carregando: false,
         erro,
@@ -149,6 +155,38 @@ describe('HomeScreen', () => {
     await fireEvent.press(screen.getByText('Adicionar tarefa'));
 
     expect(screen.getByText('Revisar o resumo da aula')).toBeTruthy();
+  });
+
+  it('remove uma tarefa pela Home e ela some da lista', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    expect(
+      screen.getByText('Guardar o celular durante o almoço'),
+    ).toBeTruthy();
+
+    // "remover" da 2ª tarefa da lista mock
+    await fireEvent.press(screen.getAllByText('remover')[1]);
+
+    expect(screen.queryByText('Guardar o celular durante o almoço')).toBeNull();
+    expect(
+      screen.getByText('Abrir o material de estudo por 5 minutos'),
+    ).toBeTruthy();
+  });
+
+  it('quando todas as tarefas são removidas, mostra o texto de lista vazia', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+
+    for (const titulo of [
+      'Abrir o material de estudo por 5 minutos',
+      'Guardar o celular durante o almoço',
+      'Escrever uma frase sobre o que pretende fazer hoje',
+    ]) {
+      await fireEvent.press(screen.getAllByText('remover')[0]);
+      expect(screen.queryByText(titulo)).toBeNull();
+    }
+
+    expect(
+      screen.getByText('Sem tarefas por enquanto. Adicione a primeira aqui embaixo.'),
+    ).toBeTruthy();
   });
 
   it('ao atingir 3 essenciais pela Home, mostra o aviso do teto (antes não aparecia)', async () => {

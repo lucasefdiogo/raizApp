@@ -53,6 +53,15 @@ export function adicionarTarefa(
 }
 
 /**
+ * Remove a tarefa `id` da lista. Id inexistente é no-op. Nunca falha por
+ * regra de negócio — tirar tarefa não esbarra no teto de essenciais, e a
+ * lista pode ficar vazia (dia sem tarefa é um estado válido).
+ */
+export function removerTarefa(tarefas: Tarefa[], id: string): Tarefa[] {
+  return tarefas.filter(tarefa => tarefa.id !== id);
+}
+
+/**
  * Edita título e/ou o marcador essencial de uma tarefa. Id inexistente é
  * no-op (retorna a lista como veio). Promover uma tarefa a essencial com o
  * teto já atingido é recusado; rebaixar (essencial -> comum) é sempre livre.

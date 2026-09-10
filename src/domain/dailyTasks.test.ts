@@ -3,6 +3,7 @@ import {
   contarEssenciais,
   editarTarefa,
   limiteEssenciaisAtingido,
+  removerTarefa,
   tituloTarefaValido,
   MENSAGEM_LIMITE_ESSENCIAIS,
   MENSAGEM_TITULO_VAZIO,
@@ -92,6 +93,30 @@ describe('adicionarTarefa', () => {
       tarefa({ id: '4', titulo: 'quarta', essencial: true }),
     );
     expect(resultado).toEqual({ ok: false, erro: MENSAGEM_LIMITE_ESSENCIAIS });
+  });
+});
+
+describe('removerTarefa', () => {
+  it('tira a tarefa pelo id e mantém o resto na ordem', () => {
+    const lista = [
+      tarefa({ id: '1', titulo: 'a' }),
+      tarefa({ id: '2', titulo: 'b' }),
+      tarefa({ id: '3', titulo: 'c' }),
+    ];
+    expect(removerTarefa(lista, '2').map(t => t.id)).toEqual(['1', '3']);
+  });
+
+  it('id inexistente: devolve a lista igual', () => {
+    const lista = [tarefa({ id: '1' })];
+    expect(removerTarefa(lista, 'nao-existe')).toEqual(lista);
+  });
+
+  it('remover a última deixa a lista vazia', () => {
+    expect(removerTarefa([tarefa({ id: '1' })], '1')).toEqual([]);
+  });
+
+  it('remover uma essencial não esbarra em nenhuma regra, mesmo no teto', () => {
+    expect(contarEssenciais(removerTarefa(tresEssenciais, '1'))).toBe(2);
   });
 });
 

@@ -13,9 +13,15 @@ interface TaskItemProps {
   tarefa: Tarefa;
   onAlternar: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
+  onRemover?: (id: string) => void;
 }
 
-export function TaskItem({ tarefa, onAlternar, onEditar }: TaskItemProps) {
+export function TaskItem({
+  tarefa,
+  onAlternar,
+  onEditar,
+  onRemover,
+}: TaskItemProps) {
   const [editando, setEditando] = useState(false);
   const [rascunho, setRascunho] = useState(tarefa.titulo);
 
@@ -67,6 +73,15 @@ export function TaskItem({ tarefa, onAlternar, onEditar }: TaskItemProps) {
           <Text style={styles.acao}>editar</Text>
         </Pressable>
       )}
+      {onRemover && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onRemover(tarefa.id)}
+          hitSlop={8}
+        >
+          <Text style={styles.acaoRemover}>remover</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -107,6 +122,11 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.cobre,
+  },
+  acaoRemover: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textSecondary,
   },
   input: {
     flex: 1,

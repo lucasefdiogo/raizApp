@@ -41,6 +41,7 @@ export function HomeScreen({
     alternarTarefa,
     adicionarTarefa,
     editarTarefa,
+    removerTarefa,
     statusDia,
     carregando,
     erro,
@@ -80,11 +81,18 @@ export function HomeScreen({
           <ActivityIndicator color={theme.colors.cobre} />
         ) : (
           <>
-            <TaskList
-              tarefas={tarefas}
-              onAlternar={handleAlternarTarefa}
-              onEditar={(id, titulo) => editarTarefa(id, { titulo })}
-            />
+            {tarefas.length === 0 ? (
+              <Text style={styles.vazio}>
+                Sem tarefas por enquanto. Adicione a primeira aqui embaixo.
+              </Text>
+            ) : (
+              <TaskList
+                tarefas={tarefas}
+                onAlternar={handleAlternarTarefa}
+                onEditar={(id, titulo) => editarTarefa(id, { titulo })}
+                onRemover={removerTarefa}
+              />
+            )}
             <AddTaskForm
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
@@ -134,5 +142,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.erro,
+  },
+  vazio: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
 });
