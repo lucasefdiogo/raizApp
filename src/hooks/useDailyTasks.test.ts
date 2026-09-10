@@ -2,17 +2,27 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useDailyTasks } from './useDailyTasks';
 
 jest.mock('../services/firestore');
+jest.mock('./useToast');
+
 const {
   buscarDailyLog,
   existeAlgumDailyLog,
   salvarDailyLog,
 } = require('../services/firestore');
+const { useToast } = require('./useToast');
+
+const showToast = jest.fn();
+
+const MSG_FALHA_ALTERACAO = 'Não conseguimos salvar sua alteração. Tente de novo.';
+const MSG_FALHA_ADICIONAR =
+  'Não conseguimos adicionar a tarefa agora. Tente de novo.';
 
 describe('useDailyTasks', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     salvarDailyLog.mockResolvedValue(undefined);
     existeAlgumDailyLog.mockResolvedValue(false);
+    useToast.mockReturnValue({ showToast });
   });
 
   it('primeiro dia de uso (nenhum dailyLog): semeia as tarefas de exemplo, sem escrever nada', async () => {
@@ -58,7 +68,7 @@ describe('useDailyTasks', () => {
     expect(result.current.statusDia).toBe('cumprido');
   });
 
-  it('alternarTarefa atualiza o estado local e grava o dia inteiro no Firestore', async () => {
+  it('alternarTarefa atualiza o estado local, grava o dia inteiro e não dispara toast', async () => {
     buscarDailyLog.mockResolvedValue(null);
 
     const { result } = await renderHook(() => useDailyTasks('uid-1'));
@@ -70,6 +80,7 @@ describe('useDailyTasks', () => {
 
     expect(result.current.tarefas.find(t => t.id === '1')?.concluida).toBe(true);
     expect(salvarDailyLog).toHaveBeenCalledTimes(1);
+    expect(showToast).not.toHaveBeenCalled();
 
     const [uidChamado, dataChamada, logGravado] = salvarDailyLog.mock.calls[0];
     expect(uidChamado).toBe('uid-1');
@@ -138,10 +149,10 @@ describe('useDailyTasks', () => {
     expect(salvarDailyLog).toHaveBeenCalledTimes(1);
     const [, , logGravado] = salvarDailyLog.mock.calls[0];
     expect(logGravado.tarefas).toHaveLength(4);
-    expect(result.current.erro).toBeNull();
+    expect(showToast).not.toHaveBeenCalled();
   });
 
-  it('adicionarTarefa essencial com 3 essenciais já no dia: expõe erro e não grava', async () => {
+  it('adicionarTarefa essencial com 3 essenciais já no dia: dispara toast do limite e não grava', async () => {
     buscarDailyLog.mockResolvedValue({
       data: '2026-09-15',
       tarefas: [
@@ -161,7 +172,7 @@ describe('useDailyTasks', () => {
       result.current.adicionarTarefa('Quarta essencial', true);
     });
 
-    expect(result.current.erro).toBe(
+    expect(showToast).toHaveBeenCalledWith(
       'Só dá pra marcar até 3 tarefas essenciais por dia',
     );
     expect(result.current.tarefas).toHaveLength(3);
@@ -184,7 +195,7 @@ describe('useDailyTasks', () => {
     expect(salvarDailyLog).toHaveBeenCalledTimes(1);
   });
 
-  it('escrita otimista: se salvarDailyLog falha, o estado volta ao anterior e erro é exposto', async () => {
+  it('escrita otimista: se salvarDailyLog falha, o estado volta ao anterior e dispara toast', async () => {
     buscarDailyLog.mockResolvedValue(null);
     salvarDailyLog.mockRejectedValueOnce(new Error('offline'));
 
@@ -198,7 +209,23 @@ describe('useDailyTasks', () => {
 
     expect(result.current.tarefas).toEqual(tarefasAntes);
     expect(result.current.tarefas.find(t => t.id === '1')?.concluida).toBe(false);
-    expect(result.current.erro).not.toBeNull();
+    expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ALTERACAO);
+  });
+
+  it('adicionarTarefa com falha de rede: reverte e dispara o toast de adicionar', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+    salvarDailyLog.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    const tarefasAntes = result.current.tarefas;
+
+    await act(async () => {
+      result.current.adicionarTarefa('Nova tarefa', false);
+    });
+
+    expect(result.current.tarefas).toEqual(tarefasAntes);
+    expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ADICIONAR);
   });
 
   it('removerTarefa tira do estado local e grava o dia inteiro sem a tarefa', async () => {

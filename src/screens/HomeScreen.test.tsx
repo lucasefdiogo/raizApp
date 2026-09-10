@@ -49,10 +49,8 @@ jest.mock('../hooks/useDailyTasks', () => {
   return {
     useDailyTasks: jest.fn(() => {
       const [tarefas, setTarefas] = useState(TAREFAS_MOCK);
-      const [erro, setErro] = useState(null as string | null);
 
       const alternarTarefa = (id: string) => {
-        setErro(null);
         setTarefas((atual: typeof TAREFAS_MOCK) =>
           atual.map(tarefa =>
             tarefa.id === id ? { ...tarefa, concluida: !tarefa.concluida } : tarefa,
@@ -67,10 +65,7 @@ jest.mock('../hooks/useDailyTasks', () => {
           concluida: false,
         });
         if (resultado.ok) {
-          setErro(null);
           setTarefas(resultado.tarefas);
-        } else {
-          setErro(resultado.erro);
         }
       };
       const editarTarefa = (
@@ -79,14 +74,10 @@ jest.mock('../hooks/useDailyTasks', () => {
       ) => {
         const resultado = editarNoDia(tarefas, id, campos);
         if (resultado.ok) {
-          setErro(null);
           setTarefas(resultado.tarefas);
-        } else {
-          setErro(resultado.erro);
         }
       };
       const removerTarefa = (id: string) => {
-        setErro(null);
         setTarefas(removerNoDia(tarefas, id));
       };
 
@@ -98,7 +89,6 @@ jest.mock('../hooks/useDailyTasks', () => {
         removerTarefa,
         statusDia: calcularStatusDia(tarefas),
         carregando: false,
-        erro,
         limiteEssenciaisAtingido: limiteEssenciaisAtingido(tarefas),
       };
     }),
@@ -279,7 +269,6 @@ describe('HomeScreen', () => {
       removerTarefa: jest.fn(),
       statusDia: 'pendente',
       carregando: true,
-      erro: null,
       limiteEssenciaisAtingido: false,
     });
 

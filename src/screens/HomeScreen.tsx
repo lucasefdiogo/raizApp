@@ -45,7 +45,6 @@ export function HomeScreen({
     removerTarefa,
     statusDia,
     carregando,
-    erro,
     limiteEssenciaisAtingido,
   } = useDailyTasks(uid);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
@@ -98,7 +97,6 @@ export function HomeScreen({
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
             />
-            {erro ? <Text style={styles.erro}>{erro}</Text> : null}
           </>
         )}
       </ScrollView>
@@ -138,11 +136,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
-  },
-  erro: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.body,
-    color: theme.colors.erro,
   },
   vazio: {
     fontSize: theme.typography.fontSize.sm,

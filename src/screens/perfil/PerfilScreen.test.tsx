@@ -15,7 +15,7 @@ function configurarPerfilPadrao(sobrescritas = {}) {
     notificacoesAtivas: false,
     horarioLembreteDiario: null,
     carregando: false,
-    salvarPorque: jest.fn().mockResolvedValue(undefined),
+    salvarPorque: jest.fn().mockResolvedValue(true),
     alternarNotificacoes: jest.fn().mockResolvedValue(undefined),
     alterarHorario: jest.fn().mockResolvedValue(undefined),
     ...sobrescritas,
@@ -91,6 +91,18 @@ describe('PerfilScreen', () => {
     await fireEvent.press(screen.getByText('Salvar'));
 
     await waitFor(() => expect(screen.getByText('Salvo')).toBeTruthy());
+  });
+
+  it('não mostra "Salvo" quando salvarPorque falha (o toast fica a cargo do hook)', async () => {
+    configurarPerfilPadrao({
+      salvarPorque: jest.fn().mockResolvedValue(false),
+    });
+
+    await render(<PerfilScreen uid="uid-teste" />);
+    await fireEvent.press(screen.getByText('Salvar'));
+
+    await waitFor(() => expect(screen.getByText('Salvar')).toBeTruthy());
+    expect(screen.queryByText('Salvo')).toBeNull();
   });
 
   it('seletor de horário não aparece com notificações desativadas', async () => {

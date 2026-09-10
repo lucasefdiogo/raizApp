@@ -68,7 +68,6 @@ function configurarHooksPadrao() {
     removerTarefa: jest.fn(),
     statusDia: 'pendente',
     carregando: false,
-    erro: null,
     limiteEssenciaisAtingido: false,
   });
   buscarSystemMessage.mockResolvedValue({
@@ -216,7 +215,6 @@ describe('HojeStack', () => {
       removerTarefa: jest.fn(),
       statusDia: 'pendente',
       carregando: false,
-      erro: null,
       limiteEssenciaisAtingido: false,
     });
 
