@@ -84,3 +84,8 @@ ios/GoogleService-Info.plist
 .env.*.local
 serviceAccountKey.json
 seed-firestore.js
+
+# Firebase CLI
+.firebase/
+firebase-debug.log
+.firebase-cache/
