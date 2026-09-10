@@ -82,3 +82,5 @@ ios/GoogleService-Info.plist
 .env
 .env.local
 .env.*.local
+serviceAccountKey.json
+seed-firestore.js
