@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useReturnAfterPause } from '../../hooks/useReturnAfterPause';
+import { useBlockHardwareBack } from '../../hooks/useBlockHardwareBack';
 import { ReturnAfterPauseCard } from '../../components/return/ReturnAfterPauseCard';
 
 interface ReturnAfterPauseScreenProps {
@@ -16,6 +17,10 @@ export function ReturnAfterPauseScreen({
   uid,
   onConcluir,
 }: ReturnAfterPauseScreenProps) {
+  // Não dá pra pular esse fluxo pelo botão voltar — ver princípio de
+  // recaída sem vergonha no CLAUDE.md.
+  useBlockHardwareBack();
+
   const { porqueTexto, corpoComTexto, enviarTarefaInicial } =
     useReturnAfterPause(uid);
   const [enviando, setEnviando] = useState(false);
