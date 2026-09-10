@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
-import { TextField } from '../TextField';
+import { TextField, TextFieldRef } from '../TextField';
 import { PrimaryButton } from '../PrimaryButton';
 import { MENSAGEM_LIMITE_ESSENCIAIS } from '../../domain/dailyTasks';
 
@@ -10,12 +15,20 @@ interface AddTaskFormProps {
   limiteEssenciaisAtingido: boolean;
 }
 
-export function AddTaskForm({
-  onAdicionar,
-  limiteEssenciaisAtingido,
-}: AddTaskFormProps) {
-  const [titulo, setTitulo] = useState('');
-  const [essencial, setEssencial] = useState(false);
+export interface AddTaskFormRef {
+  /** Foca o campo "Nova tarefa" — usado pelo CTA do estado vazio da Home. */
+  focar: () => void;
+}
+
+export const AddTaskForm = forwardRef<AddTaskFormRef, AddTaskFormProps>(
+  function AddTaskFormBase({ onAdicionar, limiteEssenciaisAtingido }, ref) {
+    const campoRef = useRef<TextFieldRef>(null);
+    const [titulo, setTitulo] = useState('');
+    const [essencial, setEssencial] = useState(false);
+
+    useImperativeHandle(ref, () => ({
+      focar: () => campoRef.current?.focus(),
+    }));
 
   const podeMarcarEssencial = !limiteEssenciaisAtingido;
   const essencialEfetivo = essencial && podeMarcarEssencial;
@@ -33,6 +46,7 @@ export function AddTaskForm({
   return (
     <View style={styles.container}>
       <TextField
+        ref={campoRef}
         label="Nova tarefa"
         placeholder="ex: revisar o capítulo 3"
         value={titulo}
@@ -74,8 +88,9 @@ export function AddTaskForm({
         desabilitado={tituloLimpo.length === 0}
       />
     </View>
-  );
-}
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {

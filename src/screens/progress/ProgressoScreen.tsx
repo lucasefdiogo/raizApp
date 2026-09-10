@@ -5,6 +5,7 @@ import { theme } from '../../theme';
 import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { EmptyState } from '../../components/common/EmptyState';
 
 interface ProgressoScreenProps {
   uid: string;
@@ -27,6 +28,11 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
         <Text style={styles.titulo}>Seu progresso</Text>
         {carregando ? (
           <LoadingIndicator variant="inline" label="Calculando seu progresso" />
+        ) : diasTotaisAtivos === 0 ? (
+          <EmptyState
+            titulo="Seu progresso vai aparecer aqui"
+            corpo="Volte depois de cumprir seu primeiro dia — cada um vai contar pra esse histórico."
+          />
         ) : (
           <>
             <View style={styles.resumo}>

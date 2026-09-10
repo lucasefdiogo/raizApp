@@ -1,4 +1,5 @@
 import React from 'react';
+import { TextInput } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { HomeScreen } from './HomeScreen';
 
@@ -162,8 +163,9 @@ describe('HomeScreen', () => {
     ).toBeTruthy();
   });
 
-  it('quando todas as tarefas são removidas, mostra o texto de lista vazia', async () => {
+  it('quando todas as tarefas são removidas, mostra o EmptyState (não a lista em branco)', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
+    expect(screen.queryByTestId('empty-state')).toBeNull();
 
     for (const titulo of [
       'Abrir o material de estudo por 5 minutos',
@@ -174,9 +176,35 @@ describe('HomeScreen', () => {
       expect(screen.queryByText(titulo)).toBeNull();
     }
 
-    expect(
-      screen.getByText('Sem tarefas por enquanto. Adicione a primeira aqui embaixo.'),
-    ).toBeTruthy();
+    expect(screen.getByTestId('empty-state')).toBeTruthy();
+    expect(screen.getByText('Nenhuma tarefa ainda')).toBeTruthy();
+  });
+
+  it('o CTA do EmptyState foca o campo "Nova tarefa" (mesmo fluxo de adicionar, sem caminho paralelo)', async () => {
+    useDailyTasks.mockReturnValueOnce({
+      tarefas: [],
+      alternarTarefa: jest.fn(),
+      adicionarTarefa: jest.fn(),
+      editarTarefa: jest.fn(),
+      removerTarefa: jest.fn(),
+      statusDia: 'pendente',
+      carregando: false,
+      limiteEssenciaisAtingido: false,
+    });
+
+    const focar = jest
+      .spyOn(TextInput.prototype, 'focus')
+      .mockImplementation(() => {});
+
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+
+    // não existe um segundo campo/fluxo — o CTA reaproveita o AddTaskForm
+    expect(screen.queryByText('Adicionar tarefa')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('+ adicionar tarefa'));
+
+    expect(focar).toHaveBeenCalledTimes(1);
+    focar.mockRestore();
   });
 
   it('ao atingir 3 essenciais pela Home, mostra o aviso do teto (antes não aparecia)', async () => {

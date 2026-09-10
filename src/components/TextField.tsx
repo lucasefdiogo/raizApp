@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { theme } from '../theme';
+
+export type TextFieldRef = React.ComponentRef<typeof TextInput>;
 
 // Mesma altura mínima do campo de porquê do onboarding
 // (components/onboarding/OnboardingStepPorque.tsx) — os dois devem parecer
@@ -12,17 +14,13 @@ interface TextFieldProps extends TextInputProps {
   erro?: string;
 }
 
-export function TextField({
-  label,
-  erro,
-  style,
-  multiline,
-  ...resto
-}: TextFieldProps) {
+export const TextField = forwardRef<TextFieldRef, TextFieldProps>(
+  function TextFieldBase({ label, erro, style, multiline, ...resto }, ref) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        ref={ref}
         style={[
           styles.input,
           multiline && styles.inputMultilinha,
@@ -37,7 +35,7 @@ export function TextField({
       {erro && <Text style={styles.erro}>{erro}</Text>}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
