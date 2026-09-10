@@ -47,13 +47,41 @@ describe('TaskItem', () => {
     );
   });
 
-  it('não mostra os botões editar/remover quando os handlers não são passados', async () => {
-    await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
+  it('a linha não tem botões de texto — as ações vivem no long-press', async () => {
+    await render(
+      <TaskItem
+        tarefa={tarefaBase}
+        onAlternar={jest.fn()}
+        onEditar={jest.fn()}
+        onRemover={jest.fn()}
+      />,
+    );
     expect(screen.queryByText('editar')).toBeNull();
     expect(screen.queryByText('remover')).toBeNull();
+    // o menu só aparece depois do long-press
+    expect(screen.queryByText('Excluir')).toBeNull();
   });
 
-  it('chama onRemover com o id da tarefa ao tocar em remover', async () => {
+  it('long-press abre o menu de ações com o título da tarefa', async () => {
+    await render(
+      <TaskItem
+        tarefa={tarefaBase}
+        onAlternar={jest.fn()}
+        onEditar={jest.fn()}
+        onRemover={jest.fn()}
+      />,
+    );
+
+    await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+    expect(screen.getByText('Editar')).toBeTruthy();
+    expect(screen.getByText('Excluir')).toBeTruthy();
+    expect(screen.getAllByText('Guardar o celular durante o almoço').length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it('long-press → "Excluir" chama onRemover com o id', async () => {
     const onRemover = jest.fn();
     await render(
       <TaskItem
@@ -63,8 +91,39 @@ describe('TaskItem', () => {
       />,
     );
 
-    await fireEvent.press(screen.getByText('remover'));
+    await fireEvent(screen.getByRole('checkbox'), 'longPress');
+    await fireEvent.press(screen.getByText('Excluir'));
+
     expect(onRemover).toHaveBeenCalledWith('1');
+  });
+
+  it('long-press → "Cancelar" fecha o menu sem chamar nada', async () => {
+    const onRemover = jest.fn();
+    const onEditar = jest.fn();
+    await render(
+      <TaskItem
+        tarefa={tarefaBase}
+        onAlternar={jest.fn()}
+        onEditar={onEditar}
+        onRemover={onRemover}
+      />,
+    );
+
+    await fireEvent(screen.getByRole('checkbox'), 'longPress');
+    await fireEvent.press(screen.getByText('Cancelar'));
+
+    expect(screen.queryByText('Excluir')).toBeNull();
+    expect(onRemover).not.toHaveBeenCalled();
+    expect(onEditar).not.toHaveBeenCalled();
+  });
+
+  it('sem onEditar/onRemover, o long-press não abre menu nenhum', async () => {
+    await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
+
+    await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+    expect(screen.queryByText('Editar')).toBeNull();
+    expect(screen.queryByText('Excluir')).toBeNull();
   });
 
   it('tarefa de exercício: mostra o ícone e a duração', async () => {
@@ -114,7 +173,7 @@ describe('TaskItem', () => {
     expect(screen.queryByTestId('task-item-exercicio-icone')).toBeNull();
   });
 
-  it('edita o título inline e chama onEditar com id e novo texto ao salvar', async () => {
+  it('long-press → "Editar" abre a edição inline e onEditar é chamado ao salvar', async () => {
     const onEditar = jest.fn();
     await render(
       <TaskItem
@@ -124,7 +183,9 @@ describe('TaskItem', () => {
       />,
     );
 
-    await fireEvent.press(screen.getByText('editar'));
+    await fireEvent(screen.getByRole('checkbox'), 'longPress');
+    await fireEvent.press(screen.getByText('Editar'));
+
     await fireEvent.changeText(
       screen.getByLabelText('Editar tarefa'),
       'Guardar o celular a tarde toda',
