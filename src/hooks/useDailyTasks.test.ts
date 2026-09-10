@@ -153,6 +153,67 @@ describe('useDailyTasks', () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it('adicionarTarefa grava tipo "exercicio" e duracaoMinutos quando fornecidos', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.adicionarTarefa('Caminhada leve', false, 'exercicio', 20);
+    });
+
+    const nova = result.current.tarefas.find(t => t.titulo === 'Caminhada leve');
+    expect(nova).toMatchObject({
+      titulo: 'Caminhada leve',
+      essencial: false,
+      concluida: false,
+      tipo: 'exercicio',
+      duracaoMinutos: 20,
+    });
+    const [, , logGravado] = salvarDailyLog.mock.calls[0];
+    expect(
+      logGravado.tarefas.find(
+        (t: { titulo: string }) => t.titulo === 'Caminhada leve',
+      ),
+    ).toMatchObject({ tipo: 'exercicio', duracaoMinutos: 20 });
+  });
+
+  it('adicionarTarefa como exercício sem duração: grava tipo, sem o campo duracaoMinutos', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.adicionarTarefa('Alongar', false, 'exercicio');
+    });
+
+    const nova = result.current.tarefas.find(t => t.titulo === 'Alongar');
+    expect(nova?.tipo).toBe('exercicio');
+    expect(nova).not.toHaveProperty('duracaoMinutos');
+  });
+
+  it('adicionarTarefa sem os args de exercício: retrocompatível, tarefa fica sem tipo/duração', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.adicionarTarefa('Ler 10 páginas', false);
+    });
+
+    const nova = result.current.tarefas.find(t => t.titulo === 'Ler 10 páginas');
+    expect(nova).not.toHaveProperty('tipo');
+    expect(nova).not.toHaveProperty('duracaoMinutos');
+    const [, , logGravado] = salvarDailyLog.mock.calls[0];
+    const gravada = logGravado.tarefas.find(
+      (t: { titulo: string }) => t.titulo === 'Ler 10 páginas',
+    );
+    expect(gravada).not.toHaveProperty('tipo');
+  });
+
   it('adicionarTarefa essencial com 3 essenciais já no dia: dispara toast do limite e não grava', async () => {
     buscarDailyLog.mockResolvedValue({
       data: '2026-09-15',

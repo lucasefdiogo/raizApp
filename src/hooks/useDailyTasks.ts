@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StatusDia, Tarefa } from '../domain/types';
+import { StatusDia, Tarefa, TipoTarefa } from '../domain/types';
 import { calcularStatusDia } from '../domain/streak';
 import {
   adicionarTarefa as adicionarTarefaNoDia,
@@ -53,7 +53,12 @@ function paraISO(data: Date): string {
 interface UseDailyTasksResultado {
   tarefas: Tarefa[];
   alternarTarefa: (id: string) => void;
-  adicionarTarefa: (titulo: string, essencial: boolean) => void;
+  adicionarTarefa: (
+    titulo: string,
+    essencial: boolean,
+    tipo?: TipoTarefa,
+    duracaoMinutos?: number,
+  ) => void;
   editarTarefa: (
     id: string,
     campos: Partial<Pick<Tarefa, 'titulo' | 'essencial'>>,
@@ -162,13 +167,28 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   );
 
   const adicionarTarefa = useCallback(
-    (titulo: string, essencial: boolean) => {
-      const resultado = adicionarTarefaNoDia(tarefas, {
+    (
+      titulo: string,
+      essencial: boolean,
+      tipo: TipoTarefa = 'padrao',
+      duracaoMinutos?: number,
+    ) => {
+      const nova: Tarefa = {
         id: `nova-${Date.now()}-${contadorId.current++}`,
         titulo,
         essencial,
         concluida: false,
-      });
+      };
+      // Só grava os campos de exercício quando são de fato exercício —
+      // tarefa comum continua com o mesmo shape de antes da Fase 2.
+      if (tipo === 'exercicio') {
+        nova.tipo = 'exercicio';
+        if (duracaoMinutos !== undefined) {
+          nova.duracaoMinutos = duracaoMinutos;
+        }
+      }
+
+      const resultado = adicionarTarefaNoDia(tarefas, nova);
 
       if (!resultado.ok) {
         showToast(resultado.erro);
