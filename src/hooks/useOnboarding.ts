@@ -9,6 +9,10 @@ import {
 } from '../domain/onboarding';
 import { STORAGE_KEYS, salvarItem } from '../utils/storage';
 import { useOnboardingProgress } from './useOnboardingProgress';
+import { useToast } from './useToast';
+
+const MENSAGEM_FALHA_ONBOARDING =
+  'Não conseguimos salvar agora. Tente de novo.';
 
 const DADOS_INICIAIS: OnboardingData = {
   porqueTexto: '',
@@ -22,6 +26,7 @@ interface UseOnboardingParams {
 }
 
 export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
+  const { showToast } = useToast();
   const progresso = useOnboardingProgress(uid);
   const [passo, setPasso] = useState<number | null>(null);
   const [dados, setDados] = useState<OnboardingData>(DADOS_INICIAIS);
@@ -100,12 +105,13 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
         onConcluir();
       }
     } catch {
-      // Falha de rede não deve avançar — o passo atual continua, o usuário
-      // toca de novo. Sem tratamento visual dedicado nesta etapa.
+      // Falha de rede não deve avançar — o passo atual continua e o toast
+      // avisa que não salvou; o usuário toca de novo.
+      showToast(MENSAGEM_FALHA_ONBOARDING);
     } finally {
       setSalvando(false);
     }
-  }, [passo, podeAvancar, salvando, dados, progresso, onConcluir]);
+  }, [passo, podeAvancar, salvando, dados, progresso, onConcluir, showToast]);
 
   return {
     passo: passo ?? progresso.passoInicial,

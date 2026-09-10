@@ -4,10 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './OnboardingScreen';
 
 jest.mock('../services/firestore');
+jest.mock('../hooks/useToast');
 const {
   buscarUsuario,
   atualizarDadosOnboarding,
 } = require('../services/firestore');
+const { useToast } = require('../hooks/useToast');
+
+const showToast = jest.fn();
 
 const TITULO_FOCO = 'Onde a procrastinação mais aparece';
 const TITULO_TEMPO = 'Quanto tempo de tela por dia, hoje';
@@ -28,6 +32,7 @@ describe('OnboardingScreen', () => {
     await AsyncStorage.clear();
     buscarUsuario.mockResolvedValue(usuario());
     atualizarDadosOnboarding.mockResolvedValue(undefined);
+    useToast.mockReturnValue({ showToast });
   });
 
   it('sem dado nenhum: retoma no passo do foco', async () => {
@@ -113,7 +118,7 @@ describe('OnboardingScreen', () => {
     expect(screen.getByText(TITULO_TEMPO)).toBeTruthy();
   });
 
-  it('"Continuar" não navega se a gravação falhar', async () => {
+  it('"Continuar" não navega se a gravação falhar, e dispara um toast', async () => {
     atualizarDadosOnboarding.mockRejectedValue(new Error('offline'));
 
     await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
@@ -124,6 +129,20 @@ describe('OnboardingScreen', () => {
 
     expect(screen.getByText(TITULO_FOCO)).toBeTruthy();
     expect(screen.queryByText(TITULO_TEMPO)).toBeNull();
+    expect(showToast).toHaveBeenCalledWith(
+      'Não conseguimos salvar agora. Tente de novo.',
+    );
+  });
+
+  it('não dispara toast quando a gravação de um passo sucede', async () => {
+    await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+    await screen.findByText(TITULO_FOCO);
+
+    await fireEvent.press(screen.getByText('Estudos'));
+    await fireEvent.press(screen.getByText('Continuar'));
+
+    await screen.findByText(TITULO_TEMPO);
+    expect(showToast).not.toHaveBeenCalled();
   });
 
   it('grava cada passo no Firestore e chama onConcluir ao terminar os três', async () => {

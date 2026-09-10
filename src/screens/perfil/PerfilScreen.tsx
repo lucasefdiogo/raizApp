@@ -63,8 +63,10 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
   }, [salvoVisivel]);
 
   const handleSalvarPorque = async () => {
-    await salvarPorque(textoPorque);
-    setSalvoVisivel(true);
+    const salvou = await salvarPorque(textoPorque);
+    if (salvou) {
+      setSalvoVisivel(true);
+    }
   };
 
   const handleAlterarHorario = (evento: DateTimePickerEvent, data?: Date) => {

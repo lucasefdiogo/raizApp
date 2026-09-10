@@ -12,6 +12,7 @@ import {
   existeAlgumDailyLog,
   salvarDailyLog,
 } from '../services/firestore';
+import { useToast } from './useToast';
 
 // Tarefas de exemplo semeadas SÓ no primeiro dia de uso (nenhum dailyLog
 // gravado ainda) — servem de modelo pra pessoa entender o formato. Depois
@@ -38,8 +39,10 @@ const TAREFAS_EXEMPLO: Tarefa[] = [
   },
 ];
 
-const MENSAGEM_FALHA_GRAVACAO =
-  'Não deu pra salvar agora. Suas tarefas seguem como estavam — tenta de novo em instantes.';
+const MENSAGEM_FALHA_ALTERACAO =
+  'Não conseguimos salvar sua alteração. Tente de novo.';
+const MENSAGEM_FALHA_ADICIONAR =
+  'Não conseguimos adicionar a tarefa agora. Tente de novo.';
 
 function paraISO(data: Date): string {
   return data.toISOString().slice(0, 10);
@@ -56,7 +59,6 @@ interface UseDailyTasksResultado {
   removerTarefa: (id: string) => void;
   statusDia: StatusDia;
   carregando: boolean;
-  erro: string | null;
   limiteEssenciaisAtingido: boolean;
 }
 
@@ -66,13 +68,14 @@ interface UseDailyTasksResultado {
  * Nada é gravado até a primeira mudança — salvarDailyLog sobrescreve o dia
  * inteiro, então "criar" e "atualizar" são a mesma operação. Toda mutação
  * é otimista: o estado local muda na hora e, se a gravação falhar, volta ao
- * que era e expõe `erro` — nada de perder o toque do usuário em silêncio.
+ * que era e dispara um toast — nada de perder o toque do usuário em
+ * silêncio.
  */
 export function useDailyTasks(uid: string): UseDailyTasksResultado {
+  const { showToast } = useToast();
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [escudoUsado, setEscudoUsado] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
   const [hojeISO] = useState(() => paraISO(new Date()));
   const contadorId = useRef(0);
 
@@ -109,9 +112,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   }, [uid, hojeISO]);
 
   const persistir = useCallback(
-    async (novasTarefas: Tarefa[]) => {
+    async (novasTarefas: Tarefa[], mensagemFalha: string) => {
       const anterior = tarefas;
-      setErro(null);
       setTarefas(novasTarefas);
 
       try {
@@ -123,10 +125,10 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
         });
       } catch {
         setTarefas(anterior);
-        setErro(MENSAGEM_FALHA_GRAVACAO);
+        showToast(mensagemFalha);
       }
     },
-    [tarefas, uid, hojeISO, escudoUsado],
+    [tarefas, uid, hojeISO, escudoUsado, showToast],
   );
 
   const alternarTarefa = useCallback(
@@ -137,6 +139,7 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
             ? { ...tarefa, concluida: !tarefa.concluida }
             : tarefa,
         ),
+        MENSAGEM_FALHA_ALTERACAO,
       );
     },
     [tarefas, persistir],
@@ -152,13 +155,13 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       });
 
       if (!resultado.ok) {
-        setErro(resultado.erro);
+        showToast(resultado.erro);
         return;
       }
 
-      persistir(resultado.tarefas);
+      persistir(resultado.tarefas, MENSAGEM_FALHA_ADICIONAR);
     },
-    [tarefas, persistir],
+    [tarefas, persistir, showToast],
   );
 
   const editarTarefa = useCallback(
@@ -166,18 +169,18 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       const resultado = editarTarefaNoDia(tarefas, id, campos);
 
       if (!resultado.ok) {
-        setErro(resultado.erro);
+        showToast(resultado.erro);
         return;
       }
 
-      persistir(resultado.tarefas);
+      persistir(resultado.tarefas, MENSAGEM_FALHA_ALTERACAO);
     },
-    [tarefas, persistir],
+    [tarefas, persistir, showToast],
   );
 
   const removerTarefa = useCallback(
     (id: string) => {
-      persistir(removerTarefaNoDia(tarefas, id));
+      persistir(removerTarefaNoDia(tarefas, id), MENSAGEM_FALHA_ALTERACAO);
     },
     [tarefas, persistir],
   );
@@ -192,7 +195,6 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     removerTarefa,
     statusDia,
     carregando,
-    erro,
     limiteEssenciaisAtingido: limiteEssenciaisAtingidoDominio(tarefas),
   };
 }

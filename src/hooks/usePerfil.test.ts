@@ -3,6 +3,7 @@ import { usePerfil } from './usePerfil';
 
 jest.mock('../services/firestore');
 jest.mock('../services/notifications');
+jest.mock('./useToast');
 
 const { buscarUsuario, atualizarPerfilUsuario } = require('../services/firestore');
 const {
@@ -10,6 +11,9 @@ const {
   avaliarNecessidadeAlertaRisco,
   cancelarLembreteDiario,
 } = require('../services/notifications');
+const { useToast } = require('./useToast');
+
+const showToast = jest.fn();
 
 const USUARIO_BASE = {
   porqueTexto: 'Terminar meus estudos',
@@ -24,6 +28,7 @@ describe('usePerfil', () => {
     agendarLembreteDiario.mockResolvedValue(undefined);
     avaliarNecessidadeAlertaRisco.mockResolvedValue(undefined);
     cancelarLembreteDiario.mockResolvedValue(undefined);
+    useToast.mockReturnValue({ showToast });
   });
 
   it('carrega porqueTexto/notificacoesAtivas/horarioLembreteDiario de buscarUsuario', async () => {
@@ -42,20 +47,76 @@ describe('usePerfil', () => {
     expect(result.current.horarioLembreteDiario).toBe('08:00');
   });
 
-  it('salvarPorque grava no Firestore e atualiza o estado local', async () => {
+  it('salvarPorque grava no Firestore, atualiza o estado local e resolve true (sem toast)', async () => {
     buscarUsuario.mockResolvedValue(USUARIO_BASE);
 
     const { result } = await renderHook(() => usePerfil('uid-1'));
     await waitFor(() => expect(result.current.carregando).toBe(false));
 
+    let retorno: boolean | undefined;
     await act(async () => {
-      await result.current.salvarPorque('Novo porquê');
+      retorno = await result.current.salvarPorque('Novo porquê');
     });
 
     expect(atualizarPerfilUsuario).toHaveBeenCalledWith('uid-1', {
       porqueTexto: 'Novo porquê',
     });
     expect(result.current.porqueTexto).toBe('Novo porquê');
+    expect(retorno).toBe(true);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('salvarPorque com falha de rede: resolve false, dispara toast e não muda o estado local', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+    atualizarPerfilUsuario.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    let retorno: boolean | undefined;
+    await act(async () => {
+      retorno = await result.current.salvarPorque('Novo porquê');
+    });
+
+    expect(retorno).toBe(false);
+    expect(result.current.porqueTexto).toBe('Terminar meus estudos');
+    expect(showToast).toHaveBeenCalledWith(
+      'Não conseguimos salvar seu porquê agora. Tente de novo.',
+    );
+  });
+
+  it('alternarNotificacoes com falha de rede: dispara toast e não muda o estado local', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+    atualizarPerfilUsuario.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.alternarNotificacoes(true);
+    });
+
+    expect(result.current.notificacoesAtivas).toBe(false);
+    expect(showToast).toHaveBeenCalledWith(
+      'Não conseguimos atualizar as notificações agora. Tente de novo.',
+    );
+  });
+
+  it('alterarHorario com falha de rede: dispara toast e não muda o estado local', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+    atualizarPerfilUsuario.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.alterarHorario('20:00');
+    });
+
+    expect(result.current.horarioLembreteDiario).toBeNull();
+    expect(showToast).toHaveBeenCalledWith(
+      'Não conseguimos salvar o horário agora. Tente de novo.',
+    );
   });
 
   it('alternarNotificacoes(true) com horário já definido: grava e agenda o lembrete', async () => {
