@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#EFF0EA</color>
+    <!-- Fundo da janela nativa durante o boot, antes do JS montar. Deve
+         espelhar theme.colors.background (src/theme/colors.ts) pra não haver
+         "flash" de cor na transição nativo -> Splash em JS. -->
+    <color name="splash_background">#F8F3E9</color>
 </resources>
