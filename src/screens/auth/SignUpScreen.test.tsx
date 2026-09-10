@@ -1,7 +1,12 @@
 import React from 'react';
+import { Linking } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { SignUpScreen } from './SignUpScreen';
+import {
+  URL_POLITICA_PRIVACIDADE,
+  URL_TERMOS_DE_USO,
+} from '../../config/legalLinks';
 
 function renderComNavegacao(signUp: jest.Mock) {
   return render(
@@ -78,5 +83,41 @@ describe('SignUpScreen', () => {
   it('não mostra botão do Google nesta tela', async () => {
     await renderComNavegacao(jest.fn());
     expect(screen.queryByText('Continuar com Google')).toBeNull();
+  });
+
+  describe('links legais', () => {
+    beforeEach(() => {
+      jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('mostra o texto de consentimento com os dois links', async () => {
+      await renderComNavegacao(jest.fn());
+
+      expect(
+        screen.getByText(/Ao criar sua conta, você concorda/),
+      ).toBeTruthy();
+      expect(screen.getByText('Política de Privacidade')).toBeTruthy();
+      expect(screen.getByText('Termos de Uso')).toBeTruthy();
+    });
+
+    it('tocar em "Política de Privacidade" abre a URL da política', async () => {
+      await renderComNavegacao(jest.fn());
+
+      await fireEvent.press(screen.getByText('Política de Privacidade'));
+
+      expect(Linking.openURL).toHaveBeenCalledWith(URL_POLITICA_PRIVACIDADE);
+    });
+
+    it('tocar em "Termos de Uso" abre a URL dos termos', async () => {
+      await renderComNavegacao(jest.fn());
+
+      await fireEvent.press(screen.getByText('Termos de Uso'));
+
+      expect(Linking.openURL).toHaveBeenCalledWith(URL_TERMOS_DE_USO);
+    });
   });
 });

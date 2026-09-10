@@ -10,6 +10,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { LinkExterno } from '../../components/common/LinkExterno';
+import {
+  ROTULO_POLITICA_PRIVACIDADE,
+  ROTULO_TERMOS_DE_USO,
+  URL_POLITICA_PRIVACIDADE,
+  URL_TERMOS_DE_USO,
+} from '../../config/legalLinks';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_PADRAO = '08:00';
@@ -124,6 +131,14 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
           />
         )}
 
+        <Text style={styles.secaoTitulo}>Sobre</Text>
+        <LinkExterno url={URL_POLITICA_PRIVACIDADE} style={styles.linkLegal}>
+          {ROTULO_POLITICA_PRIVACIDADE}
+        </LinkExterno>
+        <LinkExterno url={URL_TERMOS_DE_USO} style={styles.linkLegal}>
+          {ROTULO_TERMOS_DE_USO}
+        </LinkExterno>
+
         <Text style={styles.secaoTitulo}>Sair</Text>
         <PrimaryButton titulo="Sair" onPress={signOut} />
       </ScrollView>
@@ -170,5 +185,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.musgo,
+  },
+  linkLegal: {
+    fontSize: theme.typography.fontSize.md,
+    paddingVertical: theme.spacing.xs,
   },
 });

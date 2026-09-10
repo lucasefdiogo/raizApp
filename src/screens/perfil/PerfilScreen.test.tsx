@@ -1,7 +1,11 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { PerfilScreen } from './PerfilScreen';
+import {
+  URL_POLITICA_PRIVACIDADE,
+  URL_TERMOS_DE_USO,
+} from '../../config/legalLinks';
 
 jest.mock('../../hooks/usePerfil');
 jest.mock('../../hooks/useAuth');
@@ -170,6 +174,36 @@ describe('PerfilScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Sair' }));
 
     expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  describe('links legais', () => {
+    beforeEach(() => {
+      jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as never);
+    });
+
+    it('mostra a seção "Sobre" com os dois links legais', async () => {
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      expect(screen.getByText('Sobre')).toBeTruthy();
+      expect(screen.getByText('Política de Privacidade')).toBeTruthy();
+      expect(screen.getByText('Termos de Uso')).toBeTruthy();
+    });
+
+    it('tocar em "Política de Privacidade" abre a URL da política', async () => {
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      await fireEvent.press(screen.getByText('Política de Privacidade'));
+
+      expect(Linking.openURL).toHaveBeenCalledWith(URL_POLITICA_PRIVACIDADE);
+    });
+
+    it('tocar em "Termos de Uso" abre a URL dos termos', async () => {
+      await render(<PerfilScreen uid="uid-teste" />);
+
+      await fireEvent.press(screen.getByText('Termos de Uso'));
+
+      expect(Linking.openURL).toHaveBeenCalledWith(URL_TERMOS_DE_USO);
+    });
   });
 
   it('mostra o LoadingIndicator enquanto usePerfil carrega e o formulário só depois', async () => {
