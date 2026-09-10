@@ -103,4 +103,83 @@ describe('useDailyTasks', () => {
 
     expect(result.current.statusDia).toBe('pendente');
   });
+
+  it('adicionarTarefa insere no estado local e grava o dia inteiro', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.adicionarTarefa('Revisar o capítulo 3', false);
+    });
+
+    expect(
+      result.current.tarefas.some(t => t.titulo === 'Revisar o capítulo 3'),
+    ).toBe(true);
+    expect(salvarDailyLog).toHaveBeenCalledTimes(1);
+    const [, , logGravado] = salvarDailyLog.mock.calls[0];
+    expect(logGravado.tarefas).toHaveLength(4);
+    expect(result.current.erro).toBeNull();
+  });
+
+  it('adicionarTarefa essencial com 3 essenciais já no dia: expõe erro e não grava', async () => {
+    buscarDailyLog.mockResolvedValue({
+      data: '2026-09-15',
+      tarefas: [
+        { id: '1', titulo: 'a', essencial: true, concluida: false },
+        { id: '2', titulo: 'b', essencial: true, concluida: false },
+        { id: '3', titulo: 'c', essencial: true, concluida: false },
+      ],
+      statusDia: 'pendente',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.limiteEssenciaisAtingido).toBe(true);
+
+    await act(async () => {
+      result.current.adicionarTarefa('Quarta essencial', true);
+    });
+
+    expect(result.current.erro).toBe(
+      'Só dá pra marcar até 3 tarefas essenciais por dia',
+    );
+    expect(result.current.tarefas).toHaveLength(3);
+    expect(salvarDailyLog).not.toHaveBeenCalled();
+  });
+
+  it('editarTarefa renomeia e grava o dia inteiro', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.editarTarefa('1', { titulo: 'Abrir o material por 2 minutos' });
+    });
+
+    expect(result.current.tarefas.find(t => t.id === '1')?.titulo).toBe(
+      'Abrir o material por 2 minutos',
+    );
+    expect(salvarDailyLog).toHaveBeenCalledTimes(1);
+  });
+
+  it('escrita otimista: se salvarDailyLog falha, o estado volta ao anterior e erro é exposto', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+    salvarDailyLog.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    const tarefasAntes = result.current.tarefas;
+
+    await act(async () => {
+      result.current.alternarTarefa('1');
+    });
+
+    expect(result.current.tarefas).toEqual(tarefasAntes);
+    expect(result.current.tarefas.find(t => t.id === '1')?.concluida).toBe(false);
+    expect(result.current.erro).not.toBeNull();
+  });
 });
