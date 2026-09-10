@@ -77,6 +77,7 @@ export function HojeStack({ uid }: HojeStackProps) {
               escudosDisponiveis={streak.escudosDisponiveis}
               marcoAtingido={streak.marcoAtingido}
               avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
+              recarregarStreak={streak.recarregar}
             />
           )}
         </Stack.Screen>

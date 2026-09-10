@@ -2,7 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useStreak } from './useStreak';
 
 jest.mock('../services/firestore');
+jest.mock('./useToast');
 const firestoreService = require('../services/firestore');
+const { useToast } = require('./useToast');
+
+const showToast = jest.fn();
+
+const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
 
 const ESTADO_BASE = {
   streakAtual: 4,
@@ -24,6 +30,7 @@ describe('useStreak', () => {
     jest.useRealTimers();
     firestoreService.buscarDailyLog.mockResolvedValue(null);
     firestoreService.atualizarEstadoStreak.mockResolvedValue(undefined);
+    useToast.mockReturnValue({ showToast });
   });
 
   afterEach(() => {
@@ -145,5 +152,49 @@ describe('useStreak', () => {
       'uid-1',
       expect.objectContaining({ escudosDisponiveis: 1 }),
     );
+  });
+
+  it('recarregar() reprocessa a leitura do estado de streak sob demanda, sem voltar a carregando', async () => {
+    mockAgora('2026-09-08'); // mesmo dia de ultimoDiaAtivo: não reavalia dia anterior
+    firestoreService.buscarEstadoStreak.mockResolvedValue({ ...ESTADO_BASE });
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 8,
+      diasTotaisAtivos: 40,
+    });
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(2);
+    expect(result.current.carregando).toBe(false);
+    expect(result.current.streakAtual).toBe(8);
+    expect(result.current.diasTotaisAtivos).toBe(40);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('recarregar() com falha de rede dispara o toast de atualização', async () => {
+    mockAgora('2026-09-08');
+    firestoreService.buscarEstadoStreak.mockResolvedValueOnce({ ...ESTADO_BASE });
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    firestoreService.buscarEstadoStreak.mockRejectedValueOnce(
+      new Error('offline'),
+    );
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
   });
 });

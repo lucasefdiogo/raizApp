@@ -43,6 +43,8 @@ const MENSAGEM_FALHA_ALTERACAO =
   'Não conseguimos salvar sua alteração. Tente de novo.';
 const MENSAGEM_FALHA_ADICIONAR =
   'Não conseguimos adicionar a tarefa agora. Tente de novo.';
+const MENSAGEM_FALHA_RECARREGAR =
+  'Não conseguimos atualizar agora. Tente de novo.';
 
 function paraISO(data: Date): string {
   return data.toISOString().slice(0, 10);
@@ -60,6 +62,12 @@ interface UseDailyTasksResultado {
   statusDia: StatusDia;
   carregando: boolean;
   limiteEssenciaisAtingido: boolean;
+  /**
+   * Força uma nova leitura de dailyLogs/{hoje} sob demanda (pull-to-refresh),
+   * sem voltar a `carregando` — o conteúdo já visível permanece na tela. Em
+   * falha de rede, dispara o toast de erro em vez de rejeitar.
+   */
+  recarregar: () => Promise<void>;
 }
 
 /**
@@ -78,38 +86,46 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const [carregando, setCarregando] = useState(true);
   const [hojeISO] = useState(() => paraISO(new Date()));
   const contadorId = useRef(0);
+  // Token da leitura em curso: se outra começar (troca de uid ou recarregar
+  // manual), a anterior descarta o próprio resultado ao terminar.
+  const leituraRef = useRef(0);
 
-  useEffect(() => {
-    let cancelado = false;
+  const carregar = useCallback(async () => {
+    const leitura = ++leituraRef.current;
+    const aindaAtual = () => leituraRef.current === leitura;
 
-    async function carregar() {
-      const log = await buscarDailyLog(uid, hojeISO);
-      if (cancelado) {
-        return;
-      }
-
-      if (log) {
-        setTarefas(log.tarefas);
-        setEscudoUsado(log.escudoUsado);
-        setCarregando(false);
-        return;
-      }
-
-      const jaUsouAntes = await existeAlgumDailyLog(uid);
-      if (cancelado) {
-        return;
-      }
-
-      setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
-      setCarregando(false);
+    const log = await buscarDailyLog(uid, hojeISO);
+    if (!aindaAtual()) {
+      return;
     }
 
-    carregar();
+    if (log) {
+      setTarefas(log.tarefas);
+      setEscudoUsado(log.escudoUsado);
+      setCarregando(false);
+      return;
+    }
 
-    return () => {
-      cancelado = true;
-    };
+    const jaUsouAntes = await existeAlgumDailyLog(uid);
+    if (!aindaAtual()) {
+      return;
+    }
+
+    setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
+    setCarregando(false);
   }, [uid, hojeISO]);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const recarregar = useCallback(async () => {
+    try {
+      await carregar();
+    } catch {
+      showToast(MENSAGEM_FALHA_RECARREGAR);
+    }
+  }, [carregar, showToast]);
 
   const persistir = useCallback(
     async (novasTarefas: Tarefa[], mensagemFalha: string) => {
@@ -196,5 +212,6 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     statusDia,
     carregando,
     limiteEssenciaisAtingido: limiteEssenciaisAtingidoDominio(tarefas),
+    recarregar,
   };
 }

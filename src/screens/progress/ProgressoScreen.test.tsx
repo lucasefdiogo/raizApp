@@ -1,9 +1,11 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor, act } from '@testing-library/react-native';
 import { ProgressoScreen } from './ProgressoScreen';
 
 jest.mock('../../hooks/useProgressoSemanal');
 const { useProgressoSemanal } = require('../../hooks/useProgressoSemanal');
+
+const recarregarPadrao = jest.fn().mockResolvedValue(undefined);
 
 describe('ProgressoScreen', () => {
   it('mostra os 2 números de resumo e um DayStatusPill por dia do histórico', async () => {
@@ -20,6 +22,7 @@ describe('ProgressoScreen', () => {
       streakAtual: 6,
       diasTotaisAtivos: 20,
       carregando: false,
+      recarregar: recarregarPadrao,
     });
 
     await render(<ProgressoScreen uid="uid-1" />);
@@ -36,6 +39,7 @@ describe('ProgressoScreen', () => {
       streakAtual: 0,
       diasTotaisAtivos: 0,
       carregando: true,
+      recarregar: recarregarPadrao,
     });
 
     await render(<ProgressoScreen uid="uid-1" />);
@@ -62,6 +66,7 @@ describe('ProgressoScreen', () => {
       streakAtual: 0,
       diasTotaisAtivos: 0,
       carregando: false,
+      recarregar: recarregarPadrao,
     });
 
     await render(<ProgressoScreen uid="uid-1" />);
@@ -89,6 +94,7 @@ describe('ProgressoScreen', () => {
       streakAtual: 1,
       diasTotaisAtivos: 1,
       carregando: false,
+      recarregar: recarregarPadrao,
     });
 
     await render(<ProgressoScreen uid="uid-1" />);
@@ -104,11 +110,42 @@ describe('ProgressoScreen', () => {
       streakAtual: 0,
       diasTotaisAtivos: 0,
       carregando: true,
+      recarregar: recarregarPadrao,
     });
 
     await render(<ProgressoScreen uid="uid-1" />);
 
     expect(screen.queryByTestId('empty-state')).toBeNull();
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+  });
+
+  it('tem RefreshControl e o puxar-pra-atualizar aciona recarregar() de useProgressoSemanal', async () => {
+    const recarregar = jest.fn().mockResolvedValue(undefined);
+    useProgressoSemanal.mockReturnValue({
+      historico: [
+        { data: '2026-09-08', status: 'cumprido' },
+        { data: '2026-09-09', status: 'sem_registro' },
+        { data: '2026-09-10', status: 'sem_registro' },
+        { data: '2026-09-11', status: 'sem_registro' },
+        { data: '2026-09-12', status: 'sem_registro' },
+        { data: '2026-09-13', status: 'sem_registro' },
+        { data: '2026-09-14', status: 'pendente' },
+      ],
+      streakAtual: 3,
+      diasTotaisAtivos: 5,
+      carregando: false,
+      recarregar,
+    });
+
+    await render(<ProgressoScreen uid="uid-1" />);
+
+    const scroll = screen.getByTestId('progresso-scroll');
+    expect(scroll.props.refreshControl).toBeTruthy();
+
+    await act(async () => {
+      await scroll.props.refreshControl.props.onRefresh();
+    });
+
+    expect(recarregar).toHaveBeenCalledTimes(1);
   });
 });

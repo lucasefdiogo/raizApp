@@ -16,6 +16,7 @@ const showToast = jest.fn();
 const MSG_FALHA_ALTERACAO = 'Não conseguimos salvar sua alteração. Tente de novo.';
 const MSG_FALHA_ADICIONAR =
   'Não conseguimos adicionar a tarefa agora. Tente de novo.';
+const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
 
 describe('useDailyTasks', () => {
   beforeEach(() => {
@@ -261,5 +262,59 @@ describe('useDailyTasks', () => {
 
     expect(result.current.tarefas).toEqual([]);
     expect(result.current.statusDia).toBe('pendente');
+  });
+
+  it('recarregar() refaz a leitura do dailyLog sob demanda e reflete o novo estado, sem passar por carregando', async () => {
+    buscarDailyLog.mockResolvedValueOnce(null);
+    existeAlgumDailyLog.mockResolvedValue(false);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+    expect(result.current.tarefas).toHaveLength(3); // tarefas de exemplo
+
+    buscarDailyLog.mockResolvedValueOnce({
+      data: '2026-09-15',
+      tarefas: [
+        { id: 'srv', titulo: 'Veio do servidor', essencial: true, concluida: false },
+      ],
+      statusDia: 'pendente',
+      escudoUsado: false,
+    });
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(buscarDailyLog).toHaveBeenCalledTimes(2);
+    expect(result.current.carregando).toBe(false);
+    expect(result.current.tarefas).toEqual([
+      { id: 'srv', titulo: 'Veio do servidor', essencial: true, concluida: false },
+    ]);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('recarregar() com falha de rede dispara o toast de atualização e mantém as tarefas visíveis', async () => {
+    buscarDailyLog.mockResolvedValueOnce({
+      data: '2026-09-15',
+      tarefas: [
+        { id: '1', titulo: 'Já na tela', essencial: true, concluida: false },
+      ],
+      statusDia: 'pendente',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    const tarefasAntes = result.current.tarefas;
+
+    buscarDailyLog.mockRejectedValueOnce(new Error('offline'));
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
+    expect(result.current.tarefas).toEqual(tarefasAntes);
   });
 });

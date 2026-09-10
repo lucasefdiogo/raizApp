@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
@@ -27,6 +27,12 @@ interface HomeScreenProps {
   escudosDisponiveis: number;
   marcoAtingido: number | null;
   avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
+  /**
+   * Releitura do streak sob demanda — o useStreak vive no HojeStack, então o
+   * pull-to-refresh da Home recebe a função de lá pra atualizar o badge de
+   * streak no mesmo gesto que atualiza as tarefas.
+   */
+  recarregarStreak: () => Promise<void>;
 }
 
 export function HomeScreen({
@@ -35,6 +41,7 @@ export function HomeScreen({
   escudosDisponiveis,
   marcoAtingido,
   avaliarAlertaRisco,
+  recarregarStreak,
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
@@ -47,9 +54,11 @@ export function HomeScreen({
     statusDia,
     carregando,
     limiteEssenciaisAtingido,
+    recarregar,
   } = useDailyTasks(uid);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
+  const [atualizando, setAtualizando] = useState(false);
   const addTaskFormRef = useRef<AddTaskFormRef>(null);
 
   useEffect(() => {
@@ -73,9 +82,32 @@ export function HomeScreen({
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
 
+  const aoAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      // As duas releituras já tratam a própria falha (toast) e resolvem sem
+      // rejeitar — o gesto só precisa esperar as duas terminarem.
+      await Promise.all([recarregar(), recarregarStreak()]);
+    } finally {
+      setAtualizando(false);
+    }
+  }, [recarregar, recarregarStreak]);
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.conteudo}>
+      <ScrollView
+        testID="home-scroll"
+        contentContainerStyle={styles.conteudo}
+        refreshControl={
+          <RefreshControl
+            testID="home-refresh-control"
+            refreshing={atualizando}
+            onRefresh={aoAtualizar}
+            colors={[theme.colors.cobre]}
+            tintColor={theme.colors.cobre}
+          />
+        }
+      >
         <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>

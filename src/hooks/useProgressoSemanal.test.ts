@@ -1,13 +1,20 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useProgressoSemanal } from './useProgressoSemanal';
 
 jest.mock('../services/firestore');
+jest.mock('./useToast');
 const { buscarUltimosDailyLogs, buscarEstadoStreak } = require('../services/firestore');
+const { useToast } = require('./useToast');
+
+const showToast = jest.fn();
+
+const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
 
 describe('useProgressoSemanal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useFakeTimers().setSystemTime(new Date('2026-09-14T12:00:00Z'));
+    useToast.mockReturnValue({ showToast });
   });
 
   afterEach(() => {
@@ -63,5 +70,61 @@ describe('useProgressoSemanal', () => {
     expect(result.current.streakAtual).toBe(0);
     expect(result.current.diasTotaisAtivos).toBe(0);
     expect(result.current.historico.every(dia => dia.status === 'sem_registro' || dia.status === 'pendente')).toBe(true);
+  });
+
+  it('recarregar() refaz a mesma busca sob demanda, sem passar por carregando', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue([]);
+    buscarEstadoStreak.mockResolvedValue({
+      streakAtual: 2,
+      diasTotaisAtivos: 4,
+      escudosDisponiveis: 1,
+      marcosAtingidos: [],
+      ultimoDiaAtivo: '2026-09-13',
+      statusStreak: 'ativo',
+      dataUltimaRenovacaoEscudo: '2026-09-08',
+    });
+
+    const { result } = await renderHook(() => useProgressoSemanal('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(buscarUltimosDailyLogs).toHaveBeenCalledTimes(1);
+    expect(buscarEstadoStreak).toHaveBeenCalledTimes(1);
+
+    buscarEstadoStreak.mockResolvedValue({
+      streakAtual: 9,
+      diasTotaisAtivos: 30,
+      escudosDisponiveis: 1,
+      marcosAtingidos: [],
+      ultimoDiaAtivo: '2026-09-14',
+      statusStreak: 'ativo',
+      dataUltimaRenovacaoEscudo: '2026-09-08',
+    });
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(buscarUltimosDailyLogs).toHaveBeenCalledTimes(2);
+    expect(buscarEstadoStreak).toHaveBeenCalledTimes(2);
+    expect(result.current.carregando).toBe(false);
+    expect(result.current.streakAtual).toBe(9);
+    expect(result.current.diasTotaisAtivos).toBe(30);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('recarregar() com falha de rede dispara o toast de atualização', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue([]);
+    buscarEstadoStreak.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useProgressoSemanal('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    buscarUltimosDailyLogs.mockRejectedValueOnce(new Error('offline'));
+
+    await act(async () => {
+      await result.current.recarregar();
+    });
+
+    expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
   });
 });

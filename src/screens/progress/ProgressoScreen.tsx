@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
@@ -19,12 +19,35 @@ function labelParaData(dataISO: string): string {
 }
 
 export function ProgressoScreen({ uid }: ProgressoScreenProps) {
-  const { historico, streakAtual, diasTotaisAtivos, carregando } =
+  const { historico, streakAtual, diasTotaisAtivos, carregando, recarregar } =
     useProgressoSemanal(uid);
+  const [atualizando, setAtualizando] = useState(false);
+
+  const aoAtualizar = useCallback(async () => {
+    setAtualizando(true);
+    try {
+      // recarregar já trata a própria falha (toast) e resolve sem rejeitar.
+      await recarregar();
+    } finally {
+      setAtualizando(false);
+    }
+  }, [recarregar]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.conteudo}>
+      <ScrollView
+        testID="progresso-scroll"
+        contentContainerStyle={styles.conteudo}
+        refreshControl={
+          <RefreshControl
+            testID="progresso-refresh-control"
+            refreshing={atualizando}
+            onRefresh={aoAtualizar}
+            colors={[theme.colors.cobre]}
+            tintColor={theme.colors.cobre}
+          />
+        }
+      >
         <Text style={styles.titulo}>Seu progresso</Text>
         {carregando ? (
           <LoadingIndicator variant="inline" label="Calculando seu progresso" />
