@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
+import { Keyboard, ScrollView, StyleSheet } from 'react-native';
 import {
   render,
   screen,
@@ -194,32 +194,46 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Adicionar tarefa')).toBeTruthy();
   });
 
-  it('ao focar o campo "Nova tarefa", rola o conteúdo até o fim pra ele não ficar atrás do teclado', async () => {
+  it('quando o teclado abre, cria espaço no fim da lista e rola até lá (campo acima do teclado)', async () => {
+    const ouvintes: Record<string, (evento: unknown) => void> = {};
+    const addListener = jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      evento: string,
+      cb: (e: unknown) => void,
+    ) => {
+      ouvintes[evento] = cb;
+      return { remove: jest.fn() };
+    }) as never);
     const scrollToEnd = jest
       .spyOn(ScrollView.prototype, 'scrollToEnd')
       .mockImplementation(() => {});
 
-    try {
-      useDailyTasks.mockReturnValueOnce({
-        tarefas: [],
-        alternarTarefa: jest.fn(),
-        adicionarTarefa: jest.fn(),
-        editarTarefa: jest.fn(),
-        removerTarefa: jest.fn(),
-        statusDia: 'pendente',
-        carregando: false,
-        limiteEssenciaisAtingido: false,
-        recarregar: jest.fn().mockResolvedValue(undefined),
-      });
+    const paddingBottomAtual = () =>
+      StyleSheet.flatten(
+        screen.getByTestId('home-scroll').props.contentContainerStyle,
+      ).paddingBottom;
 
+    try {
       await render(<HomeScreen {...PROPS_PADRAO} />);
 
-      fireEvent(screen.getByLabelText('Nova tarefa'), 'focus');
+      expect(paddingBottomAtual()).toBeUndefined();
+
+      await act(async () => {
+        ouvintes.keyboardDidShow?.({ endCoordinates: { height: 320 } });
+      });
+
+      expect(paddingBottomAtual()).toBeGreaterThanOrEqual(320);
 
       await waitFor(() =>
         expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
       );
+
+      await act(async () => {
+        ouvintes.keyboardDidHide?.({});
+      });
+
+      expect(paddingBottomAtual()).toBeUndefined();
     } finally {
+      addListener.mockRestore();
       scrollToEnd.mockRestore();
     }
   });

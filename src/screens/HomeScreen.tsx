@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  Keyboard,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
@@ -15,10 +21,11 @@ import { StatusDia } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 
-// Espera curta antes de rolar até o campo "Nova tarefa": dá tempo do teclado
-// terminar de subir (e o ScrollView encolher com o adjustResize do Android),
-// senão o scrollToEnd mira numa altura que muda logo em seguida.
-const ATRASO_SCROLL_TECLADO_MS = 250;
+// No Android com edge-to-edge (RN 0.81+) o `adjustResize` não encolhe mais a
+// janela — o teclado entra por cima. Então acompanhamos a altura do teclado à
+// mão, criamos espaço equivalente no fim do ScrollView e rolamos até lá pra o
+// campo "Nova tarefa" ficar acima do teclado.
+const ATRASO_SCROLL_TECLADO_MS = 50;
 
 const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
   pendente: 'O dia ainda está começando.',
@@ -64,11 +71,36 @@ export function HomeScreen({
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
   const [atualizando, setAtualizando] = useState(false);
+  const [alturaTeclado, setAlturaTeclado] = useState(0);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     avaliarAlertaRisco(existeEssencialConcluida(tarefas));
   }, [tarefas, avaliarAlertaRisco]);
+
+  useEffect(() => {
+    const aoMostrar = Keyboard.addListener('keyboardDidShow', evento => {
+      setAlturaTeclado(evento.endCoordinates.height);
+    });
+    const aoEsconder = Keyboard.addListener('keyboardDidHide', () => {
+      setAlturaTeclado(0);
+    });
+    return () => {
+      aoMostrar.remove();
+      aoEsconder.remove();
+    };
+  }, []);
+
+  // Depois que o espaço extra entra no fim da lista, rola até o campo.
+  useEffect(() => {
+    if (alturaTeclado === 0) {
+      return;
+    }
+    const id = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, ATRASO_SCROLL_TECLADO_MS);
+    return () => clearTimeout(id);
+  }, [alturaTeclado]);
 
   const handleAlternarTarefa = useCallback(
     (id: string) => {
@@ -87,12 +119,6 @@ export function HomeScreen({
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
 
-  const aoFocarCampoNovaTarefa = useCallback(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, ATRASO_SCROLL_TECLADO_MS);
-  }, []);
-
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
     try {
@@ -109,7 +135,12 @@ export function HomeScreen({
       <ScrollView
         ref={scrollRef}
         testID="home-scroll"
-        contentContainerStyle={styles.conteudo}
+        contentContainerStyle={[
+          styles.conteudo,
+          alturaTeclado > 0 && {
+            paddingBottom: alturaTeclado + theme.spacing.md,
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -144,7 +175,6 @@ export function HomeScreen({
             <AddTaskForm
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
-              onFocarCampo={aoFocarCampoNovaTarefa}
             />
           </>
         )}
