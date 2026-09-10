@@ -9,6 +9,9 @@ import {
 import { Dumbbell } from 'lucide-react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
+import { TaskActionsSheet } from './home/TaskActionsSheet';
+
+const ATRASO_LONG_PRESS_MS = 350;
 
 interface TaskItemProps {
   tarefa: Tarefa;
@@ -24,7 +27,10 @@ export function TaskItem({
   onRemover,
 }: TaskItemProps) {
   const [editando, setEditando] = useState(false);
+  const [menuAberto, setMenuAberto] = useState(false);
   const [rascunho, setRascunho] = useState(tarefa.titulo);
+
+  const temAcoes = onEditar !== undefined || onRemover !== undefined;
 
   function abrirEdicao() {
     setRascunho(tarefa.titulo);
@@ -58,47 +64,64 @@ export function TaskItem({
   const ehExercicio = tarefa.tipo === 'exercicio';
 
   return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: tarefa.concluida }}
-      onPress={() => onAlternar(tarefa.id)}
-      style={styles.linha}
-    >
-      <View style={[styles.checkbox, tarefa.concluida && styles.checkboxMarcado]} />
-      {ehExercicio && (
+    <>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: tarefa.concluida }}
+        accessibilityHint={
+          temAcoes ? 'Toque e segure para editar ou excluir' : undefined
+        }
+        onPress={() => onAlternar(tarefa.id)}
+        onLongPress={temAcoes ? () => setMenuAberto(true) : undefined}
+        delayLongPress={ATRASO_LONG_PRESS_MS}
+        style={styles.linha}
+      >
         <View
-          testID="task-item-exercicio-icone"
-          accessibilityLabel="exercício"
-        >
-          <Dumbbell size={16} color={theme.colors.musgo} />
-        </View>
-      )}
-      <View style={styles.tituloArea}>
-        <Text
-          style={[styles.titulo, tarefa.concluida && styles.tituloConcluido]}
-        >
-          {tarefa.titulo}
-        </Text>
-        {ehExercicio && tarefa.duracaoMinutos != null && (
-          <Text style={styles.duracao}>{tarefa.duracaoMinutos} min</Text>
+          style={[styles.checkbox, tarefa.concluida && styles.checkboxMarcado]}
+        />
+        {ehExercicio && (
+          <View
+            testID="task-item-exercicio-icone"
+            accessibilityLabel="exercício"
+          >
+            <Dumbbell size={16} color={theme.colors.musgo} />
+          </View>
         )}
-      </View>
-      {tarefa.essencial && <Text style={styles.selo}>essencial</Text>}
-      {onEditar && (
-        <Pressable accessibilityRole="button" onPress={abrirEdicao} hitSlop={8}>
-          <Text style={styles.acao}>editar</Text>
-        </Pressable>
-      )}
-      {onRemover && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onRemover(tarefa.id)}
-          hitSlop={8}
-        >
-          <Text style={styles.acaoRemover}>remover</Text>
-        </Pressable>
-      )}
-    </Pressable>
+        <View style={styles.tituloArea}>
+          <Text
+            style={[styles.titulo, tarefa.concluida && styles.tituloConcluido]}
+          >
+            {tarefa.titulo}
+          </Text>
+          {ehExercicio && tarefa.duracaoMinutos != null && (
+            <Text style={styles.duracao}>{tarefa.duracaoMinutos} min</Text>
+          )}
+        </View>
+        {tarefa.essencial && <Text style={styles.selo}>essencial</Text>}
+      </Pressable>
+
+      <TaskActionsSheet
+        visible={menuAberto}
+        tituloTarefa={tarefa.titulo}
+        onEditar={
+          onEditar
+            ? () => {
+                setMenuAberto(false);
+                abrirEdicao();
+              }
+            : undefined
+        }
+        onExcluir={
+          onRemover
+            ? () => {
+                setMenuAberto(false);
+                onRemover(tarefa.id);
+              }
+            : undefined
+        }
+        onCancelar={() => setMenuAberto(false)}
+      />
+    </>
   );
 }
 
@@ -149,11 +172,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.cobre,
-  },
-  acaoRemover: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.textSecondary,
   },
   input: {
     flex: 1,

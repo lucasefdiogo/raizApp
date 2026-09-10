@@ -157,14 +157,17 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Revisar o resumo da aula')).toBeTruthy();
   });
 
-  it('remove uma tarefa pela Home e ela some da lista', async () => {
+  it('remove uma tarefa pela Home (long-press → Excluir) e ela some da lista', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(
       screen.getByText('Guardar o celular durante o almoço'),
     ).toBeTruthy();
 
-    // "remover" da 2ª tarefa da lista mock
-    await fireEvent.press(screen.getAllByText('remover')[1]);
+    await fireEvent(
+      screen.getByText('Guardar o celular durante o almoço'),
+      'longPress',
+    );
+    await fireEvent.press(screen.getByText('Excluir'));
 
     expect(screen.queryByText('Guardar o celular durante o almoço')).toBeNull();
     expect(
@@ -181,7 +184,8 @@ describe('HomeScreen', () => {
       'Guardar o celular durante o almoço',
       'Escrever uma frase sobre o que pretende fazer hoje',
     ]) {
-      await fireEvent.press(screen.getAllByText('remover')[0]);
+      await fireEvent(screen.getByText(titulo), 'longPress');
+      await fireEvent.press(screen.getByText('Excluir'));
       expect(screen.queryByText(titulo)).toBeNull();
     }
 
