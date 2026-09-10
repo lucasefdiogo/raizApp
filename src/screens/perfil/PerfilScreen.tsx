@@ -89,10 +89,8 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
           multiline
           numberOfLines={4}
         />
-        <View style={styles.linhaSalvar}>
-          <PrimaryButton titulo="Salvar" onPress={handleSalvarPorque} />
-          {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
-        </View>
+        <PrimaryButton titulo="Salvar" onPress={handleSalvarPorque} />
+        {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
 
         <Text style={styles.secaoTitulo}>Notificações</Text>
         <View style={styles.linhaToggle}>
@@ -146,11 +144,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.md,
-  },
-  linhaSalvar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
   },
   feedbackSalvo: {
     fontSize: theme.typography.fontSize.sm,

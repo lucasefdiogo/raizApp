@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { PerfilScreen } from './PerfilScreen';
 
@@ -40,6 +41,19 @@ describe('PerfilScreen', () => {
     await render(<PerfilScreen uid="uid-teste" />);
 
     expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy();
+  });
+
+  it('o botão Salvar não fica dentro de um container flex-row (que o encolheria)', async () => {
+    await render(<PerfilScreen uid="uid-teste" />);
+
+    // sobe do texto até o conteúdo da tela conferindo que nenhum ancestral
+    // próximo é flex-row — foi isso que colapsava o botão pra ~130px.
+    let node = screen.getByText('Salvar').parent;
+    for (let i = 0; i < 5 && node; i += 1) {
+      const estilo = StyleSheet.flatten(node.props?.style) ?? {};
+      expect(estilo.flexDirection).not.toBe('row');
+      node = node.parent;
+    }
   });
 
   it('botão Salvar chama salvarPorque só ao tocar, com o texto atual — não a cada tecla', async () => {
