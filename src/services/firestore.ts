@@ -81,23 +81,20 @@ export async function buscarUsuario(
   return snapshot.exists() ? (snapshot.data() as UsuarioDocumento) : null;
 }
 
-export async function salvarOnboardingUsuario(
+/**
+ * Grava campos do onboarding em users/{uid} com merge — cada passo do
+ * wizard chama isso com só o campo que acabou de ser respondido, pra o
+ * progresso não se perder se o app fechar no meio do fluxo.
+ */
+export async function atualizarDadosOnboarding(
   uid: string,
-  dados: {
+  campos: Partial<{
     porqueTexto: string;
-    focoProcrastinacao: FocoProcrastinacao | null;
-    tempoTelaEstimado: number | null;
-  },
+    focoProcrastinacao: FocoProcrastinacao;
+    tempoTelaEstimado: number;
+  }>,
 ): Promise<void> {
-  await setDoc(
-    documentoUsuario(uid),
-    {
-      porqueTexto: dados.porqueTexto,
-      focoProcrastinacao: dados.focoProcrastinacao,
-      tempoTelaEstimado: dados.tempoTelaEstimado,
-    },
-    { merge: true },
-  );
+  await setDoc(documentoUsuario(uid), campos, { merge: true });
 }
 
 /**

@@ -1,5 +1,7 @@
 import {
   onboardingEstaCompleto,
+  passoInicialOnboarding,
+  PASSO_ONBOARDING,
   validarFocoProcrastinacao,
   validarPorqueTexto,
   validarTempoTelaEstimado,
@@ -57,5 +59,57 @@ describe('onboardingEstaCompleto', () => {
       tempoTelaEstimado: 4,
     };
     expect(onboardingEstaCompleto(dados)).toBe(true);
+  });
+});
+
+describe('passoInicialOnboarding', () => {
+  it('sem foco escolhido ainda: começa no passo do foco', () => {
+    expect(
+      passoInicialOnboarding({
+        focoProcrastinacao: null,
+        tempoTelaEstimado: null,
+        porqueTexto: '',
+      }),
+    ).toBe(PASSO_ONBOARDING.foco);
+  });
+
+  it('tem foco mas ainda não o tempo de tela: começa no passo do tempo', () => {
+    expect(
+      passoInicialOnboarding({
+        focoProcrastinacao: 'estudos',
+        tempoTelaEstimado: null,
+        porqueTexto: '',
+      }),
+    ).toBe(PASSO_ONBOARDING.tempoTela);
+  });
+
+  it('tem foco e tempo, falta o porquê: começa no passo do porquê', () => {
+    expect(
+      passoInicialOnboarding({
+        focoProcrastinacao: 'estudos',
+        tempoTelaEstimado: 4,
+        porqueTexto: '',
+      }),
+    ).toBe(PASSO_ONBOARDING.porque);
+  });
+
+  it('já tem tudo (navegação direta): permanece no passo do porquê', () => {
+    expect(
+      passoInicialOnboarding({
+        focoProcrastinacao: 'estudos',
+        tempoTelaEstimado: 4,
+        porqueTexto: 'Quero terminar meus estudos',
+      }),
+    ).toBe(PASSO_ONBOARDING.porque);
+  });
+
+  it('tempo de tela fora da faixa conta como não respondido', () => {
+    expect(
+      passoInicialOnboarding({
+        focoProcrastinacao: 'estudos',
+        tempoTelaEstimado: 0,
+        porqueTexto: '',
+      }),
+    ).toBe(PASSO_ONBOARDING.tempoTela);
   });
 });

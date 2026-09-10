@@ -1,7 +1,7 @@
 import {
   criarDocumentoUsuario,
   buscarUsuario,
-  salvarOnboardingUsuario,
+  atualizarDadosOnboarding,
   buscarSystemMessage,
   adicionarTarefaAoDailyLog,
   atualizarStatusStreak,
@@ -43,7 +43,7 @@ describe('services/firestore', () => {
 
     it('é idempotente — não sobrescreve um documento já existente', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
-      await salvarOnboardingUsuario('uid-1', {
+      await atualizarDadosOnboarding('uid-1', {
         porqueTexto: 'Quero terminar meus estudos',
         focoProcrastinacao: 'estudos',
         tempoTelaEstimado: 4,
@@ -71,23 +71,34 @@ describe('services/firestore', () => {
     });
   });
 
-  describe('salvarOnboardingUsuario', () => {
-    it('grava os três campos sem apagar o restante do documento', async () => {
+  describe('atualizarDadosOnboarding', () => {
+    it('grava só o campo passado, sem apagar o restante do documento', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
 
-      await salvarOnboardingUsuario('uid-1', {
-        porqueTexto: 'Meu porquê',
-        focoProcrastinacao: 'trabalho',
-        tempoTelaEstimado: 3,
-      });
+      await atualizarDadosOnboarding('uid-1', { focoProcrastinacao: 'trabalho' });
 
       const usuario = await buscarUsuario('uid-1');
       expect(usuario).toMatchObject({
         email: 'a@a.com',
-        porqueTexto: 'Meu porquê',
         focoProcrastinacao: 'trabalho',
-        tempoTelaEstimado: 3,
+        porqueTexto: null,
+        tempoTelaEstimado: null,
         streakAtual: 0,
+      });
+    });
+
+    it('acumula os campos ao longo de várias chamadas (uma por passo)', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+
+      await atualizarDadosOnboarding('uid-1', { focoProcrastinacao: 'estudos' });
+      await atualizarDadosOnboarding('uid-1', { tempoTelaEstimado: 4 });
+      await atualizarDadosOnboarding('uid-1', { porqueTexto: 'Meu porquê' });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        focoProcrastinacao: 'estudos',
+        tempoTelaEstimado: 4,
+        porqueTexto: 'Meu porquê',
       });
     });
   });
