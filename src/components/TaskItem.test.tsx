@@ -67,6 +67,53 @@ describe('TaskItem', () => {
     expect(onRemover).toHaveBeenCalledWith('1');
   });
 
+  it('tarefa de exercício: mostra o ícone e a duração', async () => {
+    await render(
+      <TaskItem
+        tarefa={{ ...tarefaBase, tipo: 'exercicio', duracaoMinutos: 20 }}
+        onAlternar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('task-item-exercicio-icone')).toBeTruthy();
+    expect(screen.getByText('20 min')).toBeTruthy();
+  });
+
+  it('exercício sem duração: mostra o ícone, mas nenhum texto de minutos', async () => {
+    await render(
+      <TaskItem
+        tarefa={{ ...tarefaBase, tipo: 'exercicio' }}
+        onAlternar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('task-item-exercicio-icone')).toBeTruthy();
+    expect(screen.queryByText(/min/)).toBeNull();
+  });
+
+  it('tarefa comum: sem ícone de exercício e sem duração', async () => {
+    await render(
+      <TaskItem
+        tarefa={{ ...tarefaBase, tipo: 'padrao' }}
+        onAlternar={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('task-item-exercicio-icone')).toBeNull();
+    expect(screen.queryByText(/min/)).toBeNull();
+  });
+
+  it('dado legado sem o campo tipo: renderiza como tarefa comum, sem quebrar', async () => {
+    // tarefaBase não tem `tipo` nem `duracaoMinutos` — simula tarefa gravada
+    // antes da Fase 2.
+    await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
+
+    expect(
+      screen.getByText('Guardar o celular durante o almoço'),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('task-item-exercicio-icone')).toBeNull();
+  });
+
   it('edita o título inline e chama onEditar com id e novo texto ao salvar', async () => {
     const onEditar = jest.fn();
     await render(

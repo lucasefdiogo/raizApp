@@ -3,10 +3,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { TextField } from '../TextField';
 import { PrimaryButton } from '../PrimaryButton';
+import { TaskTypeToggle } from './TaskTypeToggle';
 import { MENSAGEM_LIMITE_ESSENCIAIS } from '../../domain/dailyTasks';
+import { TipoTarefa } from '../../domain/types';
 
 interface AddTaskFormProps {
-  onAdicionar: (titulo: string, essencial: boolean) => void;
+  onAdicionar: (
+    titulo: string,
+    essencial: boolean,
+    tipo: TipoTarefa,
+    duracaoMinutos?: number,
+  ) => void;
   limiteEssenciaisAtingido: boolean;
 }
 
@@ -16,6 +23,8 @@ export function AddTaskForm({
 }: AddTaskFormProps) {
   const [titulo, setTitulo] = useState('');
   const [essencial, setEssencial] = useState(false);
+  const [tipo, setTipo] = useState<TipoTarefa>('padrao');
+  const [duracaoMinutos, setDuracaoMinutos] = useState<number | null>(null);
 
   const podeMarcarEssencial = !limiteEssenciaisAtingido;
   const essencialEfetivo = essencial && podeMarcarEssencial;
@@ -25,9 +34,18 @@ export function AddTaskForm({
     if (tituloLimpo.length === 0) {
       return;
     }
-    onAdicionar(tituloLimpo, essencialEfetivo);
+    onAdicionar(
+      tituloLimpo,
+      essencialEfetivo,
+      tipo,
+      tipo === 'exercicio' && duracaoMinutos !== null
+        ? duracaoMinutos
+        : undefined,
+    );
     setTitulo('');
     setEssencial(false);
+    setTipo('padrao');
+    setDuracaoMinutos(null);
   }
 
   return (
@@ -67,6 +85,13 @@ export function AddTaskForm({
       {!podeMarcarEssencial && (
         <Text style={styles.aviso}>{MENSAGEM_LIMITE_ESSENCIAIS}</Text>
       )}
+
+      <TaskTypeToggle
+        tipo={tipo}
+        duracaoMinutos={duracaoMinutos}
+        onChangeTipo={setTipo}
+        onChangeDuracao={setDuracaoMinutos}
+      />
 
       <PrimaryButton
         titulo="Adicionar tarefa"

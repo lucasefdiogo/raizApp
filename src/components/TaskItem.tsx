@@ -6,6 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Dumbbell } from 'lucide-react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
 
@@ -54,6 +55,8 @@ export function TaskItem({
     );
   }
 
+  const ehExercicio = tarefa.tipo === 'exercicio';
+
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -62,11 +65,24 @@ export function TaskItem({
       style={styles.linha}
     >
       <View style={[styles.checkbox, tarefa.concluida && styles.checkboxMarcado]} />
-      <Text
-        style={[styles.titulo, tarefa.concluida && styles.tituloConcluido]}
-      >
-        {tarefa.titulo}
-      </Text>
+      {ehExercicio && (
+        <View
+          testID="task-item-exercicio-icone"
+          accessibilityLabel="exercício"
+        >
+          <Dumbbell size={16} color={theme.colors.musgo} />
+        </View>
+      )}
+      <View style={styles.tituloArea}>
+        <Text
+          style={[styles.titulo, tarefa.concluida && styles.tituloConcluido]}
+        >
+          {tarefa.titulo}
+        </Text>
+        {ehExercicio && tarefa.duracaoMinutos != null && (
+          <Text style={styles.duracao}>{tarefa.duracaoMinutos} min</Text>
+        )}
+      </View>
       {tarefa.essencial && <Text style={styles.selo}>essencial</Text>}
       {onEditar && (
         <Pressable accessibilityRole="button" onPress={abrirEdicao} hitSlop={8}>
@@ -103,8 +119,14 @@ const styles = StyleSheet.create({
   checkboxMarcado: {
     backgroundColor: theme.colors.musgo,
   },
-  titulo: {
+  tituloArea: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: theme.spacing.xs,
+  },
+  titulo: {
+    flexShrink: 1,
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
@@ -112,6 +134,11 @@ const styles = StyleSheet.create({
   tituloConcluido: {
     color: theme.colors.textSecondary,
     textDecorationLine: 'line-through',
+  },
+  duracao: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
   selo: {
     fontSize: theme.typography.fontSize.xs,

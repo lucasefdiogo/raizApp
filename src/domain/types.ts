@@ -19,11 +19,21 @@ export interface EstadoStreak {
   dataUltimaRenovacaoEscudo: string;
 }
 
+/**
+ * Tipo da tarefa. Ausência do campo (dado legado, gravado antes da Fase 2)
+ * é tratada como 'padrao' em todo lugar que lê — nunca assumir que existe.
+ */
+export type TipoTarefa = 'padrao' | 'exercicio';
+
 export interface Tarefa {
   id: string;
   titulo: string;
   essencial: boolean;
   concluida: boolean;
+  /** Opcional. Omitido = 'padrao'. Só 'exercicio' muda algo na UI. */
+  tipo?: TipoTarefa;
+  /** Opcional, só faz sentido quando tipo === 'exercicio'. Minutos estimados. */
+  duracaoMinutos?: number;
 }
 
 export interface DailyLog {
