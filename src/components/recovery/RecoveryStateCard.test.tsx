@@ -7,13 +7,13 @@ describe('RecoveryStateCard', () => {
     await render(
       <RecoveryStateCard
         tipo="escudo"
-        corpo="O escudo cobriu o dia de ontem por você."
+        corpo="A proteção cobriu o dia de ontem por você."
       />,
     );
 
-    expect(screen.getByText('Escudo ativado')).toBeTruthy();
+    expect(screen.getByText('Proteção ativada')).toBeTruthy();
     expect(
-      screen.getByText('O escudo cobriu o dia de ontem por você.'),
+      screen.getByText('A proteção cobriu o dia de ontem por você.'),
     ).toBeTruthy();
 
     const ramo = screen.getByTestId('root-progress-icon-ramo-variavel');

@@ -99,7 +99,7 @@ describe('HojeStack', () => {
     useRecoveryState.mockReturnValue({
       deveExibir: true,
       tipo: 'escudo',
-      corpo: 'O escudo cobriu o dia de ontem por você.',
+      corpo: 'A proteção cobriu o dia de ontem por você.',
       marcarComoExibido,
     });
 

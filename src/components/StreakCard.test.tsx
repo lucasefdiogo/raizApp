@@ -19,15 +19,15 @@ describe('StreakCard', () => {
     expect(screen.getByText('dia seguido')).toBeTruthy();
   });
 
-  it('mostra a quantidade de escudos disponíveis', async () => {
+  it('mostra a quantidade de proteções disponíveis', async () => {
     await render(<StreakCard streak={streakBase} />);
-    expect(screen.getByText('1 escudo disponível')).toBeTruthy();
+    expect(screen.getByText('1 proteção disponível')).toBeTruthy();
   });
 
-  it('usa plural quando há mais de um escudo', async () => {
+  it('usa plural quando há mais de uma proteção', async () => {
     await render(
       <StreakCard streak={{ ...streakBase, escudosDisponiveis: 2 }} />,
     );
-    expect(screen.getByText('2 escudos disponíveis')).toBeTruthy();
+    expect(screen.getByText('2 proteções disponíveis')).toBeTruthy();
   });
 });
