@@ -11,6 +11,14 @@ jest.mock('./MainTabNavigator', () => ({
     return <Text>MainTabNavigator uid={uid}</Text>;
   },
 }));
+// Roteamento é o que este teste cobre; o conteúdo do onboarding tem teste
+// próprio (src/screens/OnboardingScreen.test.tsx).
+jest.mock('../screens/OnboardingScreen', () => ({
+  OnboardingScreen: () => {
+    const { Text } = require('react-native');
+    return <Text>OnboardingScreen</Text>;
+  },
+}));
 
 // A SplashScreen tem teste próprio (src/screens/splash/SplashScreen.test.tsx).
 // Aqui ela é um stub que só respeita o contrato de tempo: chama
@@ -117,7 +125,7 @@ describe('RootNavigator', () => {
     await render(<RootNavigator />);
     await passarSplash();
 
-    expect(screen.getByText('Por que você quer estar aqui')).toBeTruthy();
+    expect(screen.getByText('OnboardingScreen')).toBeTruthy();
     expect(screen.queryByText('MainTabNavigator uid=uid-teste')).toBeNull();
   });
 

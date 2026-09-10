@@ -1,12 +1,14 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FocoProcrastinacao, OnboardingData } from '../domain/types';
 import {
+  PASSO_ONBOARDING,
+  TOTAL_PASSOS_ONBOARDING,
   validarFocoProcrastinacao,
   validarPorqueTexto,
   validarTempoTelaEstimado,
 } from '../domain/onboarding';
 import { STORAGE_KEYS, salvarItem } from '../utils/storage';
-import { salvarOnboardingUsuario } from '../services/firestore';
+import { useOnboardingProgress } from './useOnboardingProgress';
 
 const DADOS_INICIAIS: OnboardingData = {
   porqueTexto: '',
@@ -14,26 +16,49 @@ const DADOS_INICIAIS: OnboardingData = {
   tempoTelaEstimado: null,
 };
 
-export const TOTAL_PASSOS_ONBOARDING = 3;
-
 interface UseOnboardingParams {
   uid: string;
   onConcluir: () => void;
 }
 
 export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
-  const [passo, setPasso] = useState(0);
+  const progresso = useOnboardingProgress(uid);
+  const [passo, setPasso] = useState<number | null>(null);
   const [dados, setDados] = useState<OnboardingData>(DADOS_INICIAIS);
   const [salvando, setSalvando] = useState(false);
 
-  const podeAvancar = useMemo(() => {
-    if (passo === 0) {
-      return validarPorqueTexto(dados.porqueTexto);
+  // Assim que o Firestore responde, retoma no passo certo e pré-preenche o
+  // que já tinha sido respondido antes.
+  useEffect(() => {
+    if (progresso.carregando || passo !== null) {
+      return;
     }
-    if (passo === 1) {
+    setPasso(progresso.passoInicial);
+    setDados({
+      porqueTexto: progresso.dadosExistentes.porqueTexto,
+      focoProcrastinacao: progresso.dadosExistentes.focoProcrastinacao,
+      tempoTelaEstimado: progresso.dadosExistentes.tempoTelaEstimado,
+    });
+  }, [
+    progresso.carregando,
+    progresso.passoInicial,
+    progresso.dadosExistentes,
+    passo,
+  ]);
+
+  const carregando = progresso.carregando || passo === null;
+
+  const podeAvancar = useMemo(() => {
+    if (passo === PASSO_ONBOARDING.foco) {
       return validarFocoProcrastinacao(dados.focoProcrastinacao);
     }
-    return validarTempoTelaEstimado(dados.tempoTelaEstimado);
+    if (passo === PASSO_ONBOARDING.tempoTela) {
+      return validarTempoTelaEstimado(dados.tempoTelaEstimado);
+    }
+    if (passo === PASSO_ONBOARDING.porque) {
+      return validarPorqueTexto(dados.porqueTexto);
+    }
+    return false;
   }, [passo, dados]);
 
   const definirPorqueTexto = useCallback((texto: string) => {
@@ -49,33 +74,46 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
   }, []);
 
   const voltar = useCallback(() => {
-    setPasso(atual => Math.max(0, atual - 1));
+    setPasso(atual => Math.max(PASSO_ONBOARDING.foco, (atual ?? 0) - 1));
   }, []);
 
   const avancar = useCallback(async () => {
-    if (!podeAvancar) {
+    if (passo === null || !podeAvancar || salvando) {
       return;
     }
-    if (passo < TOTAL_PASSOS_ONBOARDING - 1) {
-      setPasso(atual => atual + 1);
-      return;
-    }
+
     setSalvando(true);
     try {
-      await salvarItem(STORAGE_KEYS.onboarding, dados);
-      await salvarOnboardingUsuario(uid, dados);
-      onConcluir();
+      if (passo === PASSO_ONBOARDING.foco) {
+        await progresso.salvarFoco(dados.focoProcrastinacao!);
+        setPasso(PASSO_ONBOARDING.tempoTela);
+      } else if (passo === PASSO_ONBOARDING.tempoTela) {
+        await progresso.salvarTempoTela(dados.tempoTelaEstimado!);
+        setPasso(PASSO_ONBOARDING.porque);
+      } else {
+        await progresso.salvarPorque(dados.porqueTexto);
+        await salvarItem(STORAGE_KEYS.onboarding, {
+          porqueTexto: dados.porqueTexto.trim(),
+          focoProcrastinacao: dados.focoProcrastinacao,
+          tempoTelaEstimado: dados.tempoTelaEstimado,
+        });
+        onConcluir();
+      }
+    } catch {
+      // Falha de rede não deve avançar — o passo atual continua, o usuário
+      // toca de novo. Sem tratamento visual dedicado nesta etapa.
     } finally {
       setSalvando(false);
     }
-  }, [podeAvancar, passo, dados, uid, onConcluir]);
+  }, [passo, podeAvancar, salvando, dados, progresso, onConcluir]);
 
   return {
-    passo,
+    passo: passo ?? progresso.passoInicial,
     totalPassos: TOTAL_PASSOS_ONBOARDING,
     dados,
     podeAvancar,
     salvando,
+    carregando,
     definirPorqueTexto,
     definirFoco,
     definirTempoTela,
