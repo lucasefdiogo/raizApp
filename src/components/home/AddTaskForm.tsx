@@ -8,17 +8,11 @@ import { MENSAGEM_LIMITE_ESSENCIAIS } from '../../domain/dailyTasks';
 interface AddTaskFormProps {
   onAdicionar: (titulo: string, essencial: boolean) => void;
   limiteEssenciaisAtingido: boolean;
-  /**
-   * Chamado quando o campo "Nova tarefa" recebe foco. A Home usa isso pra
-   * rolar o conteúdo até o campo, pra ele não ficar atrás do teclado.
-   */
-  onFocarCampo?: () => void;
 }
 
 export function AddTaskForm({
   onAdicionar,
   limiteEssenciaisAtingido,
-  onFocarCampo,
 }: AddTaskFormProps) {
   const [titulo, setTitulo] = useState('');
   const [essencial, setEssencial] = useState(false);
@@ -44,7 +38,6 @@ export function AddTaskForm({
         value={titulo}
         onChangeText={setTitulo}
         onSubmitEditing={adicionar}
-        onFocus={onFocarCampo}
         returnKeyType="done"
       />
 
