@@ -43,6 +43,15 @@ describe('PerfilScreen', () => {
     expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy();
   });
 
+  it('o campo do porquê é multilinha e alto (mesmo padrão do onboarding)', async () => {
+    await render(<PerfilScreen uid="uid-teste" />);
+
+    const campo = screen.getByLabelText('Por que você quer estar aqui');
+    const estilo = StyleSheet.flatten(campo.props.style) ?? {};
+    expect(campo.props.multiline).toBe(true);
+    expect(estilo.minHeight).toBe(120);
+  });
+
   it('o botão Salvar não fica dentro de um container flex-row (que o encolheria)', async () => {
     await render(<PerfilScreen uid="uid-teste" />);
 

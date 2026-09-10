@@ -2,17 +2,34 @@ import React from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 import { theme } from '../theme';
 
+// Mesma altura mínima do campo de porquê do onboarding
+// (components/onboarding/OnboardingStepPorque.tsx) — os dois devem parecer
+// iguais.
+const ALTURA_MINIMA_MULTILINHA = 120;
+
 interface TextFieldProps extends TextInputProps {
   label: string;
   erro?: string;
 }
 
-export function TextField({ label, erro, style, ...resto }: TextFieldProps) {
+export function TextField({
+  label,
+  erro,
+  style,
+  multiline,
+  ...resto
+}: TextFieldProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={[styles.input, erro && styles.inputComErro, style]}
+        style={[
+          styles.input,
+          multiline && styles.inputMultilinha,
+          erro && styles.inputComErro,
+          style,
+        ]}
+        multiline={multiline}
         placeholderTextColor={theme.colors.textSecondary}
         accessibilityLabel={label}
         {...resto}
@@ -40,6 +57,10 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.surface,
+  },
+  inputMultilinha: {
+    minHeight: ALTURA_MINIMA_MULTILINHA,
+    textAlignVertical: 'top',
   },
   inputComErro: {
     borderColor: theme.colors.erro,

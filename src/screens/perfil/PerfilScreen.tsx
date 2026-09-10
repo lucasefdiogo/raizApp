@@ -87,7 +87,6 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
           value={textoPorque}
           onChangeText={setTextoPorque}
           multiline
-          numberOfLines={4}
         />
         <PrimaryButton titulo="Salvar" onPress={handleSalvarPorque} />
         {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
