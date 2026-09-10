@@ -1,14 +1,53 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
 
 interface TaskItemProps {
   tarefa: Tarefa;
   onAlternar: (id: string) => void;
+  onEditar?: (id: string, titulo: string) => void;
 }
 
-export function TaskItem({ tarefa, onAlternar }: TaskItemProps) {
+export function TaskItem({ tarefa, onAlternar, onEditar }: TaskItemProps) {
+  const [editando, setEditando] = useState(false);
+  const [rascunho, setRascunho] = useState(tarefa.titulo);
+
+  function abrirEdicao() {
+    setRascunho(tarefa.titulo);
+    setEditando(true);
+  }
+
+  function salvar() {
+    onEditar?.(tarefa.id, rascunho);
+    setEditando(false);
+  }
+
+  if (editando) {
+    return (
+      <View style={styles.linha}>
+        <TextInput
+          style={styles.input}
+          value={rascunho}
+          onChangeText={setRascunho}
+          onSubmitEditing={salvar}
+          autoFocus
+          returnKeyType="done"
+          accessibilityLabel="Editar tarefa"
+        />
+        <Pressable accessibilityRole="button" onPress={salvar} hitSlop={8}>
+          <Text style={styles.acao}>salvar</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -23,6 +62,11 @@ export function TaskItem({ tarefa, onAlternar }: TaskItemProps) {
         {tarefa.titulo}
       </Text>
       {tarefa.essencial && <Text style={styles.selo}>essencial</Text>}
+      {onEditar && (
+        <Pressable accessibilityRole="button" onPress={abrirEdicao} hitSlop={8}>
+          <Text style={styles.acao}>editar</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -58,5 +102,22 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.cobre,
+  },
+  acao: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.cobre,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.surface,
   },
 });

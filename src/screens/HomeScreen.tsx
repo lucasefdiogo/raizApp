@@ -6,6 +6,7 @@ import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
+import { AddTaskForm } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { StatusDia } from '../domain/types';
@@ -35,7 +36,16 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
-  const { tarefas, alternarTarefa, statusDia, carregando } = useDailyTasks(uid);
+  const {
+    tarefas,
+    alternarTarefa,
+    adicionarTarefa,
+    editarTarefa,
+    statusDia,
+    carregando,
+    erro,
+    limiteEssenciaisAtingido,
+  } = useDailyTasks(uid);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
 
@@ -69,7 +79,18 @@ export function HomeScreen({
         {carregando ? (
           <ActivityIndicator color={theme.colors.cobre} />
         ) : (
-          <TaskList tarefas={tarefas} onAlternar={handleAlternarTarefa} />
+          <>
+            <TaskList
+              tarefas={tarefas}
+              onAlternar={handleAlternarTarefa}
+              onEditar={(id, titulo) => editarTarefa(id, { titulo })}
+            />
+            <AddTaskForm
+              onAdicionar={adicionarTarefa}
+              limiteEssenciaisAtingido={limiteEssenciaisAtingido}
+            />
+            {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+          </>
         )}
       </ScrollView>
       <TaskCompletedOverlay
@@ -108,5 +129,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
+  },
+  erro: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.erro,
   },
 });

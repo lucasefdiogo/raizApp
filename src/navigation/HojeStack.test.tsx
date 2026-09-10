@@ -63,8 +63,12 @@ function configurarHooksPadrao() {
   useDailyTasks.mockReturnValue({
     tarefas: [],
     alternarTarefa: jest.fn(),
+    adicionarTarefa: jest.fn(),
+    editarTarefa: jest.fn(),
     statusDia: 'pendente',
     carregando: false,
+    erro: null,
+    limiteEssenciaisAtingido: false,
   });
   buscarSystemMessage.mockResolvedValue({
     titulo: 'Sete dias seguidos',
@@ -205,8 +209,12 @@ describe('HojeStack', () => {
         { id: '1', titulo: 'Abrir o material de estudo por 5 minutos', essencial: true, concluida: false },
       ],
       alternarTarefa: jest.fn(),
+      adicionarTarefa: jest.fn(),
+      editarTarefa: jest.fn(),
       statusDia: 'pendente',
       carregando: false,
+      erro: null,
+      limiteEssenciaisAtingido: false,
     });
 
     await renderHojeStack();

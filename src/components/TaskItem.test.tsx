@@ -46,4 +46,30 @@ describe('TaskItem', () => {
       true,
     );
   });
+
+  it('não mostra o botão editar quando onEditar não é passado', async () => {
+    await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
+    expect(screen.queryByText('editar')).toBeNull();
+  });
+
+  it('edita o título inline e chama onEditar com id e novo texto ao salvar', async () => {
+    const onEditar = jest.fn();
+    await render(
+      <TaskItem
+        tarefa={tarefaBase}
+        onAlternar={jest.fn()}
+        onEditar={onEditar}
+      />,
+    );
+
+    await fireEvent.press(screen.getByText('editar'));
+    await fireEvent.changeText(
+      screen.getByLabelText('Editar tarefa'),
+      'Guardar o celular a tarde toda',
+    );
+    await fireEvent.press(screen.getByText('salvar'));
+
+    expect(onEditar).toHaveBeenCalledWith('1', 'Guardar o celular a tarde toda');
+    expect(screen.queryByLabelText('Editar tarefa')).toBeNull();
+  });
 });

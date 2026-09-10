@@ -6,13 +6,19 @@ import { TaskItem } from './TaskItem';
 interface TaskListProps {
   tarefas: Tarefa[];
   onAlternar: (id: string) => void;
+  onEditar?: (id: string, titulo: string) => void;
 }
 
-export function TaskList({ tarefas, onAlternar }: TaskListProps) {
+export function TaskList({ tarefas, onAlternar, onEditar }: TaskListProps) {
   return (
     <View style={styles.lista}>
       {tarefas.map(tarefa => (
-        <TaskItem key={tarefa.id} tarefa={tarefa} onAlternar={onAlternar} />
+        <TaskItem
+          key={tarefa.id}
+          tarefa={tarefa}
+          onAlternar={onAlternar}
+          onEditar={onEditar}
+        />
       ))}
     </View>
   );

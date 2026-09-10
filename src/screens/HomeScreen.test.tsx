@@ -12,11 +12,17 @@ const { buscarSystemMessage } = require('../services/firestore');
 
 // useDailyTasks tem seus próprios testes cobrindo a integração com o
 // Firestore (src/hooks/useDailyTasks.test.ts) — aqui reimplementamos só o
-// suficiente com useState real pra exercitar a orquestração da HomeScreen
-// (toggle, overlay, alerta de risco) sem depender de Firestore/async.
+// suficiente com useState real + as funções puras de domain/ pra exercitar
+// a orquestração da HomeScreen (toggle, adicionar, editar, overlay, alerta
+// de risco) sem depender de Firestore/async.
 jest.mock('../hooks/useDailyTasks', () => {
   const { useState } = require('react');
   const { calcularStatusDia } = require('../domain/streak');
+  const {
+    adicionarTarefa: adicionarNoDia,
+    editarTarefa: editarNoDia,
+    limiteEssenciaisAtingido,
+  } = require('../domain/dailyTasks');
 
   const TAREFAS_MOCK = [
     {
@@ -42,18 +48,52 @@ jest.mock('../hooks/useDailyTasks', () => {
   return {
     useDailyTasks: jest.fn(() => {
       const [tarefas, setTarefas] = useState(TAREFAS_MOCK);
+      const [erro, setErro] = useState(null as string | null);
+
       const alternarTarefa = (id: string) => {
+        setErro(null);
         setTarefas((atual: typeof TAREFAS_MOCK) =>
           atual.map(tarefa =>
             tarefa.id === id ? { ...tarefa, concluida: !tarefa.concluida } : tarefa,
           ),
         );
       };
+      const adicionarTarefa = (titulo: string, essencial: boolean) => {
+        const resultado = adicionarNoDia(tarefas, {
+          id: `nova-${tarefas.length}`,
+          titulo,
+          essencial,
+          concluida: false,
+        });
+        if (resultado.ok) {
+          setErro(null);
+          setTarefas(resultado.tarefas);
+        } else {
+          setErro(resultado.erro);
+        }
+      };
+      const editarTarefa = (
+        id: string,
+        campos: { titulo?: string; essencial?: boolean },
+      ) => {
+        const resultado = editarNoDia(tarefas, id, campos);
+        if (resultado.ok) {
+          setErro(null);
+          setTarefas(resultado.tarefas);
+        } else {
+          setErro(resultado.erro);
+        }
+      };
+
       return {
         tarefas,
         alternarTarefa,
+        adicionarTarefa,
+        editarTarefa,
         statusDia: calcularStatusDia(tarefas),
         carregando: false,
+        erro,
+        limiteEssenciaisAtingido: limiteEssenciaisAtingido(tarefas),
       };
     }),
   };
@@ -97,6 +137,36 @@ describe('HomeScreen', () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
     expect(screen.getByText('1 proteção disponível')).toBeTruthy();
+  });
+
+  it('adiciona uma tarefa nova pela Home e ela aparece na lista', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+
+    await fireEvent.changeText(
+      screen.getByLabelText('Nova tarefa'),
+      'Revisar o resumo da aula',
+    );
+    await fireEvent.press(screen.getByText('Adicionar tarefa'));
+
+    expect(screen.getByText('Revisar o resumo da aula')).toBeTruthy();
+  });
+
+  it('ao atingir 3 essenciais pela Home, mostra o aviso do teto (antes não aparecia)', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    const aviso = 'Só dá pra marcar até 3 tarefas essenciais por dia';
+
+    expect(screen.queryByText(aviso)).toBeNull();
+
+    // TAREFAS_MOCK já tem 1 essencial; adiciona mais 2 (teto = 3)
+    for (const titulo of ['Essencial dois', 'Essencial três']) {
+      await fireEvent.changeText(screen.getByLabelText('Nova tarefa'), titulo);
+      await fireEvent.press(screen.getByText('Marcar como essencial'));
+      await fireEvent.press(screen.getByText('Adicionar tarefa'));
+    }
+
+    expect(screen.getByText(aviso)).toBeTruthy();
+    expect(screen.getByText('Essencial dois')).toBeTruthy();
+    expect(screen.getByText('Essencial três')).toBeTruthy();
   });
 
   it('mostra o overlay com a mensagem de reforço ao concluir uma tarefa', async () => {
