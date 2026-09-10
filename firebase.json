@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": "docs/legal",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README.md"],
+    "cleanUrls": true,
+    "rewrites": [
+      { "source": "/privacidade", "destination": "/politica-privacidade.html" },
+      { "source": "/termos", "destination": "/termos-de-uso.html" }
+    ]
+  }
+}

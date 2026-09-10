@@ -6,6 +6,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { LinkExterno } from '../../components/common/LinkExterno';
+import {
+  ROTULO_POLITICA_PRIVACIDADE,
+  ROTULO_TERMOS_DE_USO,
+  URL_POLITICA_PRIVACIDADE,
+  URL_TERMOS_DE_USO,
+} from '../../config/legalLinks';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 interface SignUpScreenProps {
@@ -79,6 +86,21 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
           desabilitado={!podeCriar}
         />
 
+        <Text style={styles.consentimento}>
+          Ao criar sua conta, você concorda com nossa{' '}
+          <LinkExterno
+            url={URL_POLITICA_PRIVACIDADE}
+            style={styles.consentimentoLink}
+          >
+            {ROTULO_POLITICA_PRIVACIDADE}
+          </LinkExterno>{' '}
+          e{' '}
+          <LinkExterno url={URL_TERMOS_DE_USO} style={styles.consentimentoLink}>
+            {ROTULO_TERMOS_DE_USO}
+          </LinkExterno>
+          .
+        </Text>
+
         <Pressable
           accessibilityRole="button"
           onPress={() => navigation.navigate('SignIn')}
@@ -112,6 +134,16 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.erro,
+  },
+  consentimento: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: theme.typography.fontSize.sm * 1.5,
+  },
+  consentimentoLink: {
+    fontSize: theme.typography.fontSize.sm,
   },
   link: {
     fontSize: theme.typography.fontSize.sm,
