@@ -12,7 +12,10 @@ const {
   signInWithCredential,
   signOut: signOutMock,
   sendPasswordResetEmail,
+  reauthenticateWithCredential,
+  deleteUser,
   GoogleAuthProvider,
+  EmailAuthProvider,
   __setCurrentUser,
   __reset: __resetAuth,
 } = authMock;
@@ -137,6 +140,108 @@ describe('services/auth', () => {
 
       await expect(authService.signInWithGoogle()).rejects.toMatchObject({
         code: 'google/missing-id-token',
+      });
+    });
+  });
+
+  describe('obterProvedorPrincipal', () => {
+    it('retorna null quando não há usuário logado', () => {
+      expect(authService.obterProvedorPrincipal()).toBeNull();
+    });
+
+    it('identifica conta e-mail/senha', () => {
+      __setCurrentUser({
+        uid: '1',
+        email: 'a@a.com',
+        providerData: [{ providerId: 'password' }],
+      });
+      expect(authService.obterProvedorPrincipal()).toBe('password');
+    });
+
+    it('identifica conta Google, com prioridade sobre password', () => {
+      __setCurrentUser({
+        uid: '1',
+        email: 'a@a.com',
+        providerData: [{ providerId: 'password' }, { providerId: 'google.com' }],
+      });
+      expect(authService.obterProvedorPrincipal()).toBe('google.com');
+    });
+  });
+
+  describe('reautenticarComSenha', () => {
+    it('monta a credencial com o e-mail atual e reautentica', async () => {
+      __setCurrentUser({ uid: '1', email: 'a@a.com', providerData: [] });
+
+      await authService.reautenticarComSenha('senha123');
+
+      expect(EmailAuthProvider.credential).toHaveBeenCalledWith(
+        'a@a.com',
+        'senha123',
+      );
+      expect(reauthenticateWithCredential).toHaveBeenCalledTimes(1);
+    });
+
+    it('lança auth/no-current-user quando não há usuário', async () => {
+      await expect(
+        authService.reautenticarComSenha('x'),
+      ).rejects.toMatchObject({ code: 'auth/no-current-user' });
+    });
+
+    it('propaga auth/wrong-password vindo do Firebase', async () => {
+      __setCurrentUser({ uid: '1', email: 'a@a.com', providerData: [] });
+      reauthenticateWithCredential.mockRejectedValueOnce({
+        code: 'auth/wrong-password',
+      });
+
+      await expect(
+        authService.reautenticarComSenha('errada'),
+      ).rejects.toMatchObject({ code: 'auth/wrong-password' });
+    });
+  });
+
+  describe('reautenticarComGoogle', () => {
+    it('conclui quando o login Google retorna credencial', async () => {
+      GoogleSignin.signIn.mockResolvedValueOnce({
+        type: 'success',
+        data: { idToken: 'token-123', user: { email: 'a@a.com' } },
+      });
+      signInWithCredential.mockResolvedValueOnce({ user: { uid: '1' } });
+
+      await expect(
+        authService.reautenticarComGoogle(),
+      ).resolves.toBeUndefined();
+    });
+
+    it('lança auth/reauth-cancelada quando o usuário abandona o fluxo', async () => {
+      GoogleSignin.signIn.mockResolvedValueOnce({ type: 'cancelled' });
+
+      await expect(
+        authService.reautenticarComGoogle(),
+      ).rejects.toMatchObject({ code: 'auth/reauth-cancelada' });
+    });
+  });
+
+  describe('excluirContaAuth', () => {
+    it('chama deleteUser com o usuário atual', async () => {
+      __setCurrentUser({ uid: '1', email: 'a@a.com', providerData: [] });
+
+      await authService.excluirContaAuth();
+
+      expect(deleteUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('lança auth/no-current-user quando não há usuário', async () => {
+      await expect(authService.excluirContaAuth()).rejects.toMatchObject({
+        code: 'auth/no-current-user',
+      });
+    });
+
+    it('propaga auth/requires-recent-login sem tratar', async () => {
+      __setCurrentUser({ uid: '1', email: 'a@a.com', providerData: [] });
+      deleteUser.mockRejectedValueOnce({ code: 'auth/requires-recent-login' });
+
+      await expect(authService.excluirContaAuth()).rejects.toMatchObject({
+        code: 'auth/requires-recent-login',
       });
     });
   });
