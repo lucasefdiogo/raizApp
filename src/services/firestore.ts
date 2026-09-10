@@ -227,3 +227,14 @@ export async function atualizarStatusStreak(
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), { statusStreak }, { merge: true });
 }
+
+export async function atualizarPerfilUsuario(
+  uid: string,
+  campos: Partial<{
+    porqueTexto: string;
+    notificacoesAtivas: boolean;
+    horarioLembreteDiario: string;
+  }>,
+): Promise<void> {
+  await setDoc(documentoUsuario(uid), campos, { merge: true });
+}

@@ -59,8 +59,9 @@ export function MainTabNavigator({ uid }: MainTabNavigatorProps) {
       <Tab.Screen
         name="PerfilTab"
         options={{ title: 'Perfil', tabBarIcon: PerfilTabIcon }}
-        component={PerfilStack}
-      />
+      >
+        {() => <PerfilStack uid={uid} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
