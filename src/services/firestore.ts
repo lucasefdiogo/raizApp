@@ -187,6 +187,21 @@ export async function buscarSystemMessage(
 }
 
 /**
+ * Grava dailyLogs/{data} por inteiro, criando o documento se ainda não
+ * existir. Sobrescreve o que já estava lá — quem chama é responsável por
+ * montar o objeto completo (ver buscarDailyLog para ler o estado atual
+ * antes de decidir o que muda).
+ */
+export async function salvarDailyLog(
+  uid: string,
+  data: string,
+  log: DailyLog,
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, log);
+}
+
+/**
  * Acrescenta uma tarefa a dailyLogs/{data}, criando o documento se ainda não
  * existir. Usado pela tela de retorno após pausa para registrar a tarefa
  * pequena que o usuário escolhe pra recomeçar o dia.
@@ -196,11 +211,9 @@ export async function adicionarTarefaAoDailyLog(
   data: string,
   tarefa: Tarefa,
 ): Promise<void> {
-  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  const snapshot = await getDoc(referencia);
-  const logAtual = snapshot.exists() ? (snapshot.data() as DailyLog) : null;
+  const logAtual = await buscarDailyLog(uid, data);
 
-  await setDoc(referencia, {
+  await salvarDailyLog(uid, data, {
     data,
     tarefas: [...(logAtual?.tarefas ?? []), tarefa],
     statusDia: logAtual?.statusDia ?? 'pendente',

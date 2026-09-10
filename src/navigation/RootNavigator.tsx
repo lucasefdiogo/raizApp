@@ -123,6 +123,7 @@ export function RootNavigator() {
               <Stack.Screen name="Home">
                 {({ navigation }) => (
                   <HomeScreen
+                    uid={auth.user!.uid}
                     streakAtual={streak.streakAtual}
                     escudosDisponiveis={streak.escudosDisponiveis}
                     marcoAtingido={streak.marcoAtingido}

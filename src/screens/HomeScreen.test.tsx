@@ -10,7 +10,59 @@ const {
 jest.mock('../services/firestore');
 const { buscarSystemMessage } = require('../services/firestore');
 
+// useDailyTasks tem seus próprios testes cobrindo a integração com o
+// Firestore (src/hooks/useDailyTasks.test.ts) — aqui reimplementamos só o
+// suficiente com useState real pra exercitar a orquestração da HomeScreen
+// (toggle, overlay, alerta de risco) sem depender de Firestore/async.
+jest.mock('../hooks/useDailyTasks', () => {
+  const { useState } = require('react');
+  const { calcularStatusDia } = require('../domain/streak');
+
+  const TAREFAS_MOCK = [
+    {
+      id: '1',
+      titulo: 'Abrir o material de estudo por 5 minutos',
+      essencial: true,
+      concluida: false,
+    },
+    {
+      id: '2',
+      titulo: 'Guardar o celular durante o almoço',
+      essencial: false,
+      concluida: false,
+    },
+    {
+      id: '3',
+      titulo: 'Escrever uma frase sobre o que pretende fazer hoje',
+      essencial: false,
+      concluida: false,
+    },
+  ];
+
+  return {
+    useDailyTasks: jest.fn(() => {
+      const [tarefas, setTarefas] = useState(TAREFAS_MOCK);
+      const alternarTarefa = (id: string) => {
+        setTarefas((atual: typeof TAREFAS_MOCK) =>
+          atual.map(tarefa =>
+            tarefa.id === id ? { ...tarefa, concluida: !tarefa.concluida } : tarefa,
+          ),
+        );
+      };
+      return {
+        tarefas,
+        alternarTarefa,
+        statusDia: calcularStatusDia(tarefas),
+        carregando: false,
+      };
+    }),
+  };
+});
+
+const { useDailyTasks } = require('../hooks/useDailyTasks');
+
 const PROPS_PADRAO = {
+  uid: 'uid-teste',
   streakAtual: 4,
   escudosDisponiveis: 1,
   marcoAtingido: null,
@@ -118,5 +170,20 @@ describe('HomeScreen', () => {
     );
 
     expect(avaliarAlertaRisco).toHaveBeenLastCalledWith(true);
+  });
+
+  it('não mostra a lista de tarefas enquanto useDailyTasks ainda está carregando', async () => {
+    useDailyTasks.mockReturnValueOnce({
+      tarefas: [],
+      alternarTarefa: jest.fn(),
+      statusDia: 'pendente',
+      carregando: true,
+    });
+
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+
+    expect(
+      screen.queryByText('Abrir o material de estudo por 5 minutos'),
+    ).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
@@ -19,6 +19,7 @@ const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
 };
 
 interface HomeScreenProps {
+  uid: string;
   streakAtual: number;
   escudosDisponiveis: number;
   marcoAtingido: number | null;
@@ -27,6 +28,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({
+  uid,
   streakAtual,
   escudosDisponiveis,
   marcoAtingido,
@@ -35,7 +37,7 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
-  const { tarefas, alternarTarefa, statusDia } = useDailyTasks();
+  const { tarefas, alternarTarefa, statusDia, carregando } = useDailyTasks(uid);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
 
@@ -66,7 +68,11 @@ export function HomeScreen({
         <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
-        <TaskList tarefas={tarefas} onAlternar={handleAlternarTarefa} />
+        {carregando ? (
+          <ActivityIndicator color={theme.colors.cobre} />
+        ) : (
+          <TaskList tarefas={tarefas} onAlternar={handleAlternarTarefa} />
+        )}
         <Pressable accessibilityRole="button" onPress={onVerProgresso}>
           <Text style={styles.link}>Ver progresso</Text>
         </Pressable>
