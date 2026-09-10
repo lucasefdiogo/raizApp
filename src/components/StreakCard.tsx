@@ -18,7 +18,7 @@ export function StreakCard({ streak }: StreakCardProps) {
       <View style={styles.rodape}>
         <Text style={styles.escudos}>
           {streak.escudosDisponiveis}{' '}
-          {streak.escudosDisponiveis === 1 ? 'escudo disponível' : 'escudos disponíveis'}
+          {streak.escudosDisponiveis === 1 ? 'proteção disponível' : 'proteções disponíveis'}
         </Text>
       </View>
     </View>

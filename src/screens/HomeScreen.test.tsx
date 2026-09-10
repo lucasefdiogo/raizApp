@@ -93,10 +93,10 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Dia cumprido. Isso já conta.')).toBeTruthy();
   });
 
-  it('mostra o streak e os escudos recebidos via prop', async () => {
+  it('mostra o streak e as proteções recebidas via prop', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
-    expect(screen.getByText('1 escudo disponível')).toBeTruthy();
+    expect(screen.getByText('1 proteção disponível')).toBeTruthy();
   });
 
   it('mostra o overlay com a mensagem de reforço ao concluir uma tarefa', async () => {

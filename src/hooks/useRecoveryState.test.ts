@@ -20,8 +20,8 @@ describe('useRecoveryState', () => {
 
   it('protegido_escudo ainda não exibido: deveExibir true, tipo escudo', async () => {
     buscarSystemMessage.mockResolvedValue({
-      titulo: 'Escudo ativado',
-      corpo: 'O escudo cobriu o dia de ontem.',
+      titulo: 'Proteção ativada',
+      corpo: 'A proteção cobriu o dia de ontem.',
     });
 
     const { result } = await renderHook(() =>
@@ -31,7 +31,7 @@ describe('useRecoveryState', () => {
     await waitFor(() => expect(result.current.deveExibir).toBe(true));
     expect(result.current.tipo).toBe('escudo');
     expect(buscarSystemMessage).toHaveBeenCalledWith('escudo_ativado');
-    expect(result.current.corpo).toBe('O escudo cobriu o dia de ontem.');
+    expect(result.current.corpo).toBe('A proteção cobriu o dia de ontem.');
   });
 
   it('perdido ainda não exibido: deveExibir true, tipo reduzido, com placeholders substituídos', async () => {

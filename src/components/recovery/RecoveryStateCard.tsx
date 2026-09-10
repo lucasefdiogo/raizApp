@@ -9,7 +9,7 @@ interface RecoveryStateCardProps {
 }
 
 const EYEBROW: Record<RecoveryStateCardProps['tipo'], string> = {
-  escudo: 'Escudo ativado',
+  escudo: 'Proteção ativada',
   reduzido: 'Streak reduzido',
 };
 
