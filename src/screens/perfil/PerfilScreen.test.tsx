@@ -136,4 +136,22 @@ describe('PerfilScreen', () => {
 
     expect(signOut).toHaveBeenCalledTimes(1);
   });
+
+  it('mostra o LoadingIndicator enquanto usePerfil carrega e o formulário só depois', async () => {
+    configurarPerfilPadrao({ carregando: true });
+
+    const { rerender } = await render(<PerfilScreen uid="uid-teste" />);
+
+    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+    expect(screen.queryByText('Seu porquê')).toBeNull();
+    expect(screen.queryByDisplayValue('Terminar meus estudos')).toBeNull();
+
+    configurarPerfilPadrao({ carregando: false });
+    rerender(<PerfilScreen uid="uid-teste" />);
+
+    await waitFor(() =>
+      expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy(),
+    );
+    expect(screen.queryByTestId('loading-indicator')).toBeNull();
+  });
 });

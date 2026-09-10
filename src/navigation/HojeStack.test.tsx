@@ -84,11 +84,12 @@ describe('HojeStack', () => {
     configurarHooksPadrao();
   });
 
-  it('mostra o spinner enquanto useStreak ainda está carregando', async () => {
+  it('mostra o LoadingIndicator fullscreen enquanto useStreak ainda está carregando', async () => {
     useStreak.mockReturnValue({ ...ESTADO_BASE_STREAK, carregando: true });
 
     await renderHojeStack();
 
+    expect(screen.getByTestId('loading-indicator')).toBeTruthy();
     expect(screen.queryByText('Tarefas de hoje')).toBeNull();
     expect(screen.queryByText('Voltar a começar')).toBeNull();
   });
