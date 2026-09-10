@@ -5,14 +5,19 @@ import {
   adicionarTarefa as adicionarTarefaNoDia,
   editarTarefa as editarTarefaNoDia,
   limiteEssenciaisAtingido as limiteEssenciaisAtingidoDominio,
+  removerTarefa as removerTarefaNoDia,
 } from '../domain/dailyTasks';
-import { buscarDailyLog, salvarDailyLog } from '../services/firestore';
+import {
+  buscarDailyLog,
+  existeAlgumDailyLog,
+  salvarDailyLog,
+} from '../services/firestore';
 
-// Conjunto inicial de tarefas para um dia que ainda não tem dailyLog no
-// Firestore — só serve de ponto de partida no primeiro acesso do dia. A
-// partir daí o usuário adiciona/edita/marca e tudo passa a vir do
-// dailyLogs/{data}.
-const TAREFAS_PADRAO: Tarefa[] = [
+// Tarefas de exemplo semeadas SÓ no primeiro dia de uso (nenhum dailyLog
+// gravado ainda) — servem de modelo pra pessoa entender o formato. Depois
+// que existe qualquer dailyLog, todo dia novo começa vazio e a pessoa monta
+// a própria lista.
+const TAREFAS_EXEMPLO: Tarefa[] = [
   {
     id: '1',
     titulo: 'Abrir o material de estudo por 5 minutos',
@@ -48,6 +53,7 @@ interface UseDailyTasksResultado {
     id: string,
     campos: Partial<Pick<Tarefa, 'titulo' | 'essencial'>>,
   ) => void;
+  removerTarefa: (id: string) => void;
   statusDia: StatusDia;
   carregando: boolean;
   erro: string | null;
@@ -55,15 +61,15 @@ interface UseDailyTasksResultado {
 }
 
 /**
- * Lê dailyLogs/{hoje} no boot; se ainda não existir, começa com
- * TAREFAS_PADRAO sem escrever nada (o documento só é criado na primeira
- * mudança — salvarDailyLog sobrescreve o dia inteiro, então "criar" e
- * "atualizar" são a mesma operação). Toda mutação é otimista: o estado
- * local muda na hora e, se a gravação falhar, volta ao que era e expõe
- * `erro` — nada de perder o toque do usuário em silêncio.
+ * Lê dailyLogs/{hoje} no boot. Se não existir: no primeiro dia de uso
+ * (nenhum dailyLog gravado) começa com TAREFAS_EXEMPLO; senão começa vazio.
+ * Nada é gravado até a primeira mudança — salvarDailyLog sobrescreve o dia
+ * inteiro, então "criar" e "atualizar" são a mesma operação. Toda mutação
+ * é otimista: o estado local muda na hora e, se a gravação falhar, volta ao
+ * que era e expõe `erro` — nada de perder o toque do usuário em silêncio.
  */
 export function useDailyTasks(uid: string): UseDailyTasksResultado {
-  const [tarefas, setTarefas] = useState<Tarefa[]>(TAREFAS_PADRAO);
+  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [escudoUsado, setEscudoUsado] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -75,13 +81,24 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
 
     async function carregar() {
       const log = await buscarDailyLog(uid, hojeISO);
-      if (!cancelado) {
-        if (log) {
-          setTarefas(log.tarefas);
-          setEscudoUsado(log.escudoUsado);
-        }
-        setCarregando(false);
+      if (cancelado) {
+        return;
       }
+
+      if (log) {
+        setTarefas(log.tarefas);
+        setEscudoUsado(log.escudoUsado);
+        setCarregando(false);
+        return;
+      }
+
+      const jaUsouAntes = await existeAlgumDailyLog(uid);
+      if (cancelado) {
+        return;
+      }
+
+      setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
+      setCarregando(false);
     }
 
     carregar();
@@ -158,6 +175,13 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     [tarefas, persistir],
   );
 
+  const removerTarefa = useCallback(
+    (id: string) => {
+      persistir(removerTarefaNoDia(tarefas, id));
+    },
+    [tarefas, persistir],
+  );
+
   const statusDia = calcularStatusDia(tarefas);
 
   return {
@@ -165,6 +189,7 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     alternarTarefa,
     adicionarTarefa,
     editarTarefa,
+    removerTarefa,
     statusDia,
     carregando,
     erro,

@@ -7,9 +7,15 @@ interface TaskListProps {
   tarefas: Tarefa[];
   onAlternar: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
+  onRemover?: (id: string) => void;
 }
 
-export function TaskList({ tarefas, onAlternar, onEditar }: TaskListProps) {
+export function TaskList({
+  tarefas,
+  onAlternar,
+  onEditar,
+  onRemover,
+}: TaskListProps) {
   return (
     <View style={styles.lista}>
       {tarefas.map(tarefa => (
@@ -18,6 +24,7 @@ export function TaskList({ tarefas, onAlternar, onEditar }: TaskListProps) {
           tarefa={tarefa}
           onAlternar={onAlternar}
           onEditar={onEditar}
+          onRemover={onRemover}
         />
       ))}
     </View>

@@ -2,22 +2,40 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useDailyTasks } from './useDailyTasks';
 
 jest.mock('../services/firestore');
-const { buscarDailyLog, salvarDailyLog } = require('../services/firestore');
+const {
+  buscarDailyLog,
+  existeAlgumDailyLog,
+  salvarDailyLog,
+} = require('../services/firestore');
 
 describe('useDailyTasks', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     salvarDailyLog.mockResolvedValue(undefined);
+    existeAlgumDailyLog.mockResolvedValue(false);
   });
 
-  it('sem dailyLog salvo ainda: começa com as tarefas padrão, sem escrever nada', async () => {
+  it('primeiro dia de uso (nenhum dailyLog): semeia as tarefas de exemplo, sem escrever nada', async () => {
     buscarDailyLog.mockResolvedValue(null);
+    existeAlgumDailyLog.mockResolvedValue(false);
 
     const { result } = await renderHook(() => useDailyTasks('uid-1'));
 
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.tarefas).toHaveLength(3);
     expect(result.current.tarefas.every(t => !t.concluida)).toBe(true);
+    expect(salvarDailyLog).not.toHaveBeenCalled();
+  });
+
+  it('dia novo depois de já ter usado antes: começa vazio (não semeia de novo)', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+    existeAlgumDailyLog.mockResolvedValue(true);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.tarefas).toEqual([]);
+    expect(result.current.statusDia).toBe('pendente');
     expect(salvarDailyLog).not.toHaveBeenCalled();
   });
 
@@ -181,5 +199,40 @@ describe('useDailyTasks', () => {
     expect(result.current.tarefas).toEqual(tarefasAntes);
     expect(result.current.tarefas.find(t => t.id === '1')?.concluida).toBe(false);
     expect(result.current.erro).not.toBeNull();
+  });
+
+  it('removerTarefa tira do estado local e grava o dia inteiro sem a tarefa', async () => {
+    buscarDailyLog.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.removerTarefa('2');
+    });
+
+    expect(result.current.tarefas.map(t => t.id)).toEqual(['1', '3']);
+    expect(salvarDailyLog).toHaveBeenCalledTimes(1);
+    const [, , logGravado] = salvarDailyLog.mock.calls[0];
+    expect(logGravado.tarefas.map((t: { id: string }) => t.id)).toEqual(['1', '3']);
+  });
+
+  it('removerTarefa pode esvaziar o dia (statusDia volta a pendente)', async () => {
+    buscarDailyLog.mockResolvedValue({
+      data: '2026-09-15',
+      tarefas: [{ id: '1', titulo: 'única', essencial: true, concluida: true }],
+      statusDia: 'cumprido',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useDailyTasks('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      result.current.removerTarefa('1');
+    });
+
+    expect(result.current.tarefas).toEqual([]);
+    expect(result.current.statusDia).toBe('pendente');
   });
 });

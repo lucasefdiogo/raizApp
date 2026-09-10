@@ -7,6 +7,7 @@ import {
   atualizarStatusStreak,
   buscarDailyLog,
   buscarUltimosDailyLogs,
+  existeAlgumDailyLog,
   salvarDailyLog,
   atualizarPerfilUsuario,
 } from './firestore';
@@ -234,6 +235,34 @@ describe('services/firestore', () => {
       ]);
 
       jest.useRealTimers();
+    });
+  });
+
+  describe('existeAlgumDailyLog', () => {
+    it('false quando o usuário nunca gravou nenhum dailyLog', async () => {
+      expect(await existeAlgumDailyLog('uid-1')).toBe(false);
+    });
+
+    it('true assim que existe qualquer dailyLog, mesmo de outra data', async () => {
+      await salvarDailyLog('uid-1', '2026-08-30', {
+        data: '2026-08-30',
+        tarefas: [{ id: '1', titulo: 'x', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      expect(await existeAlgumDailyLog('uid-1')).toBe(true);
+    });
+
+    it('não vaza entre usuários', async () => {
+      await salvarDailyLog('uid-1', '2026-08-30', {
+        data: '2026-08-30',
+        tarefas: [{ id: '1', titulo: 'x', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      expect(await existeAlgumDailyLog('uid-2')).toBe(false);
     });
   });
 

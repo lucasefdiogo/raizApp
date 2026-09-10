@@ -1,7 +1,11 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
+  limit,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -149,6 +153,18 @@ export async function buscarDailyLog(
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
   const snapshot = await getDoc(referencia);
   return snapshot.exists() ? (snapshot.data() as DailyLog) : null;
+}
+
+/**
+ * Diz se o usuário já tem algum dailyLog gravado (qualquer data). Usado
+ * pela Home pra decidir se semeia as tarefas de exemplo: só no primeiro
+ * dia de uso: uma vez que exista qualquer dailyLog, dias novos começam
+ * vazios pro usuário montar a própria lista.
+ */
+export async function existeAlgumDailyLog(uid: string): Promise<boolean> {
+  const colecao = collection(getFirestore(), 'users', uid, 'dailyLogs');
+  const snapshot = await getDocs(query(colecao, limit(1)));
+  return !snapshot.empty;
 }
 
 /**
