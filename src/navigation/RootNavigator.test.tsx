@@ -10,6 +10,7 @@ jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
 jest.mock('../hooks/useProgressoSemanal');
 jest.mock('../hooks/useLocalNotifications');
+jest.mock('../hooks/useDailyTasks');
 
 const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
@@ -19,6 +20,7 @@ const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
 const { useProgressoSemanal } = require('../hooks/useProgressoSemanal');
 const { useLocalNotifications } = require('../hooks/useLocalNotifications');
+const { useDailyTasks } = require('../hooks/useDailyTasks');
 
 const ESTADO_BASE_STREAK = {
   streakAtual: 5,
@@ -65,6 +67,12 @@ function configurarHooksPadrao() {
   });
   useLocalNotifications.mockReturnValue({
     avaliarAlertaRisco: jest.fn(),
+  });
+  useDailyTasks.mockReturnValue({
+    tarefas: [],
+    alternarTarefa: jest.fn(),
+    statusDia: 'pendente',
+    carregando: false,
   });
 }
 

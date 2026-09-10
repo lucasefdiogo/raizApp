@@ -7,6 +7,7 @@ import {
   atualizarStatusStreak,
   buscarDailyLog,
   buscarUltimosDailyLogs,
+  salvarDailyLog,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -112,6 +113,53 @@ describe('services/firestore', () => {
     it('retorna null quando a chave não existe', async () => {
       const mensagem = await buscarSystemMessage('marco_inexistente');
       expect(mensagem).toBeNull();
+    });
+  });
+
+  describe('salvarDailyLog', () => {
+    it('cria dailyLogs/{data} quando ainda não existe', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa', essencial: true, concluida: true },
+        ],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log).toEqual({
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa', essencial: true, concluida: true },
+        ],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+    });
+
+    it('sobrescreve o documento por inteiro numa segunda chamada', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa', essencial: true, concluida: false },
+        ],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa', essencial: true, concluida: true },
+        ],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.tarefas[0].concluida).toBe(true);
     });
   });
 
