@@ -138,6 +138,23 @@ describe('TaskItem', () => {
     expect(screen.getByText('20 min')).toBeTruthy();
   });
 
+  it('essencial e exercício ao mesmo tempo: os dois selos aparecem juntos, do lado direito', async () => {
+    await render(
+      <TaskItem
+        tarefa={{
+          ...tarefaBase,
+          essencial: true,
+          tipo: 'exercicio',
+          duracaoMinutos: 20,
+        }}
+        onAlternar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('task-item-exercicio-icone')).toBeTruthy();
+    expect(screen.getByLabelText('essencial')).toBeTruthy();
+  });
+
   it('exercício sem duração: mostra o ícone, mas nenhum texto de minutos', async () => {
     await render(
       <TaskItem

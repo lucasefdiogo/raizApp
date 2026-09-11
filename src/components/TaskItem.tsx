@@ -84,14 +84,6 @@ export function TaskItem({
         <View
           style={[styles.checkbox, tarefa.concluida && styles.checkboxMarcado]}
         />
-        {ehExercicio && (
-          <View
-            testID="task-item-exercicio-icone"
-            accessibilityLabel="exercício"
-          >
-            <Dumbbell size={16} color={theme.colors.musgo} />
-          </View>
-        )}
         <View style={styles.tituloArea}>
           <Text
             style={[styles.titulo, tarefa.concluida && styles.tituloConcluido]}
@@ -102,15 +94,25 @@ export function TaskItem({
             <Text style={styles.duracao}>{tarefa.duracaoMinutos} min</Text>
           )}
         </View>
-        {tarefa.essencial && (
-          <View accessibilityLabel="essencial">
-            <Star
-              size={14}
-              color={theme.colors.textSecondary}
-              fill={theme.colors.textSecondary}
-            />
-          </View>
-        )}
+        <View style={styles.selos}>
+          {ehExercicio && (
+            <View
+              testID="task-item-exercicio-icone"
+              accessibilityLabel="exercício"
+            >
+              <Dumbbell size={16} color={theme.colors.musgo} />
+            </View>
+          )}
+          {tarefa.essencial && (
+            <View accessibilityLabel="essencial">
+              <Star
+                size={14}
+                color={theme.colors.textSecondary}
+                fill={theme.colors.textSecondary}
+              />
+            </View>
+          )}
+        </View>
       </Pressable>
 
       <TaskActionsSheet
@@ -159,6 +161,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'baseline',
+    gap: theme.spacing.xs,
+  },
+  selos: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: theme.spacing.xs,
   },
   titulo: {
