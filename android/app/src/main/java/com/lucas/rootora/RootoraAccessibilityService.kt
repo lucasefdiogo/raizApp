@@ -1,19 +1,18 @@
 package com.lucas.rootora
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
- * Primeiro incremento do bloqueio de apps (Fase 3): detecta qual app está em
- * primeiro plano via TYPE_WINDOW_STATE_CHANGED e repassa o nome do pacote pro
- * lado JS. Não lê conteúdo de tela (canRetrieveWindowContent="false" no
- * config) — só o nome do pacote.
- *
- * Sem overlay, sem regras de bloqueio, sem desbloqueio: isto é só a detecção
- * e a ponte, pra validar o pipeline antes de construir em cima.
+ * Detecta qual app está em primeiro plano via TYPE_WINDOW_STATE_CHANGED.
+ * Primeiro incremento (Fase 3, parte 1) só repassava isso pro lado JS pra
+ * debug; terceiro incremento (parte 3) usa a mesma detecção pra avaliar o
+ * bloqueio — ver avaliarBloqueio. Não lê conteúdo de tela
+ * (canRetrieveWindowContent="false" no config) — só o nome do pacote.
  */
 class RootoraAccessibilityService : AccessibilityService() {
 
@@ -31,6 +30,28 @@ class RootoraAccessibilityService : AccessibilityService() {
 
     ultimoPacote = pacote
     emitirParaJS(pacote)
+    avaliarBloqueio(pacote)
+  }
+
+  /**
+   * Lê a config espelhada em SharedPreferences (não do Firestore — o
+   * serviço roda fora do ciclo de vida do React, ver BloqueioPrefs) e, se
+   * as 4 condições de bloqueio baterem, traz a MainActivity pra frente por
+   * cima do app. CLEAR_TOP + launchMode="singleTask" (ver AndroidManifest)
+   * fazem isso reaproveitar a Activity existente via onNewIntent em vez de
+   * criar uma nova, se o Rootora já estiver de pé.
+   */
+  private fun avaliarBloqueio(pacote: String) {
+    if (!BloqueioPrefs.deveBloquear(applicationContext, pacote)) {
+      return
+    }
+
+    val intent =
+      Intent(applicationContext, MainActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        putExtra(MainActivity.EXTRA_BLOCKED_PACKAGE, pacote)
+      }
+    startActivity(intent)
   }
 
   override fun onInterrupt() {

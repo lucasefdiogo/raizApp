@@ -9,9 +9,11 @@ import { theme } from '../theme';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
+import { useAppBlocking } from '../hooks/useAppBlocking';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { SplashScreen } from '../screens/splash/SplashScreen';
+import { AppBlockedScreen } from '../screens/appblock/AppBlockedScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
@@ -38,6 +40,7 @@ export function RootNavigator() {
   const tutorial = useTutorialStatus();
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
+  const appBlocking = useAppBlocking();
 
   // Mesmo boot logic de sempre — a Splash só consome o resultado, não
   // relê nada.
@@ -137,6 +140,23 @@ export function RootNavigator() {
         >
           <SplashScreen onAnimationEnd={encerrarAnimacaoSplash} />
         </Animated.View>
+      )}
+
+      {/* Prioridade sobre qualquer outra rota, incluindo a splash — o
+          AccessibilityService já trouxe a MainActivity pra frente por cima
+          do app bloqueado, então o usuário precisa ver isso na hora, sem
+          esperar a splash ou o roteamento normal terminarem. Só precisa do
+          uid (pra checar as tarefas essenciais do dia), não de
+          checagensResolvidas. */}
+      {auth.user && appBlocking.appBloqueadoAtual && (
+        <View style={StyleSheet.absoluteFill}>
+          <AppBlockedScreen
+            uid={auth.user.uid}
+            appBloqueado={appBlocking.appBloqueadoAtual}
+            onDesbloquear={appBlocking.desbloquear}
+            onFechar={appBlocking.dispensar}
+          />
+        </View>
       )}
     </View>
   );
