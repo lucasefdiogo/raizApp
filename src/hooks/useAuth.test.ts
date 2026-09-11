@@ -78,11 +78,12 @@ describe('useAuth', () => {
     expect(firestoreService.criarDocumentoUsuario).not.toHaveBeenCalled();
   });
 
-  it('signInWithGoogle encadeia com criarDocumentoUsuario, passando o displayName da conta Google', async () => {
+  it('signInWithGoogle encadeia com criarDocumentoUsuario e preencherNomeSeVazio, passando o displayName da conta Google', async () => {
     authService.signInWithGoogle.mockResolvedValueOnce({
       user: { uid: 'google-uid', email: 'g@a.com', displayName: 'Beto' },
     });
     firestoreService.criarDocumentoUsuario.mockResolvedValueOnce(undefined);
+    firestoreService.preencherNomeSeVazio.mockResolvedValueOnce(undefined);
 
     const { result } = await renderHook(() => useAuth());
     await waitFor(() => expect(result.current.carregando).toBe(false));
@@ -96,6 +97,13 @@ describe('useAuth', () => {
       'g@a.com',
       'Beto',
     );
+    // Cobre contas Google que já existiam antes dessa mudança — o doc já
+    // existe (criarDocumentoUsuario não sobrescreve), então é esse
+    // segundo passo que completa o nome.
+    expect(firestoreService.preencherNomeSeVazio).toHaveBeenCalledWith(
+      'google-uid',
+      'Beto',
+    );
   });
 
   it('signInWithGoogle usa string vazia quando a conta Google não tem displayName', async () => {
@@ -103,6 +111,7 @@ describe('useAuth', () => {
       user: { uid: 'google-uid', email: 'g@a.com', displayName: null },
     });
     firestoreService.criarDocumentoUsuario.mockResolvedValueOnce(undefined);
+    firestoreService.preencherNomeSeVazio.mockResolvedValueOnce(undefined);
 
     const { result } = await renderHook(() => useAuth());
     await waitFor(() => expect(result.current.carregando).toBe(false));
@@ -116,9 +125,13 @@ describe('useAuth', () => {
       'g@a.com',
       '',
     );
+    expect(firestoreService.preencherNomeSeVazio).toHaveBeenCalledWith(
+      'google-uid',
+      '',
+    );
   });
 
-  it('signInWithGoogle não chama criarDocumentoUsuario em cancelamento (retorno null)', async () => {
+  it('signInWithGoogle não chama criarDocumentoUsuario nem preencherNomeSeVazio em cancelamento (retorno null)', async () => {
     authService.signInWithGoogle.mockResolvedValueOnce(null);
 
     const { result } = await renderHook(() => useAuth());
@@ -129,6 +142,7 @@ describe('useAuth', () => {
     });
 
     expect(firestoreService.criarDocumentoUsuario).not.toHaveBeenCalled();
+    expect(firestoreService.preencherNomeSeVazio).not.toHaveBeenCalled();
   });
 
   it('resetPassword não lança erro quando o e-mail não existe (não revela)', async () => {

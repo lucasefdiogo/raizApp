@@ -13,6 +13,7 @@ import {
   apagarTodosOsDadosDoUsuario,
   buscarDesbloqueiosHojeDoApp,
   incrementarDesbloqueiosHoje,
+  preencherNomeSeVazio,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -79,6 +80,48 @@ describe('services/firestore', () => {
 
       expect((await buscarUsuario('uid-email'))?.email).toBe('email@a.com');
       expect((await buscarUsuario('uid-google'))?.email).toBe('google@a.com');
+    });
+  });
+
+  describe('preencherNomeSeVazio', () => {
+    it('preenche o nome quando o documento existe e o nome está vazio (conta Google anterior à mudança)', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com'); // nome '' (comportamento antigo)
+
+      await preencherNomeSeVazio('uid-1', 'Ana');
+
+      expect((await buscarUsuario('uid-1'))?.nome).toBe('Ana');
+    });
+
+    it('não sobrescreve um nome já gravado', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com', 'Ana');
+
+      await preencherNomeSeVazio('uid-1', 'Outro nome');
+
+      expect((await buscarUsuario('uid-1'))?.nome).toBe('Ana');
+    });
+
+    it('não faz nada quando o nome novo também é vazio', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+
+      await preencherNomeSeVazio('uid-1', '');
+
+      expect((await buscarUsuario('uid-1'))?.nome).toBe('');
+    });
+
+    it('não quebra quando o documento do usuário não existe', async () => {
+      await expect(
+        preencherNomeSeVazio('uid-inexistente', 'Ana'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('não apaga o restante do documento', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+
+      await preencherNomeSeVazio('uid-1', 'Ana');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.email).toBe('a@a.com');
+      expect(usuario?.streakAtual).toBe(0);
     });
   });
 

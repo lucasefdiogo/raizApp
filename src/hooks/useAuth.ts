@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { User } from '@react-native-firebase/auth';
 import * as authService from '../services/auth';
-import { criarDocumentoUsuario } from '../services/firestore';
+import {
+  criarDocumentoUsuario,
+  preencherNomeSeVazio,
+} from '../services/firestore';
 import { mapearErroAuth } from '../domain/authErrors';
 
 function erroMapeado(erro: unknown): Error {
@@ -46,12 +49,17 @@ export function useAuth() {
       const credential = await authService.signInWithGoogle();
       if (credential) {
         // displayName vem da própria conta Google — não pedimos de novo
-        // nesse fluxo. Idempotente (criarDocumentoUsuario só grava na
-        // primeira vez), então contas Google já existentes antes dessa
-        // mudança não são retroativamente preenchidas.
+        // nesse fluxo. criarDocumentoUsuario só grava na primeira vez
+        // (idempotente), então contas Google já existentes antes dessa
+        // mudança precisam do preencherNomeSeVazio abaixo pra ganhar o
+        // nome também — roda em todo login, não só no cadastro.
         await criarDocumentoUsuario(
           credential.user.uid,
           credential.user.email ?? '',
+          credential.user.displayName ?? '',
+        );
+        await preencherNomeSeVazio(
+          credential.user.uid,
           credential.user.displayName ?? '',
         );
       }
