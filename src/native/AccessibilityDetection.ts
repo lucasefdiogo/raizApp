@@ -3,9 +3,24 @@ import { DeviceEventEmitter, NativeModules } from 'react-native';
 /** Mesmo nome do evento emitido pelo RootoraAccessibilityService.kt. */
 const EVENTO_APP_PRIMEIRO_PLANO = 'app-foreground-changed';
 
+/** Formato que o módulo nativo devolve — ícone em base64 puro, sem prefixo. */
+interface AppInstaladoNativo {
+  packageName: string;
+  nome: string;
+  icone: string | null;
+}
+
+export interface AppInstalado {
+  packageName: string;
+  nome: string;
+  /** Data URI pronta pra <Image source={{ uri: icone }} />, ou null. */
+  icone: string | null;
+}
+
 interface RootoraAccessibilityNative {
   isAccessibilityServiceEnabled(): Promise<boolean>;
   openAccessibilitySettings(): void;
+  getInstalledApps(): Promise<AppInstaladoNativo[]>;
 }
 
 interface EventoAppPrimeiroPlano {
@@ -42,6 +57,25 @@ export async function isAccessibilityServiceEnabled(): Promise<boolean> {
  */
 export function openAccessibilitySettings(): void {
   moduloNativo()?.openAccessibilitySettings();
+}
+
+/**
+ * Apps instalados pelo usuário (sem apps de sistema, sem o próprio Rootora
+ * — filtrados do lado nativo). Sem o módulo nativo, resolve lista vazia.
+ * Não cacheia aqui — quem chama decide se guarda em memória (useAppBlockConfig
+ * só busca 1x por montagem da tela).
+ */
+export async function getInstalledApps(): Promise<AppInstalado[]> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return [];
+  }
+  const apps = await modulo.getInstalledApps();
+  return apps.map(app => ({
+    packageName: app.packageName,
+    nome: app.nome,
+    icone: app.icone ? `data:image/png;base64,${app.icone}` : null,
+  }));
 }
 
 /**

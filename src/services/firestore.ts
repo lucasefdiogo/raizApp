@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 import {
+  BloqueioAppsConfig,
   DailyLog,
   Desafio,
   EstadoStreak,
@@ -38,6 +39,8 @@ export interface UsuarioDocumento {
   marcosAtingidos: number[];
   notificacoesAtivas: boolean;
   horarioLembreteDiario: string | null;
+  /** Ausente = usuário nunca configurou (ver BloqueioAppsConfig). */
+  bloqueioApps?: BloqueioAppsConfig;
 }
 
 function documentoUsuario(uid: string) {
@@ -254,6 +257,20 @@ export async function atualizarPerfilUsuario(
   }>,
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), campos, { merge: true });
+}
+
+/**
+ * Atualiza bloqueioApps em users/{uid}. Quem chama deve passar o objeto
+ * COMPLETO (não só o campo que mudou) — o merge do Firestore é recursivo em
+ * mapas aninhados no dispositivo real, mas o mock usado nos testes faz merge
+ * raso; mandar sempre o objeto inteiro funciona nos dois casos (é o que
+ * useAppBlockConfig faz).
+ */
+export async function atualizarConfigBloqueioApps(
+  uid: string,
+  config: Partial<BloqueioAppsConfig>,
+): Promise<void> {
+  await setDoc(documentoUsuario(uid), { bloqueioApps: config }, { merge: true });
 }
 
 // Firestore aceita até 500 operações por batch. Ficamos abaixo pra ter

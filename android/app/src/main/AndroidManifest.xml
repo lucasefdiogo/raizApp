@@ -1,6 +1,21 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      Sem isso, PackageManager.getInstalledApplications() (usado por
+      RootoraAccessibilityModule.getInstalledApps) retorna praticamente vazio
+      em Android 11+ (API 30+) — visibilidade de pacotes por padrão só mostra
+      o próprio app. É exatamente o que quebrou o bloqueio de apps em device
+      físico (o emulador não tinha apps de terceiros pra revelar o problema).
+      Escrutínio da Play Store na publicação: precisa da declaração de uso
+      sensível no Play Console (categoria "gerenciamento de apps"/bem-estar
+      digital é aceita pra esse caso) — mesmo tipo de trade-off já registrado
+      pro Accessibility Service.
+    -->
+    <uses-permission
+      android:name="android.permission.QUERY_ALL_PACKAGES"
+      tools:ignore="QueryAllPackagesPermission" />
 
     <application
       android:name=".MainApplication"
