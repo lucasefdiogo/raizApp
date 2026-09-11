@@ -28,6 +28,9 @@ const {
 jest.mock('../hooks/useRecarregarAoFocar');
 const { useRecarregarAoFocar } = require('../hooks/useRecarregarAoFocar');
 
+jest.mock('../hooks/useNomeUsuario');
+const { useNomeUsuario } = require('../hooks/useNomeUsuario');
+
 // useDailyTasks tem seus próprios testes cobrindo a integração com o
 // Firestore (src/hooks/useDailyTasks.test.ts) — aqui reimplementamos só o
 // suficiente com useState real + as funções puras de domain/ pra exercitar
@@ -160,6 +163,7 @@ beforeEach(() => {
     carregando: false,
     dispensarHoje: jest.fn(),
   });
+  useNomeUsuario.mockReturnValue('Ana');
 });
 
 describe('HomeScreen', () => {
@@ -180,6 +184,16 @@ describe('HomeScreen', () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
     expect(screen.getByText('1 proteção disponível')).toBeTruthy();
+  });
+
+  it('regressão: HomeHeader recebe o nome (useNomeUsuario) e o streakAtual (prop) corretos', async () => {
+    useNomeUsuario.mockReturnValue('Marina');
+    await render(<HomeScreen {...PROPS_PADRAO} streakAtual={9} />);
+
+    // O texto exato da saudação varia por horário (ver HomeHeader.test.tsx)
+    // — aqui só importa que o nome vindo do hook chegou ao componente.
+    expect(screen.getByText(/Marina/)).toBeTruthy();
+    expect(screen.getByText('🌱 9 dias')).toBeTruthy();
   });
 
   it('adiciona uma tarefa nova pela Home e ela aparece na lista', async () => {
