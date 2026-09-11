@@ -196,6 +196,64 @@ describe('useAppBlockConfig', () => {
     );
   });
 
+  describe('ativoAgora', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    async function configurarComHorario(agora: string) {
+      jest.setSystemTime(new Date(`2026-09-11T${agora}:00`));
+      firestore.buscarUsuario.mockResolvedValue({
+        email: 'a@a.com',
+        bloqueioApps: {
+          ativo: true,
+          appsSelecionados: ['com.whatsapp'],
+          horarioInicio: '09:00',
+          horarioFim: '18:00',
+        },
+      });
+      const { result } = await renderHook(() => useAppBlockConfig('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+      return result;
+    }
+
+    it('true quando o horário atual está dentro da janela', async () => {
+      const result = await configurarComHorario('12:00');
+      expect(result.current.ativoAgora).toBe(true);
+    });
+
+    it('false antes do horário de início', async () => {
+      const result = await configurarComHorario('08:00');
+      expect(result.current.ativoAgora).toBe(false);
+    });
+
+    it('false depois do horário de fim', async () => {
+      const result = await configurarComHorario('19:00');
+      expect(result.current.ativoAgora).toBe(false);
+    });
+
+    it('false quando o bloqueio geral está desligado, mesmo dentro da janela', async () => {
+      jest.setSystemTime(new Date('2026-09-11T12:00:00'));
+      firestore.buscarUsuario.mockResolvedValue({
+        email: 'a@a.com',
+        bloqueioApps: {
+          ativo: false,
+          appsSelecionados: ['com.whatsapp'],
+          horarioInicio: '09:00',
+          horarioFim: '18:00',
+        },
+      });
+      const { result } = await renderHook(() => useAppBlockConfig('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      expect(result.current.ativoAgora).toBe(false);
+    });
+  });
+
   describe('recarregar', () => {
     it('refaz a mesma busca sob demanda, sem passar por carregando', async () => {
       firestore.buscarUsuario.mockResolvedValue({ email: 'a@a.com' });

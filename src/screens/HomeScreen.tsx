@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
+import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
+import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
@@ -17,6 +19,8 @@ import { EmptyState } from '../components/common/EmptyState';
 import { AddTaskForm } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
+import { AppBlockBanner } from '../components/home/AppBlockBanner';
+import { AppBlockStatusCard } from '../components/home/AppBlockStatusCard';
 import { StatusDia } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
@@ -45,6 +49,9 @@ interface HomeScreenProps {
    * streak no mesmo gesto que atualiza as tarefas.
    */
   recarregarStreak: () => Promise<void>;
+  /** Abre a tela de configuração do bloqueio de apps, já existente (Perfil
+   * também linka pra ela — não é uma tela duplicada). */
+  aoAbrirBloqueioApps: () => void;
 }
 
 export function HomeScreen({
@@ -54,6 +61,7 @@ export function HomeScreen({
   marcoAtingido,
   avaliarAlertaRisco,
   recarregarStreak,
+  aoAbrirBloqueioApps,
 }: HomeScreenProps) {
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
@@ -68,6 +76,13 @@ export function HomeScreen({
     limiteEssenciaisAtingido,
     recarregar,
   } = useDailyTasks(uid);
+  const {
+    appsInstalados,
+    configAtual: bloqueioApps,
+    ativoAgora: bloqueioAtivoAgora,
+    carregando: bloqueioCarregando,
+  } = useAppBlockConfig(uid);
+  const banner = useAppBlockBannerDismissido();
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
   const [atualizando, setAtualizando] = useState(false);
@@ -118,6 +133,23 @@ export function HomeScreen({
   );
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
+
+  // Mutuamente exclusivos por construção: length === 0 e length > 0 nunca
+  // são verdadeiros ao mesmo tempo. Os dois só aparecem depois que
+  // useAppBlockConfig resolve, pra não piscar o banner antes de saber se
+  // já existe config salva.
+  const mostrarBannerBloqueio =
+    !bloqueioCarregando &&
+    !banner.carregando &&
+    bloqueioApps.appsSelecionados.length === 0 &&
+    !banner.dispensadoHoje;
+  const mostrarStatusBloqueio =
+    !bloqueioCarregando && bloqueioApps.appsSelecionados.length > 0;
+
+  const appsBloqueadosResolvidos = bloqueioApps.appsSelecionados
+    .map(pacote => appsInstalados.find(app => app.packageName === pacote))
+    .filter((app): app is (typeof appsInstalados)[number] => app !== undefined)
+    .map(app => ({ nome: app.nome, icone: app.icone }));
 
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
@@ -177,6 +209,21 @@ export function HomeScreen({
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
             />
           </>
+        )}
+
+        {mostrarBannerBloqueio && (
+          <AppBlockBanner
+            onConfigurar={aoAbrirBloqueioApps}
+            onDispensar={banner.dispensarHoje}
+          />
+        )}
+        {mostrarStatusBloqueio && (
+          <AppBlockStatusCard
+            apps={appsBloqueadosResolvidos}
+            ativoAgora={bloqueioAtivoAgora}
+            horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
+            horarioFim={bloqueioApps.horarioFim ?? '--:--'}
+          />
         )}
       </ScrollView>
       <TaskCompletedOverlay

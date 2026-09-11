@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { alternarAppNaSelecao } from '../domain/appBlock';
+import {
+  alternarAppNaSelecao,
+  estaDentroDaJanelaDeHorario,
+} from '../domain/appBlock';
 import { BloqueioAppsConfig } from '../domain/types';
 import { atualizarConfigBloqueioApps, buscarUsuario } from '../services/firestore';
 import {
@@ -38,6 +41,13 @@ interface UseAppBlockConfigResultado {
    * rede, dispara o toast de erro.
    */
   recarregar: () => Promise<void>;
+  /**
+   * true só quando o bloqueio está ligado E o horário atual do aparelho
+   * cai dentro da janela configurada — indicativo pra exibição (Home),
+   * não uma leitura em tempo real do que o AccessibilityService está
+   * aplicando de fato.
+   */
+  ativoAgora: boolean;
 }
 
 /**
@@ -134,6 +144,10 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
     [config, persistir],
   );
 
+  const ativoAgora =
+    config.ativo &&
+    estaDentroDaJanelaDeHorario(config.horarioInicio, config.horarioFim);
+
   return {
     appsInstalados,
     configAtual: config,
@@ -142,5 +156,6 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
     salvarHorario,
     alternarAtivo,
     recarregar,
+    ativoAgora,
   };
 }
