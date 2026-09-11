@@ -5,6 +5,11 @@ import {
 } from '@react-navigation/native-stack';
 import { PerfilScreen } from '../screens/perfil/PerfilScreen';
 import { AccessibilityDebugScreen } from '../screens/debug/AccessibilityDebugScreen';
+import { MOSTRAR_DEBUG_ACESSIBILIDADE } from '../config/debugFlags';
+
+// Atalho de debug (Fase 3, parte 1): sempre em dev; em release só quando a
+// flag de teste está ligada à mão pra gerar o APK de validação em device.
+const EXPOR_DEBUG_ACESSIBILIDADE = __DEV__ || MOSTRAR_DEBUG_ACESSIBILIDADE;
 
 export type PerfilStackParamList = {
   Perfil: undefined;
@@ -30,14 +35,14 @@ export function PerfilStack({ uid }: PerfilStackProps) {
           <PerfilScreen
             uid={uid}
             aoAbrirDebugAcessibilidade={
-              __DEV__
+              EXPOR_DEBUG_ACESSIBILIDADE
                 ? () => navigation.navigate('AccessibilityDebug')
                 : undefined
             }
           />
         )}
       </Stack.Screen>
-      {__DEV__ && (
+      {EXPOR_DEBUG_ACESSIBILIDADE && (
         <Stack.Screen
           name="AccessibilityDebug"
           component={AccessibilityDebugScreen}
