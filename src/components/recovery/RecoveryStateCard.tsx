@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.cobre,
+    color: theme.colors.musgo,
   },
   corpo: {
     fontSize: theme.typography.fontSize.md,

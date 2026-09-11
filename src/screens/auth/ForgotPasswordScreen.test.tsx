@@ -12,6 +12,14 @@ function renderComNavegacao(resetPassword: jest.Mock) {
 }
 
 describe('ForgotPasswordScreen', () => {
+  it('mostra o botão de voltar (pro login)', async () => {
+    await renderComNavegacao(jest.fn());
+
+    const botaoVoltar = screen.getByLabelText('Voltar');
+    expect(botaoVoltar).toBeTruthy();
+    await fireEvent.press(botaoVoltar);
+  });
+
   it('mantém o botão de envio desabilitado com o e-mail vazio', async () => {
     const resetPassword = jest.fn();
     await renderComNavegacao(resetPassword);

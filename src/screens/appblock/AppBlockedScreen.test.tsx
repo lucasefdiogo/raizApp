@@ -74,6 +74,41 @@ describe('AppBlockedScreen', () => {
     expect(screen.getByText('Pausa de respiração (60s)')).toBeTruthy();
   });
 
+  it('enquanto as tarefas carregam: opção de tarefas mostra o estado de verificação', async () => {
+    configurarTarefas({ carregando: true });
+    await render(
+      <AppBlockedScreen
+        uid="uid-teste"
+        appBloqueado={APP_BLOQUEADO}
+        onDesbloquear={onDesbloquear}
+        onFechar={onFechar}
+      />,
+    );
+
+    expect(screen.getByText('Verificando suas tarefas de hoje…')).toBeTruthy();
+    expect(
+      screen.queryByText('Se já cumpriu hoje, libera na hora.'),
+    ).toBeNull();
+  });
+
+  it('"Agora não" fecha sem desbloquear', async () => {
+    await render(
+      <AppBlockedScreen
+        uid="uid-teste"
+        appBloqueado={APP_BLOQUEADO}
+        onDesbloquear={onDesbloquear}
+        onFechar={onFechar}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Agora não'));
+    });
+
+    expect(onFechar).toHaveBeenCalledTimes(1);
+    expect(onDesbloquear).not.toHaveBeenCalled();
+  });
+
   describe('fluxo: tarefas essenciais', () => {
     it('tarefas essenciais já concluídas hoje: desbloqueia na hora', async () => {
       configurarTarefas({

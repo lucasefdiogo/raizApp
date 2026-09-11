@@ -6,7 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Dumbbell } from 'lucide-react-native';
+import { Dumbbell, Star } from 'lucide-react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
 import { TaskActionsSheet } from './home/TaskActionsSheet';
@@ -97,7 +97,15 @@ export function TaskItem({
             <Text style={styles.duracao}>{tarefa.duracaoMinutos} min</Text>
           )}
         </View>
-        {tarefa.essencial && <Text style={styles.selo}>essencial</Text>}
+        {tarefa.essencial && (
+          <View accessibilityLabel="essencial">
+            <Star
+              size={14}
+              color={theme.colors.textSecondary}
+              fill={theme.colors.textSecondary}
+            />
+          </View>
+        )}
       </Pressable>
 
       <TaskActionsSheet
@@ -129,7 +137,7 @@ const styles = StyleSheet.create({
   linha: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing.md,
     gap: theme.spacing.sm,
   },
   checkbox: {
@@ -162,11 +170,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
-  },
-  selo: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.body,
-    color: theme.colors.cobre,
   },
   acao: {
     fontSize: theme.typography.fontSize.xs,

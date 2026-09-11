@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { RootNavigator } from './RootNavigator';
 
 jest.mock('../hooks/useTutorialStatus');
@@ -133,6 +133,22 @@ describe('RootNavigator', () => {
 
     await render(<RootNavigator />);
     await passarSplash();
+
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
+  });
+
+  it('SignIn: voltar mostra o Tutorial de novo, e concluí-lo de novo volta pro SignIn', async () => {
+    useAuth.mockReturnValue({ ...authAutenticado(), user: null });
+
+    await render(<RootNavigator />);
+    await passarSplash();
+    expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Voltar'));
+
+    expect(screen.getByText('Isso te parece familiar?')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('pular'));
 
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
   });

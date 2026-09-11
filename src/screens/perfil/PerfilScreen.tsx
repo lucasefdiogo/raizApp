@@ -152,6 +152,8 @@ export function PerfilScreen({
             <Pressable
               accessibilityRole="button"
               onPress={() => setSeletorAberto(true)}
+              hitSlop={8}
+              style={styles.linkToque}
             >
               <Text style={styles.link}>Alterar horário</Text>
             </Pressable>
@@ -167,7 +169,12 @@ export function PerfilScreen({
         )}
 
         <Text style={styles.secaoTitulo}>Bloqueio de apps</Text>
-        <Pressable accessibilityRole="button" onPress={aoAbrirBloqueioApps}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={aoAbrirBloqueioApps}
+          hitSlop={8}
+          style={styles.linkToque}
+        >
           <Text style={styles.link}>Configurar bloqueio de apps</Text>
         </Pressable>
 
@@ -259,6 +266,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
+  },
+  linkToque: {
+    paddingVertical: theme.spacing.sm,
   },
   link: {
     fontSize: theme.typography.fontSize.sm,

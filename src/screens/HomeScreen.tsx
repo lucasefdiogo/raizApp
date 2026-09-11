@@ -147,8 +147,8 @@ export function HomeScreen({
             testID="home-refresh-control"
             refreshing={atualizando}
             onRefresh={aoAtualizar}
-            colors={[theme.colors.cobre]}
-            tintColor={theme.colors.cobre}
+            colors={[theme.colors.musgo]}
+            tintColor={theme.colors.musgo}
           />
         }
       >

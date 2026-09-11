@@ -25,7 +25,7 @@ describe('TaskItem', () => {
         onAlternar={jest.fn()}
       />,
     );
-    expect(screen.getByText('essencial')).toBeTruthy();
+    expect(screen.getByLabelText('essencial')).toBeTruthy();
   });
 
   it('chama onAlternar com o id da tarefa ao ser pressionada', async () => {

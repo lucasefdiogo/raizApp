@@ -41,6 +41,11 @@ export function RootNavigator() {
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
   const appBlocking = useAppBlocking();
+  // SignIn não tem "voltar" de navegação normal (Tutorial e AuthStack são
+  // ramos mutuamente exclusivos aqui, não uma pilha) — esse estado local
+  // força a volta ao Tutorial sem persistir nada em disco; ao concluir o
+  // Tutorial de novo, volta a cair no ramo normal.
+  const [voltouParaTutorial, setVoltouParaTutorial] = useState(false);
 
   // Mesmo boot logic de sempre — a Splash só consome o resultado, não
   // relê nada.
@@ -86,14 +91,19 @@ export function RootNavigator() {
       {checagensResolvidas && (
         <NavigationContainer>
           <Stack.Navigator screenOptions={screenOptions}>
-            {!tutorial.tutorialVisto ? (
+            {!tutorial.tutorialVisto || voltouParaTutorial ? (
               <Stack.Screen name="Tutorial">
                 {/* TODO: diferenciar "Começar" (SignUp) de "Já tenho conta"
                     (SignIn) agora que a AuthStack existe — por ora os dois
                     botões e o "pular" só marcam a flag e caem na SignInScreen,
                     que já linka para as duas telas. */}
                 {() => (
-                  <TutorialScreen onConcluir={tutorial.marcarTutorialVisto} />
+                  <TutorialScreen
+                    onConcluir={() => {
+                      setVoltouParaTutorial(false);
+                      tutorial.marcarTutorialVisto();
+                    }}
+                  />
                 )}
               </Stack.Screen>
             ) : !auth.user ? (
@@ -103,6 +113,7 @@ export function RootNavigator() {
                     <SignInScreen
                       signIn={auth.signIn}
                       signInWithGoogle={auth.signInWithGoogle}
+                      aoVoltarParaTutorial={() => setVoltouParaTutorial(true)}
                     />
                   )}
                 </Stack.Screen>

@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { BackButton } from '../../components/common/BackButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 interface ForgotPasswordScreenProps {
@@ -44,6 +45,7 @@ export function ForgotPasswordScreen({
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
+        <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.titulo}>Recuperar senha</Text>
 
         {enviado ? (
@@ -74,6 +76,8 @@ export function ForgotPasswordScreen({
         <Pressable
           accessibilityRole="button"
           onPress={() => navigation.navigate('SignIn')}
+          hitSlop={8}
+          style={styles.linkToque}
         >
           <Text style={styles.link}>Voltar para o login</Text>
         </Pressable>
@@ -106,6 +110,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
+  },
+  linkToque: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
   },
   link: {
     fontSize: theme.typography.fontSize.sm,

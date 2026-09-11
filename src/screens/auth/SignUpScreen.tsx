@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { BackButton } from '../../components/common/BackButton';
 import { LinkExterno } from '../../components/common/LinkExterno';
 import {
   ROTULO_POLITICA_PRIVACIDADE,
@@ -54,6 +55,7 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
+        <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.titulo}>Criar conta</Text>
 
         <View style={styles.campos}>
@@ -104,6 +106,8 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
         <Pressable
           accessibilityRole="button"
           onPress={() => navigation.navigate('SignIn')}
+          hitSlop={8}
+          style={styles.linkToque}
         >
           <Text style={styles.link}>Já tem conta? Entrar</Text>
         </Pressable>
@@ -144,6 +148,10 @@ const styles = StyleSheet.create({
   },
   consentimentoLink: {
     fontSize: theme.typography.fontSize.sm,
+  },
+  linkToque: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
   },
   link: {
     fontSize: theme.typography.fontSize.sm,

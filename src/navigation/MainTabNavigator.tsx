@@ -40,7 +40,7 @@ export function MainTabNavigator({ uid }: MainTabNavigatorProps) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.accent,
+        tabBarActiveTintColor: theme.colors.musgo,
         tabBarInactiveTintColor: theme.colors.textSecondary,
       }}
     >

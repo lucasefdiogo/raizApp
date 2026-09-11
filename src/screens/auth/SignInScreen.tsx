@@ -6,16 +6,27 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { BackButton } from '../../components/common/BackButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 interface SignInScreenProps {
   signIn: (email: string, senha: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  /**
+   * SignIn é raiz da AuthStack — não tem "voltar" de navegação normal, mas
+   * chegou aqui vindo do Tutorial. Ausente = o chevron não aparece (não
+   * deveria faltar em produção; só é opcional pra facilitar teste isolado).
+   */
+  aoVoltarParaTutorial?: () => void;
 }
 
 type Navegacao = NativeStackNavigationProp<RootStackParamList, 'SignIn'>;
 
-export function SignInScreen({ signIn, signInWithGoogle }: SignInScreenProps) {
+export function SignInScreen({
+  signIn,
+  signInWithGoogle,
+  aoVoltarParaTutorial,
+}: SignInScreenProps) {
   const navigation = useNavigation<Navegacao>();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -57,6 +68,7 @@ export function SignInScreen({ signIn, signInWithGoogle }: SignInScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
+        {aoVoltarParaTutorial && <BackButton onPress={aoVoltarParaTutorial} />}
         <Text style={styles.titulo}>Entrar</Text>
 
         <View style={styles.campos}>
@@ -87,12 +99,16 @@ export function SignInScreen({ signIn, signInWithGoogle }: SignInScreenProps) {
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.navigate('SignUp')}
+            hitSlop={8}
+            style={styles.linkToque}
           >
             <Text style={styles.link}>Ainda não tem conta? Criar conta</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.navigate('ForgotPassword')}
+            hitSlop={8}
+            style={styles.linkToque}
           >
             <Text style={styles.link}>Esqueci minha senha</Text>
           </Pressable>
@@ -141,8 +157,11 @@ const styles = StyleSheet.create({
     color: theme.colors.erro,
   },
   links: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
     alignItems: 'center',
+  },
+  linkToque: {
+    paddingVertical: theme.spacing.sm,
   },
   link: {
     fontSize: theme.typography.fontSize.sm,
