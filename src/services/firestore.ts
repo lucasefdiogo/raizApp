@@ -14,8 +14,10 @@ import {
 } from '@react-native-firebase/firestore';
 import {
   DailyLog,
+  Desafio,
   EstadoStreak,
   FocoProcrastinacao,
+  StatusDesafio,
   StatusStreak,
   Tarefa,
 } from '../domain/types';
@@ -306,4 +308,68 @@ export async function apagarTodosOsDadosDoUsuario(uid: string): Promise<void> {
     await apagarSubcolecaoDoUsuario(uid, nomeSubcolecao);
   }
   await deleteDoc(documentoUsuario(uid));
+}
+
+function paraISO(data: Date): string {
+  return data.toISOString().slice(0, 10);
+}
+
+/**
+ * Busca os dailyLogs entre `inicioISO` e `fimISO` (inclusivos). Datas sem
+ * documento simplesmente não aparecem — quem consome decide o que fazer com
+ * a ausência. Mesmo padrão de N `getDoc` de buscarUltimosDailyLogs; o
+ * intervalo maior aqui é o mês (~31 leituras), aceitável no MVP.
+ */
+export async function buscarDailyLogsNoIntervalo(
+  uid: string,
+  inicioISO: string,
+  fimISO: string,
+): Promise<DailyLog[]> {
+  const datas: string[] = [];
+  const cursor = new Date(`${inicioISO}T00:00:00Z`);
+  const fim = new Date(`${fimISO}T00:00:00Z`);
+  while (cursor.getTime() <= fim.getTime()) {
+    datas.push(paraISO(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  const logs = await Promise.all(datas.map(data => buscarDailyLog(uid, data)));
+  return logs.filter((log): log is DailyLog => log !== null);
+}
+
+function documentoDesafio(uid: string, challengeId: string) {
+  return doc(getFirestore(), 'users', uid, 'challenges', challengeId);
+}
+
+/**
+ * Todos os desafios com status 'ativo'. Filtra no client (volume mínimo: 1
+ * semanal + 1 mensal ativos por vez), sem `where`, pra não exigir índice.
+ */
+export async function buscarDesafiosAtivos(uid: string): Promise<Desafio[]> {
+  const snapshot = await getDocs(
+    collection(getFirestore(), 'users', uid, 'challenges'),
+  );
+  return snapshot.docs
+    .map(documento => documento.data() as Desafio)
+    .filter(desafio => desafio.status === 'ativo');
+}
+
+export async function criarDesafio(
+  uid: string,
+  desafio: Desafio,
+): Promise<void> {
+  await setDoc(documentoDesafio(uid, desafio.id), desafio);
+}
+
+export async function atualizarProgressoDesafio(
+  uid: string,
+  challengeId: string,
+  progresso: number,
+  status: StatusDesafio,
+): Promise<void> {
+  await setDoc(
+    documentoDesafio(uid, challengeId),
+    { progresso, status },
+    { merge: true },
+  );
 }

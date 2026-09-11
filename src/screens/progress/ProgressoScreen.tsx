@@ -3,7 +3,9 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
+import { useDesafios } from '../../hooks/useDesafios';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
+import { ChallengeCard } from '../../components/challenges/ChallengeCard';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
 
@@ -21,17 +23,23 @@ function labelParaData(dataISO: string): string {
 export function ProgressoScreen({ uid }: ProgressoScreenProps) {
   const { historico, streakAtual, diasTotaisAtivos, carregando, recarregar } =
     useProgressoSemanal(uid);
+  const {
+    desafioSemanal,
+    desafioMensal,
+    recarregar: recarregarDesafios,
+  } = useDesafios(uid);
   const [atualizando, setAtualizando] = useState(false);
 
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
     try {
-      // recarregar já trata a própria falha (toast) e resolve sem rejeitar.
-      await recarregar();
+      // as duas releituras já tratam a própria falha (toast) e resolvem sem
+      // rejeitar — o gesto só espera as duas terminarem.
+      await Promise.all([recarregar(), recarregarDesafios()]);
     } finally {
       setAtualizando(false);
     }
-  }, [recarregar]);
+  }, [recarregar, recarregarDesafios]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,6 +92,28 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
                 />
               ))}
             </View>
+
+            {(desafioSemanal || desafioMensal) && (
+              <>
+                <Text style={styles.secaoTitulo}>Desafios</Text>
+                {desafioSemanal && (
+                  <ChallengeCard
+                    titulo={desafioSemanal.titulo}
+                    progresso={desafioSemanal.progresso}
+                    meta={desafioSemanal.meta}
+                    status={desafioSemanal.status}
+                  />
+                )}
+                {desafioMensal && (
+                  <ChallengeCard
+                    titulo={desafioMensal.titulo}
+                    progresso={desafioMensal.progresso}
+                    meta={desafioMensal.meta}
+                    status={desafioMensal.status}
+                  />
+                )}
+              </>
+            )}
           </>
         )}
       </ScrollView>

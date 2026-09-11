@@ -149,7 +149,12 @@ export function aplicarResultadoDia(
   };
 }
 
-function inicioDaSemana(data: Date): Date {
+/**
+ * Segunda-feira (00:00 UTC) da semana que contém `data`. Fonte única do que
+ * "semana" significa no produto — reaproveitado pela renovação do escudo e
+ * pelos desafios semanais (domain/challenges.ts).
+ */
+export function inicioDaSemana(data: Date): Date {
   const inicio = new Date(
     Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()),
   );

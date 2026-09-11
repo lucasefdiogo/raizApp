@@ -43,6 +43,34 @@ export interface DailyLog {
   escudoUsado: boolean;
 }
 
+export type PeriodoDesafio = 'semanal' | 'mensal';
+
+export type StatusDesafio = 'ativo' | 'concluido' | 'expirado';
+
+/**
+ * Tipos do catálogo fixo de desafios (Fase 2). O usuário não cria desafios;
+ * `gerarCatalogoDoPeriodo` escolhe qual instanciar por período.
+ */
+export type TipoDesafio =
+  | 'exercicio_3x'
+  | 'essencial_todo_dia'
+  | 'dias_ativos_20';
+
+export interface Desafio {
+  /** Determinístico: `${tipo}-${dataInicio}` — não duplica ao regerar. */
+  id: string;
+  titulo: string;
+  tipo: TipoDesafio;
+  periodo: PeriodoDesafio;
+  /** ISO YYYY-MM-DD (UTC), inclusivo. */
+  dataInicio: string;
+  /** ISO YYYY-MM-DD (UTC), inclusivo. */
+  dataFim: string;
+  meta: number;
+  progresso: number;
+  status: StatusDesafio;
+}
+
 export type FocoProcrastinacao =
   | 'redes_sociais'
   | 'estudos'
