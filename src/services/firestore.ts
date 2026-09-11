@@ -51,11 +51,15 @@ function documentoUsuario(uid: string) {
 /**
  * Cria users/{uid} com os campos default apenas se o documento ainda não
  * existir — idempotente para rodar sem risco em todo login, veio de
- * e-mail/senha ou Google.
+ * e-mail/senha ou Google. `nome` vem de fontes diferentes conforme o
+ * provedor (useAuth decide): cadastro por e-mail pede o nome na tela;
+ * Google usa o displayName da própria conta. Default '' preserva o
+ * comportamento pra quem já tinha conta antes dessa mudança.
  */
 export async function criarDocumentoUsuario(
   uid: string,
   email: string,
+  nome: string = '',
 ): Promise<void> {
   const referencia = documentoUsuario(uid);
   const snapshot = await getDoc(referencia);
@@ -65,7 +69,7 @@ export async function criarDocumentoUsuario(
 
   await setDoc(referencia, {
     email,
-    nome: '',
+    nome,
     createdAt: serverTimestamp(),
     porqueTexto: null,
     focoProcrastinacao: null,

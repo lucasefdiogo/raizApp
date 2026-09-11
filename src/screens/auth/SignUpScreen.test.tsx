@@ -26,10 +26,26 @@ describe('SignUpScreen', () => {
     expect(signUp).not.toHaveBeenCalled();
   });
 
+  it('mantém o botão Criar conta desabilitado sem o nome, mesmo com o resto preenchido', async () => {
+    const signUp = jest.fn();
+    await renderComNavegacao(signUp);
+
+    await fireEvent.changeText(screen.getByLabelText('E-mail'), 'a@a.com');
+    await fireEvent.changeText(screen.getByLabelText('Senha'), 'senha123');
+    await fireEvent.changeText(
+      screen.getByLabelText('Confirmar senha'),
+      'senha123',
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Criar conta' }));
+
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
   it('mostra erro e não chama signUp quando as senhas não coincidem', async () => {
     const signUp = jest.fn();
     await renderComNavegacao(signUp);
 
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Ana');
     await fireEvent.changeText(screen.getByLabelText('E-mail'), 'a@a.com');
     await fireEvent.changeText(screen.getByLabelText('Senha'), 'senha123');
     await fireEvent.changeText(
@@ -42,10 +58,11 @@ describe('SignUpScreen', () => {
     expect(signUp).not.toHaveBeenCalled();
   });
 
-  it('chama signUp quando as senhas coincidem', async () => {
+  it('chama signUp com o nome, e-mail e senha quando as senhas coincidem', async () => {
     const signUp = jest.fn().mockResolvedValueOnce(undefined);
     await renderComNavegacao(signUp);
 
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Ana');
     await fireEvent.changeText(screen.getByLabelText('E-mail'), 'a@a.com');
     await fireEvent.changeText(screen.getByLabelText('Senha'), 'senha123');
     await fireEvent.changeText(
@@ -54,7 +71,7 @@ describe('SignUpScreen', () => {
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Criar conta' }));
 
-    expect(signUp).toHaveBeenCalledWith('a@a.com', 'senha123');
+    expect(signUp).toHaveBeenCalledWith('a@a.com', 'senha123', 'Ana');
   });
 
   it('mostra a mensagem de erro mapeada quando signUp falha', async () => {
@@ -65,6 +82,7 @@ describe('SignUpScreen', () => {
       );
     await renderComNavegacao(signUp);
 
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Ana');
     await fireEvent.changeText(screen.getByLabelText('E-mail'), 'a@a.com');
     await fireEvent.changeText(screen.getByLabelText('Senha'), 'senha123');
     await fireEvent.changeText(

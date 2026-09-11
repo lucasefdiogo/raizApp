@@ -21,14 +21,17 @@ export function useAuth() {
     return unsubscribe;
   }, []);
 
-  const signUp = useCallback(async (email: string, senha: string) => {
-    try {
-      const credential = await authService.signUpWithEmail(email, senha);
-      await criarDocumentoUsuario(credential.user.uid, email);
-    } catch (erro) {
-      throw erroMapeado(erro);
-    }
-  }, []);
+  const signUp = useCallback(
+    async (email: string, senha: string, nome: string) => {
+      try {
+        const credential = await authService.signUpWithEmail(email, senha);
+        await criarDocumentoUsuario(credential.user.uid, email, nome);
+      } catch (erro) {
+        throw erroMapeado(erro);
+      }
+    },
+    [],
+  );
 
   const signIn = useCallback(async (email: string, senha: string) => {
     try {
@@ -42,9 +45,14 @@ export function useAuth() {
     try {
       const credential = await authService.signInWithGoogle();
       if (credential) {
+        // displayName vem da própria conta Google — não pedimos de novo
+        // nesse fluxo. Idempotente (criarDocumentoUsuario só grava na
+        // primeira vez), então contas Google já existentes antes dessa
+        // mudança não são retroativamente preenchidas.
         await criarDocumentoUsuario(
           credential.user.uid,
           credential.user.email ?? '',
+          credential.user.displayName ?? '',
         );
       }
     } catch (erro) {

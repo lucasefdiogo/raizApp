@@ -17,13 +17,14 @@ import {
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 interface SignUpScreenProps {
-  signUp: (email: string, senha: string) => Promise<void>;
+  signUp: (email: string, senha: string, nome: string) => Promise<void>;
 }
 
 type Navegacao = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
 export function SignUpScreen({ signUp }: SignUpScreenProps) {
   const navigation = useNavigation<Navegacao>();
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
@@ -31,7 +32,11 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
   const [enviando, setEnviando] = useState(false);
 
   const podeCriar =
-    email.trim().length > 0 && senha.length > 0 && confirmarSenha.length > 0 && !enviando;
+    nome.trim().length > 0 &&
+    email.trim().length > 0 &&
+    senha.length > 0 &&
+    confirmarSenha.length > 0 &&
+    !enviando;
 
   const handleCriarConta = async () => {
     if (!podeCriar) {
@@ -44,7 +49,7 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
     setErro(null);
     setEnviando(true);
     try {
-      await signUp(email.trim(), senha);
+      await signUp(email.trim(), senha, nome.trim());
     } catch (erroCapturado) {
       setErro((erroCapturado as Error).message);
     } finally {
@@ -59,6 +64,12 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
         <Text style={styles.titulo}>Criar conta</Text>
 
         <View style={styles.campos}>
+          <TextField
+            label="Nome"
+            value={nome}
+            onChangeText={setNome}
+            autoCapitalize="words"
+          />
           <TextField
             label="E-mail"
             value={email}

@@ -38,7 +38,7 @@ describe('useAuth', () => {
     expect(result.current.user).toEqual(usuarioFalso);
   });
 
-  it('signUp encadeia com criarDocumentoUsuario após sucesso', async () => {
+  it('signUp encadeia com criarDocumentoUsuario após sucesso, passando o nome informado na tela', async () => {
     authService.signUpWithEmail.mockResolvedValueOnce({
       user: { uid: 'novo-uid' },
     });
@@ -48,7 +48,7 @@ describe('useAuth', () => {
     await waitFor(() => expect(result.current.carregando).toBe(false));
 
     await act(async () => {
-      await result.current.signUp('a@a.com', 'senha123');
+      await result.current.signUp('a@a.com', 'senha123', 'Ana');
     });
 
     expect(authService.signUpWithEmail).toHaveBeenCalledWith(
@@ -58,6 +58,7 @@ describe('useAuth', () => {
     expect(firestoreService.criarDocumentoUsuario).toHaveBeenCalledWith(
       'novo-uid',
       'a@a.com',
+      'Ana',
     );
   });
 
@@ -71,15 +72,15 @@ describe('useAuth', () => {
 
     await expect(
       act(async () => {
-        await result.current.signUp('a@a.com', 'senha123');
+        await result.current.signUp('a@a.com', 'senha123', 'Ana');
       }),
     ).rejects.toThrow('Esse e-mail já tem uma conta. Entrar em vez de cadastrar?');
     expect(firestoreService.criarDocumentoUsuario).not.toHaveBeenCalled();
   });
 
-  it('signInWithGoogle encadeia com criarDocumentoUsuario quando há credencial', async () => {
+  it('signInWithGoogle encadeia com criarDocumentoUsuario, passando o displayName da conta Google', async () => {
     authService.signInWithGoogle.mockResolvedValueOnce({
-      user: { uid: 'google-uid', email: 'g@a.com' },
+      user: { uid: 'google-uid', email: 'g@a.com', displayName: 'Beto' },
     });
     firestoreService.criarDocumentoUsuario.mockResolvedValueOnce(undefined);
 
@@ -93,6 +94,27 @@ describe('useAuth', () => {
     expect(firestoreService.criarDocumentoUsuario).toHaveBeenCalledWith(
       'google-uid',
       'g@a.com',
+      'Beto',
+    );
+  });
+
+  it('signInWithGoogle usa string vazia quando a conta Google não tem displayName', async () => {
+    authService.signInWithGoogle.mockResolvedValueOnce({
+      user: { uid: 'google-uid', email: 'g@a.com', displayName: null },
+    });
+    firestoreService.criarDocumentoUsuario.mockResolvedValueOnce(undefined);
+
+    const { result } = await renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.signInWithGoogle();
+    });
+
+    expect(firestoreService.criarDocumentoUsuario).toHaveBeenCalledWith(
+      'google-uid',
+      'g@a.com',
+      '',
     );
   });
 

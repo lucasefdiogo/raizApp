@@ -44,6 +44,13 @@ describe('services/firestore', () => {
       });
     });
 
+    it('grava o nome quando informado (cadastro por e-mail ou displayName do Google)', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com', 'Ana');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.nome).toBe('Ana');
+    });
+
     it('é idempotente — não sobrescreve um documento já existente', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
       await atualizarDadosOnboarding('uid-1', {
@@ -56,6 +63,14 @@ describe('services/firestore', () => {
 
       const usuario = await buscarUsuario('uid-1');
       expect(usuario?.porqueTexto).toBe('Quero terminar meus estudos');
+    });
+
+    it('idempotente também pro nome — uma segunda chamada não sobrescreve o nome já gravado', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com', 'Ana');
+
+      await criarDocumentoUsuario('uid-1', 'a@a.com', 'Outro nome');
+
+      expect((await buscarUsuario('uid-1'))?.nome).toBe('Ana');
     });
 
     it('roda sem risco tanto para e-mail/senha quanto para Google', async () => {
