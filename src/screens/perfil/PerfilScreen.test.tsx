@@ -314,4 +314,22 @@ describe('PerfilScreen', () => {
       expect(reautenticar).toHaveBeenCalledWith('minhaSenha');
     });
   });
+
+  describe('botão de debug (dev)', () => {
+    it('não aparece quando aoAbrirDebugAcessibilidade não é passado', async () => {
+      await render(<PerfilScreen uid="uid-teste" />);
+      expect(screen.queryByText('🔧 Debug: detecção de apps')).toBeNull();
+    });
+
+    it('aparece e chama o handler ao tocar quando o prop é passado', async () => {
+      const aoAbrir = jest.fn();
+      await render(
+        <PerfilScreen uid="uid-teste" aoAbrirDebugAcessibilidade={aoAbrir} />,
+      );
+
+      await fireEvent.press(screen.getByText('🔧 Debug: detecção de apps'));
+
+      expect(aoAbrir).toHaveBeenCalledTimes(1);
+    });
+  });
 });

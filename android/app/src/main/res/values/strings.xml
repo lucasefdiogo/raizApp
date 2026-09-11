@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Rootora</string>
+    <string name="accessibility_service_description">Detecta qual aplicativo está em primeiro plano para o Rootora ajudar você a manter o foco. Apenas o nome do pacote do app é lido — nenhum conteúdo de tela é acessado.</string>
 </resources>
