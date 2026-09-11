@@ -64,6 +64,8 @@ describe('AppBlockedScreen', () => {
       <AppBlockedScreen
         uid="uid-teste"
         appBloqueado={APP_BLOQUEADO}
+        duracaoRespiracaoSegundos={60}
+        precisaReflexao={false}
         onDesbloquear={onDesbloquear}
         onFechar={onFechar}
       />,
@@ -80,6 +82,8 @@ describe('AppBlockedScreen', () => {
       <AppBlockedScreen
         uid="uid-teste"
         appBloqueado={APP_BLOQUEADO}
+        duracaoRespiracaoSegundos={60}
+        precisaReflexao={false}
         onDesbloquear={onDesbloquear}
         onFechar={onFechar}
       />,
@@ -96,6 +100,8 @@ describe('AppBlockedScreen', () => {
       <AppBlockedScreen
         uid="uid-teste"
         appBloqueado={APP_BLOQUEADO}
+        duracaoRespiracaoSegundos={60}
+        precisaReflexao={false}
         onDesbloquear={onDesbloquear}
         onFechar={onFechar}
       />,
@@ -109,7 +115,7 @@ describe('AppBlockedScreen', () => {
     expect(onDesbloquear).not.toHaveBeenCalled();
   });
 
-  describe('fluxo: tarefas essenciais', () => {
+  describe('nível 1 (1º desbloqueio do dia — sem reflexão, comportamento atual)', () => {
     it('tarefas essenciais já concluídas hoje: desbloqueia na hora', async () => {
       configurarTarefas({
         tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
@@ -118,6 +124,8 @@ describe('AppBlockedScreen', () => {
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -129,6 +137,7 @@ describe('AppBlockedScreen', () => {
 
       expect(onDesbloquear).toHaveBeenCalledWith(15);
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
+      expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
 
     it('tarefas essenciais pendentes: mostra o aviso e NÃO desbloqueia', async () => {
@@ -139,6 +148,8 @@ describe('AppBlockedScreen', () => {
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -167,6 +178,8 @@ describe('AppBlockedScreen', () => {
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -181,14 +194,14 @@ describe('AppBlockedScreen', () => {
         screen.getByText('Ainda faltam suas tarefas essenciais de hoje.'),
       ).toBeTruthy();
     });
-  });
 
-  describe('fluxo: pausa de respiração', () => {
     it('não desbloqueia antes dos 60s completarem', async () => {
       await render(
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -206,11 +219,13 @@ describe('AppBlockedScreen', () => {
       expect(screen.queryByText('Liberado por 15 minutos')).toBeNull();
     });
 
-    it('desbloqueia automaticamente ao completar os 60s', async () => {
+    it('desbloqueia automaticamente ao completar os 60s, sem reflexão', async () => {
       await render(
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -224,6 +239,7 @@ describe('AppBlockedScreen', () => {
 
       expect(onDesbloquear).toHaveBeenCalledWith(15);
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
+      expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
 
     it('não deixa pular — não existe nenhum botão de pular/acelerar durante a contagem', async () => {
@@ -231,6 +247,8 @@ describe('AppBlockedScreen', () => {
         <AppBlockedScreen
           uid="uid-teste"
           appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
           onDesbloquear={onDesbloquear}
           onFechar={onFechar}
         />,
@@ -242,6 +260,210 @@ describe('AppBlockedScreen', () => {
 
       expect(screen.queryByText('Pular')).toBeNull();
       expect(screen.queryByRole('button', { name: /pular|avançar/i })).toBeNull();
+    });
+  });
+
+  describe('nível 2 (2º desbloqueio do dia — 90s + reflexão obrigatória)', () => {
+    it('mostra a duração de 90s na opção de respiração', async () => {
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={90}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      expect(screen.getByText('Pausa de respiração (90s)')).toBeTruthy();
+    });
+
+    it('tarefas concluídas: não desbloqueia direto, exige reflexão antes', async () => {
+      configurarTarefas({
+        tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
+      });
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={90}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
+      });
+
+      expect(onDesbloquear).not.toHaveBeenCalled();
+      expect(
+        screen.getByText('O que você vai fazer agora no Instagram?'),
+      ).toBeTruthy();
+    });
+
+    it('reflexão vazia: botão Confirmar não desbloqueia', async () => {
+      configurarTarefas({
+        tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
+      });
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={90}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Confirmar'));
+      });
+
+      expect(onDesbloquear).not.toHaveBeenCalled();
+      expect(screen.queryByText('Liberado por 15 minutos')).toBeNull();
+    });
+
+    it('reflexão preenchida: Confirmar desbloqueia (caminho das tarefas)', async () => {
+      configurarTarefas({
+        tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
+      });
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={90}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
+      });
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByLabelText('Reflexão antes de desbloquear'),
+          'Vou responder uma mensagem e fechar de novo',
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Confirmar'));
+      });
+
+      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
+    });
+
+    it('completa os 90s de respiração: exige reflexão antes de liberar', async () => {
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={90}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Pausa de respiração (90s)'));
+      });
+
+      await avancarSegundos(89);
+      expect(onDesbloquear).not.toHaveBeenCalled();
+
+      await avancarSegundos(1);
+
+      expect(onDesbloquear).not.toHaveBeenCalled();
+      expect(
+        screen.getByText('O que você vai fazer agora no Instagram?'),
+      ).toBeTruthy();
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByLabelText('Reflexão antes de desbloquear'),
+          'Vou só ver uma notificação',
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Confirmar'));
+      });
+
+      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
+    });
+  });
+
+  describe('nível 3 (3º desbloqueio do dia em diante — teto, 120s + reflexão)', () => {
+    it('mostra a duração de 120s e continua exigindo reflexão, igual ao nível 2', async () => {
+      configurarTarefas({
+        tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
+      });
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={120}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      expect(screen.getByText('Pausa de respiração (120s)')).toBeTruthy();
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
+      });
+
+      expect(onDesbloquear).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Reflexão antes de desbloquear')).toBeTruthy();
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByLabelText('Reflexão antes de desbloquear'),
+          'Vou responder o grupo da família',
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Confirmar'));
+      });
+
+      expect(onDesbloquear).toHaveBeenCalledWith(15);
+    });
+
+    it('completa os 120s de respiração antes de liberar', async () => {
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={120}
+          precisaReflexao={true}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Pausa de respiração (120s)'));
+      });
+
+      await avancarSegundos(119);
+      expect(onDesbloquear).not.toHaveBeenCalled();
+
+      await avancarSegundos(1);
+
+      expect(onDesbloquear).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Reflexão antes de desbloquear')).toBeTruthy();
     });
   });
 });

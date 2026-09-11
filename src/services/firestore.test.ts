@@ -11,6 +11,8 @@ import {
   salvarDailyLog,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
+  buscarDesbloqueiosHojeDoApp,
+  incrementarDesbloqueiosHoje,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -327,6 +329,82 @@ describe('services/firestore', () => {
         notificacoesAtivas: true,
         horarioLembreteDiario: '20:00',
       });
+    });
+  });
+
+  describe('buscarDesbloqueiosHojeDoApp', () => {
+    it('0 quando o dailyLog ainda não existe', async () => {
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(0);
+    });
+
+    it('0 quando o dailyLog existe mas nunca teve desbloqueio', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(0);
+    });
+
+    it('lê o valor já gravado', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(2);
+    });
+  });
+
+  describe('incrementarDesbloqueiosHoje', () => {
+    it('cria o dailyLogs/{data} com desbloqueiosApps: 1 na primeira chamada', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(1);
+    });
+
+    it('acumula ao longo de várias chamadas', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(3);
+    });
+
+    it('não apaga o restante do dailyLog (tarefas, statusDia)', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.tarefas).toHaveLength(1);
+      expect(log?.desbloqueiosApps).toBe(1);
+    });
+
+    it('usa o incremento atômico do Firestore (increment), não leitura+escrita manual', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      expect(firestoreMock.increment).toHaveBeenCalledWith(1);
+      expect(firestoreMock.setDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ desbloqueiosApps: { __increment: 1 } }),
+        { merge: true },
+      );
+    });
+
+    it('não vaza entre datas diferentes', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-16');
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-16');
+
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(1);
+      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-16')).toBe(2);
     });
   });
 

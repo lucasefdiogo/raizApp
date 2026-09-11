@@ -41,6 +41,13 @@ export interface DailyLog {
   tarefas: Tarefa[];
   statusDia: StatusDia;
   escudoUsado: boolean;
+  /**
+   * Quantos desbloqueios de apps bloqueados já aconteceram hoje (total,
+   * somando todos os apps — ver domain/appBlockEscalation.ts). Ausente =
+   * nenhum ainda (trata como 0); reseta sozinho todo dia por já ser um
+   * documento por data.
+   */
+  desbloqueiosApps?: number;
 }
 
 export type PeriodoDesafio = 'semanal' | 'mensal';
