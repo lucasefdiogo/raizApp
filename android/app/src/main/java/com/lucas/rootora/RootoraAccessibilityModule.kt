@@ -16,6 +16,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import java.io.ByteArrayOutputStream
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Ponte nativa <-> JS pra parte de acessibilidade e bloqueio de apps. Módulo
@@ -121,6 +123,56 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
         promise.reject("GET_INSTALLED_APPS_FAILED", erro)
       }
     }.start()
+  }
+
+  /**
+   * Espelha a config de bloqueio em SharedPreferences (BloqueioPrefs) —
+   * é o que o RootoraAccessibilityService lê a cada troca de app, fora do
+   * ciclo de vida do React. Falha silenciosa: um JSON malformado não deve
+   * derrubar o app, e a config sincroniza de novo na próxima escrita ou no
+   * próximo boot (useAppBlockConfig chama isso nos dois casos).
+   */
+  @ReactMethod
+  fun syncBloqueioConfig(configJson: String) {
+    try {
+      val json = JSONObject(configJson)
+      val ativo = json.optBoolean("ativo", false)
+
+      val appsArray = json.optJSONArray("appsSelecionados") ?: JSONArray()
+      val apps = (0 until appsArray.length()).map { appsArray.getString(it) }
+
+      val horarioInicio =
+        if (json.isNull("horarioInicio")) null else json.getString("horarioInicio")
+      val horarioFim =
+        if (json.isNull("horarioFim")) null else json.getString("horarioFim")
+
+      BloqueioPrefs.salvarConfig(reactApplicationContext, ativo, apps, horarioInicio, horarioFim)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
+  /**
+   * Libera packageName do bloqueio por `minutos` a partir de agora. O
+   * bridge legado converte number do JS pra Double aqui — arredonda pra
+   * minutos inteiros antes de gravar.
+   */
+  @ReactMethod
+  fun registrarDesbloqueioTemporario(packageName: String, minutos: Double) {
+    BloqueioPrefs.registrarDesbloqueioTemporario(
+      reactApplicationContext,
+      packageName,
+      minutos.toInt(),
+    )
+  }
+
+  /**
+   * Consome o packageName bloqueado pendente de um cold start (ver
+   * MainActivity.onCreate) — null quando o Rootora foi aberto normalmente.
+   */
+  @ReactMethod
+  fun getInitialBlockedPackage(promise: Promise) {
+    promise.resolve(MainActivity.consumirPacoteBloqueadoPendente())
   }
 
   /**

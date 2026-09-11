@@ -24,6 +24,28 @@ describe('useAppBlockConfig', () => {
     firestore.atualizarConfigBloqueioApps.mockResolvedValue(undefined);
   });
 
+  it('sincroniza a config pro lado nativo no boot', async () => {
+    firestore.buscarUsuario.mockResolvedValue({
+      email: 'a@a.com',
+      bloqueioApps: {
+        ativo: true,
+        appsSelecionados: ['com.whatsapp'],
+        horarioInicio: '09:00',
+        horarioFim: '18:00',
+      },
+    });
+
+    const { result } = await renderHook(() => useAppBlockConfig('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(nativo.syncBloqueioConfig).toHaveBeenCalledWith({
+      ativo: true,
+      appsSelecionados: ['com.whatsapp'],
+      horarioInicio: '09:00',
+      horarioFim: '18:00',
+    });
+  });
+
   it('sem config salva: usa o padrão (inativo, nada selecionado, sem horário)', async () => {
     firestore.buscarUsuario.mockResolvedValue({ email: 'a@a.com' });
 
@@ -78,6 +100,11 @@ describe('useAppBlockConfig', () => {
           appsSelecionados: ['com.instagram.android'],
         }),
       );
+      expect(nativo.syncBloqueioConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appsSelecionados: ['com.instagram.android'],
+        }),
+      );
     });
 
     it('remove o app quando já estava selecionado', async () => {
@@ -118,6 +145,9 @@ describe('useAppBlockConfig', () => {
       expect(showToast).toHaveBeenCalledWith(
         'Não conseguimos salvar essa seleção agora. Tente de novo.',
       );
+      // Só a sincronia do boot — a escrita falhou, não sincroniza a config
+      // errada pro lado nativo.
+      expect(nativo.syncBloqueioConfig).toHaveBeenCalledTimes(1);
     });
   });
 

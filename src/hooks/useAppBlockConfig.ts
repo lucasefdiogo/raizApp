@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { alternarAppNaSelecao } from '../domain/appBlock';
 import { BloqueioAppsConfig } from '../domain/types';
 import { atualizarConfigBloqueioApps, buscarUsuario } from '../services/firestore';
-import { AppInstalado, getInstalledApps } from '../native/AccessibilityDetection';
+import {
+  AppInstalado,
+  getInstalledApps,
+  syncBloqueioConfig,
+} from '../native/AccessibilityDetection';
 import { useToast } from './useToast';
 
 const CONFIG_PADRAO: BloqueioAppsConfig = {
@@ -64,9 +68,15 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
       return;
     }
 
-    setConfig(usuario?.bloqueioApps ?? CONFIG_PADRAO);
+    const configLida = usuario?.bloqueioApps ?? CONFIG_PADRAO;
+    setConfig(configLida);
     setAppsInstalados(apps);
     setCarregando(false);
+
+    // Garante que o lado nativo tem a config mais recente mesmo se a última
+    // mudança foi feita e o app fechado antes de qualquer outra sincronia
+    // (o Accessibility Service lê só do SharedPreferences, não do Firestore).
+    syncBloqueioConfig(configLida);
   }, [uid]);
 
   useEffect(() => {
@@ -87,6 +97,7 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
       setConfig(novaConfig);
       try {
         await atualizarConfigBloqueioApps(uid, novaConfig);
+        syncBloqueioConfig(novaConfig);
       } catch {
         setConfig(anterior);
         showToast(mensagemFalha);
