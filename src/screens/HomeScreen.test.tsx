@@ -25,6 +25,9 @@ const {
   useAppBlockBannerDismissido,
 } = require('../hooks/useAppBlockBannerDismissido');
 
+jest.mock('../hooks/useRecarregarAoFocar');
+const { useRecarregarAoFocar } = require('../hooks/useRecarregarAoFocar');
+
 // useDailyTasks tem seus próprios testes cobrindo a integração com o
 // Firestore (src/hooks/useDailyTasks.test.ts) — aqui reimplementamos só o
 // suficiente com useState real + as funções puras de domain/ pra exercitar
@@ -457,6 +460,43 @@ describe('HomeScreen', () => {
 
       expect(screen.getByTestId('app-block-status-card')).toBeTruthy();
       expect(screen.queryByTestId('app-block-banner')).toBeNull();
+    });
+
+    it('apps selecionados mas o toggle geral está desligado: mostra "Bloqueio desativado", não "Bloqueio começa às"', async () => {
+      useAppBlockConfig.mockReturnValue({
+        ...CONFIG_BLOQUEIO_PADRAO,
+        appsInstalados: [
+          { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
+        ],
+        configAtual: {
+          ativo: false,
+          appsSelecionados: ['com.whatsapp'],
+          horarioInicio: '09:00',
+          horarioFim: '18:00',
+        },
+        ativoAgora: false,
+      });
+      useAppBlockBannerDismissido.mockReturnValue({
+        dispensadoHoje: false,
+        carregando: false,
+        dispensarHoje: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      expect(screen.getByText('Bloqueio desativado')).toBeTruthy();
+      expect(screen.queryByText('Bloqueio começa às 09:00')).toBeNull();
+      expect(screen.queryByTestId('app-block-banner')).toBeNull();
+    });
+
+    it('recarrega a config de bloqueio sempre que a Home ganha foco (volta de editar em outra tela)', async () => {
+      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      expect(useRecarregarAoFocar).toHaveBeenCalledWith(
+        CONFIG_BLOQUEIO_PADRAO.recarregar,
+      );
     });
 
     it('nunca configurou, mas já dispensou o banner hoje: não mostra nenhum dos dois', async () => {
