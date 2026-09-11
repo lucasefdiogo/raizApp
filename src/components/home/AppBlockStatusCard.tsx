@@ -10,6 +10,10 @@ interface AppBlockStatusCardApp {
 
 interface AppBlockStatusCardProps {
   apps: AppBlockStatusCardApp[];
+  /** Toggle geral ("Ativar bloqueio de apps") — distinto de `ativoAgora`:
+   * dá pra ter apps selecionados com o toggle desligado (nunca vai
+   * bloquear, em nenhum horário, até religar). */
+  ativo: boolean;
   ativoAgora: boolean;
   horarioInicio: string;
   horarioFim: string;
@@ -20,18 +24,23 @@ interface AppBlockStatusCardProps {
  * selecionou pelo menos 1 app (mutuamente exclusivo com AppBlockBanner).
  * Componente burro: não resolve nome/ícone (isso já vem pronto via
  * useAppBlockConfig.appsInstalados, cacheado) nem calcula ativoAgora (ver
- * domain/appBlock.estaDentroDaJanelaDeHorario). Nunca afirma "ativo" fora
- * da janela de horário — texto neutro em vez disso.
+ * domain/appBlock.estaDentroDaJanelaDeHorario). Três estados, não dois —
+ * "desligado" precisa ser distinto de "dentro/fora do horário", senão
+ * "Bloqueio começa às HH:mm" mente pra quem desligou o toggle geral (o
+ * bloqueio não vai começar sozinho nesse caso).
  */
 export function AppBlockStatusCard({
   apps,
+  ativo,
   ativoAgora,
   horarioInicio,
   horarioFim,
 }: AppBlockStatusCardProps) {
   return (
     <View style={styles.container} testID="app-block-status-card">
-      {ativoAgora ? (
+      {!ativo ? (
+        <Text style={styles.textoNeutro}>Bloqueio desativado</Text>
+      ) : ativoAgora ? (
         <View style={styles.linhaStatus}>
           <View style={styles.pontoAtivo} />
           <Text style={styles.textoAtivo}>ativo até {horarioFim}</Text>

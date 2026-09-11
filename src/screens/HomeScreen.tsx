@@ -12,6 +12,7 @@ import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
 import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
+import { useRecarregarAoFocar } from '../hooks/useRecarregarAoFocar';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
@@ -81,8 +82,13 @@ export function HomeScreen({
     configAtual: bloqueioApps,
     ativoAgora: bloqueioAtivoAgora,
     carregando: bloqueioCarregando,
+    recarregar: recarregarBloqueioApps,
   } = useAppBlockConfig(uid);
   const banner = useAppBlockBannerDismissido();
+  // A Home não desmonta quando empurra a AppBlockConfigScreen na mesma
+  // stack (HojeStack) — só perde o foco. Sem isso, editar a config lá e
+  // voltar mostrava o banner/status card com dados obsoletos.
+  useRecarregarAoFocar(recarregarBloqueioApps);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
   const [atualizando, setAtualizando] = useState(false);
@@ -220,6 +226,7 @@ export function HomeScreen({
         {mostrarStatusBloqueio && (
           <AppBlockStatusCard
             apps={appsBloqueadosResolvidos}
+            ativo={bloqueioApps.ativo}
             ativoAgora={bloqueioAtivoAgora}
             horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
             horarioFim={bloqueioApps.horarioFim ?? '--:--'}
