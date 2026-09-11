@@ -94,6 +94,26 @@ export async function buscarUsuario(
 }
 
 /**
+ * Completa users/{uid}.nome só se ele estiver vazio hoje — pra contas
+ * Google que já existiam antes de criarDocumentoUsuario passar a gravar o
+ * displayName (esse já não roda de novo pra doc existente). Chamado a
+ * cada login Google (useAuth), não só no cadastro; nunca sobrescreve um
+ * nome que o usuário já tenha (gravado por qualquer via).
+ */
+export async function preencherNomeSeVazio(
+  uid: string,
+  nome: string,
+): Promise<void> {
+  if (!nome) {
+    return;
+  }
+  const usuario = await buscarUsuario(uid);
+  if (usuario && !usuario.nome) {
+    await setDoc(documentoUsuario(uid), { nome }, { merge: true });
+  }
+}
+
+/**
  * Grava campos do onboarding em users/{uid} com merge — cada passo do
  * wizard chama isso com só o campo que acabou de ser respondido, pra o
  * progresso não se perder se o app fechar no meio do fluxo.
