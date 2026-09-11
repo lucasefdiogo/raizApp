@@ -40,7 +40,7 @@ export function RootNavigator() {
   const tutorial = useTutorialStatus();
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
-  const appBlocking = useAppBlocking();
+  const appBlocking = useAppBlocking(auth.user?.uid ?? null);
   // SignIn não tem "voltar" de navegação normal (Tutorial e AuthStack são
   // ramos mutuamente exclusivos aqui, não uma pilha) — esse estado local
   // força a volta ao Tutorial sem persistir nada em disco; ao concluir o
@@ -164,6 +164,8 @@ export function RootNavigator() {
           <AppBlockedScreen
             uid={auth.user.uid}
             appBloqueado={appBlocking.appBloqueadoAtual}
+            duracaoRespiracaoSegundos={appBlocking.duracaoRespiracaoSegundos}
+            precisaReflexao={appBlocking.precisaReflexao}
             onDesbloquear={appBlocking.desbloquear}
             onFechar={appBlocking.dispensar}
           />

@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  increment,
   limit,
   query,
   serverTimestamp,
@@ -239,6 +240,32 @@ export async function adicionarTarefaAoDailyLog(
     statusDia: logAtual?.statusDia ?? 'pendente',
     escudoUsado: logAtual?.escudoUsado ?? false,
   });
+}
+
+/**
+ * Quantos desbloqueios de apps bloqueados já aconteceram hoje (ver
+ * domain/appBlockEscalation.ts). Ausente no dailyLog = 0 — ainda nenhum.
+ */
+export async function buscarDesbloqueiosHojeDoApp(
+  uid: string,
+  data: string,
+): Promise<number> {
+  const log = await buscarDailyLog(uid, data);
+  return log?.desbloqueiosApps ?? 0;
+}
+
+/**
+ * Incrementa desbloqueiosApps em dailyLogs/{data} em +1, criando o documento
+ * se ainda não existir. Usa o incremento atômico do Firestore (increment),
+ * não ler-modificar-escrever manualmente — evita perder incrementos se o
+ * usuário desbloquear rápido em sequência (race condition).
+ */
+export async function incrementarDesbloqueiosHoje(
+  uid: string,
+  data: string,
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { desbloqueiosApps: increment(1) }, { merge: true });
 }
 
 export async function atualizarStatusStreak(

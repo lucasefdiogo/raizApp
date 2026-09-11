@@ -87,6 +87,8 @@ function configurarHooksPadrao() {
   });
   useAppBlocking.mockReturnValue({
     appBloqueadoAtual: null,
+    duracaoRespiracaoSegundos: 60,
+    precisaReflexao: false,
     desbloquear: jest.fn(),
     dispensar: jest.fn(),
   });
@@ -250,6 +252,8 @@ describe('RootNavigator', () => {
           nome: 'Instagram',
           icone: null,
         },
+        duracaoRespiracaoSegundos: 60,
+        precisaReflexao: false,
         desbloquear: jest.fn(),
         dispensar: jest.fn(),
       });
@@ -272,6 +276,8 @@ describe('RootNavigator', () => {
           nome: 'Instagram',
           icone: null,
         },
+        duracaoRespiracaoSegundos: 60,
+        precisaReflexao: false,
         desbloquear: jest.fn(),
         dispensar: jest.fn(),
       });

@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { BackHandler, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  BackHandler,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
@@ -9,13 +17,26 @@ import { RootProgressIcon } from '../../components/RootProgressIcon';
 import { PrimaryButton } from '../../components/PrimaryButton';
 
 const MINUTOS_DESBLOQUEIO = 15;
-const DURACAO_RESPIRACAO_SEGUNDOS = 60;
 
-type Modo = 'escolha' | 'tarefas_pendentes' | 'respiracao' | 'liberado';
+type Modo =
+  | 'escolha'
+  | 'tarefas_pendentes'
+  | 'respiracao'
+  | 'reflexao'
+  | 'liberado';
 
 interface AppBlockedScreenProps {
   uid: string;
   appBloqueado: AppBloqueadoInfo;
+  /** Duração da pausa de respiração pro nível de escalação atual (segundos). */
+  duracaoRespiracaoSegundos: number;
+  /**
+   * Nível 2+ (2º desbloqueio do dia em diante) — exige um texto curto de
+   * reflexão antes de liberar, nos dois caminhos (tarefas e respiração). O
+   * texto não é persistido, só bloqueia o botão de confirmar até não estar
+   * vazio (ver domain/appBlockEscalation.ts).
+   */
+  precisaReflexao: boolean;
   onDesbloquear: (minutos: number) => void;
   onFechar: () => void;
 }
@@ -33,14 +54,17 @@ interface AppBlockedScreenProps {
 export function AppBlockedScreen({
   uid,
   appBloqueado,
+  duracaoRespiracaoSegundos,
+  precisaReflexao,
   onDesbloquear,
   onFechar,
 }: AppBlockedScreenProps) {
   const { tarefas, carregando: tarefasCarregando } = useDailyTasks(uid);
   const [modo, setModo] = useState<Modo>('escolha');
   const [segundosRestantes, setSegundosRestantes] = useState(
-    DURACAO_RESPIRACAO_SEGUNDOS,
+    duracaoRespiracaoSegundos,
   );
+  const [reflexaoTexto, setReflexaoTexto] = useState('');
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -55,8 +79,12 @@ export function AppBlockedScreen({
       return;
     }
     if (segundosRestantes <= 0) {
-      onDesbloquear(MINUTOS_DESBLOQUEIO);
-      setModo('liberado');
+      if (precisaReflexao) {
+        setModo('reflexao');
+      } else {
+        onDesbloquear(MINUTOS_DESBLOQUEIO);
+        setModo('liberado');
+      }
       return;
     }
     const temporizador = setTimeout(
@@ -64,23 +92,35 @@ export function AppBlockedScreen({
       1000,
     );
     return () => clearTimeout(temporizador);
-  }, [modo, segundosRestantes, onDesbloquear]);
+  }, [modo, segundosRestantes, onDesbloquear, precisaReflexao]);
 
   function handleCumprirTarefas() {
     if (tarefasCarregando) {
       return;
     }
-    if (existeEssencialConcluida(tarefas)) {
+    if (!existeEssencialConcluida(tarefas)) {
+      setModo('tarefas_pendentes');
+      return;
+    }
+    if (precisaReflexao) {
+      setModo('reflexao');
+    } else {
       onDesbloquear(MINUTOS_DESBLOQUEIO);
       setModo('liberado');
-    } else {
-      setModo('tarefas_pendentes');
     }
   }
 
   function handleIniciarRespiracao() {
-    setSegundosRestantes(DURACAO_RESPIRACAO_SEGUNDOS);
+    setSegundosRestantes(duracaoRespiracaoSegundos);
     setModo('respiracao');
+  }
+
+  function handleConfirmarReflexao() {
+    if (reflexaoTexto.trim().length === 0) {
+      return;
+    }
+    onDesbloquear(MINUTOS_DESBLOQUEIO);
+    setModo('liberado');
   }
 
   return (
@@ -123,7 +163,9 @@ export function AppBlockedScreen({
               onPress={handleIniciarRespiracao}
               style={styles.opcao}
             >
-              <Text style={styles.opcaoTitulo}>Pausa de respiração (60s)</Text>
+              <Text style={styles.opcaoTitulo}>
+                Pausa de respiração ({duracaoRespiracaoSegundos}s)
+              </Text>
               <Text style={styles.opcaoCorpo}>Um minuto antes de voltar.</Text>
             </Pressable>
 
@@ -152,6 +194,29 @@ export function AppBlockedScreen({
           <View style={styles.respiracao} testID="pausa-respiracao">
             <RootProgressIcon variant="escudo" tamanho={96} />
             <Text style={styles.contagem}>{segundosRestantes}s</Text>
+          </View>
+        )}
+
+        {modo === 'reflexao' && (
+          <View style={styles.reflexao}>
+            <Text style={styles.reflexaoPergunta}>
+              O que você vai fazer agora no {appBloqueado.nome}?
+            </Text>
+            <TextInput
+              testID="reflexao-input"
+              style={styles.reflexaoInput}
+              value={reflexaoTexto}
+              onChangeText={setReflexaoTexto}
+              placeholder="Escreva aqui"
+              placeholderTextColor={theme.colors.textSecondary}
+              multiline
+              accessibilityLabel="Reflexão antes de desbloquear"
+            />
+            <PrimaryButton
+              titulo="Confirmar"
+              onPress={handleConfirmarReflexao}
+              desabilitado={reflexaoTexto.trim().length === 0}
+            />
           </View>
         )}
 
@@ -254,6 +319,29 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xxl,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
+  },
+  reflexao: {
+    width: '100%',
+    gap: theme.spacing.md,
+  },
+  reflexaoPergunta: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
+  reflexaoInput: {
+    width: '100%',
+    minHeight: 88,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.surface,
+    textAlignVertical: 'top',
   },
   liberado: {
     width: '100%',

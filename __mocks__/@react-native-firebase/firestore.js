@@ -57,11 +57,28 @@ const getDocs = jest.fn(async ref => {
   };
 });
 
+const increment = jest.fn(valor => ({ __increment: valor }));
+
+function resolverIncrementos(dadosAnteriores, dadosNovos) {
+  const resolvidos = {};
+  for (const chave of Object.keys(dadosNovos)) {
+    const valor = dadosNovos[chave];
+    if (valor && typeof valor === 'object' && '__increment' in valor) {
+      resolvidos[chave] = (dadosAnteriores[chave] || 0) + valor.__increment;
+    } else {
+      resolvidos[chave] = valor;
+    }
+  }
+  return resolvidos;
+}
+
 const setDoc = jest.fn(async (ref, dados, options) => {
+  const anterior = armazenamento[ref.__caminho] || {};
+  const resolvidos = resolverIncrementos(anterior, dados);
   if (options && options.merge) {
-    armazenamento[ref.__caminho] = { ...(armazenamento[ref.__caminho] || {}), ...dados };
+    armazenamento[ref.__caminho] = { ...anterior, ...resolvidos };
   } else {
-    armazenamento[ref.__caminho] = { ...dados };
+    armazenamento[ref.__caminho] = { ...resolvidos };
   }
 });
 
@@ -102,6 +119,7 @@ function __reset() {
   setDoc.mockClear();
   deleteDoc.mockClear();
   serverTimestamp.mockClear();
+  increment.mockClear();
 }
 
 function __dados(caminho) {
@@ -120,6 +138,7 @@ module.exports = {
   deleteDoc,
   writeBatch,
   serverTimestamp,
+  increment,
   __reset,
   __dados,
 };
