@@ -4,6 +4,7 @@ import { ProgressoScreen } from './ProgressoScreen';
 
 jest.mock('../../hooks/useProgressoSemanal');
 jest.mock('../../hooks/useDesafios');
+jest.mock('../../hooks/useVoltarParaAbaHoje');
 const { useProgressoSemanal } = require('../../hooks/useProgressoSemanal');
 const { useDesafios } = require('../../hooks/useDesafios');
 

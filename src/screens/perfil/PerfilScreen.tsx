@@ -8,6 +8,7 @@ import { theme } from '../../theme';
 import { usePerfil } from '../../hooks/usePerfil';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccountDeletion } from '../../hooks/useAccountDeletion';
+import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
@@ -53,6 +54,8 @@ export function PerfilScreen({
   aoAbrirBloqueioApps,
   aoAbrirDebugAcessibilidade,
 }: PerfilScreenProps) {
+  useVoltarParaAbaHoje();
+
   const {
     porqueTexto,
     notificacoesAtivas,
