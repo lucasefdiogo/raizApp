@@ -26,6 +26,11 @@ const HORARIO_PADRAO = '08:00';
 
 interface PerfilScreenProps {
   uid: string;
+  /**
+   * Só em dev: abre a tela temporária de debug da detecção de apps (Fase 3,
+   * parte 1). Ausente = o botão não aparece.
+   */
+  aoAbrirDebugAcessibilidade?: () => void;
 }
 
 function horarioParaDate(horario: string | null): Date {
@@ -41,7 +46,10 @@ function dateParaHorario(data: Date): string {
   return `${horas}:${minutos}`;
 }
 
-export function PerfilScreen({ uid }: PerfilScreenProps) {
+export function PerfilScreen({
+  uid,
+  aoAbrirDebugAcessibilidade,
+}: PerfilScreenProps) {
   const {
     porqueTexto,
     notificacoesAtivas,
@@ -179,6 +187,17 @@ export function PerfilScreen({ uid }: PerfilScreenProps) {
             Apaga sua conta e todo o progresso. Não dá pra desfazer.
           </Text>
         </View>
+
+        {aoAbrirDebugAcessibilidade && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={aoAbrirDebugAcessibilidade}
+            style={styles.debugLink}
+            hitSlop={8}
+          >
+            <Text style={styles.debugTexto}>🔧 Debug: detecção de apps</Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       <ConfirmDeleteAccountModal
@@ -264,6 +283,15 @@ const styles = StyleSheet.create({
   },
   avisoExclusao: {
     fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  debugLink: {
+    marginTop: theme.spacing.xl,
+    alignSelf: 'flex-start',
+  },
+  debugTexto: {
+    fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
   },
