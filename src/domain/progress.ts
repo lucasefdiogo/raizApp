@@ -25,46 +25,86 @@ function paraISO(data: Date): string {
   return data.toISOString().slice(0, 10);
 }
 
+function dataUTC(data: Date): Date {
+  return new Date(
+    Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()),
+  );
+}
+
+function statusDoLog(log: DailyLogResumo): StatusHistoricoDia {
+  if (avaliarDiaCumprido(log.tarefas)) {
+    return 'cumprido';
+  }
+  if (log.escudoUsado) {
+    return 'protegido_escudo';
+  }
+  return 'perdido';
+}
+
+interface OpcoesIntervalo {
+  /**
+   * Se true, o dia de hoje é avaliado com o dailyLog já existente (cumprido /
+   * protegido / perdido) em vez de virar sempre 'pendente'. Usado pelos
+   * desafios, que não dependem do recálculo do streak do dia seguinte. Um
+   * hoje sem dailyLog continua 'pendente' (o dia não acabou).
+   */
+  avaliarHojeAoVivo?: boolean;
+}
+
 /**
- * Monta os últimos 7 dias (mais antigo -> mais recente) a partir dos
- * dailyLogs já buscados do Firestore. O dia de hoje é sempre 'pendente',
- * mesmo que já tenha um dailyLog com tarefa essencial concluída — o dia
- * corrente só vira 'cumprido' quando useStreak recalcular, no dia seguinte.
- * Reaproveita avaliarDiaCumprido (domain/streak.ts) para não duplicar a
- * regra de "dia cumprido" em dois lugares.
+ * Monta o status de cada dia entre `inicio` e `fim` (inclusivos) a partir dos
+ * dailyLogs já buscados. Dias futuros e dias sem log ficam 'sem_registro'.
+ * A regra de "dia cumprido" vem de avaliarDiaCumprido (domain/streak.ts) —
+ * não duplicar em outro lugar.
  */
-export function construirHistoricoSemana(
+export function construirHistoricoIntervalo(
   dailyLogs: DailyLogResumo[],
+  inicio: Date,
+  fim: Date,
   hoje: Date,
+  opcoes: OpcoesIntervalo = {},
 ): DiaHistorico[] {
   const hojeISO = paraISO(hoje);
   const porData = new Map(dailyLogs.map(log => [log.data, log]));
 
   const dias: DiaHistorico[] = [];
-  for (let i = DIAS_HISTORICO - 1; i >= 0; i--) {
-    const data = new Date(hoje);
-    data.setUTCDate(data.getUTCDate() - i);
-    const dataISO = paraISO(data);
+  const cursor = dataUTC(inicio);
+  const ultimo = dataUTC(fim);
 
-    if (dataISO === hojeISO) {
-      dias.push({ data: dataISO, status: 'pendente' });
-      continue;
-    }
-
+  while (cursor.getTime() <= ultimo.getTime()) {
+    const dataISO = paraISO(cursor);
     const log = porData.get(dataISO);
-    if (!log) {
+
+    if (dataISO > hojeISO) {
       dias.push({ data: dataISO, status: 'sem_registro' });
-      continue;
+    } else if (dataISO === hojeISO) {
+      if (opcoes.avaliarHojeAoVivo && log) {
+        dias.push({ data: dataISO, status: statusDoLog(log) });
+      } else {
+        dias.push({ data: dataISO, status: 'pendente' });
+      }
+    } else if (!log) {
+      dias.push({ data: dataISO, status: 'sem_registro' });
+    } else {
+      dias.push({ data: dataISO, status: statusDoLog(log) });
     }
 
-    if (avaliarDiaCumprido(log.tarefas)) {
-      dias.push({ data: dataISO, status: 'cumprido' });
-    } else if (log.escudoUsado) {
-      dias.push({ data: dataISO, status: 'protegido_escudo' });
-    } else {
-      dias.push({ data: dataISO, status: 'perdido' });
-    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   return dias;
+}
+
+/**
+ * Últimos 7 dias (mais antigo -> mais recente). O dia de hoje é sempre
+ * 'pendente' — o dia corrente só vira 'cumprido' quando useStreak recalcular,
+ * no dia seguinte.
+ */
+export function construirHistoricoSemana(
+  dailyLogs: DailyLogResumo[],
+  hoje: Date,
+): DiaHistorico[] {
+  const inicio = dataUTC(hoje);
+  inicio.setUTCDate(inicio.getUTCDate() - (DIAS_HISTORICO - 1));
+  return construirHistoricoIntervalo(dailyLogs, inicio, hoje, hoje);
 }
