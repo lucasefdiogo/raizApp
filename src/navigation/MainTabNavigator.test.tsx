@@ -1,7 +1,9 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { MainTabNavigator } from './MainTabNavigator';
+import { theme } from '../theme';
 
 // As 3 abas montam stacks reais (HojeStack/ProgressoStack/PerfilStack), cada
 // uma com sua própria árvore de hooks e dependências — já cobertas nos
@@ -43,12 +45,30 @@ describe('MainTabNavigator', () => {
     expect(screen.queryByText('PerfilStack uid=uid-teste')).toBeNull();
   });
 
-  it('mostra as 3 abas na tab bar', async () => {
+  it('mostra as 3 abas na tab bar, com a aba ativa em Cobre e as inativas em Terra Suave', async () => {
     await renderMainTabNavigator();
 
-    expect(screen.getByText('Hoje')).toBeTruthy();
-    expect(screen.getByText('Progresso')).toBeTruthy();
-    expect(screen.getByText('Perfil')).toBeTruthy();
+    const hoje = screen.getByText('Hoje');
+    const progresso = screen.getByText('Progresso');
+    const perfil = screen.getByText('Perfil');
+
+    expect(hoje).toBeTruthy();
+    expect(progresso).toBeTruthy();
+    expect(perfil).toBeTruthy();
+
+    // Hoje é a aba inicial (ativa) — Cobre, mesma cor de destaque do botão
+    // primário e do ponto de crescimento do RootProgressIcon. As outras
+    // duas começam inativas — Terra Suave, nunca Musgo (que já carrega
+    // estrutura/conclusão em outros lugares do app).
+    expect(StyleSheet.flatten(hoje.props.style).color).toBe(
+      theme.colors.accent,
+    );
+    expect(StyleSheet.flatten(progresso.props.style).color).toBe(
+      theme.colors.terraSuave,
+    );
+    expect(StyleSheet.flatten(perfil.props.style).color).toBe(
+      theme.colors.terraSuave,
+    );
   });
 
   it('tocar na aba Progresso troca a tela exibida', async () => {

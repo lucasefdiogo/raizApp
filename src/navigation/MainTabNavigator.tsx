@@ -40,8 +40,12 @@ export function MainTabNavigator({ uid }: MainTabNavigatorProps) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.musgo,
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+        // Cobre é a única cor de destaque por tela (mesma regra do botão
+        // primário e do ponto de crescimento do RootProgressIcon) — Musgo
+        // não entra aqui porque já carrega o significado de
+        // estrutura/conclusão em outros lugares do app.
+        tabBarActiveTintColor: theme.colors.accent,
+        tabBarInactiveTintColor: theme.colors.terraSuave,
       }}
     >
       <Tab.Screen

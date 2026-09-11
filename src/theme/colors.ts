@@ -2,6 +2,14 @@
 export const colors = {
   terraEscura: '#2B2118',
   terraEscura2: '#3E3126',
+  /**
+   * Terra Suave — neutro quente pra estados inativos/de baixa ênfase (ex:
+   * aba não selecionada na tab bar). Deliberadamente distinto de musgo
+   * (#5C6B4A) e de textSecondary (que hoje usa o hex do musgo) — musgo já
+   * carrega o significado de estrutura/conclusão em outros lugares do app,
+   * e não deve ser reaproveitado como "neutro".
+   */
+  terraSuave: '#8A7E6C',
   cobre: '#C1702F',
   cobreClaro: '#DA9A63',
   musgo: '#5C6B4A',
