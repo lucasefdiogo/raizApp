@@ -17,3 +17,7 @@ export async function lerItem<T>(chave: string): Promise<T | null> {
 export function chaveRecoveryShown(data: string): string {
   return `recovery_shown:${data}`;
 }
+
+export function chaveAppBlockBannerDismissed(data: string): string {
+  return `app_block_banner_dismissed:${data}`;
+}

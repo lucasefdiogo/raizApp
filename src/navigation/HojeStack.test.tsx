@@ -19,6 +19,8 @@ jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
 jest.mock('../hooks/useLocalNotifications');
 jest.mock('../hooks/useDailyTasks');
+jest.mock('../hooks/useAppBlockConfig');
+jest.mock('../hooks/useAppBlockBannerDismissido');
 jest.mock('../services/firestore');
 jest.mock('../utils/taskFeedbackMessages');
 
@@ -27,6 +29,10 @@ const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
 const { useLocalNotifications } = require('../hooks/useLocalNotifications');
 const { useDailyTasks } = require('../hooks/useDailyTasks');
+const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
+const {
+  useAppBlockBannerDismissido,
+} = require('../hooks/useAppBlockBannerDismissido');
 const { buscarSystemMessage } = require('../services/firestore');
 const {
   obterMensagemTarefaConcluida,
@@ -69,6 +75,26 @@ function configurarHooksPadrao() {
     statusDia: 'pendente',
     carregando: false,
     limiteEssenciaisAtingido: false,
+  });
+  useAppBlockConfig.mockReturnValue({
+    appsInstalados: [],
+    configAtual: {
+      ativo: false,
+      appsSelecionados: [],
+      horarioInicio: null,
+      horarioFim: null,
+    },
+    carregando: false,
+    ativoAgora: false,
+    alternarApp: jest.fn(),
+    salvarHorario: jest.fn(),
+    alternarAtivo: jest.fn(),
+    recarregar: jest.fn(),
+  });
+  useAppBlockBannerDismissido.mockReturnValue({
+    dispensadoHoje: true,
+    carregando: false,
+    dispensarHoje: jest.fn(),
   });
   buscarSystemMessage.mockResolvedValue({
     titulo: 'Sete dias seguidos',

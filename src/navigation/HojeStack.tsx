@@ -10,11 +10,15 @@ import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
+import { AppBlockConfigScreen } from '../screens/appblock/AppBlockConfigScreen';
 
 export type HojeStackParamList = {
   Home: undefined;
   RecoveryState: undefined;
   ReturnAfterPause: undefined;
+  // Mesma tela que o PerfilStack já usa — a Home só ganha um segundo
+  // caminho de entrada pra ela, não uma cópia.
+  AppBlockConfig: undefined;
 };
 
 const Stack = createNativeStackNavigator<HojeStackParamList>();
@@ -70,7 +74,7 @@ export function HojeStack({ uid }: HojeStackProps) {
         </Stack.Screen>
       ) : (
         <Stack.Screen name="Home">
-          {() => (
+          {({ navigation }) => (
             <HomeScreen
               uid={uid}
               streakAtual={streak.streakAtual}
@@ -78,10 +82,16 @@ export function HojeStack({ uid }: HojeStackProps) {
               marcoAtingido={streak.marcoAtingido}
               avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
               recarregarStreak={streak.recarregar}
+              aoAbrirBloqueioApps={() => navigation.navigate('AppBlockConfig')}
             />
           )}
         </Stack.Screen>
       )}
+      <Stack.Screen name="AppBlockConfig">
+        {({ navigation }) => (
+          <AppBlockConfigScreen uid={uid} aoVoltar={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }
