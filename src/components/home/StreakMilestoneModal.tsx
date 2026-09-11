@@ -19,10 +19,11 @@ export function StreakMilestoneModal({
 }: StreakMilestoneModalProps) {
   return (
     <Modal
+      testID="streak-milestone-modal"
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={() => {}}
+      onRequestClose={onDismiss}
     >
       <View style={styles.fundo}>
         <View style={styles.cartao}>

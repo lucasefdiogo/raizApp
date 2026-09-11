@@ -54,7 +54,12 @@ export function TaskItem({
           returnKeyType="done"
           accessibilityLabel="Editar tarefa"
         />
-        <Pressable accessibilityRole="button" onPress={salvar} hitSlop={8}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={salvar}
+          hitSlop={8}
+          style={styles.acaoToque}
+        >
           <Text style={styles.acao}>salvar</Text>
         </Pressable>
       </View>
@@ -170,6 +175,10 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
+  },
+  acaoToque: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
   },
   acao: {
     fontSize: theme.typography.fontSize.xs,

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
 import { useDesafios } from '../../hooks/useDesafios';
+import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
 import { ChallengeCard } from '../../components/challenges/ChallengeCard';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
@@ -21,6 +22,8 @@ function labelParaData(dataISO: string): string {
 }
 
 export function ProgressoScreen({ uid }: ProgressoScreenProps) {
+  useVoltarParaAbaHoje();
+
   const { historico, streakAtual, diasTotaisAtivos, carregando, recarregar } =
     useProgressoSemanal(uid);
   const {

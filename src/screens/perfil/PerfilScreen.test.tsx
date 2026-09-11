@@ -10,6 +10,7 @@ import {
 jest.mock('../../hooks/usePerfil');
 jest.mock('../../hooks/useAuth');
 jest.mock('../../hooks/useAccountDeletion');
+jest.mock('../../hooks/useVoltarParaAbaHoje');
 
 const { usePerfil } = require('../../hooks/usePerfil');
 const { useAuth } = require('../../hooks/useAuth');
