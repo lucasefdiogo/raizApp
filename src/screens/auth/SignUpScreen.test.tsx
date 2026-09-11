@@ -80,6 +80,14 @@ describe('SignUpScreen', () => {
     ).toBeTruthy();
   });
 
+  it('mostra o botão de voltar (pro Entrar)', async () => {
+    await renderComNavegacao(jest.fn());
+
+    const botaoVoltar = screen.getByLabelText('Voltar');
+    expect(botaoVoltar).toBeTruthy();
+    await fireEvent.press(botaoVoltar);
+  });
+
   it('não mostra botão do Google nesta tela', async () => {
     await renderComNavegacao(jest.fn());
     expect(screen.queryByText('Continuar com Google')).toBeNull();

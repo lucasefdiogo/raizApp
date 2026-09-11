@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   blockquote: {
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.cobre,
+    borderLeftColor: theme.colors.musgo,
     paddingLeft: theme.spacing.md,
   },
   porqueTexto: {

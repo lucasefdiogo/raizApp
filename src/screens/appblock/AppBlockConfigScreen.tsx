@@ -17,6 +17,7 @@ import { AppSelectorItem } from '../../components/appblock/AppSelectorItem';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
+import { BackButton } from '../../components/common/BackButton';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_INICIO_PADRAO = '09:00';
@@ -24,6 +25,7 @@ const HORARIO_FIM_PADRAO = '18:00';
 
 interface AppBlockConfigScreenProps {
   uid: string;
+  aoVoltar: () => void;
 }
 
 function horarioParaDate(horario: string): Date {
@@ -39,7 +41,10 @@ function dateParaHorario(data: Date): string {
   return `${horas}:${minutos}`;
 }
 
-export function AppBlockConfigScreen({ uid }: AppBlockConfigScreenProps) {
+export function AppBlockConfigScreen({
+  uid,
+  aoVoltar,
+}: AppBlockConfigScreenProps) {
   const {
     appsInstalados,
     configAtual,
@@ -125,8 +130,8 @@ export function AppBlockConfigScreen({ uid }: AppBlockConfigScreenProps) {
             testID="app-block-refresh-control"
             refreshing={atualizando}
             onRefresh={aoAtualizar}
-            colors={[theme.colors.cobre]}
-            tintColor={theme.colors.cobre}
+            colors={[theme.colors.musgo]}
+            tintColor={theme.colors.musgo}
           />
         }
         renderItem={({ item }) => (
@@ -152,6 +157,7 @@ export function AppBlockConfigScreen({ uid }: AppBlockConfigScreenProps) {
           // um gap dele mesmo pra ficar igual ao espaçamento das telas com
           // ScrollView (Hoje, Perfil, Progresso).
           <View style={styles.cabecalho}>
+            <BackButton onPress={aoVoltar} />
             <Text style={styles.titulo}>Bloqueio de apps</Text>
 
             <Pressable
@@ -237,6 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingVertical: theme.spacing.md,
   },
   rotulo: {
     fontSize: theme.typography.fontSize.md,

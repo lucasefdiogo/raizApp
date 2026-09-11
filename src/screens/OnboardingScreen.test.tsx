@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './OnboardingScreen';
 
@@ -73,6 +74,68 @@ describe('OnboardingScreen', () => {
       screen.getByRole('radio', { name: 'Estudos' }).props.accessibilityState
         .selected,
     ).toBe(true);
+  });
+
+  describe('botão físico voltar', () => {
+    let remove: jest.Mock;
+    let addEventListener: jest.SpyInstance;
+
+    beforeEach(() => {
+      remove = jest.fn();
+      addEventListener = jest
+        .spyOn(BackHandler, 'addEventListener')
+        .mockReturnValue({ remove } as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('no 1º passo (nada antes): não registra listener — deixa o Android agir', async () => {
+      await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+      await screen.findByText(TITULO_FOCO);
+
+      expect(addEventListener).not.toHaveBeenCalled();
+    });
+
+    it('a partir do 2º passo: retrocede um passo em vez de fechar o app', async () => {
+      buscarUsuario.mockResolvedValue(
+        usuario({ focoProcrastinacao: 'estudos' }),
+      );
+      await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+      await screen.findByText(TITULO_TEMPO);
+
+      expect(addEventListener).toHaveBeenCalledWith(
+        'hardwareBackPress',
+        expect.any(Function),
+      );
+      const ultimaChamada =
+        addEventListener.mock.calls[addEventListener.mock.calls.length - 1];
+      const handler = ultimaChamada[1] as () => boolean;
+
+      let consumido = false;
+      await act(async () => {
+        consumido = handler();
+      });
+
+      expect(consumido).toBe(true);
+      expect(screen.getByText(TITULO_FOCO)).toBeTruthy();
+    });
+  });
+
+  it('no passo do porquê: mostra aviso inline quando o texto é curto demais', async () => {
+    buscarUsuario.mockResolvedValue(
+      usuario({ focoProcrastinacao: 'estudos', tempoTelaEstimado: 4 }),
+    );
+    await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+    await screen.findByText(LABEL_PORQUE);
+
+    expect(screen.queryByText('Escreva um pouco mais sobre isso')).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Seu porquê pessoal'), 'oi');
+
+    expect(screen.getByText('Escreva um pouco mais sobre isso')).toBeTruthy();
+    expect(atualizarDadosOnboarding).not.toHaveBeenCalled();
   });
 
   it('bloqueia o avanço no passo do foco até uma opção ser escolhida', async () => {

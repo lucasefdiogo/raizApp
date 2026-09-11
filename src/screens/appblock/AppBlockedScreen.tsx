@@ -105,13 +105,15 @@ export function AppBlockedScreen({
               testID="opcao-tarefas-essenciais"
               accessibilityRole="button"
               onPress={handleCumprirTarefas}
-              style={styles.opcao}
+              style={[styles.opcao, tarefasCarregando && styles.opcaoCarregando]}
             >
               <Text style={styles.opcaoTitulo}>
                 Cumprir minhas tarefas essenciais
               </Text>
               <Text style={styles.opcaoCorpo}>
-                Se já cumpriu hoje, libera na hora.
+                {tarefasCarregando
+                  ? 'Verificando suas tarefas de hoje…'
+                  : 'Se já cumpriu hoje, libera na hora.'}
               </Text>
             </Pressable>
 
@@ -123,6 +125,16 @@ export function AppBlockedScreen({
             >
               <Text style={styles.opcaoTitulo}>Pausa de respiração (60s)</Text>
               <Text style={styles.opcaoCorpo}>Um minuto antes de voltar.</Text>
+            </Pressable>
+
+            <Pressable
+              testID="opcao-agora-nao"
+              accessibilityRole="button"
+              onPress={onFechar}
+              hitSlop={8}
+              style={styles.agoraNao}
+            >
+              <Text style={styles.agoraNaoTexto}>Agora não</Text>
             </Pressable>
           </View>
         )}
@@ -206,6 +218,19 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   opcaoCorpo: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  opcaoCarregando: {
+    opacity: 0.5,
+  },
+  agoraNao: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  agoraNaoTexto: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,

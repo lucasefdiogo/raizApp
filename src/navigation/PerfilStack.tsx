@@ -46,7 +46,9 @@ export function PerfilStack({ uid }: PerfilStackProps) {
         )}
       </Stack.Screen>
       <Stack.Screen name="AppBlockConfig">
-        {() => <AppBlockConfigScreen uid={uid} />}
+        {({ navigation }) => (
+          <AppBlockConfigScreen uid={uid} aoVoltar={() => navigation.goBack()} />
+        )}
       </Stack.Screen>
       {EXPOR_DEBUG_ACESSIBILIDADE && (
         <Stack.Screen

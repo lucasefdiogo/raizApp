@@ -12,6 +12,29 @@ function renderComNavegacao(signIn: jest.Mock, signInWithGoogle: jest.Mock) {
 }
 
 describe('SignInScreen', () => {
+  it('sem aoVoltarParaTutorial: não mostra o botão de voltar', async () => {
+    await renderComNavegacao(jest.fn(), jest.fn());
+
+    expect(screen.queryByLabelText('Voltar')).toBeNull();
+  });
+
+  it('com aoVoltarParaTutorial: mostra o botão de voltar e chama a prop ao tocar', async () => {
+    const aoVoltarParaTutorial = jest.fn();
+    await render(
+      <NavigationContainer>
+        <SignInScreen
+          signIn={jest.fn()}
+          signInWithGoogle={jest.fn()}
+          aoVoltarParaTutorial={aoVoltarParaTutorial}
+        />
+      </NavigationContainer>,
+    );
+
+    await fireEvent.press(screen.getByLabelText('Voltar'));
+
+    expect(aoVoltarParaTutorial).toHaveBeenCalledTimes(1);
+  });
+
   it('mantém o botão Entrar desabilitado com campos vazios', async () => {
     const signIn = jest.fn();
     await renderComNavegacao(signIn, jest.fn());
