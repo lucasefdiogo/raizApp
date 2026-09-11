@@ -71,6 +71,22 @@ export interface Desafio {
   status: StatusDesafio;
 }
 
+/**
+ * Configuração do bloqueio de apps (Fase 3, parte 2 — só a configuração,
+ * sem overlay nem desbloqueio ainda). Uma única janela de horário aplicada a
+ * todos os apps selecionados — não um horário por app. Ausente em
+ * users/{uid} = usuário nunca configurou; tratar como CONFIG_PADRAO
+ * (ver useAppBlockConfig), nunca assumir que o campo existe.
+ */
+export interface BloqueioAppsConfig {
+  ativo: boolean;
+  /** Package names, ex: "com.instagram.android". */
+  appsSelecionados: string[];
+  /** "HH:mm", ou null se o usuário nunca salvou um horário. */
+  horarioInicio: string | null;
+  horarioFim: string | null;
+}
+
 export type FocoProcrastinacao =
   | 'redes_sociais'
   | 'estudos'

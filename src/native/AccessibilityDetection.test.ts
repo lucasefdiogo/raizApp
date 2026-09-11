@@ -1,5 +1,6 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
 import {
+  getInstalledApps,
   isAccessibilityServiceEnabled,
   openAccessibilitySettings,
   subscribeToForegroundApp,
@@ -8,6 +9,7 @@ import {
 const moduloMock = {
   isAccessibilityServiceEnabled: jest.fn(),
   openAccessibilitySettings: jest.fn(),
+  getInstalledApps: jest.fn(),
 };
 
 describe('AccessibilityDetection', () => {
@@ -42,6 +44,36 @@ describe('AccessibilityDetection', () => {
     it('não quebra quando o módulo nativo não está linkado', () => {
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
       expect(() => openAccessibilitySettings()).not.toThrow();
+    });
+  });
+
+  describe('getInstalledApps', () => {
+    it('formata o ícone em base64 como data URI de PNG', async () => {
+      moduloMock.getInstalledApps.mockResolvedValueOnce([
+        { packageName: 'com.instagram.android', nome: 'Instagram', icone: 'QQ==' },
+      ]);
+
+      await expect(getInstalledApps()).resolves.toEqual([
+        {
+          packageName: 'com.instagram.android',
+          nome: 'Instagram',
+          icone: 'data:image/png;base64,QQ==',
+        },
+      ]);
+    });
+
+    it('mantém icone null quando o nativo não conseguiu converter', async () => {
+      moduloMock.getInstalledApps.mockResolvedValueOnce([
+        { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
+      ]);
+
+      const [app] = await getInstalledApps();
+      expect(app.icone).toBeNull();
+    });
+
+    it('resolve lista vazia quando o módulo nativo não está linkado', async () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(getInstalledApps()).resolves.toEqual([]);
     });
   });
 
