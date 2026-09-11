@@ -33,7 +33,7 @@ const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
 const {
   useAppBlockBannerDismissido,
 } = require('../hooks/useAppBlockBannerDismissido');
-const { buscarSystemMessage } = require('../services/firestore');
+const { buscarSystemMessage, buscarUsuario } = require('../services/firestore');
 const {
   obterMensagemTarefaConcluida,
 } = require('../utils/taskFeedbackMessages');
@@ -100,6 +100,10 @@ function configurarHooksPadrao() {
     titulo: 'Sete dias seguidos',
     corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
   });
+  // A Home real (não mockada aqui) usa useNomeUsuario, que chama isso —
+  // sem um retorno, o mock automático de services/firestore resolveria
+  // undefined e quebraria o .then() dentro do hook.
+  buscarUsuario.mockResolvedValue({ nome: '' });
   obterMensagemTarefaConcluida.mockReturnValue('Feito. Isso conta.');
 }
 

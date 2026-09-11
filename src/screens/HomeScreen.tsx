@@ -13,6 +13,8 @@ import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
 import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
 import { useRecarregarAoFocar } from '../hooks/useRecarregarAoFocar';
+import { useNomeUsuario } from '../hooks/useNomeUsuario';
+import { HomeHeader } from '../components/home/HomeHeader';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
@@ -64,6 +66,7 @@ export function HomeScreen({
   recarregarStreak,
   aoAbrirBloqueioApps,
 }: HomeScreenProps) {
+  const nome = useNomeUsuario(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {
@@ -190,6 +193,7 @@ export function HomeScreen({
           />
         }
       >
+        <HomeHeader nome={nome} streakAtual={streakAtual} />
         <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
