@@ -14,6 +14,10 @@ import {
   buscarDesbloqueiosHojeDoApp,
   incrementarDesbloqueiosHoje,
   preencherNomeSeVazio,
+  removerTarefaDoDia,
+  criarTarefaRecorrente,
+  buscarTarefasRecorrentesAtivas,
+  desativarTarefaRecorrente,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -279,6 +283,132 @@ describe('services/firestore', () => {
       const log = await buscarDailyLog('uid-1', '2026-09-10');
       expect(log?.tarefas).toHaveLength(2);
       expect(log?.tarefas.map(t => t.id)).toEqual(['1', '2']);
+    });
+  });
+
+  describe('removerTarefaDoDia', () => {
+    it('remove só a tarefa pedida, mantendo as outras', async () => {
+      await salvarDailyLog('uid-1', '2026-09-10', {
+        data: '2026-09-10',
+        tarefas: [
+          { id: '1', titulo: 'Primeira', essencial: false, concluida: true },
+          { id: '2', titulo: 'Segunda', essencial: true, concluida: false },
+        ],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      await removerTarefaDoDia('uid-1', '2026-09-10', '1');
+
+      const log = await buscarDailyLog('uid-1', '2026-09-10');
+      expect(log?.tarefas.map(t => t.id)).toEqual(['2']);
+    });
+
+    it('não mexe em statusDia/escudoUsado', async () => {
+      await salvarDailyLog('uid-1', '2026-09-10', {
+        data: '2026-09-10',
+        tarefas: [{ id: '1', titulo: 'A', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: true,
+      });
+
+      await removerTarefaDoDia('uid-1', '2026-09-10', '1');
+
+      const log = await buscarDailyLog('uid-1', '2026-09-10');
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.escudoUsado).toBe(true);
+      expect(log?.tarefas).toEqual([]);
+    });
+
+    it('não quebra quando o dailyLog não existe', async () => {
+      await expect(
+        removerTarefaDoDia('uid-1', '2026-09-10', 'inexistente'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('não quebra quando o id não está na lista (no-op)', async () => {
+      await salvarDailyLog('uid-1', '2026-09-10', {
+        data: '2026-09-10',
+        tarefas: [{ id: '1', titulo: 'A', essencial: true, concluida: true }],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      await removerTarefaDoDia('uid-1', '2026-09-10', 'inexistente');
+
+      const log = await buscarDailyLog('uid-1', '2026-09-10');
+      expect(log?.tarefas).toHaveLength(1);
+    });
+  });
+
+  describe('tarefas recorrentes (essentialTasks)', () => {
+    describe('criarTarefaRecorrente', () => {
+      it('cria o documento em essentialTasks com ativa: true e retorna o id', async () => {
+        const id = await criarTarefaRecorrente(
+          'uid-1',
+          'Ler 5 páginas',
+          true,
+        );
+
+        expect(typeof id).toBe('string');
+        expect(id.length).toBeGreaterThan(0);
+
+        const tarefas = await buscarTarefasRecorrentesAtivas('uid-1');
+        expect(tarefas).toHaveLength(1);
+        expect(tarefas[0]).toMatchObject({
+          id,
+          titulo: 'Ler 5 páginas',
+          essencial: true,
+          ativa: true,
+        });
+      });
+
+      it('duas chamadas seguidas geram ids diferentes', async () => {
+        const id1 = await criarTarefaRecorrente('uid-1', 'Primeira', false);
+        const id2 = await criarTarefaRecorrente('uid-1', 'Segunda', false);
+
+        expect(id1).not.toBe(id2);
+      });
+    });
+
+    describe('buscarTarefasRecorrentesAtivas', () => {
+      it('lista vazia quando o usuário nunca criou nenhuma', async () => {
+        expect(await buscarTarefasRecorrentesAtivas('uid-1')).toEqual([]);
+      });
+
+      it('não lista as que já foram desativadas', async () => {
+        const id1 = await criarTarefaRecorrente('uid-1', 'Ativa', true);
+        const id2 = await criarTarefaRecorrente('uid-1', 'Vai desativar', false);
+
+        await desativarTarefaRecorrente('uid-1', id2);
+
+        const ativas = await buscarTarefasRecorrentesAtivas('uid-1');
+        expect(ativas.map(t => t.id)).toEqual([id1]);
+      });
+
+      it('não vaza entre usuários', async () => {
+        await criarTarefaRecorrente('uid-1', 'Do uid-1', true);
+
+        expect(await buscarTarefasRecorrentesAtivas('uid-2')).toEqual([]);
+      });
+    });
+
+    describe('desativarTarefaRecorrente', () => {
+      it('marca ativa: false sem apagar título/essencial', async () => {
+        const id = await criarTarefaRecorrente('uid-1', 'Ler', true);
+
+        await desativarTarefaRecorrente('uid-1', id);
+
+        const tarefas = await buscarTarefasRecorrentesAtivas('uid-1');
+        expect(tarefas).toEqual([]);
+        // a busca só filtra ativas — confirma que o doc em si não foi
+        // apagado, só o campo ativa mudou, lendo o dado bruto do mock.
+        expect(firestoreMock.__dados(`users/uid-1/essentialTasks/${id}`)).toMatchObject({
+          titulo: 'Ler',
+          essencial: true,
+          ativa: false,
+        });
+      });
     });
   });
 

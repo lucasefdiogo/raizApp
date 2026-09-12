@@ -26,6 +26,7 @@ describe('AddTaskForm', () => {
       false,
       'padrao',
       undefined,
+      false,
     );
     expect(screen.getByLabelText('Nova tarefa').props.value).toBe('');
   });
@@ -48,6 +49,7 @@ describe('AddTaskForm', () => {
       true,
       'padrao',
       undefined,
+      false,
     );
   });
 
@@ -83,6 +85,7 @@ describe('AddTaskForm', () => {
       false,
       'padrao',
       undefined,
+      false,
     );
   });
 
@@ -117,6 +120,7 @@ describe('AddTaskForm', () => {
       false,
       'exercicio',
       20,
+      false,
     );
     // formulário reseta: sem campo de duração, campo de título limpo
     expect(screen.queryByLabelText('Duração (min)')).toBeNull();
@@ -138,6 +142,7 @@ describe('AddTaskForm', () => {
       false,
       'exercicio',
       undefined,
+      false,
     );
   });
 
@@ -159,6 +164,71 @@ describe('AddTaskForm', () => {
       false,
       'exercicio',
       undefined,
+      false,
     );
+  });
+
+  describe('"Repetir todos os dias"', () => {
+    it('desligado por padrão: manda repetirTodosOsDias false', async () => {
+      const onAdicionar = jest.fn();
+      await render(
+        <AddTaskForm onAdicionar={onAdicionar} limiteEssenciaisAtingido={false} />,
+      );
+
+      await fireEvent.changeText(screen.getByLabelText('Nova tarefa'), 'Ler');
+      await fireEvent.press(screen.getByText('Adicionar tarefa'));
+
+      expect(onAdicionar).toHaveBeenCalledWith('Ler', false, 'padrao', undefined, false);
+    });
+
+    it('ligado: manda repetirTodosOsDias true', async () => {
+      const onAdicionar = jest.fn();
+      await render(
+        <AddTaskForm onAdicionar={onAdicionar} limiteEssenciaisAtingido={false} />,
+      );
+
+      await fireEvent.changeText(screen.getByLabelText('Nova tarefa'), 'Meditar');
+      await fireEvent.press(screen.getByRole('switch'));
+      await fireEvent.press(screen.getByText('Adicionar tarefa'));
+
+      expect(onAdicionar).toHaveBeenCalledWith(
+        'Meditar',
+        false,
+        'padrao',
+        undefined,
+        true,
+      );
+    });
+
+    it('reflete o estado ligado/desligado na acessibilidade do toggle', async () => {
+      await render(
+        <AddTaskForm onAdicionar={jest.fn()} limiteEssenciaisAtingido={false} />,
+      );
+
+      expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(
+        false,
+      );
+
+      await fireEvent.press(screen.getByRole('switch'));
+
+      expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(
+        true,
+      );
+    });
+
+    it('reseta o toggle depois de adicionar', async () => {
+      const onAdicionar = jest.fn();
+      await render(
+        <AddTaskForm onAdicionar={onAdicionar} limiteEssenciaisAtingido={false} />,
+      );
+
+      await fireEvent.changeText(screen.getByLabelText('Nova tarefa'), 'Meditar');
+      await fireEvent.press(screen.getByRole('switch'));
+      await fireEvent.press(screen.getByText('Adicionar tarefa'));
+
+      expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(
+        false,
+      );
+    });
   });
 });

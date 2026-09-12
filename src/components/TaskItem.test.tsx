@@ -207,6 +207,110 @@ describe('TaskItem', () => {
     expect(screen.queryByTestId('task-item-exercicio-icone')).toBeNull();
   });
 
+  describe('tarefa recorrente (origemRecorrenteId presente)', () => {
+    const tarefaRecorrente: Tarefa = {
+      ...tarefaBase,
+      origemRecorrenteId: 'rec-1',
+    };
+
+    it('mostra o ícone de recorrente', async () => {
+      await render(<TaskItem tarefa={tarefaRecorrente} onAlternar={jest.fn()} />);
+
+      expect(screen.getByTestId('task-item-recorrente-icone')).toBeTruthy();
+      expect(screen.getByLabelText('recorrente')).toBeTruthy();
+    });
+
+    it('tarefa avulsa (sem origemRecorrenteId): não mostra o ícone de recorrente', async () => {
+      await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
+
+      expect(screen.queryByTestId('task-item-recorrente-icone')).toBeNull();
+    });
+
+    it('long-press abre o menu de 3 opções da recorrente, mesmo sem onEditar/onRemover', async () => {
+      await render(<TaskItem tarefa={tarefaRecorrente} onAlternar={jest.fn()} />);
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+      expect(screen.getByText('Remover só hoje')).toBeTruthy();
+      expect(screen.getByText('Parar de repetir')).toBeTruthy();
+      expect(screen.getByText('Cancelar')).toBeTruthy();
+      // não é o menu de Editar/Excluir
+      expect(screen.queryByText('Editar')).toBeNull();
+      expect(screen.queryByText('Excluir')).toBeNull();
+    });
+
+    it('long-press numa tarefa avulsa continua abrindo o menu de Editar/Excluir, não o de recorrente', async () => {
+      await render(
+        <TaskItem
+          tarefa={tarefaBase}
+          onAlternar={jest.fn()}
+          onEditar={jest.fn()}
+          onRemover={jest.fn()}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+      expect(screen.getByText('Editar')).toBeTruthy();
+      expect(screen.getByText('Excluir')).toBeTruthy();
+      expect(screen.queryByText('Remover só hoje')).toBeNull();
+      expect(screen.queryByText('Parar de repetir')).toBeNull();
+    });
+
+    it('"Remover só hoje" chama onRemoverHoje com o id e fecha o menu', async () => {
+      const onRemoverHoje = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={tarefaRecorrente}
+          onAlternar={jest.fn()}
+          onRemoverHoje={onRemoverHoje}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+      await fireEvent.press(screen.getByText('Remover só hoje'));
+
+      expect(onRemoverHoje).toHaveBeenCalledWith('1');
+      expect(screen.queryByText('Remover só hoje')).toBeNull();
+    });
+
+    it('"Parar de repetir" chama onPararDeRepetir com o id da tarefa e o origemRecorrenteId', async () => {
+      const onPararDeRepetir = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={tarefaRecorrente}
+          onAlternar={jest.fn()}
+          onPararDeRepetir={onPararDeRepetir}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+      await fireEvent.press(screen.getByText('Parar de repetir'));
+
+      expect(onPararDeRepetir).toHaveBeenCalledWith('1', 'rec-1');
+    });
+
+    it('"Cancelar" fecha o menu sem chamar nada', async () => {
+      const onRemoverHoje = jest.fn();
+      const onPararDeRepetir = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={tarefaRecorrente}
+          onAlternar={jest.fn()}
+          onRemoverHoje={onRemoverHoje}
+          onPararDeRepetir={onPararDeRepetir}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+      await fireEvent.press(screen.getByText('Cancelar'));
+
+      expect(screen.queryByText('Remover só hoje')).toBeNull();
+      expect(onRemoverHoje).not.toHaveBeenCalled();
+      expect(onPararDeRepetir).not.toHaveBeenCalled();
+    });
+  });
+
   it('long-press → "Editar" abre a edição inline e onEditar é chamado ao salvar', async () => {
     const onEditar = jest.fn();
     await render(
