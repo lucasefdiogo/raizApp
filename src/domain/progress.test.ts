@@ -1,4 +1,4 @@
-import { construirHistoricoSemana } from './progress';
+import { avaliarStatusHistoricoDia, construirHistoricoSemana } from './progress';
 import { Tarefa } from './types';
 
 function tarefaEssencialConcluida(): Tarefa {
@@ -78,5 +78,87 @@ describe('construirHistoricoSemana', () => {
     const historico = construirHistoricoSemana(dailyLogs, HOJE);
 
     expect(historico[6]).toEqual({ data: '2026-09-14', status: 'pendente' });
+  });
+});
+
+describe('avaliarStatusHistoricoDia', () => {
+  it('dia passado cumprido', () => {
+    const log = {
+      data: '2026-09-10',
+      tarefas: [tarefaEssencialConcluida()],
+      escudoUsado: false,
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe('cumprido');
+  });
+
+  it('dia passado protegido pelo escudo', () => {
+    const log = {
+      data: '2026-09-10',
+      tarefas: [tarefaNaoConcluida()],
+      escudoUsado: true,
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe(
+      'protegido_escudo',
+    );
+  });
+
+  it('dia passado perdido', () => {
+    const log = {
+      data: '2026-09-10',
+      tarefas: [tarefaNaoConcluida()],
+      escudoUsado: false,
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe('perdido');
+  });
+
+  it('dia passado sem log: sem_registro', () => {
+    expect(avaliarStatusHistoricoDia(null, '2026-09-10', HOJE)).toBe(
+      'sem_registro',
+    );
+  });
+
+  it('hoje: sempre pendente, mesmo com log cumprido (sem avaliarHojeAoVivo)', () => {
+    const log = {
+      data: '2026-09-14',
+      tarefas: [tarefaEssencialConcluida()],
+      escudoUsado: false,
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-14', HOJE)).toBe('pendente');
+  });
+
+  it('hoje sem log: pendente', () => {
+    expect(avaliarStatusHistoricoDia(null, '2026-09-14', HOJE)).toBe('pendente');
+  });
+
+  it('hoje com avaliarHojeAoVivo e log: usa o status real, não pendente', () => {
+    const log = {
+      data: '2026-09-14',
+      tarefas: [tarefaEssencialConcluida()],
+      escudoUsado: false,
+    };
+    expect(
+      avaliarStatusHistoricoDia(log, '2026-09-14', HOJE, {
+        avaliarHojeAoVivo: true,
+      }),
+    ).toBe('cumprido');
+  });
+
+  it('hoje com avaliarHojeAoVivo mas sem log: continua pendente (o dia não acabou)', () => {
+    expect(
+      avaliarStatusHistoricoDia(null, '2026-09-14', HOJE, {
+        avaliarHojeAoVivo: true,
+      }),
+    ).toBe('pendente');
+  });
+
+  it('data futura: sem_registro, mesmo com log (não deveria existir, mas não quebra)', () => {
+    const log = {
+      data: '2026-09-15',
+      tarefas: [tarefaEssencialConcluida()],
+      escudoUsado: false,
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-15', HOJE)).toBe(
+      'sem_registro',
+    );
   });
 });
