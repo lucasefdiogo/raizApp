@@ -267,6 +267,108 @@ export async function adicionarTarefaAoDailyLog(
 }
 
 /**
+ * Remove uma entrada específica de tarefas[] de dailyLogs/{data}. Não-op se
+ * o dailyLog não existir ou o id não estiver na lista. Sobrescreve o
+ * documento por inteiro (mesmo padrão de salvarDailyLog) — não é o caminho
+ * usado por useDailyTasks (que já mantém o próprio estado otimista local
+ * e chama salvarDailyLog direto); existe como primitiva de baixo nível
+ * pra remover uma tarefa de um dia sem precisar ler+recompor o array na
+ * mão em quem chama.
+ */
+export async function removerTarefaDoDia(
+  uid: string,
+  data: string,
+  tarefaId: string,
+): Promise<void> {
+  const logAtual = await buscarDailyLog(uid, data);
+  if (!logAtual) {
+    return;
+  }
+
+  await salvarDailyLog(uid, data, {
+    ...logAtual,
+    tarefas: logAtual.tarefas.filter(tarefa => tarefa.id !== tarefaId),
+  });
+}
+
+export interface TarefaRecorrente {
+  id: string;
+  titulo: string;
+  essencial: boolean;
+  ativa: boolean;
+  criadaEm: unknown;
+}
+
+function documentoTarefaRecorrente(uid: string, taskId: string) {
+  return doc(getFirestore(), 'users', uid, 'essentialTasks', taskId);
+}
+
+// Gerado no client (não via auto-ID do Firestore) — mais simples de
+// testar com o mock do projeto, que não simula collection().doc() sem
+// segmentos. Só precisa ser único dentro da subcoleção de um usuário.
+function gerarIdTarefaRecorrente(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Cria uma tarefa recorrente em users/{uid}/essentialTasks (coleção
+ * prevista desde o schema original, nunca usada até agora — ver
+ * regras de segurança já publicadas). Retorna o ID gerado, que quem
+ * chama usa como origemRecorrenteId da tarefa de hoje.
+ */
+export async function criarTarefaRecorrente(
+  uid: string,
+  titulo: string,
+  essencial: boolean,
+): Promise<string> {
+  const id = gerarIdTarefaRecorrente();
+  await setDoc(documentoTarefaRecorrente(uid, id), {
+    titulo,
+    essencial,
+    ativa: true,
+    criadaEm: serverTimestamp(),
+  });
+  return id;
+}
+
+/**
+ * Tarefas recorrentes ainda ativas — usada tanto pra pré-popular um
+ * dailyLog novo quanto por qualquer tela de gerenciamento futura. Filtra
+ * `ativa` no client (mesmo padrão de buscarDesafiosAtivos), sem `where`,
+ * pra não exigir índice — volume mínimo por usuário.
+ */
+export async function buscarTarefasRecorrentesAtivas(
+  uid: string,
+): Promise<TarefaRecorrente[]> {
+  const snapshot = await getDocs(
+    collection(getFirestore(), 'users', uid, 'essentialTasks'),
+  );
+  return snapshot.docs
+    .map(documento => ({
+      id: documento.id,
+      ...(documento.data() as Omit<TarefaRecorrente, 'id'>),
+    }))
+    .filter(tarefa => tarefa.ativa);
+}
+
+/**
+ * "Parar de repetir" — só marca ativa: false. Não mexe em nenhum
+ * dailyLog: a entrada de hoje (se existir) permanece como está, e dias
+ * anteriores já registrados não são afetados. Deixa de ser criada nos
+ * dias seguintes porque buscarTarefasRecorrentesAtivas não a lista mais.
+ */
+export async function desativarTarefaRecorrente(
+  uid: string,
+  taskId: string,
+): Promise<void> {
+  await setDoc(
+    documentoTarefaRecorrente(uid, taskId),
+    { ativa: false },
+    { merge: true },
+  );
+}
+
+/**
  * Quantos desbloqueios de apps bloqueados já aconteceram hoje (ver
  * domain/appBlockEscalation.ts). Ausente no dailyLog = 0 — ainda nenhum.
  */

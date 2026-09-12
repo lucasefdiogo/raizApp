@@ -75,6 +75,8 @@ export function HomeScreen({
     adicionarTarefa,
     editarTarefa,
     removerTarefa,
+    removerTarefaHoje,
+    pararDeRepetir,
     statusDia,
     carregando,
     limiteEssenciaisAtingido,
@@ -212,6 +214,8 @@ export function HomeScreen({
                 onAlternar={handleAlternarTarefa}
                 onEditar={(id, titulo) => editarTarefa(id, { titulo })}
                 onRemover={removerTarefa}
+                onRemoverHoje={removerTarefaHoje}
+                onPararDeRepetir={pararDeRepetir}
               />
             )}
             <AddTaskForm

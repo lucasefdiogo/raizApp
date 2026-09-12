@@ -9,6 +9,9 @@ import {
 } from '../domain/dailyTasks';
 import {
   buscarDailyLog,
+  buscarTarefasRecorrentesAtivas,
+  criarTarefaRecorrente,
+  desativarTarefaRecorrente,
   existeAlgumDailyLog,
   salvarDailyLog,
 } from '../services/firestore';
@@ -45,6 +48,8 @@ const MENSAGEM_FALHA_ADICIONAR =
   'Não conseguimos adicionar a tarefa agora. Tente de novo.';
 const MENSAGEM_FALHA_RECARREGAR =
   'Não conseguimos atualizar agora. Tente de novo.';
+const MENSAGEM_FALHA_PARAR_DE_REPETIR =
+  'Não conseguimos salvar agora. Tente de novo.';
 
 function paraISO(data: Date): string {
   return data.toISOString().slice(0, 10);
@@ -53,17 +58,38 @@ function paraISO(data: Date): string {
 interface UseDailyTasksResultado {
   tarefas: Tarefa[];
   alternarTarefa: (id: string) => void;
+  /**
+   * `repetirTodosOsDias` (default false): cria a tarefa recorrente em
+   * essentialTasks ANTES de gravar a tarefa de hoje, e só grava a de hoje
+   * (já com origemRecorrenteId) se aquilo funcionar — nunca deixa uma
+   * tarefa avulsa órfã quando o usuário pediu repetição.
+   */
   adicionarTarefa: (
     titulo: string,
     essencial: boolean,
     tipo?: TipoTarefa,
     duracaoMinutos?: number,
+    repetirTodosOsDias?: boolean,
   ) => void;
   editarTarefa: (
     id: string,
     campos: Partial<Pick<Tarefa, 'titulo' | 'essencial'>>,
   ) => void;
   removerTarefa: (id: string) => void;
+  /**
+   * Remove só a entrada de hoje de uma tarefa recorrente — o essentialTasks
+   * de origem não é tocado, então ela volta a aparecer amanhã normalmente.
+   * Mesmo efeito de removerTarefa (nome próprio só pra deixar a intenção
+   * clara no menu de gerenciamento — ver RecurringTaskActionSheet).
+   */
+  removerTarefaHoje: (id: string) => void;
+  /**
+   * "Parar de repetir": desativa o essentialTasks de origem — a entrada de
+   * hoje permanece intacta (não mexe em `tarefas`), só deixa de ser criada
+   * nos dias seguintes. `tarefaId` não é usado na gravação em si, só mantém
+   * a chamada simétrica com removerTarefaHoje no call site do menu.
+   */
+  pararDeRepetir: (tarefaId: string, origemRecorrenteId: string) => void;
   statusDia: StatusDia;
   carregando: boolean;
   limiteEssenciaisAtingido: boolean;
@@ -111,12 +137,31 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       return;
     }
 
-    const jaUsouAntes = await existeAlgumDailyLog(uid);
+    // Dia sem dailyLog ainda: pré-popula com as recorrentes ativas (se
+    // houver) antes de cair pro exemplo do primeiro dia — nada é
+    // persistido aqui, só estado local (mesmo padrão de TAREFAS_EXEMPLO;
+    // a primeira mutação real do dia é o que grava, via persistir).
+    const [jaUsouAntes, recorrentes] = await Promise.all([
+      existeAlgumDailyLog(uid),
+      buscarTarefasRecorrentesAtivas(uid),
+    ]);
     if (!aindaAtual()) {
       return;
     }
 
-    setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
+    if (recorrentes.length > 0) {
+      setTarefas(
+        recorrentes.map(recorrente => ({
+          id: `recorrente-${recorrente.id}-${hojeISO}`,
+          titulo: recorrente.titulo,
+          essencial: recorrente.essencial,
+          concluida: false,
+          origemRecorrenteId: recorrente.id,
+        })),
+      );
+    } else {
+      setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
+    }
     setCarregando(false);
   }, [uid, hojeISO]);
 
@@ -167,11 +212,12 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   );
 
   const adicionarTarefa = useCallback(
-    (
+    async (
       titulo: string,
       essencial: boolean,
       tipo: TipoTarefa = 'padrao',
       duracaoMinutos?: number,
+      repetirTodosOsDias: boolean = false,
     ) => {
       const nova: Tarefa = {
         id: `nova-${Date.now()}-${contadorId.current++}`,
@@ -195,9 +241,32 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
         return;
       }
 
-      persistir(resultado.tarefas, MENSAGEM_FALHA_ADICIONAR);
+      if (!repetirTodosOsDias) {
+        persistir(resultado.tarefas, MENSAGEM_FALHA_ADICIONAR);
+        return;
+      }
+
+      // Cria a recorrente ANTES de gravar a tarefa de hoje — se falhar,
+      // não grava nada (nem a avulsa): melhor nada acontecer e o usuário
+      // tentar de novo do que criar uma tarefa que ele pediu explicitamente
+      // pra repetir e ela não repetir, sem avisar.
+      const tituloGravado =
+        resultado.tarefas.find(t => t.id === nova.id)?.titulo ?? titulo;
+      try {
+        const origemRecorrenteId = await criarTarefaRecorrente(
+          uid,
+          tituloGravado,
+          essencial,
+        );
+        const tarefasComOrigem = resultado.tarefas.map(tarefa =>
+          tarefa.id === nova.id ? { ...tarefa, origemRecorrenteId } : tarefa,
+        );
+        persistir(tarefasComOrigem, MENSAGEM_FALHA_ADICIONAR);
+      } catch {
+        showToast(MENSAGEM_FALHA_ADICIONAR);
+      }
     },
-    [tarefas, persistir, showToast],
+    [tarefas, persistir, showToast, uid],
   );
 
   const editarTarefa = useCallback(
@@ -221,6 +290,27 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     [tarefas, persistir],
   );
 
+  // Mesma operação de removerTarefa (remove só a entrada de hoje) — nome
+  // próprio pra deixar clara a intenção no menu de tarefa recorrente, que
+  // nunca mexe no essentialTasks de origem por essa via.
+  const removerTarefaHoje = useCallback(
+    (id: string) => {
+      persistir(removerTarefaNoDia(tarefas, id), MENSAGEM_FALHA_ALTERACAO);
+    },
+    [tarefas, persistir],
+  );
+
+  const pararDeRepetir = useCallback(
+    async (_tarefaId: string, origemRecorrenteId: string) => {
+      try {
+        await desativarTarefaRecorrente(uid, origemRecorrenteId);
+      } catch {
+        showToast(MENSAGEM_FALHA_PARAR_DE_REPETIR);
+      }
+    },
+    [uid, showToast],
+  );
+
   const statusDia = calcularStatusDia(tarefas);
 
   return {
@@ -229,6 +319,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     adicionarTarefa,
     editarTarefa,
     removerTarefa,
+    removerTarefaHoje,
+    pararDeRepetir,
     statusDia,
     carregando,
     limiteEssenciaisAtingido: limiteEssenciaisAtingidoDominio(tarefas),

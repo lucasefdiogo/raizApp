@@ -8,6 +8,8 @@ interface TaskListProps {
   onAlternar: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
   onRemover?: (id: string) => void;
+  onRemoverHoje?: (id: string) => void;
+  onPararDeRepetir?: (id: string, origemRecorrenteId: string) => void;
 }
 
 export function TaskList({
@@ -15,6 +17,8 @@ export function TaskList({
   onAlternar,
   onEditar,
   onRemover,
+  onRemoverHoje,
+  onPararDeRepetir,
 }: TaskListProps) {
   return (
     <View style={styles.lista}>
@@ -25,6 +29,8 @@ export function TaskList({
           onAlternar={onAlternar}
           onEditar={onEditar}
           onRemover={onRemover}
+          onRemoverHoje={onRemoverHoje}
+          onPararDeRepetir={onPararDeRepetir}
         />
       ))}
     </View>

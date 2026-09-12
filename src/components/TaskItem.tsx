@@ -6,10 +6,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Dumbbell, Star } from 'lucide-react-native';
+import { Dumbbell, Repeat, Star } from 'lucide-react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
 import { TaskActionsSheet } from './home/TaskActionsSheet';
+import { RecurringTaskActionSheet } from './home/RecurringTaskActionSheet';
 
 const ATRASO_LONG_PRESS_MS = 350;
 
@@ -18,6 +19,10 @@ interface TaskItemProps {
   onAlternar: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
   onRemover?: (id: string) => void;
+  /** Só chamado pra tarefas com origemRecorrenteId — ver RecurringTaskActionSheet. */
+  onRemoverHoje?: (id: string) => void;
+  /** Idem — origemRecorrenteId sempre presente quando isso é chamado. */
+  onPararDeRepetir?: (id: string, origemRecorrenteId: string) => void;
 }
 
 export function TaskItem({
@@ -25,12 +30,16 @@ export function TaskItem({
   onAlternar,
   onEditar,
   onRemover,
+  onRemoverHoje,
+  onPararDeRepetir,
 }: TaskItemProps) {
   const [editando, setEditando] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [rascunho, setRascunho] = useState(tarefa.titulo);
 
+  const ehRecorrente = tarefa.origemRecorrenteId !== undefined;
   const temAcoes = onEditar !== undefined || onRemover !== undefined;
+  const podeAbrirMenu = ehRecorrente || temAcoes;
 
   function abrirEdicao() {
     setRascunho(tarefa.titulo);
@@ -74,10 +83,14 @@ export function TaskItem({
         accessibilityRole="checkbox"
         accessibilityState={{ checked: tarefa.concluida }}
         accessibilityHint={
-          temAcoes ? 'Toque e segure para editar ou excluir' : undefined
+          ehRecorrente
+            ? 'Toque e segure para gerenciar a repetição'
+            : temAcoes
+              ? 'Toque e segure para editar ou excluir'
+              : undefined
         }
         onPress={() => onAlternar(tarefa.id)}
-        onLongPress={temAcoes ? () => setMenuAberto(true) : undefined}
+        onLongPress={podeAbrirMenu ? () => setMenuAberto(true) : undefined}
         delayLongPress={ATRASO_LONG_PRESS_MS}
         style={styles.linha}
       >
@@ -95,6 +108,14 @@ export function TaskItem({
           )}
         </View>
         <View style={styles.selos}>
+          {ehRecorrente && (
+            <View
+              testID="task-item-recorrente-icone"
+              accessibilityLabel="recorrente"
+            >
+              <Repeat size={13} color={theme.colors.textSecondary} />
+            </View>
+          )}
           {ehExercicio && (
             <View
               testID="task-item-exercicio-icone"
@@ -115,27 +136,42 @@ export function TaskItem({
         </View>
       </Pressable>
 
-      <TaskActionsSheet
-        visible={menuAberto}
-        tituloTarefa={tarefa.titulo}
-        onEditar={
-          onEditar
-            ? () => {
-                setMenuAberto(false);
-                abrirEdicao();
-              }
-            : undefined
-        }
-        onExcluir={
-          onRemover
-            ? () => {
-                setMenuAberto(false);
-                onRemover(tarefa.id);
-              }
-            : undefined
-        }
-        onCancelar={() => setMenuAberto(false)}
-      />
+      {ehRecorrente ? (
+        <RecurringTaskActionSheet
+          visible={menuAberto}
+          onRemoverHoje={() => {
+            setMenuAberto(false);
+            onRemoverHoje?.(tarefa.id);
+          }}
+          onPararDeRepetir={() => {
+            setMenuAberto(false);
+            onPararDeRepetir?.(tarefa.id, tarefa.origemRecorrenteId!);
+          }}
+          onCancelar={() => setMenuAberto(false)}
+        />
+      ) : (
+        <TaskActionsSheet
+          visible={menuAberto}
+          tituloTarefa={tarefa.titulo}
+          onEditar={
+            onEditar
+              ? () => {
+                  setMenuAberto(false);
+                  abrirEdicao();
+                }
+              : undefined
+          }
+          onExcluir={
+            onRemover
+              ? () => {
+                  setMenuAberto(false);
+                  onRemover(tarefa.id);
+                }
+              : undefined
+          }
+          onCancelar={() => setMenuAberto(false)}
+        />
+      )}
     </>
   );
 }

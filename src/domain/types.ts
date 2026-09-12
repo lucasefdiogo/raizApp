@@ -34,6 +34,12 @@ export interface Tarefa {
   tipo?: TipoTarefa;
   /** Opcional, só faz sentido quando tipo === 'exercicio'. Minutos estimados. */
   duracaoMinutos?: number;
+  /**
+   * Presente só quando essa tarefa nasceu de uma tarefa recorrente
+   * (users/{uid}/essentialTasks/{id}) — aponta pro documento de origem.
+   * Ausente = tarefa avulsa (comportamento de sempre, sem mudança).
+   */
+  origemRecorrenteId?: string;
 }
 
 export interface DailyLog {
