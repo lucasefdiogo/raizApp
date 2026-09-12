@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Keyboard,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +29,13 @@ interface SignUpScreenProps {
 
 type Navegacao = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
+// No Android com edge-to-edge (RN 0.87+) o `adjustResize` não encolhe mais a
+// janela — o teclado entra por cima e cobre os campos de baixo (Senha,
+// Confirmar senha) e o botão "Criar conta". Mesmo fix da HomeScreen:
+// acompanha a altura do teclado à mão e cria espaço equivalente no fim do
+// ScrollView, depois rola até lá.
+const ATRASO_SCROLL_TECLADO_MS = 50;
+
 export function SignUpScreen({ signUp }: SignUpScreenProps) {
   const navigation = useNavigation<Navegacao>();
   const [nome, setNome] = useState('');
@@ -30,6 +44,33 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [alturaTeclado, setAlturaTeclado] = useState(0);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+
+  useEffect(() => {
+    const aoMostrar = Keyboard.addListener('keyboardDidShow', evento => {
+      setAlturaTeclado(evento.endCoordinates.height);
+    });
+    const aoEsconder = Keyboard.addListener('keyboardDidHide', () => {
+      setAlturaTeclado(0);
+    });
+    return () => {
+      aoMostrar.remove();
+      aoEsconder.remove();
+    };
+  }, []);
+
+  // Depois que o espaço extra entra no layout, rola até o fim (botão
+  // "Criar conta" logo abaixo dos campos).
+  useEffect(() => {
+    if (alturaTeclado === 0) {
+      return;
+    }
+    const id = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, ATRASO_SCROLL_TECLADO_MS);
+    return () => clearTimeout(id);
+  }, [alturaTeclado]);
 
   const podeCriar =
     nome.trim().length > 0 &&
@@ -59,7 +100,17 @@ export function SignUpScreen({ signUp }: SignUpScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.conteudo}>
+      <ScrollView
+        ref={scrollRef}
+        testID="signup-scroll"
+        contentContainerStyle={[
+          styles.conteudo,
+          alturaTeclado > 0 && {
+            paddingBottom: alturaTeclado + theme.spacing.md,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <BackButton onPress={() => navigation.goBack()} />
         <Text style={styles.titulo}>Criar conta</Text>
 

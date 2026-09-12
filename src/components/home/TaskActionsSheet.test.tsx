@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TaskActionsSheet } from './TaskActionsSheet';
 
 const props = {
@@ -9,6 +10,19 @@ const props = {
   onExcluir: jest.fn(),
   onCancelar: jest.fn(),
 };
+
+function render(ui: React.ReactElement) {
+  return rtlRender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      {ui}
+    </SafeAreaProvider>,
+  );
+}
 
 describe('TaskActionsSheet', () => {
   it('mostra o título da tarefa e as três ações quando visível', async () => {
