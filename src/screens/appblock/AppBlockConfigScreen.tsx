@@ -13,6 +13,7 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { theme } from '../../theme';
 import { useAppBlockConfig } from '../../hooks/useAppBlockConfig';
+import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
 import { AppSelectorItem } from '../../components/appblock/AppSelectorItem';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
@@ -54,6 +55,12 @@ export function AppBlockConfigScreen({
     alternarAtivo,
     recarregar,
   } = useAppBlockConfig(uid);
+  const {
+    ativo: acessibilidadeAtiva,
+    carregando: acessibilidadeCarregando,
+    verificarNovamente: reverificarAcessibilidade,
+    abrirConfiguracoes: abrirConfiguracoesAcessibilidade,
+  } = useAccessibilityPermission();
 
   const [rascunhoInicio, setRascunhoInicio] = useState(HORARIO_INICIO_PADRAO);
   const [rascunhoFim, setRascunhoFim] = useState(HORARIO_FIM_PADRAO);
@@ -66,11 +73,11 @@ export function AppBlockConfigScreen({
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
     try {
-      await recarregar();
+      await Promise.all([recarregar(), reverificarAcessibilidade()]);
     } finally {
       setAtualizando(false);
     }
-  }, [recarregar]);
+  }, [recarregar, reverificarAcessibilidade]);
 
   useEffect(() => {
     if (configAtual.horarioInicio) {
@@ -160,6 +167,26 @@ export function AppBlockConfigScreen({
             <BackButton onPress={aoVoltar} />
             <Text style={styles.titulo}>Bloqueio de apps</Text>
 
+            {!acessibilidadeCarregando && !acessibilidadeAtiva && (
+              <View
+                testID="app-block-aviso-acessibilidade"
+                style={styles.avisoPermissao}
+              >
+                <Text style={styles.avisoPermissaoTitulo}>
+                  Falta uma permissão pro bloqueio funcionar
+                </Text>
+                <Text style={styles.avisoPermissaoCorpo}>
+                  O Rootora precisa do Serviço de Acessibilidade ativado pra
+                  saber quando um app bloqueado é aberto. Ele não lê o
+                  conteúdo da tela — só o nome do app em uso.
+                </Text>
+                <PrimaryButton
+                  titulo="Ativar nas Configurações"
+                  onPress={abrirConfiguracoesAcessibilidade}
+                />
+              </View>
+            )}
+
             <Pressable
               testID="app-block-ativo-toggle"
               accessibilityRole="checkbox"
@@ -238,6 +265,22 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xl,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
+  },
+  avisoPermissao: {
+    backgroundColor: theme.colors.areia,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  avisoPermissaoTitulo: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textPrimary,
+  },
+  avisoPermissaoCorpo: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
   linhaAtivo: {
     flexDirection: 'row',
