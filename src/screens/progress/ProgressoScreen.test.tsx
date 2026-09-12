@@ -1,15 +1,53 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react-native';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ProgressoScreen } from './ProgressoScreen';
 
 jest.mock('../../hooks/useProgressoSemanal');
 jest.mock('../../hooks/useDesafios');
 jest.mock('../../hooks/useVoltarParaAbaHoje');
+jest.mock('../../hooks/useDayDetail');
 const { useProgressoSemanal } = require('../../hooks/useProgressoSemanal');
 const { useDesafios } = require('../../hooks/useDesafios');
+const { useDayDetail } = require('../../hooks/useDayDetail');
+
+// DayDetailSheet (aberto) lê useSafeAreaInsets, mesmo padrão de
+// espaçamento do TaskActionsSheet — precisa do Provider.
+function render(ui: React.ReactElement) {
+  return rtlRender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      {ui}
+    </SafeAreaProvider>,
+  );
+}
 
 const recarregarPadrao = jest.fn().mockResolvedValue(undefined);
 const recarregarDesafiosPadrao = jest.fn().mockResolvedValue(undefined);
+const buscarDiaPadrao = jest.fn();
+const limparSelecaoPadrao = jest.fn();
+
+function configurarDayDetail(sobrescritas = {}) {
+  useDayDetail.mockReturnValue({
+    dataSelecionada: null,
+    tarefasDoDia: [],
+    statusDoDia: null,
+    carregando: false,
+    buscarDia: buscarDiaPadrao,
+    limparSelecao: limparSelecaoPadrao,
+    ...sobrescritas,
+  });
+}
 
 const DESAFIO_SEMANAL = {
   id: 'exercicio_3x-2026-09-08',
@@ -48,7 +86,10 @@ describe('ProgressoScreen', () => {
   beforeEach(() => {
     recarregarPadrao.mockClear();
     recarregarDesafiosPadrao.mockClear();
+    buscarDiaPadrao.mockClear();
+    limparSelecaoPadrao.mockClear();
     configurarDesafios();
+    configurarDayDetail();
   });
   it('mostra os 2 números de resumo e um DayStatusPill por dia do histórico', async () => {
     useProgressoSemanal.mockReturnValue({
@@ -240,5 +281,101 @@ describe('ProgressoScreen', () => {
 
     expect(screen.getByText('Últimos 7 dias')).toBeTruthy();
     expect(screen.queryByText('Desafios')).toBeNull();
+  });
+
+  describe('detalhe do dia (tocar numa pastilha)', () => {
+    beforeEach(() => {
+      useProgressoSemanal.mockReturnValue({
+        historico: [
+          { data: '2026-09-08', status: 'cumprido' },
+          { data: '2026-09-09', status: 'protegido_escudo' },
+          { data: '2026-09-10', status: 'perdido' },
+          { data: '2026-09-11', status: 'sem_registro' },
+          { data: '2026-09-12', status: 'cumprido' },
+          { data: '2026-09-13', status: 'cumprido' },
+          { data: '2026-09-14', status: 'pendente' },
+        ],
+        streakAtual: 6,
+        diasTotaisAtivos: 20,
+        carregando: false,
+        recarregar: recarregarPadrao,
+      });
+    });
+
+    it('tocar numa pastilha "sem_registro" não chama buscarDia — não existe dailyLog pra abrir', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByTestId('day-pill-2026-09-11'));
+
+      expect(buscarDiaPadrao).not.toHaveBeenCalled();
+    });
+
+    it('tocar numa pastilha "cumprido" chama buscarDia com a data certa', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByTestId('day-pill-2026-09-08'));
+
+      expect(buscarDiaPadrao).toHaveBeenCalledWith('2026-09-08');
+    });
+
+    it('tocar numa pastilha "protegido_escudo" chama buscarDia com a data certa', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByTestId('day-pill-2026-09-09'));
+
+      expect(buscarDiaPadrao).toHaveBeenCalledWith('2026-09-09');
+    });
+
+    it('tocar numa pastilha "perdido" chama buscarDia com a data certa', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByTestId('day-pill-2026-09-10'));
+
+      expect(buscarDiaPadrao).toHaveBeenCalledWith('2026-09-10');
+    });
+
+    it('tocar numa pastilha "pendente" (hoje) chama buscarDia com a data certa', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByTestId('day-pill-2026-09-14'));
+
+      expect(buscarDiaPadrao).toHaveBeenCalledWith('2026-09-14');
+    });
+
+    it('com um dia selecionado, mostra o DayDetailSheet com o label, status e tarefas certos', async () => {
+      configurarDayDetail({
+        dataSelecionada: '2026-09-08',
+        statusDoDia: 'cumprido',
+        tarefasDoDia: [
+          { id: '1', titulo: 'Ler 5 páginas', essencial: true, concluida: true },
+        ],
+      });
+
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      // 2026-09-08 é uma terça-feira
+      expect(screen.getByText('Terça-feira · cumprido')).toBeTruthy();
+      expect(screen.getByText('Ler 5 páginas')).toBeTruthy();
+    });
+
+    it('sem dia selecionado (dataSelecionada null): não mostra o DayDetailSheet', async () => {
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      expect(screen.queryByText('Fechar')).toBeNull();
+    });
+
+    it('"Fechar" no painel chama limparSelecao', async () => {
+      configurarDayDetail({
+        dataSelecionada: '2026-09-08',
+        statusDoDia: 'cumprido',
+        tarefasDoDia: [],
+      });
+
+      await render(<ProgressoScreen uid="uid-1" />);
+
+      await fireEvent.press(screen.getByText('Fechar'));
+
+      expect(limparSelecaoPadrao).toHaveBeenCalledTimes(1);
+    });
   });
 });

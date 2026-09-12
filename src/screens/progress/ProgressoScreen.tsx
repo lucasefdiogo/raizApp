@@ -1,11 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
 import { useDesafios } from '../../hooks/useDesafios';
 import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
+import { useDayDetail } from '../../hooks/useDayDetail';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
+import { DayDetailSheet } from '../../components/progress/DayDetailSheet';
 import { ChallengeCard } from '../../components/challenges/ChallengeCard';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -16,9 +25,24 @@ interface ProgressoScreenProps {
 
 const LABEL_DIA_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
+const LABEL_DIA_SEMANA_COMPLETO = [
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+];
+
 function labelParaData(dataISO: string): string {
   const diaSemana = new Date(`${dataISO}T00:00:00Z`).getUTCDay();
   return LABEL_DIA_SEMANA[diaSemana];
+}
+
+function labelCompletoParaData(dataISO: string): string {
+  const diaSemana = new Date(`${dataISO}T00:00:00Z`).getUTCDay();
+  return LABEL_DIA_SEMANA_COMPLETO[diaSemana];
 }
 
 export function ProgressoScreen({ uid }: ProgressoScreenProps) {
@@ -31,7 +55,24 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
     desafioMensal,
     recarregar: recarregarDesafios,
   } = useDesafios(uid);
+  const {
+    dataSelecionada,
+    tarefasDoDia,
+    statusDoDia,
+    buscarDia,
+    limparSelecao,
+  } = useDayDetail(uid);
   const [atualizando, setAtualizando] = useState(false);
+
+  const handleTocarDia = useCallback(
+    (data: string, status: string) => {
+      if (status === 'sem_registro') {
+        return;
+      }
+      buscarDia(data);
+    },
+    [buscarDia],
+  );
 
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
@@ -88,11 +129,14 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
             <Text style={styles.secaoTitulo}>Últimos 7 dias</Text>
             <View style={styles.semana}>
               {historico.map(dia => (
-                <DayStatusPill
+                <Pressable
                   key={dia.data}
-                  status={dia.status}
-                  label={labelParaData(dia.data)}
-                />
+                  testID={`day-pill-${dia.data}`}
+                  accessibilityRole="button"
+                  onPress={() => handleTocarDia(dia.data, dia.status)}
+                >
+                  <DayStatusPill status={dia.status} label={labelParaData(dia.data)} />
+                </Pressable>
               ))}
             </View>
 
@@ -120,6 +164,16 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
           </>
         )}
       </ScrollView>
+
+      {dataSelecionada && statusDoDia && (
+        <DayDetailSheet
+          visible
+          label={labelCompletoParaData(dataSelecionada)}
+          status={statusDoDia}
+          tarefas={tarefasDoDia}
+          onClose={limparSelecao}
+        />
+      )}
     </SafeAreaView>
   );
 }

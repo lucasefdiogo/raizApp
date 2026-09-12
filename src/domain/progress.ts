@@ -52,6 +52,32 @@ interface OpcoesIntervalo {
 }
 
 /**
+ * Status de UM dia (mesma regra usada por construirHistoricoIntervalo, aqui
+ * extraída pra ser reaproveitada por quem só tem um dailyLog na mão — ver
+ * useDayDetail, que recalcula o status ao abrir o detalhe de um dia
+ * específico sem duplicar essa lógica).
+ */
+export function avaliarStatusHistoricoDia(
+  log: DailyLogResumo | null,
+  dataISO: string,
+  hoje: Date,
+  opcoes: OpcoesIntervalo = {},
+): StatusHistoricoDia {
+  const hojeISO = paraISO(hoje);
+
+  if (dataISO > hojeISO) {
+    return 'sem_registro';
+  }
+  if (dataISO === hojeISO) {
+    return opcoes.avaliarHojeAoVivo && log ? statusDoLog(log) : 'pendente';
+  }
+  if (!log) {
+    return 'sem_registro';
+  }
+  return statusDoLog(log);
+}
+
+/**
  * Monta o status de cada dia entre `inicio` e `fim` (inclusivos) a partir dos
  * dailyLogs já buscados. Dias futuros e dias sem log ficam 'sem_registro'.
  * A regra de "dia cumprido" vem de avaliarDiaCumprido (domain/streak.ts) —
@@ -64,7 +90,6 @@ export function construirHistoricoIntervalo(
   hoje: Date,
   opcoes: OpcoesIntervalo = {},
 ): DiaHistorico[] {
-  const hojeISO = paraISO(hoje);
   const porData = new Map(dailyLogs.map(log => [log.data, log]));
 
   const dias: DiaHistorico[] = [];
@@ -73,21 +98,11 @@ export function construirHistoricoIntervalo(
 
   while (cursor.getTime() <= ultimo.getTime()) {
     const dataISO = paraISO(cursor);
-    const log = porData.get(dataISO);
-
-    if (dataISO > hojeISO) {
-      dias.push({ data: dataISO, status: 'sem_registro' });
-    } else if (dataISO === hojeISO) {
-      if (opcoes.avaliarHojeAoVivo && log) {
-        dias.push({ data: dataISO, status: statusDoLog(log) });
-      } else {
-        dias.push({ data: dataISO, status: 'pendente' });
-      }
-    } else if (!log) {
-      dias.push({ data: dataISO, status: 'sem_registro' });
-    } else {
-      dias.push({ data: dataISO, status: statusDoLog(log) });
-    }
+    const log = porData.get(dataISO) ?? null;
+    dias.push({
+      data: dataISO,
+      status: avaliarStatusHistoricoDia(log, dataISO, hoje, opcoes),
+    });
 
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
