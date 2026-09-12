@@ -9,7 +9,11 @@ import {
 import { AppBlockConfigScreen } from './AppBlockConfigScreen';
 
 jest.mock('../../hooks/useAppBlockConfig');
+jest.mock('../../hooks/useAccessibilityPermission');
 const { useAppBlockConfig } = require('../../hooks/useAppBlockConfig');
+const {
+  useAccessibilityPermission,
+} = require('../../hooks/useAccessibilityPermission');
 
 const APPS_MOCK = [
   { packageName: 'com.instagram.android', nome: 'Instagram', icone: null },
@@ -34,10 +38,21 @@ function configurarHookPadrao(sobrescritas = {}) {
   });
 }
 
+function configurarAcessibilidade(sobrescritas = {}) {
+  useAccessibilityPermission.mockReturnValue({
+    ativo: true,
+    carregando: false,
+    verificarNovamente: jest.fn().mockResolvedValue(undefined),
+    abrirConfiguracoes: jest.fn(),
+    ...sobrescritas,
+  });
+}
+
 describe('AppBlockConfigScreen', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     configurarHookPadrao();
+    configurarAcessibilidade();
   });
 
   it('chama aoVoltar ao tocar no botão de voltar', async () => {
@@ -133,9 +148,11 @@ describe('AppBlockConfigScreen', () => {
     expect(screen.getByText('Nenhum app encontrado')).toBeTruthy();
   });
 
-  it('tem RefreshControl e o puxar-pra-atualizar aciona recarregar() do hook', async () => {
+  it('tem RefreshControl e o puxar-pra-atualizar aciona recarregar() do hook e reverifica a acessibilidade', async () => {
     const recarregar = jest.fn().mockResolvedValue(undefined);
+    const verificarNovamente = jest.fn().mockResolvedValue(undefined);
     configurarHookPadrao({ recarregar });
+    configurarAcessibilidade({ verificarNovamente });
     await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
 
     const lista = screen.getByTestId('app-block-lista');
@@ -146,6 +163,52 @@ describe('AppBlockConfigScreen', () => {
     });
 
     expect(recarregar).toHaveBeenCalledTimes(1);
+    expect(verificarNovamente).toHaveBeenCalledTimes(1);
+  });
+
+  describe('aviso de permissão de acessibilidade', () => {
+    it('serviço desativado: mostra o aviso com o botão pra abrir Configurações', async () => {
+      configurarAcessibilidade({ ativo: false, carregando: false });
+      await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
+
+      expect(screen.getByTestId('app-block-aviso-acessibilidade')).toBeTruthy();
+      expect(
+        screen.getByText('Falta uma permissão pro bloqueio funcionar'),
+      ).toBeTruthy();
+      expect(screen.getByText('Ativar nas Configurações')).toBeTruthy();
+    });
+
+    it('serviço ativado: não mostra o aviso', async () => {
+      configurarAcessibilidade({ ativo: true, carregando: false });
+      await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
+
+      expect(
+        screen.queryByTestId('app-block-aviso-acessibilidade'),
+      ).toBeNull();
+    });
+
+    it('ainda carregando o status: não mostra o aviso (evita piscar antes de saber)', async () => {
+      configurarAcessibilidade({ ativo: false, carregando: true });
+      await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
+
+      expect(
+        screen.queryByTestId('app-block-aviso-acessibilidade'),
+      ).toBeNull();
+    });
+
+    it('tocar em "Ativar nas Configurações" chama abrirConfiguracoes', async () => {
+      const abrirConfiguracoes = jest.fn();
+      configurarAcessibilidade({
+        ativo: false,
+        carregando: false,
+        abrirConfiguracoes,
+      });
+      await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('Ativar nas Configurações'));
+
+      expect(abrirConfiguracoes).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('reflete appsSelecionados no estado de cada AppSelectorItem', async () => {
