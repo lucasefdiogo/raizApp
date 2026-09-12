@@ -1,7 +1,24 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TaskItem } from './TaskItem';
 import { Tarefa } from '../domain/types';
+
+// TaskItem monta TaskActionsSheet no long-press, que agora lê
+// useSafeAreaInsets pra dar espaço ao "Cancelar" acima da barra de
+// gestos do Android (ver TaskActionsSheet.tsx) — precisa do Provider.
+function render(ui: React.ReactElement) {
+  return rtlRender(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      {ui}
+    </SafeAreaProvider>,
+  );
+}
 
 const tarefaBase: Tarefa = {
   id: '1',

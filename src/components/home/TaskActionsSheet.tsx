@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pencil, Trash } from 'lucide-react-native';
 import { theme } from '../../theme';
 
@@ -25,6 +26,8 @@ export function TaskActionsSheet({
   onExcluir,
   onCancelar,
 }: TaskActionsSheetProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
@@ -34,7 +37,13 @@ export function TaskActionsSheet({
     >
       <Pressable style={styles.fundo} onPress={onCancelar}>
         {/* trava a propagação do toque no cartão pro fundo não fechar */}
-        <Pressable style={styles.cartao} onPress={() => {}}>
+        <Pressable
+          style={[
+            styles.cartao,
+            { paddingBottom: theme.spacing.xl + insets.bottom },
+          ]}
+          onPress={() => {}}
+        >
           <Text style={styles.titulo} numberOfLines={1}>
             {tituloTarefa}
           </Text>
@@ -88,7 +97,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    // paddingBottom vem inline (theme.spacing.xl + insets.bottom) — a
+    // barra de gestos do Android some por cima do botão "Cancelar" sem
+    // isso, em vez de só um respiro fixo.
     gap: theme.spacing.xs,
   },
   titulo: {

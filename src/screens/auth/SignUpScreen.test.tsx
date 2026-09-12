@@ -1,7 +1,13 @@
 import React from 'react';
-import { Linking } from 'react-native';
+import { Keyboard, Linking, ScrollView, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from '@testing-library/react-native';
 import { SignUpScreen } from './SignUpScreen';
 import {
   URL_POLITICA_PRIVACIDADE,
@@ -96,6 +102,50 @@ describe('SignUpScreen', () => {
         'Esse e-mail já tem uma conta. Entrar em vez de cadastrar?',
       ),
     ).toBeTruthy();
+  });
+
+  it('quando o teclado abre, cria espaço no fim do formulário e rola até lá', async () => {
+    const ouvintes: Record<string, (evento: unknown) => void> = {};
+    const addListener = jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      evento: string,
+      cb: (e: unknown) => void,
+    ) => {
+      ouvintes[evento] = cb;
+      return { remove: jest.fn() };
+    }) as never);
+    const scrollToEnd = jest
+      .spyOn(ScrollView.prototype, 'scrollToEnd')
+      .mockImplementation(() => {});
+
+    const paddingBottomAtual = () =>
+      StyleSheet.flatten(
+        screen.getByTestId('signup-scroll').props.contentContainerStyle,
+      ).paddingBottom;
+
+    try {
+      await renderComNavegacao(jest.fn());
+
+      expect(paddingBottomAtual()).toBeUndefined();
+
+      await act(async () => {
+        ouvintes.keyboardDidShow?.({ endCoordinates: { height: 280 } });
+      });
+
+      expect(paddingBottomAtual()).toBeGreaterThanOrEqual(280);
+
+      await waitFor(() =>
+        expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
+      );
+
+      await act(async () => {
+        ouvintes.keyboardDidHide?.({});
+      });
+
+      expect(paddingBottomAtual()).toBeUndefined();
+    } finally {
+      addListener.mockRestore();
+      scrollToEnd.mockRestore();
+    }
   });
 
   it('mostra o botão de voltar (pro Entrar)', async () => {
