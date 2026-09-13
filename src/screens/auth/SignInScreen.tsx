@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { SecondaryButton } from '../../components/SecondaryButton';
 import { BackButton } from '../../components/common/BackButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -120,14 +121,11 @@ export function SignInScreen({
           <View style={styles.divisorLinha} />
         </View>
 
-        <Pressable
-          accessibilityRole="button"
+        <SecondaryButton
+          titulo="Continuar com Google"
           onPress={handleGoogle}
-          disabled={enviando}
-          style={styles.botaoGoogle}
-        >
-          <Text style={styles.botaoGoogleTexto}>Continuar com Google</Text>
-        </Pressable>
+          desabilitado={enviando}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -183,17 +181,5 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
-  },
-  botaoGoogle: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-  },
-  botaoGoogleTexto: {
-    fontSize: theme.typography.fontSize.md,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.textPrimary,
   },
 });

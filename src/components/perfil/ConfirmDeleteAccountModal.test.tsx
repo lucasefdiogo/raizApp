@@ -67,7 +67,7 @@ describe('ConfirmDeleteAccountModal', () => {
 
     const estilo = StyleSheet.flatten(screen.getByText('Excluir conta').props.style);
 
-    expect(estilo.color).toBe(theme.colors.textSecondary);
+    expect(estilo.color).toBe(theme.colors.terraSuave);
     expect(estilo.color).not.toBe(theme.colors.erro);
     expect(estilo.color).not.toBe(theme.colors.accent);
   });
