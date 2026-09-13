@@ -7,8 +7,12 @@ import { buscarUsuario } from '../services/firestore';
 /**
  * Considera o onboarding completo se o rascunho local já está válido
  * (resposta otimista, cobre o instante entre terminar o wizard e a escrita
- * no Firestore confirmar) OU se users/{uid}.porqueTexto já está preenchido
- * no Firestore (fonte de verdade entre sessões/dispositivos).
+ * no Firestore confirmar — só é gravado ao final do passo de primeira
+ * tarefa, não mais ao final do porquê) OU se
+ * users/{uid}.onboardingConcluido já é true no Firestore (fonte de
+ * verdade entre sessões/dispositivos). Não usa mais `porqueTexto`: ele
+ * virou só mais um passo intermediário (foco/tempoTela/porquê/
+ * primeiraTarefa), preenchê-lo não basta pra sair do onboarding.
  */
 export function useOnboardingStatus(uid: string | null) {
   const [carregando, setCarregando] = useState(true);
@@ -22,7 +26,7 @@ export function useOnboardingStatus(uid: string | null) {
     let completoRemoto = false;
     if (uid) {
       const usuario = await buscarUsuario(uid);
-      completoRemoto = !!usuario?.porqueTexto;
+      completoRemoto = !!usuario?.onboardingConcluido;
     }
 
     setCompleto(completoLocal || completoRemoto);

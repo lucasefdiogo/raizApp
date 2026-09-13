@@ -18,6 +18,7 @@ import {
   criarTarefaRecorrente,
   buscarTarefasRecorrentesAtivas,
   desativarTarefaRecorrente,
+  marcarOnboardingConcluido,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -46,6 +47,7 @@ describe('services/firestore', () => {
         marcosAtingidos: [],
         notificacoesAtivas: true,
         horarioLembreteDiario: null,
+        onboardingConcluido: false,
       });
     });
 
@@ -164,6 +166,22 @@ describe('services/firestore', () => {
         focoProcrastinacao: 'estudos',
         tempoTelaEstimado: 4,
         porqueTexto: 'Meu porquê',
+      });
+    });
+  });
+
+  describe('marcarOnboardingConcluido', () => {
+    it('marca onboardingConcluido: true sem apagar o restante do documento', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await atualizarDadosOnboarding('uid-1', { porqueTexto: 'Meu porquê' });
+
+      await marcarOnboardingConcluido('uid-1');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        email: 'a@a.com',
+        porqueTexto: 'Meu porquê',
+        onboardingConcluido: true,
       });
     });
   });

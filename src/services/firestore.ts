@@ -42,6 +42,13 @@ export interface UsuarioDocumento {
   horarioLembreteDiario: string | null;
   /** Ausente = usuário nunca configurou (ver BloqueioAppsConfig). */
   bloqueioApps?: BloqueioAppsConfig;
+  /**
+   * Gate real de conclusão do onboarding (ver RootNavigator, via
+   * useOnboardingStatus) — não `porqueTexto`. Só vira true ao final do
+   * passo de primeira tarefa (Começar ou Pular por hoje), depois de
+   * foco/tempoTela/porquê já persistidos.
+   */
+  onboardingConcluido: boolean;
 }
 
 function documentoUsuario(uid: string) {
@@ -83,6 +90,7 @@ export async function criarDocumentoUsuario(
     marcosAtingidos: [],
     notificacoesAtivas: true,
     horarioLembreteDiario: null,
+    onboardingConcluido: false,
   });
 }
 
@@ -127,6 +135,16 @@ export async function atualizarDadosOnboarding(
   }>,
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), campos, { merge: true });
+}
+
+/**
+ * Marca o onboarding como concluído de fato — gate real usado por
+ * useOnboardingStatus (RootNavigator). Chamado só ao final do passo de
+ * primeira tarefa, seja criando a tarefa ou pulando (as duas opções são
+ * válidas, nenhuma delas é um impedimento).
+ */
+export async function marcarOnboardingConcluido(uid: string): Promise<void> {
+  await setDoc(documentoUsuario(uid), { onboardingConcluido: true }, { merge: true });
 }
 
 /**
