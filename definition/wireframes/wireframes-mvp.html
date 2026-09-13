@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Wireframes — MVP Anti-Procrastinação</title>
+<style>
+  :root{
+    --paper:#EEF1F6;
+    --grid:#D7DEEA;
+    --ink:#1C2333;
+    --ink-soft:#5B6478;
+    --line:#9AA4B8;
+    --line-soft:#C4CBD9;
+    --accent:#3653D6;
+    --accent-soft:#E4E9FB;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/32px 32px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/32px 32px,
+      var(--paper);
+    font-family: 'Courier New', ui-monospace, monospace;
+    color:var(--ink);
+    padding:48px 40px 90px;
+  }
+  header.doc{
+    max-width:1200px;
+    margin:0 auto 44px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+  }
+  header.doc .eyebrow{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:10px;
+  }
+  header.doc h1{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size:30px;
+    margin:0 0 8px;
+    letter-spacing:-.01em;
+  }
+  header.doc p{
+    font-size:13px;
+    color:var(--ink-soft);
+    max-width:640px;
+    line-height:1.6;
+    margin:0;
+  }
+  .board{
+    max-width:1200px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+    gap:56px 40px;
+  }
+  .card{ position:relative; }
+  .card-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .card-head .no{
+    font-family: Georgia, serif;
+    font-size:22px;
+    color:var(--accent);
+  }
+  .card-head .title{
+    font-size:13px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--ink);
+  }
+  .card-head .sub{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-left:auto;
+  }
+
+  /* phone frame */
+  .phone{
+    width:280px;
+    min-height:560px;
+    background:var(--white);
+    border:1.5px solid var(--ink);
+    border-radius:26px;
+    padding:14px 14px 20px;
+    position:relative;
+    box-shadow: 6px 6px 0 var(--line-soft);
+  }
+  .notch{
+    width:70px; height:6px;
+    background:var(--ink);
+    border-radius:4px;
+    margin:0 auto 16px;
+    opacity:.7;
+  }
+  .stepdots{ display:flex; gap:6px; margin-bottom:18px; }
+  .dot{ width:22px; height:4px; border-radius:2px; background:var(--line-soft); }
+  .dot.on{ background:var(--accent); }
+
+  .h{ font-family: Georgia, serif; font-size:17px; line-height:1.35; margin:0 0 6px; }
+  .body-sans{ font-family: -apple-system, Helvetica, Arial, sans-serif; }
+  .muted{ color:var(--ink-soft); font-size:11.5px; font-family: -apple-system, Helvetica, Arial, sans-serif; line-height:1.5;}
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; }
+  .chip{
+    font-family:-apple-system, Helvetica, Arial, sans-serif;
+    font-size:11px;
+    border:1.3px dashed var(--line);
+    border-radius:20px;
+    padding:6px 12px;
+    color:var(--ink-soft);
+  }
+  .chip.sel{ border-style:solid; border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+
+  .slider{
+    height:5px; background:var(--line-soft); border-radius:4px; margin:20px 0 6px; position:relative;
+  }
+  .slider .fill{ position:absolute; left:0; top:0; bottom:0; width:38%; background:var(--accent); border-radius:4px;}
+  .slider .knob{ position:absolute; left:38%; top:-5px; width:15px; height:15px; border-radius:50%; background:var(--white); border:2px solid var(--accent); transform:translateX(-50%);}
+
+  .field{
+    border:1.3px dashed var(--line);
+    border-radius:10px;
+    min-height:74px;
+    padding:10px;
+    font-family:-apple-system, Helvetica, Arial, sans-serif;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin:12px 0;
+  }
+  .field.oneline{ min-height:auto; padding:12px 10px; }
+
+  .btn{
+    background:var(--accent);
+    color:var(--white);
+    text-align:center;
+    font-family:-apple-system, Helvetica, Arial, sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    border-radius:10px;
+    padding:12px;
+    margin-top:14px;
+  }
+  .btn.ghost{ background:transparent; border:1.3px solid var(--line); color:var(--ink-soft); }
+
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .streakbadge{
+    display:flex; align-items:center; gap:5px;
+    font-family:-apple-system, Helvetica, Arial, sans-serif;
+    font-size:12px; font-weight:700; color:var(--accent);
+    border:1.3px solid var(--accent-soft); background:var(--accent-soft);
+    border-radius:20px; padding:5px 10px 5px 8px;
+  }
+  .shield{ width:14px; height:14px; border:1.5px solid var(--line); border-radius:3px 3px 8px 8px; display:inline-block; }
+  .shield.used{ border-color: var(--accent); background:var(--accent-soft);}
+
+  .task{
+    display:flex; align-items:center; gap:10px;
+    border:1px solid var(--line-soft); border-radius:10px;
+    padding:11px 10px; margin-bottom:8px;
+    font-family:-apple-system, Helvetica, Arial, sans-serif; font-size:11.5px;
+  }
+  .task .box{ width:16px; height:16px; border:1.5px solid var(--line); border-radius:5px; flex:none;}
+  .task .box.done{ background:var(--accent); border-color:var(--accent); }
+  .task .star{ margin-left:auto; font-size:11px; color:var(--accent); }
+  .addtask{
+    border:1.3px dashed var(--line); border-radius:10px; padding:10px;
+    text-align:center; font-family:-apple-system, sans-serif; font-size:11px; color:var(--ink-soft);
+  }
+  .navbar{
+    position:absolute; bottom:14px; left:14px; right:14px;
+    display:flex; justify-content:space-around;
+    border-top:1px solid var(--line-soft); padding-top:10px;
+    font-family:-apple-system, sans-serif; font-size:9.5px; color:var(--ink-soft);
+  }
+  .navbar .on{ color:var(--accent); font-weight:700; }
+
+  .overlay{
+    position:absolute; inset:14px 14px auto 14px; top:40%;
+    background:var(--ink); color:var(--white);
+    border-radius:12px; padding:16px 14px;
+    font-family:-apple-system, sans-serif;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);
+  }
+  .overlay .tick{ font-size:18px; margin-bottom:4px; }
+  .overlay .msg{ font-size:13px; font-weight:600; }
+
+  .modal{
+    position:absolute; inset:60px 14px auto 14px;
+    background:var(--white); border:1.5px solid var(--ink); border-radius:16px;
+    padding:22px 16px; text-align:center;
+    box-shadow:6px 6px 0 var(--line-soft);
+  }
+  .modal .big{ font-family:Georgia, serif; font-size:42px; color:var(--accent); line-height:1; }
+  .modal .cap{ font-family:-apple-system, sans-serif; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin-top:2px;}
+  .modal .quote{ font-family:-apple-system, sans-serif; font-size:12.5px; line-height:1.5; margin:14px 0 4px; }
+
+  .statecard{
+    border:1.3px solid var(--line-soft); border-radius:12px; padding:14px;
+    font-family:-apple-system, sans-serif; margin-bottom:10px;
+  }
+  .statecard .label{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin-bottom:6px; font-weight:700;}
+  .statecard .txt{ font-size:12px; color:var(--ink); line-height:1.5; }
+
+  .quotebox{
+    border-left:2.5px solid var(--accent); background:var(--accent-soft);
+    padding:10px 12px; font-family:-apple-system, sans-serif; font-size:11.5px;
+    font-style:italic; color:var(--ink); margin:12px 0; border-radius:0 8px 8px 0;
+  }
+
+  .annot{
+    margin-top:14px;
+    font-size:10.5px;
+    line-height:1.6;
+    color:var(--ink-soft);
+    border-top:1px dashed var(--line-soft);
+    padding-top:10px;
+  }
+  .annot b{ color:var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="eyebrow">Especificação — baixa fidelidade</div>
+  <h1>Wireframes do MVP</h1>
+  <p class="body-sans">Fluxo completo do usuário: onboarding, check-in diário, celebração de streak e os três estados de recaída (escudo, streak reduzido, retorno após pausa). Textos exatos conforme o documento de regras e copy do produto.</p>
+</header>
+
+<div class="board">
+
+  <!-- 1 -->
+  <div class="card">
+    <div class="card-head"><span class="no">01</span><span class="title">Onboarding · diagnóstico</span><span class="sub">passo 1/3</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="stepdots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+      <p class="h">O que você mais procrastina?</p>
+      <div class="chip-row">
+        <div class="chip sel">Estudos</div><div class="chip">Trabalho</div>
+        <div class="chip">Exercício</div><div class="chip">Casa</div><div class="chip">Outro</div>
+      </div>
+      <p class="muted" style="margin-top:18px;">Quanto tempo de tela, hoje, sem contar trabalho?</p>
+      <div class="slider"><div class="fill"></div><div class="knob"></div></div>
+      <p class="muted">≈ 3h40 por dia</p>
+      <div class="btn">Continuar</div>
+    </div>
+    <div class="annot"><b>Função:</b> reduz a percepção de ameaça da tarefa desde o início — dados usados depois para personalizar dificuldade dos desafios.</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="card">
+    <div class="card-head"><span class="no">02</span><span class="title">Onboarding · o porquê</span><span class="sub">passo 2/3</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+      <p class="h">Antes de começar: por que você quer sair desse ciclo?</p>
+      <div class="field">Escreva com suas palavras...</div>
+      <p class="muted">Isso vai aparecer de novo nos dias difíceis.</p>
+      <div class="btn">Continuar</div>
+    </div>
+    <div class="annot"><b>Função:</b> ancoragem emocional (seção 6e). Este texto é reutilizado literalmente na tela 08.</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="card">
+    <div class="card-head"><span class="no">03</span><span class="title">Onboarding · primeira tarefa</span><span class="sub">passo 3/3</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+      <p class="h">Vamos começar pequeno de propósito.</p>
+      <p class="muted">Escolha 1 coisa simples que você consegue terminar hoje em menos de 10 minutos.</p>
+      <div class="field oneline">ex: separar a roupa de treino</div>
+      <div class="btn">Começar</div>
+      <div class="btn ghost">Pular por hoje</div>
+    </div>
+    <div class="annot"><b>Função:</b> tarefa fatiada ao mínimo (seção 6b) — gera a primeira vitória antes de qualquer fricção.</div>
+  </div>
+
+  <!-- 4 -->
+  <div class="card">
+    <div class="card-head"><span class="no">04</span><span class="title">Home · check-in diário</span><span class="sub">tela principal</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="topbar">
+        <span class="body-sans" style="font-size:11px;color:var(--ink-soft);">Bom dia, Ana</span>
+        <span class="streakbadge"><span class="shield used"></span>12 dias</span>
+      </div>
+      <p class="h">O que vai contar como vitória hoje?</p>
+      <div style="margin-top:16px;">
+        <div class="task"><div class="box done"></div>Beber água ao acordar<span class="star">★</span></div>
+        <div class="task"><div class="box"></div>Estudar 25 min<span class="star">★</span></div>
+        <div class="task"><div class="box"></div>Arrumar a mesa de trabalho</div>
+      </div>
+      <div class="addtask">+ adicionar tarefa</div>
+      <div class="navbar"><span class="on">Hoje</span><span>Progresso</span><span>Perfil</span></div>
+    </div>
+    <div class="annot"><b>Função:</b> ★ marca as tarefas "essenciais do dia" (regra 1.1) — só elas contam para o streak.</div>
+  </div>
+
+  <!-- 5 -->
+  <div class="card">
+    <div class="card-head"><span class="no">05</span><span class="title">Feedback · tarefa concluída</span><span class="sub">overlay</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="topbar">
+        <span class="body-sans" style="font-size:11px;color:var(--ink-soft);opacity:.4;">Bom dia, Ana</span>
+        <span class="streakbadge" style="opacity:.4;"><span class="shield used"></span>12 dias</span>
+      </div>
+      <div class="overlay">
+        <div class="tick">✓</div>
+        <div class="msg">Feito. Isso conta.</div>
+      </div>
+    </div>
+    <div class="annot"><b>Função:</b> reforço imediato e curto — sem confete exagerado, sem cobrança pelas tarefas restantes.</div>
+  </div>
+
+  <!-- 6 -->
+  <div class="card">
+    <div class="card-head"><span class="no">06</span><span class="title">Celebração · marco de streak</span><span class="sub">modal</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="modal">
+        <div class="big">7</div>
+        <div class="cap">dias seguidos</div>
+        <p class="quote">1 semana. Isso já não é sorte — é padrão se formando.</p>
+        <div class="btn">Continuar</div>
+      </div>
+    </div>
+    <div class="annot"><b>Função:</b> autoeficácia por evidência acumulada (seção 6c). Disparado nos marcos 3/7/14/30/60/90 dias.</div>
+  </div>
+
+  <!-- 7 -->
+  <div class="card">
+    <div class="card-head"><span class="no">07</span><span class="title">Estados de recaída</span><span class="sub">escudo vs. sem escudo</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="h" style="font-size:14px;">Seu dia de ontem</p>
+      <div class="statecard">
+        <div class="label">Escudo usado</div>
+        <div class="txt">Ontem não saiu como planejado — e tudo bem. Seu progresso continua de pé. Hoje é um novo dia para agir.</div>
+      </div>
+      <div class="statecard">
+        <div class="label">Sem escudo disponível</div>
+        <div class="txt">Você perdeu um dia e isso teve um custo — seu streak caiu para 7. Mas 14 dias reais continuam contando.</div>
+      </div>
+      <div class="btn">Ver tarefas de hoje</div>
+    </div>
+    <div class="annot"><b>Função:</b> os dois textos nunca aparecem juntos — mostrados lado a lado aqui só para comparar os dois tons (regras 1.2 e 1.3).</div>
+  </div>
+
+  <!-- 8 -->
+  <div class="card">
+    <div class="card-head"><span class="no">08</span><span class="title">Retorno após pausa longa</span><span class="sub">2+ dias fora</span></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <p class="h">Você esteve fora por alguns dias.</p>
+      <p class="muted">Isso acontece — não precisa explicar, só decidir o próximo passo. Lembra por que você começou?</p>
+      <div class="quotebox">"Quero parar de chegar em casa e perder a noite inteira no celular. Quero ter energia pros meus filhos."</div>
+      <p class="muted" style="margin-top:10px;">Vamos escolher 1 coisa pequena para hoje.</p>
+      <div class="field oneline">ex: guardar o celular na gaveta às 20h</div>
+      <div class="btn">Voltar a começar</div>
+    </div>
+    <div class="annot"><b>Função:</b> a tela mais crítica do app (seção 2.8 do doc de textos) — reexibe o "porquê" do onboarding, tela 02.</div>
+  </div>
+
+</div>
+
+</body>
+</html>

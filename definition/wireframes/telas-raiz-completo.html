@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Telas — Identidade Raiz (completo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --casca:#EFEAE0;
+    --terra:#2B2318;
+    --terra-suave:#6B5E45;
+    --cobre:#B5772E;
+    --cobre-soft:#EAD9C2;
+    --musgo:#3E4A34;
+    --musgo-soft:#DCE0D2;
+    --areia:#E3DACB;
+    --white:#F8F4EC;
+    --line:#C2B39A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#DDD3BF;
+    font-family:'IBM Plex Sans', sans-serif; color:var(--terra);
+    padding:52px 28px 90px;
+  }
+  .header{ max-width:1200px; margin:0 auto 40px; text-align:center; }
+  .header .kick{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--terra-suave); margin-bottom:8px; }
+  .header h1{ font-family:'Zilla Slab', serif; font-size:26px; margin:0; }
+
+  .board{ max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:44px 32px; }
+  .card-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:12px; }
+  .card-head .no{ font-family:'Zilla Slab', serif; font-size:19px; color:var(--cobre); }
+  .card-head .title{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.03em; text-transform:uppercase; color:var(--terra-suave); }
+
+  .phone{
+    width:264px; min-height:540px; background:var(--casca);
+    border:1px solid var(--line); border-radius:26px; padding:16px 16px 20px;
+    position:relative; box-shadow:5px 5px 0 #D9CFBC; overflow:hidden;
+  }
+  .stepdots{ display:flex; gap:6px; margin-bottom:18px; }
+  .dot{ width:20px; height:4px; border-radius:2px; background:#D9CFBC; }
+  .dot.on{ background:var(--cobre); }
+
+  .h{ font-family:'Zilla Slab', serif; font-weight:600; font-size:16.5px; line-height:1.32; margin:0 0 8px; }
+  .muted{ color:var(--terra-suave); font-size:11px; line-height:1.55; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; }
+  .chip{ font-size:10.5px; border:1.3px dashed var(--line); border-radius:18px; padding:6px 11px; color:var(--terra-suave); }
+  .chip.sel{ border-style:solid; border-color:var(--cobre); color:var(--cobre); background:var(--cobre-soft); }
+
+  .slider{ height:5px; background:#D9CFBC; border-radius:4px; margin:20px 0 6px; position:relative; }
+  .slider .fill{ position:absolute; left:0; top:0; bottom:0; width:38%; background:var(--cobre); border-radius:4px; }
+  .slider .knob{ position:absolute; left:38%; top:-5px; width:15px; height:15px; border-radius:50%; background:var(--white); border:2px solid var(--cobre); transform:translateX(-50%); }
+
+  .field{ border:1.3px dashed var(--line); border-radius:10px; min-height:70px; padding:10px; font-size:11px; color:var(--terra-suave); margin:12px 0; background:var(--white); }
+  .field.oneline{ min-height:auto; padding:12px 10px; }
+
+  .btn{ background:var(--terra); color:var(--casca); text-align:center; font-size:12px; font-weight:600; border-radius:10px; padding:12px; margin-top:12px; }
+  .btn.ghost{ background:transparent; border:1.3px solid var(--line); color:var(--terra-suave); }
+
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+  .greet{ font-size:11px; color:var(--terra-suave); } .greet b{ color:var(--terra); font-weight:600; }
+  .badge{ display:flex; align-items:center; gap:5px; font-family:'Space Mono', monospace; font-size:11px; font-weight:500; color:var(--cobre); background:var(--cobre-soft); border-radius:16px; padding:5px 10px; }
+
+  .tasklist{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .task{ display:flex; align-items:center; gap:10px; background:var(--white); border:1px solid var(--areia); border-radius:11px; padding:11px 11px; }
+  .box{ width:16px; height:16px; border-radius:5px; border:1.5px solid var(--line); flex:none; position:relative; }
+  .box.done{ background:var(--musgo); border-color:var(--musgo); }
+  .box.done::after{ content:''; position:absolute; left:4px; top:1px; width:6px; height:9px; border-right:2px solid var(--white); border-bottom:2px solid var(--white); transform:rotate(40deg); }
+  .task .txt{ font-size:11.5px; color:var(--terra); flex:1; }
+  .task.done .txt{ color:var(--terra-suave); text-decoration:line-through; }
+  .task .essential{ width:5px; height:5px; border-radius:50%; background:var(--cobre); flex:none; }
+  .addtask{ border:1.3px dashed var(--line); border-radius:11px; padding:10px; text-align:center; font-size:10.5px; color:var(--terra-suave); }
+
+  .phrase{ margin-top:16px; padding:11px 13px; background:var(--areia); border-radius:11px; font-family:'Zilla Slab', serif; font-size:12px; line-height:1.5; color:var(--terra); }
+
+  .navbar{ position:absolute; bottom:0; left:0; right:0; background:var(--casca); border-top:1px solid #DCD0BA; display:flex; justify-content:space-around; padding:12px 0 15px; }
+  .navitem{ font-family:'Space Mono', monospace; font-size:9px; color:var(--terra-suave); text-align:center; }
+  .navitem.on{ color:var(--cobre); }
+  .navdot{ width:4px; height:4px; border-radius:50%; background:currentColor; margin:0 auto 4px; }
+
+  .overlay{ position:absolute; inset:14px 14px auto 14px; top:42%; background:var(--terra); color:var(--casca); border-radius:12px; padding:15px 13px; box-shadow:0 8px 18px rgba(43,35,24,.3); }
+  .overlay .tick{ font-size:17px; margin-bottom:4px; color:var(--cobre); }
+  .overlay .msg{ font-family:'IBM Plex Sans'; font-size:12.5px; font-weight:600; }
+
+  .celeb-body, .rec-body{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 4px; }
+  .eyebrow{ font-family:'Space Mono', monospace; font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--musgo); margin-bottom:16px; }
+  .arc-cap{ font-family:'Space Mono', monospace; font-size:10px; color:var(--terra-suave); text-transform:uppercase; letter-spacing:.05em; margin-top:4px; }
+  .celeb-quote{ font-family:'Zilla Slab', serif; font-size:15.5px; line-height:1.5; max-width:200px; margin:16px 0 20px; color:var(--terra); }
+
+  .statecard{ border:1.3px solid var(--line); border-radius:12px; padding:13px; margin-bottom:9px; background:var(--white); text-align:left; }
+  .statecard .label{ font-family:'Space Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--cobre); margin-bottom:6px; font-weight:700; }
+  .statecard .txt{ font-size:11.5px; color:var(--terra); line-height:1.5; }
+
+  .quotebox{ border-left:2.5px solid var(--cobre); background:var(--areia); padding:10px 12px; font-family:'Zilla Slab', serif; font-style:italic; font-size:11.5px; color:var(--terra); margin:12px 0; border-radius:0 8px 8px 0; }
+
+  .annot{ margin-top:12px; font-size:10px; line-height:1.6; color:var(--terra-suave); border-top:1px dashed var(--line); padding-top:9px; text-align:left; }
+  .annot b{ color:var(--terra); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="kick">Identidade final — Raiz</div>
+  <h1>As 8 telas do MVP em alta fidelidade</h1>
+</div>
+
+<div class="board">
+
+  <!-- 01 -->
+  <div>
+    <div class="card-head"><span class="no">01</span><span class="title">Onboarding · diagnóstico</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+      <p class="h">O que você mais procrastina?</p>
+      <div class="chip-row">
+        <div class="chip sel">Estudos</div><div class="chip">Trabalho</div>
+        <div class="chip">Exercício</div><div class="chip">Casa</div><div class="chip">Outro</div>
+      </div>
+      <p class="muted" style="margin-top:16px;">Quanto tempo de tela, hoje, sem contar trabalho?</p>
+      <div class="slider"><div class="fill"></div><div class="knob"></div></div>
+      <p class="muted">≈ 3h40 por dia</p>
+      <div class="btn">Continuar</div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div>
+    <div class="card-head"><span class="no">02</span><span class="title">Onboarding · o porquê</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+      <p class="h">Antes de começar: por que você quer sair desse ciclo?</p>
+      <div class="field">Escreva com suas palavras...</div>
+      <p class="muted">Isso vai aparecer de novo nos dias difíceis.</p>
+      <div class="btn">Continuar</div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div>
+    <div class="card-head"><span class="no">03</span><span class="title">Onboarding · primeira tarefa</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+      <p class="h">Vamos começar pequeno de propósito.</p>
+      <p class="muted">Escolha 1 coisa simples que você consegue terminar hoje em menos de 10 minutos.</p>
+      <div class="field oneline">ex: separar a roupa de treino</div>
+      <div class="btn">Começar</div>
+      <div class="btn ghost">Pular por hoje</div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div>
+    <div class="card-head"><span class="no">04</span><span class="title">Home · check-in diário</span></div>
+    <div class="phone">
+      <div class="topbar"><div class="greet">Bom dia, <b>Ana</b></div><div class="badge">🌱 12 dias</div></div>
+      <p class="h" style="font-size:18px;">O que vai contar como vitória hoje?</p>
+      <div class="tasklist" style="margin-top:14px;">
+        <div class="task done"><div class="box done"></div><div class="txt">Beber água ao acordar</div><div class="essential"></div></div>
+        <div class="task"><div class="box"></div><div class="txt">Estudar 25 min</div><div class="essential"></div></div>
+        <div class="task"><div class="box"></div><div class="txt">Arrumar a mesa de trabalho</div></div>
+      </div>
+      <div class="addtask">+ adicionar tarefa</div>
+      <div class="phrase">"Consistência é mais poderosa que intensidade."</div>
+      <div class="navbar">
+        <div class="navitem on"><div class="navdot"></div>Hoje</div>
+        <div class="navitem"><div class="navdot"></div>Progresso</div>
+        <div class="navitem"><div class="navdot"></div>Perfil</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div>
+    <div class="card-head"><span class="no">05</span><span class="title">Feedback · tarefa concluída</span></div>
+    <div class="phone">
+      <div class="topbar" style="opacity:.35;"><div class="greet">Bom dia, <b>Ana</b></div><div class="badge">🌱 12 dias</div></div>
+      <div class="overlay">
+        <div class="tick">✓</div>
+        <div class="msg">Feito. Isso conta.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div>
+    <div class="card-head"><span class="no">06</span><span class="title">Celebração · marco de streak</span></div>
+    <div class="phone">
+      <div class="celeb-body">
+        <div class="eyebrow">Marco atingido</div>
+        <svg width="150" height="90" viewBox="0 0 200 130">
+          <line x1="100" y1="6" x2="100" y2="46" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100,46 C80,58 68,58 50,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100,46 C120,58 132,58 150,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100,46 C100,64 100,64 100,90" fill="none" stroke="#B5772E" stroke-width="4" stroke-linecap="round"/>
+          <path d="M50,80 C40,90 36,90 26,104" fill="none" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+          <path d="M150,80 C160,90 164,90 174,104" fill="none" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="100" cy="6" r="6" fill="#B5772E"/>
+        </svg>
+        <div class="arc-cap">7 dias · raízes se aprofundando</div>
+        <p class="celeb-quote">1 semana. Isso já não é sorte — é padrão se formando.</p>
+        <div class="btn" style="width:120px;">Continuar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 -->
+  <div>
+    <div class="card-head"><span class="no">07</span><span class="title">Estados de recaída</span></div>
+    <div class="phone">
+      <p class="h" style="font-size:14px;">Seu dia de ontem</p>
+      <div class="statecard">
+        <div class="label">Ramo em pausa (escudo)</div>
+        <div class="txt">Ontem não saiu como planejado — e tudo bem. Seu progresso continua de pé. Hoje é um novo dia para agir.</div>
+      </div>
+      <div class="statecard">
+        <div class="label">Ramo mais fino</div>
+        <div class="txt">Você perdeu um dia e isso teve um custo — seu streak caiu para 7. Mas 14 dias reais continuam contando.</div>
+      </div>
+      <div class="btn">Ver tarefas de hoje</div>
+    </div>
+  </div>
+
+  <!-- 08 -->
+  <div>
+    <div class="card-head"><span class="no">08</span><span class="title">Retorno após pausa longa</span></div>
+    <div class="phone">
+      <p class="h">Você esteve fora por alguns dias.</p>
+      <p class="muted">Isso acontece — não precisa explicar, só decidir o próximo passo. Lembra por que você começou?</p>
+      <div class="quotebox">"Quero parar de chegar em casa e perder a noite inteira no celular. Quero ter energia pros meus filhos."</div>
+      <p class="muted" style="margin-top:8px;">Vamos escolher 1 coisa pequena para hoje.</p>
+      <div class="field oneline">ex: guardar o celular na gaveta às 20h</div>
+      <div class="btn">Voltar a começar</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

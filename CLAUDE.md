@@ -1,164 +1,136 @@
 # CLAUDE.md — Projeto Rootora
 
-Contexto persistente para o Claude Code neste repositório. Leia isto antes de qualquer alteração de código.
+Contexto persistente para o Claude Code neste repositório. Leia isto antes de qualquer
+alteração de código.
 
 ## O que é o projeto
 
-App mobile **Rootora** (nome interno de desenvolvimento: Raiz) para combater procrastinação e uso
-problemático de smartphone via streak com sistema de perdão (escudo), tarefas fatiadas e recaída sem culpa.
-Fundamentação teórica completa em `fundamentacaoteoricaprojeto.pdf` — não reabrir decisões de produto sem
-pedido explícito do Lucas.
+App mobile **Rootora** (Android, React Native CLI bare workflow + TypeScript) para
+combater procrastinação e uso problemático de smartphone via streak com sistema de
+proteção (perdão), tarefas fatiadas, recaída sem culpa, e bloqueio de apps como
+diferencial competitivo.
+
+## Documentação detalhada — pasta `/definition`
+
+Este arquivo é deliberadamente enxuto. Antes de qualquer decisão de escopo, regra de
+negócio, cor, componente ou dado do Firestore, **consultar `/definition`**:
+
+| Arquivo | Quando consultar |
+|---|---|
+| `roadmap-e-status.md` | O que já existe, o que está em andamento, o que é planejado — sempre checar antes de assumir que algo não foi feito |
+| `regras-de-negocio.md` | Streak/proteção, desafios, bloqueio de apps — mecânica e textos exatos |
+| `schema-firebase.md` | Toda a estrutura de dados do Firestore, campos, regras de segurança |
+| `navegacao-componentes.md` | Árvore de navegação real e composição de cada tela |
+| `design-system-rootora.md` | Tokens de cor, tipografia, biblioteca de componentes com caminho de arquivo |
+| `02-identidade-visual.md` | Conceito de marca — fonte de verdade dos hex (design-system-rootora.md documenta a implementação, este documenta a intenção) |
+| `stack-tecnico.md` | Bibliotecas, ambiente de dev, dívida técnica |
+| `procedimento-loja.md` | Publicação, assinatura — nada disso é escopo de código ainda |
+| `00-instrucoes-do-projeto.md` | Estilo de trabalho preferido do Lucas |
+
+`03-mvp.md`, `04-fase2.md`, `05-fase3.md` e `regras-streak-e-textos-mvp.md` foram
+**aposentados** — não existem mais / não devem ser recriados. O projeto não é mais
+organizado por fase burocrática (MVP/Fase2/Fase3); é organizado por domínio funcional,
+refletido em `roadmap-e-status.md`.
 
 ## Princípios inegociáveis (aplicam-se a QUALQUER código, texto ou mecânica nova)
 
 1. Reduzir a ameaça percebida da tarefa — nunca aumentar cobrança/pressão
 2. Nunca prometer "resetar o cérebro" ou "esvaziar dopamina" em copy ou nomes de feature
-3. Recaída sem vergonha — nenhuma mensagem de erro/estado vazio pode soar punitiva
-4. Autoeficácia por acúmulo de pequenas vitórias — desconfiar de gamificação vazia (XP sem significado real)
+3. Recaída sem vergonha — nenhuma mensagem de erro/estado vazio pode soar punitiva;
+   fricção crescente é aceitável (ex: escalação do bloqueio de apps), punição não
+4. Autoeficácia por acúmulo de pequenas vitórias — desconfiar de gamificação vazia
 5. O "porquê" pessoal do usuário deve poder ser reexibido em telas de recaída/retorno
 
-Se uma tarefa pedir algo que contradiga isso (ex: "adiciona um ranking entre usuários", "zera o streak
-totalmente"), apontar o conflito antes de implementar.
+Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implementar.
 
-## Stack e decisões técnicas fechadas
+## Arquitetura real (corrigida após auditoria — não é o que documentos antigos descrevem)
 
-| Área | Decisão | Não mudar sem pedido explícito |
-|---|---|---|
-| Mobile | React Native CLI, **bare workflow** (não Expo) | ✅ |
-| Plataforma inicial | Android apenas | ✅ |
-| Backend | Firebase via `@react-native-firebase` (nativo, não SDK web) | ✅ |
-| Navegação | `@react-navigation` (native-stack + bottom-tabs) | ✅ |
-| Estado local leve | `@react-native-async-storage/async-storage` | ✅ |
-| Animações | `react-native-reanimated` | ✅ |
-| Linguagem | **TypeScript** (strict mode habilitado) — nada de novo arquivo `.js`/`.jsx` | ✅ |
-| Testes de componente | `@testing-library/react-native` (junto com Jest, desde o início do projeto) | ✅ |
-| Ambiente de build | WSL2 Ubuntu-22.04 (JDK 17, Gradle) + Android Studio no Windows para SDK/emulador | ✅ |
+```
+RootNavigator (Stack.Navigator ÚNICO, não stacks separados por arquivo)
+├── Splash → Tutorial → Auth (SignIn/SignUp/ForgotPassword) → Onboarding → Main
+├── Onboarding é 1 tela com máquina de passos interna (Foco→TempoTela→Porque→PrimeiraTarefa)
+│     gate de saída: users/{uid}.onboardingConcluido (não porqueTexto)
+├── Main → MainTabNavigator (Hoje / Progresso / Perfil)
+└── AppBlockedScreen — overlay do RootNavigator, fora de qualquer stack/tab
+```
+Detalhe completo em `navegacao-componentes.md`.
 
-**Novas dependências:** não instalar biblioteca nova (gerenciamento de estado, UI kit, etc.) para "resolver"
-um problema sem antes propor e validar com o Lucas — o stack acima é decisão fechada, adicionar algo por
-conta própria é a forma mais comum de gerar dívida técnica não registrada.
-
-## Arquitetura — separação de camadas
-
-Layout/UI e regra de negócio vivem em lugares diferentes e não se misturam:
+## Separação de camadas
 
 ```
 src/
-├── screens/       # Telas — orquestram hooks + componentes, quase zero lógica própria
-├── components/    # Componentes "burros" — só recebem props, nunca chamam Firebase direto
-├── hooks/         # Lógica de negócio em hooks (useStreak, useDailyTasks, useEscudo...)
-├── domain/        # Funções puras de regra de negócio (calcularQuedaStreak, avaliarDiaCumprido...)
-│                  # sem import de React/Firebase — são as mais fáceis e importantes de testar
-├── services/      # Única camada que fala com Firebase (firestore.ts, auth.ts, messaging.ts)
-├── theme/         # Ver seção "Tema e paleta" abaixo
-├── navigation/    # React Navigation stacks/tabs
-└── utils/         # Helpers genéricos (datas, formatação)
+├── screens/       # Orquestram hooks + componentes, quase zero lógica própria
+├── components/    # "Burros" — só recebem props, nunca chamam Firebase direto
+├── hooks/         # Lógica de negócio (useStreak, useDailyTasks, useAppBlocking...)
+├── domain/        # Funções puras (streak.ts, progress.ts, appBlockEscalation.ts...)
+│                  # sem import de React/Firebase — as mais fáceis e importantes de testar
+├── services/      # Única camada que fala com Firebase (firestore.ts, auth.ts...)
+├── native/        # Wrappers TS sobre módulos nativos Android (AccessibilityDetection.ts)
+├── theme/         # colors.ts, typography.ts — ver design-system-rootora.md pros tokens
+├── navigation/    # React Navigation
+└── utils/         # Helpers genéricos
 ```
 
-Regra-chave: `components/` e `screens/` nunca importam nada de `services/` diretamente — só passam por
-`hooks/`. `domain/` nunca importa nada de React/Firebase.
+Regra-chave: `components/`/`screens/` nunca importam `services/` direto — só via
+`hooks/`. `domain/` nunca importa React/Firebase/AsyncStorage.
 
-## Tema e paleta — sempre centralizados
+## Tema e ícone
 
-Nenhuma cor, fonte ou espaçamento hardcoded direto em componentes. Fonte única da verdade:
+Tema único (Raiz) no MVP. Seleção de tema (Amanhecer/Raiz/Maré) é Fase 2 — ver
+`roadmap-e-status.md`. Ícone do app é genérico, paleta própria, não segue tema (ver
+`design-system-rootora.md` seção 1).
 
-```
-src/theme/
-├── colors.ts      # todos os hex — hoje reflete a paleta Raiz (Terra Escura, Cobre, Musgo, Areia)
-├── typography.ts  # Zilla Slab / IBM Plex Sans / Space Mono
-├── spacing.ts
-└── index.ts       # exporta um objeto `theme` único
-```
+## Notificações
 
-Componentes usam `theme.colors.accent`, nunca o hex direto. A identidade visual ainda pode mudar
-(paleta/tipografia foram testadas em 3 variações — Amanhecer, Raiz, Maré) — trocar deve significar editar
-só esses arquivos, sem tocar em componente nenhum.
-
-## Estrutura de dados (Firestore) — resumo
-
-```
-users/{userId}
-  streak: { streakAtual, diasTotaisAtivos, escudosDisponiveis, marcosAtingidos, ultimoDiaAtivo, statusStreak }
-  onboarding: { porqueTexto, focoProcrastinacao, tempoTelaEstimado }
-  └── dailyLogs/{YYYY-MM-DD}: { tarefas[], statusDia, escudoUsado }
-
-phrases/{phraseId}          — banco global de frases (não editar client-side)
-systemMessages/{messageKey} — textos versionáveis (marcos, recaída, retorno)
-```
-Regras de streak: dia cumprido = ≥1 tarefa essencial (ou 60% das tarefas); sem escudo, 1 dia perdido reduz
-o streak para 50% (nunca zera); 2+ dias seguidos reinicia em 1 (mas `diasTotaisAtivos` nunca reseta).
-Se o schema do Firestore mudar, atualizar também o documento `schema-firebase-mvp.md` do projeto — não
-deixar os dois divergirem.
-
-## Dívida técnica registrada — lembrar sempre que tocar nessas áreas
-
-- **Cálculo de status diário roda no client**, não em Cloud Functions agendadas. Migração planejada para
-  quando a base de usuários crescer. Não "corrigir" isso silenciosamente sem avisar — é uma escolha
-  consciente de MVP.
-- **`streakAtual` e `escudosDisponiveis` são graváveis diretamente pelo client** nas regras atuais do
-  Firestore (ver `firestore.rules`). Antes de escalar a base de usuários, endurecer para que só Cloud
-  Functions com privilégio admin escrevam esses campos. Se for mexer em `firestore.rules`, mencionar esse
-  ponto mesmo que não seja o objetivo da tarefa.
-- **Exclusão de conta apaga dados via client-side** (`apagarTodosOsDadosDoUsuario` em `services/firestore.ts`),
-  não via Cloud Function. Percorre e apaga as subcoleções (`dailyLogs`, `essentialTasks`) em páginas e depois
-  o documento `users/{uid}` — o Firestore não faz exclusão recursiva ao apagar o pai. Migrar para exclusão
-  recursiva via Admin SDK numa Cloud Function antes de escalar a base de usuários, mesmo racional já registrado
-  para o cálculo de streak. Risco atual: se a limpeza falhar no meio (rede), pode deixar subcoleção órfã; e há
-  o cenário de borda de os passos 1–4 concluírem mas o `delete()` do Auth falhar por rede (não por
-  `requires-recent-login`) — usuário fica sem dados no Firestore mas com conta no Auth, sem rollback automático.
+MVP usa **notificação local** (`@notifee/react-native`), não FCM — lembrete diário e
+alerta de risco de streak dependem de horário/estado local, não de evento de servidor.
+FCM fica reservado pra Fase 2 (reengajamento via Cloud Function).
 
 ## Comandos
 
 ```bash
 npm start                 # Metro bundler
-npm run android            # build + instala no emulador/dispositivo Android
+npm run android            # build + instala no emulador/dispositivo
 npm run lint                # ESLint
 npm test                    # Jest
 ```
-> Ajustar esta lista se os scripts reais do `package.json` divergirem — confirmar antes de assumir.
+
+Gradle/build sempre via terminal WSL (`npx react-native run-android`), nunca pelo botão
+de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
 
 ## Convenções de código
 
-- Projeto 100% TypeScript — arquivos `.ts`/`.tsx`, `strict: true` no `tsconfig.json`, sem `any` implícito
-- Tipos de domínio (streak, tarefa, dailyLog) vivem em `domain/types.ts` ou junto da função em `domain/`,
-  e são reaproveitados por `hooks/`, `components/` e `services/` — não redeclarar o mesmo shape em vários lugares
+- TypeScript estrito, sem `any` implícito
 - Componentes em `PascalCase`, hooks em `useCamelCase`
-- Nomes de campo no Firestore em `camelCase`, em português quando já usados nos schemas (`streakAtual`,
-  `escudosDisponiveis`, `porqueTexto`) — manter consistência com o schema já definido, não traduzir
-- Nenhum texto de UI com ponto de exclamação, tom de cobrança, ou pedido de desculpas em nome do usuário
-  (ver banco de frases e regras de copy nos docs do projeto)
-- Commits: `tipo: descrição curta` (`feat:`, `fix:`, `chore:`, `docs:`) — mensagens em português
+- Nomes de campo no Firestore em `camelCase`, em português (`streakAtual`,
+  `escudosDisponiveis` — nome interno continua "escudo", texto ao usuário é
+  "proteção", ver `regras-de-negocio.md`)
+- Nenhum texto de UI com ponto de exclamação, tom de cobrança, ou pedido de desculpas
+- Commits: `tipo: descrição curta` (`feat:`, `fix:`, `chore:`, `docs:`), em português
+- Novas dependências: propor e validar com o Lucas antes de instalar, não decidir sozinho
 
 ## Fluxo de trabalho preferido
 
-- Ao propor uma funcionalidade ou mudança de mecânica nova, mostrar o racional antes de codar
-- Perguntar antes de assumir escopo entre MVP / Fase 2 / Fase 3 quando não estiver claro
-- Ao editar `firestore.rules` ou qualquer campo de streak, citar a dívida técnica relevante acima
-- Não versionar `android/app/google-services.json` nem `ios/GoogleService-Info.plist` (já no `.gitignore`)
-- **Toda funcionalidade nova (ou fix relevante) começa em uma branch própria** — nunca commitar direto na
-  `main`. Convenção de nome: `feature/nome-curto`, `fix/nome-curto`, `chore/nome-curto`. Criar a branch antes
-  do primeiro commit da tarefa:
-  ```bash
-  git checkout -b feature/nome-da-funcionalidade
-  ```
-- **Toda funcionalidade nova precisa vir acompanhada de testes automatizados** — não considerar a tarefa
-  concluída sem eles. Cobrir pelo menos:
-  - Lógica de regras de negócio em `domain/` (ex: cálculo de streak, queda para 50%, ativação de escudo) —
-    prioridade alta por ser a lógica mais sensível do produto, e a mais fácil de testar por ser pura
-  - Componentes com comportamento condicional (ex: `<RecoveryStateCard />` mudando de texto por `tipo`) —
-    usar `@testing-library/react-native`, nunca testar detalhe de implementação (queries por texto/role
-    visível ao usuário, não por classe interna)
-  - Funções puras de formatação/validação em `utils/`
-  - Se a funcionalidade mexer em Cloud Functions, testar com o emulador do Firebase antes de considerar pronta
-  - Rodar `npm test` antes de abrir o PR/finalizar a branch; não deixar teste quebrado para "depois"
+- Mostrar o racional antes de codar mudança de mecânica ou funcionalidade nova
+- Perguntar antes de assumir escopo quando não estiver claro
+- **Toda funcionalidade/fix começa em branch própria** (`feature/`, `fix/`, `chore/`),
+  nunca commit direto na `main`
+- **Toda funcionalidade nova precisa de testes automatizados** — cobrir especialmente
+  `domain/` (lógica pura, sem desculpa pra deixar sem teste) e componentes com
+  comportamento condicional. Rodar `npm test` antes de finalizar
+- Ao editar `firestore.rules` ou campos de streak/assinatura, checar dívida técnica em
+  `stack-tecnico.md`
+- Se um documento em `/definition` ficar desatualizado por uma mudança feita, sinalizar
+  isso no resumo final da tarefa — não deixar a documentação divergir do código de novo
 
-## Definição de Pronto (checklist rápido antes de finalizar qualquer tarefa)
+## Definição de Pronto (checklist antes de finalizar qualquer tarefa)
 
-- [ ] Código em branch própria (`feature/`, `fix/` ou `chore/`), nada direto na `main`
+- [ ] Código em branch própria, nada direto na `main`
 - [ ] Regra de negócio nova vive em `domain/`, não espalhada em componente/hook
 - [ ] Nenhuma cor/fonte hardcoded fora de `theme/`
 - [ ] Testes automatizados cobrindo a lógica nova, `npm test` passando
 - [ ] `npm run lint` sem erros novos
-- [ ] Nenhum dos 5 princípios do produto violado (ver seção acima)
-- [ ] Se mexeu em `firestore.rules` ou campos de streak: dívida técnica relevante mencionada
-- [ ] Se mexeu no schema do Firestore: `schema-firebase-mvp.md` atualizado
+- [ ] Nenhum dos 5 princípios do produto violado
+- [ ] Se mexeu em dado sensível (streak, assinatura, firestore.rules): dívida técnica
+      relevante mencionada
+- [ ] Se o código divergiu de algo documentado em `/definition`: sinalizado no resumo

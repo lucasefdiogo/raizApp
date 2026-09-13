@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Comparação de Identidades — 3 telas cada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Zilla+Slab:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=Karla:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{ margin:0; background:#E4E4E0; padding:48px 28px 90px; font-family:'Work Sans', sans-serif; }
+  .grouplabel{
+    max-width:1200px; margin:0 auto 18px;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  .grouplabel .idx{ font-family:'Space Mono', monospace; font-size:12px; color:#777; }
+  .grouplabel h2{ font-size:19px; margin:0; }
+  .grouplabel .tag{ font-family:'Space Mono', monospace; font-size:10.5px; color:#888; }
+  .group{ max-width:1200px; margin:0 auto 64px; display:flex; gap:26px; flex-wrap:wrap; justify-content:center; }
+  .screenlabel{ font-family:'Space Mono', monospace; font-size:10px; text-align:center; color:#777; margin-bottom:10px; letter-spacing:.03em; }
+
+  .phone{
+    width:250px; height:520px; border-radius:28px; padding:16px 16px 20px;
+    position:relative; overflow:hidden; box-shadow:0 16px 30px -16px rgba(0,0,0,.35);
+  }
+
+  /* shared component skeleton */
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+  .greet{ font-size:11.5px; }
+  .badge{ display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:500; border-radius:16px; padding:5px 10px; }
+  .headline{ font-size:18px; line-height:1.28; margin:0 0 16px; }
+  .tasklist{ display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+  .task{ display:flex; align-items:center; gap:9px; border-radius:11px; padding:10px 11px; }
+  .box{ width:15px; height:15px; border-radius:5px; flex:none; }
+  .task .txt{ font-size:11px; flex:1; }
+  .addtask{ border-radius:11px; padding:10px; text-align:center; font-size:10.5px; }
+  .phrase{ margin-top:14px; padding:10px 12px; border-radius:11px; font-size:11px; line-height:1.45; }
+  .navbar{ position:absolute; bottom:0; left:0; right:0; display:flex; justify-content:space-around; padding:11px 0 14px; }
+  .navitem{ font-family:'Space Mono', monospace; font-size:8.5px; text-align:center; }
+
+  .celeb-body{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 4px; }
+  .eyebrow{ font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:18px; }
+  .celeb-quote{ font-size:14px; line-height:1.5; max-width:190px; margin:14px 0 20px; }
+  .btn{ font-size:11.5px; font-weight:500; padding:11px 26px; border-radius:11px; }
+
+  .rec-body{ height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 8px; }
+  .rec-quote{ font-size:12px; line-height:1.55; max-width:190px; margin:16px 0 20px; }
+
+  /* ================= AMANHECER tokens ================= */
+  .g-amanhecer .phone{ background:#F1F4EE; border:1px solid #CBD2C2; }
+  .g-amanhecer .greet{ color:#5C6B5E; font-family:'Work Sans'; } .g-amanhecer .greet b{ color:#202B22; }
+  .g-amanhecer .badge{ font-family:'IBM Plex Mono'; color:#A6432B; background:#EADAD3; }
+  .g-amanhecer .headline{ font-family:'Fraunces', serif; font-weight:500; color:#202B22; }
+  .g-amanhecer .task{ background:#FCFDFB; border:1px solid #E7E9DE; }
+  .g-amanhecer .box{ border:1.5px solid #C7CDBE; } .g-amanhecer .box.done{ background:#4B6B4E; border-color:#4B6B4E; }
+  .g-amanhecer .task .txt{ color:#202B22; } .g-amanhecer .task.done .txt{ color:#5C6B5E; text-decoration:line-through; }
+  .g-amanhecer .addtask{ border:1.3px dashed #C7CDBE; color:#5C6B5E; }
+  .g-amanhecer .phrase{ background:#E7E9DE; font-family:'Fraunces', serif; font-style:italic; color:#202B22; }
+  .g-amanhecer .navbar{ border-top:1px solid #DCE1D3; }
+  .g-amanhecer .navitem{ color:#5C6B5E; } .g-amanhecer .navitem.on{ color:#A6432B; }
+  .g-amanhecer .eyebrow{ color:#5B7380; }
+  .g-amanhecer .celeb-quote, .g-amanhecer .rec-quote{ font-family:'Fraunces', serif; color:#202B22; }
+  .g-amanhecer .rec-quote{ font-style:normal; }
+  .g-amanhecer .celeb-quote{ font-style:normal; }
+  .g-amanhecer .btn{ background:#202B22; color:#F1F4EE; font-family:'Work Sans'; }
+  .g-amanhecer .arc-cap{ font-family:'IBM Plex Mono'; font-size:9.5px; color:#5C6B5E; text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
+  .g-amanhecer .arc-num{ font-family:'Fraunces', serif; font-weight:500; font-size:34px; color:#202B22; }
+
+  /* ================= RAIZ tokens ================= */
+  .g-raiz .phone{ background:#EFEAE0; border:1px solid #D9CFBC; }
+  .g-raiz .greet{ color:#6B5E45; font-family:'IBM Plex Sans'; } .g-raiz .greet b{ color:#2B2318; }
+  .g-raiz .badge{ font-family:'Space Mono'; color:#8A4A1E; background:#EAD9C2; }
+  .g-raiz .headline{ font-family:'Zilla Slab', serif; font-weight:600; color:#2B2318; }
+  .g-raiz .task{ background:#F8F4EC; border:1px solid #DCD0BA; }
+  .g-raiz .box{ border:1.5px solid #C2B39A; } .g-raiz .box.done{ background:#3E4A34; border-color:#3E4A34; }
+  .g-raiz .task .txt{ color:#2B2318; font-family:'IBM Plex Sans'; } .g-raiz .task.done .txt{ color:#8A7A5C; text-decoration:line-through; }
+  .g-raiz .addtask{ border:1.3px dashed #C2B39A; color:#6B5E45; font-family:'IBM Plex Sans'; }
+  .g-raiz .phrase{ background:#E3DACB; font-family:'Zilla Slab', serif; color:#2B2318; }
+  .g-raiz .navbar{ border-top:1px solid #DCD0BA; }
+  .g-raiz .navitem{ color:#6B5E45; font-family:'Space Mono'; } .g-raiz .navitem.on{ color:#8A4A1E; }
+  .g-raiz .eyebrow{ color:#3E4A34; }
+  .g-raiz .celeb-quote, .g-raiz .rec-quote{ font-family:'Zilla Slab', serif; color:#2B2318; }
+  .g-raiz .btn{ background:#2B2318; color:#EFEAE0; font-family:'IBM Plex Sans'; }
+  .g-raiz .arc-cap{ font-family:'Space Mono'; font-size:9.5px; color:#6B5E45; text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
+  .g-raiz .arc-num{ font-family:'Zilla Slab', serif; font-weight:600; font-size:34px; color:#2B2318; }
+
+  /* ================= MARÉ tokens ================= */
+  .g-mare .phone{ background:#EEF2F1; border:1px solid #C9D6D3; }
+  .g-mare .greet{ color:#3A5157; font-family:'Karla'; } .g-mare .greet b{ color:#1B2E33; }
+  .g-mare .badge{ font-family:'JetBrains Mono'; color:#A34A34; background:#F0DAD3; }
+  .g-mare .headline{ font-family:'Lora', serif; font-style:italic; font-weight:500; color:#1B2E33; }
+  .g-mare .task{ background:#FAFCFB; border:1px solid #D9E6E3; }
+  .g-mare .box{ border:1.5px solid #B9CCC7; border-radius:50%; } .g-mare .box.done{ background:#4F7A73; border-color:#4F7A73; }
+  .g-mare .task .txt{ color:#1B2E33; font-family:'Karla'; } .g-mare .task.done .txt{ color:#6E8A85; text-decoration:line-through; }
+  .g-mare .addtask{ border:1.3px dashed #B9CCC7; color:#3A5157; font-family:'Karla'; }
+  .g-mare .phrase{ background:#DCE6E4; font-family:'Lora', serif; font-style:italic; color:#1B2E33; }
+  .g-mare .navbar{ border-top:1px solid #D9E6E3; }
+  .g-mare .navitem{ color:#3A5157; font-family:'JetBrains Mono'; } .g-mare .navitem.on{ color:#A34A34; }
+  .g-mare .eyebrow{ color:#4F7A73; }
+  .g-mare .celeb-quote, .g-mare .rec-quote{ font-family:'Lora', serif; color:#1B2E33; }
+  .g-mare .btn{ background:#1B2E33; color:#EEF2F1; font-family:'Karla'; }
+  .g-mare .arc-cap{ font-family:'JetBrains Mono'; font-size:9.5px; color:#3A5157; text-transform:uppercase; letter-spacing:.06em; margin-top:4px; }
+  .g-mare .arc-num{ font-family:'Lora', serif; font-weight:500; font-size:32px; color:#1B2E33; font-style:italic; }
+</style>
+</head>
+<body>
+
+<!-- ================= GROUP 1: AMANHECER ================= -->
+<div class="g-amanhecer">
+  <div class="grouplabel"><span class="idx">01</span><h2>Amanhecer</h2><span class="tag">arco que preenche ao longo do dia</span></div>
+  <div class="group">
+
+    <div>
+      <div class="screenlabel">HOME · CHECK-IN</div>
+      <div class="phone">
+        <div class="topbar"><div class="greet">Bom dia,<br><b>Ana</b></div><div class="badge">◜ 12 dias</div></div>
+        <p class="headline">O que vai contar<br>como vitória hoje?</p>
+        <div class="tasklist">
+          <div class="task done"><div class="box done"></div><div class="txt">Beber água ao acordar</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Estudar 25 minutos</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Arrumar a mesa</div></div>
+        </div>
+        <div class="addtask">+ adicionar tarefa</div>
+        <div class="phrase">"Consistência é mais poderosa que intensidade."</div>
+        <div class="navbar"><div class="navitem on">Hoje</div><div class="navitem">Progresso</div><div class="navitem">Perfil</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">CELEBRAÇÃO · MARCO</div>
+      <div class="phone">
+        <div class="celeb-body">
+          <div class="eyebrow">Marco atingido</div>
+          <svg width="150" height="80" viewBox="0 0 180 96">
+            <path d="M8,96 A82,82 0 0 1 172,96" fill="none" stroke="#E7E9DE" stroke-width="13" stroke-linecap="round"/>
+            <path d="M8,96 A82,82 0 0 1 172,96" fill="none" stroke="#A6432B" stroke-width="13" stroke-linecap="round"/>
+          </svg>
+          <div class="arc-num">7</div>
+          <div class="arc-cap">dias seguidos</div>
+          <p class="celeb-quote">1 semana. Isso já não é sorte — é padrão se formando.</p>
+          <div class="btn">Continuar</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">RECUPERAÇÃO · ESCUDO</div>
+      <div class="phone">
+        <div class="rec-body">
+          <svg width="150" height="80" viewBox="0 0 180 96">
+            <path d="M8,96 A82,82 0 0 1 172,96" fill="none" stroke="#E7E9DE" stroke-width="13" stroke-linecap="round"/>
+            <path d="M8,96 A82,82 0 0 1 172,96" fill="none" stroke="#A6432B" stroke-width="13" stroke-linecap="round" stroke-dasharray="10,10" opacity=".75"/>
+          </svg>
+          <div class="eyebrow" style="margin-top:6px;">Dia protegido</div>
+          <p class="rec-quote">Ontem não saiu como planejado — e tudo bem. Seu progresso continua de pé.</p>
+          <div class="btn">Ver tarefas de hoje</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= GROUP 2: RAIZ ================= -->
+<div class="g-raiz">
+  <div class="grouplabel"><span class="idx">02</span><h2>Raiz</h2><span class="tag">estrutura que se aprofunda a cada marco</span></div>
+  <div class="group">
+
+    <div>
+      <div class="screenlabel">HOME · CHECK-IN</div>
+      <div class="phone">
+        <div class="topbar"><div class="greet">Bom dia,<br><b>Ana</b></div><div class="badge">🌱 12 dias</div></div>
+        <p class="headline">O que vai contar<br>como vitória hoje?</p>
+        <div class="tasklist">
+          <div class="task done"><div class="box done"></div><div class="txt">Beber água ao acordar</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Estudar 25 minutos</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Arrumar a mesa</div></div>
+        </div>
+        <div class="addtask">+ adicionar tarefa</div>
+        <div class="phrase">"Consistência é mais poderosa que intensidade."</div>
+        <div class="navbar"><div class="navitem on">Hoje</div><div class="navitem">Progresso</div><div class="navitem">Perfil</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">CELEBRAÇÃO · MARCO</div>
+      <div class="phone">
+        <div class="celeb-body">
+          <div class="eyebrow">Marco atingido</div>
+          <svg width="150" height="90" viewBox="0 0 200 130">
+            <line x1="100" y1="6" x2="100" y2="46" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+            <path d="M100,46 C80,58 68,58 50,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+            <path d="M100,46 C120,58 132,58 150,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+            <path d="M100,46 C100,64 100,64 100,90" fill="none" stroke="#B5772E" stroke-width="4" stroke-linecap="round"/>
+            <path d="M50,80 C40,90 36,90 26,104" fill="none" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+            <path d="M150,80 C160,90 164,90 174,104" fill="none" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="100" cy="6" r="6" fill="#B5772E"/>
+          </svg>
+          <div class="arc-cap" style="margin-top:2px;">7 dias · raízes se aprofundando</div>
+          <p class="celeb-quote">1 semana. Isso já não é sorte — é padrão se formando.</p>
+          <div class="btn">Continuar</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">RECUPERAÇÃO · RAMO FINO</div>
+      <div class="phone">
+        <div class="rec-body">
+          <svg width="150" height="90" viewBox="0 0 200 130">
+            <line x1="100" y1="6" x2="100" y2="46" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+            <path d="M100,46 C80,58 68,58 50,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+            <path d="M100,46 C120,58 132,58 150,80" fill="none" stroke="#3E4A34" stroke-width="1.6" stroke-linecap="round" opacity=".4"/>
+            <circle cx="100" cy="6" r="6" fill="#B5772E" opacity=".5"/>
+          </svg>
+          <div class="eyebrow" style="margin-top:6px;">Um ramo mais fino</div>
+          <p class="rec-quote">Ontem não saiu como planejado — e tudo bem. A raiz continua firme.</p>
+          <div class="btn">Ver tarefas de hoje</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= GROUP 3: MARÉ ================= -->
+<div class="g-mare">
+  <div class="grouplabel"><span class="idx">03</span><h2>Maré</h2><span class="tag">linha que sobe e desce, sem quebrar</span></div>
+  <div class="group">
+
+    <div>
+      <div class="screenlabel">HOME · CHECK-IN</div>
+      <div class="phone">
+        <div class="topbar"><div class="greet">Bom dia,<br><b>Ana</b></div><div class="badge">〜 12 dias</div></div>
+        <p class="headline">O que vai contar<br>como vitória hoje?</p>
+        <div class="tasklist">
+          <div class="task done"><div class="box done"></div><div class="txt">Beber água ao acordar</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Estudar 25 minutos</div></div>
+          <div class="task"><div class="box"></div><div class="txt">Arrumar a mesa</div></div>
+        </div>
+        <div class="addtask">+ adicionar tarefa</div>
+        <div class="phrase">"Consistência é mais poderosa que intensidade."</div>
+        <div class="navbar"><div class="navitem on">Hoje</div><div class="navitem">Progresso</div><div class="navitem">Perfil</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">CELEBRAÇÃO · MARCO</div>
+      <div class="phone">
+        <div class="celeb-body">
+          <div class="eyebrow">Marco atingido</div>
+          <svg width="160" height="90" viewBox="0 0 220 100">
+            <path d="M0,55 C25,35 45,75 70,55 C95,35 115,75 140,55 C165,35 185,75 210,55"
+                  fill="none" stroke="#4F7A73" stroke-width="3.4" stroke-linecap="round"/>
+            <circle cx="140" cy="55" r="6" fill="#C1654F"/>
+            <line x1="140" y1="55" x2="140" y2="14" stroke="#C1654F" stroke-width="1.4" stroke-dasharray="3,3"/>
+          </svg>
+          <div class="arc-num">7</div>
+          <div class="arc-cap">dias · maré alta desta semana</div>
+          <p class="celeb-quote">1 semana. Isso já não é sorte — é padrão se formando.</p>
+          <div class="btn">Continuar</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="screenlabel">RECUPERAÇÃO · MARÉ BAIXA</div>
+      <div class="phone">
+        <div class="rec-body">
+          <svg width="160" height="90" viewBox="0 0 220 100">
+            <path d="M0,50 C25,32 45,68 70,50 C95,32 108,78 130,68 C150,60 165,40 190,45 C200,47 205,50 210,52"
+                  fill="none" stroke="#4F7A73" stroke-width="3.4" stroke-linecap="round"/>
+            <circle cx="130" cy="68" r="6" fill="#C1654F" opacity=".8"/>
+          </svg>
+          <div class="eyebrow" style="margin-top:6px;">Maré baixa, não fim do fluxo</div>
+          <p class="rec-quote">Ontem não saiu como planejado — e tudo bem. A maré volta a subir hoje.</p>
+          <div class="btn">Ver tarefas de hoje</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
