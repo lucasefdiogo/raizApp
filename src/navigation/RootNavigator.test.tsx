@@ -6,10 +6,36 @@ jest.mock('../hooks/useTutorialStatus');
 jest.mock('../hooks/useAuth');
 jest.mock('../hooks/useOnboardingStatus');
 jest.mock('../hooks/useAppBlocking');
+jest.mock('../hooks/useLocalNotifications');
 jest.mock('./MainTabNavigator', () => ({
   MainTabNavigator: ({ uid }: { uid: string }) => {
     const { Text } = require('react-native');
     return <Text>MainTabNavigator uid={uid}</Text>;
+  },
+}));
+// A NotificationPrimingScreen tem teste próprio
+// (NotificationPrimingScreen.test.tsx) — aqui só interessa que ela apareça
+// (ou não) no lugar certo do roteamento.
+jest.mock('../screens/permissions/NotificationPrimingScreen', () => ({
+  NotificationPrimingScreen: ({
+    onPermitir,
+    onRecusar,
+  }: {
+    onPermitir: () => void;
+    onRecusar: () => void;
+  }) => {
+    const { Text, View, Pressable } = require('react-native');
+    return (
+      <View>
+        <Text>NotificationPrimingScreen</Text>
+        <Pressable onPress={onPermitir}>
+          <Text>PRIMING_PERMITIR</Text>
+        </Pressable>
+        <Pressable onPress={onRecusar}>
+          <Text>PRIMING_RECUSAR</Text>
+        </Pressable>
+      </View>
+    );
   },
 }));
 // Roteamento é o que este teste cobre; o conteúdo do onboarding tem teste
@@ -61,6 +87,7 @@ const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
 const { useOnboardingStatus } = require('../hooks/useOnboardingStatus');
 const { useAppBlocking } = require('../hooks/useAppBlocking');
+const { useLocalNotifications } = require('../hooks/useLocalNotifications');
 
 function authAutenticado() {
   return {
@@ -84,6 +111,11 @@ function configurarHooksPadrao() {
     carregando: false,
     completo: true,
     marcarComoCompleto: jest.fn(),
+  });
+  useLocalNotifications.mockReturnValue({
+    avaliarAlertaRisco: jest.fn(),
+    deveExibirPriming: false,
+    concluirPriming: jest.fn(),
   });
   useAppBlocking.mockReturnValue({
     appBloqueadoAtual: null,
@@ -286,6 +318,85 @@ describe('RootNavigator', () => {
       await passarSplash();
 
       expect(screen.queryByText(/APP_BLOQUEADO/)).toBeNull();
+    });
+  });
+
+  describe('priming de notificação', () => {
+    it('deveExibirPriming true: mostra a NotificationPrimingScreen em vez do Main', async () => {
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: true,
+        concluirPriming: jest.fn(),
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.getByText('NotificationPrimingScreen')).toBeTruthy();
+      expect(screen.queryByText('MainTabNavigator uid=uid-teste')).toBeNull();
+    });
+
+    it('deveExibirPriming false (já resolvido antes): mostra o Main direto, sem a tela de priming', async () => {
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.queryByText('NotificationPrimingScreen')).toBeNull();
+      expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
+    });
+
+    it('"Permitir notificações" chama concluirPriming(true) e libera o Main', async () => {
+      const concluirPriming = jest.fn();
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: true,
+        concluirPriming,
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      await fireEvent.press(screen.getByText('PRIMING_PERMITIR'));
+      expect(concluirPriming).toHaveBeenCalledWith(true);
+
+      // concluirPriming não atualiza sozinho o mock — simula o hook real
+      // resolvendo deveExibirPriming pra false depois da escolha.
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: false,
+        concluirPriming,
+      });
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
+    });
+
+    it('"Agora não" chama concluirPriming(false) e nunca mais mostra a tela depois', async () => {
+      const concluirPriming = jest.fn();
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: true,
+        concluirPriming,
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      await fireEvent.press(screen.getByText('PRIMING_RECUSAR'));
+      expect(concluirPriming).toHaveBeenCalledWith(false);
+
+      // Boot seguinte: flag já gravada, deveExibirPriming volta false — a
+      // tela não aparece de novo.
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: false,
+        concluirPriming,
+      });
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.queryByText('NotificationPrimingScreen')).toBeNull();
+      expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
     });
   });
 });

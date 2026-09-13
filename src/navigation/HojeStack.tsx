@@ -5,7 +5,6 @@ import {
 } from '@react-navigation/native-stack';
 import { useStreak } from '../hooks/useStreak';
 import { useRecoveryState } from '../hooks/useRecoveryState';
-import { useLocalNotifications } from '../hooks/useLocalNotifications';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
@@ -29,6 +28,13 @@ const screenOptions: NativeStackNavigationOptions = {
 
 interface HojeStackProps {
   uid: string;
+  /**
+   * Vem do useLocalNotifications que já roda no RootNavigator (mesmo
+   * estágio de boot que decide priming vs. Main) — a aba Hoje só consome,
+   * não instancia o hook de novo (evitaria duplicar solicitarPermissao/
+   * agendarLembreteDiario a cada boot).
+   */
+  avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
 }
 
 /**
@@ -38,14 +44,13 @@ interface HojeStackProps {
  * existirem, só que agora escopada à aba Hoje. useStreak roda aqui (não
  * mais no RootNavigator) porque só a aba Hoje depende do resultado dele.
  */
-export function HojeStack({ uid }: HojeStackProps) {
+export function HojeStack({ uid, avaliarAlertaRisco }: HojeStackProps) {
   const streak = useStreak(uid);
   const recovery = useRecoveryState(
     streak.statusDiaAnterior,
     streak.streakAtual,
     streak.diasTotaisAtivos,
   );
-  const notificacoes = useLocalNotifications(uid, true);
 
   if (streak.carregando) {
     return <LoadingIndicator variant="fullscreen" />;
@@ -80,7 +85,7 @@ export function HojeStack({ uid }: HojeStackProps) {
               streakAtual={streak.streakAtual}
               escudosDisponiveis={streak.escudosDisponiveis}
               marcoAtingido={streak.marcoAtingido}
-              avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
+              avaliarAlertaRisco={avaliarAlertaRisco}
               recarregarStreak={streak.recarregar}
               aoAbrirBloqueioApps={() => navigation.navigate('AppBlockConfig')}
             />

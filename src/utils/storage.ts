@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const STORAGE_KEYS = {
   onboarding: '@rootora/onboarding',
   tutorialVisto: 'tutorial_visto',
+  notificationPrimingShown: 'notification_priming_shown',
 } as const;
 
 export async function salvarItem<T>(chave: string, valor: T): Promise<void> {

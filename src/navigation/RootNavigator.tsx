@@ -10,10 +10,12 @@ import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
 import { useAppBlocking } from '../hooks/useAppBlocking';
+import { useLocalNotifications } from '../hooks/useLocalNotifications';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { SplashScreen } from '../screens/splash/SplashScreen';
 import { AppBlockedScreen } from '../screens/appblock/AppBlockedScreen';
+import { NotificationPrimingScreen } from '../screens/permissions/NotificationPrimingScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
@@ -25,6 +27,7 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Onboarding: undefined;
+  NotificationPriming: undefined;
   Main: undefined;
 };
 
@@ -41,6 +44,13 @@ export function RootNavigator() {
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
   const appBlocking = useAppBlocking(auth.user?.uid ?? null);
+  // pronto pra notificações é o mesmo requisito que Main já teria (usuário
+  // autenticado + onboarding completo) — useLocalNotifications só age a
+  // partir daqui, nunca antes.
+  const notificacoes = useLocalNotifications(
+    auth.user?.uid ?? null,
+    !!auth.user && onboarding.completo,
+  );
   // SignIn não tem "voltar" de navegação normal (Tutorial e AuthStack são
   // ramos mutuamente exclusivos aqui, não uma pilha) — esse estado local
   // força a volta ao Tutorial sem persistir nada em disco; ao concluir o
@@ -127,9 +137,25 @@ export function RootNavigator() {
                 </Stack.Screen>
               </>
             ) : onboarding.completo ? (
-              <Stack.Screen name="Main">
-                {() => <MainTabNavigator uid={auth.user!.uid} />}
-              </Stack.Screen>
+              notificacoes.deveExibirPriming ? (
+                <Stack.Screen name="NotificationPriming">
+                  {() => (
+                    <NotificationPrimingScreen
+                      onPermitir={() => notificacoes.concluirPriming(true)}
+                      onRecusar={() => notificacoes.concluirPriming(false)}
+                    />
+                  )}
+                </Stack.Screen>
+              ) : (
+                <Stack.Screen name="Main">
+                  {() => (
+                    <MainTabNavigator
+                      uid={auth.user!.uid}
+                      avaliarAlertaRisco={notificacoes.avaliarAlertaRisco}
+                    />
+                  )}
+                </Stack.Screen>
+              )
             ) : (
               <Stack.Screen name="Onboarding">
                 {() => (
