@@ -30,7 +30,7 @@ export function AppBlockBanner({
         hitSlop={10}
         style={styles.fechar}
       >
-        <X size={16} color={theme.colors.areiaClara} />
+        <X size={16} color={theme.colors.casca} />
       </Pressable>
 
       <Text style={styles.eyebrow}>Novo · Bloqueio de apps</Text>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.areiaClara,
+    color: theme.colors.casca,
     paddingRight: theme.spacing.xl,
   },
   corpo: {

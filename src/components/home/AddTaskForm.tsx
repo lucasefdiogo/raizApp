@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.branco,
+    backgroundColor: theme.colors.casca,
   },
   bolinhaAtiva: {
     alignSelf: 'flex-end',

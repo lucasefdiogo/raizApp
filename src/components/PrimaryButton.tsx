@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
   texto: {
-    color: theme.colors.branco,
+    color: theme.colors.casca,
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
   },
