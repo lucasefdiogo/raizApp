@@ -16,7 +16,7 @@ interface DayDetailSheetProps {
 
 const LABEL_STATUS: Record<StatusHistoricoDia, string> = {
   cumprido: 'cumprido',
-  protegido_escudo: 'protegido pelo escudo',
+  protegido_escudo: 'protegido',
   perdido: 'perdido',
   pendente: 'pendente',
   sem_registro: 'sem registro',
