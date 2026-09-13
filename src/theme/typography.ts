@@ -1,11 +1,15 @@
-// Fontes definidas conforme fundamentação teórica do projeto.
-// Os arquivos de fonte ainda não foram vinculados nativamente — até lá, o
-// Android usa a fonte padrão do sistema como fallback automático.
+// Fontes definidas conforme 02-identidade-visual.md — vinculadas
+// nativamente em android/app/src/main/assets/fonts/ (Zilla Slab e IBM Plex
+// Sans nos pesos certos: Medium/SemiBold, não Regular/Bold; Space Mono
+// Regular). Cada valor abaixo precisa bater EXATAMENTE com o nome do
+// arquivo .ttf (sem extensão) — Android resolve a fonte por esse nome, e
+// diverge do que a família originalmente é chamada "por fora".
 export const fontFamily = {
-  heading: 'ZillaSlab-Regular',
-  headingBold: 'ZillaSlab-Bold',
+  heading: 'ZillaSlab-Medium',
+  headingBold: 'ZillaSlab-SemiBold',
   body: 'IBMPlexSans-Regular',
   bodyMedium: 'IBMPlexSans-Medium',
+  bodySemiBold: 'IBMPlexSans-SemiBold',
   mono: 'SpaceMono-Regular',
 } as const;
 
