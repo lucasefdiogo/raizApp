@@ -9,6 +9,7 @@ import { usePerfil } from '../../hooks/usePerfil';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
+import { useFeatureTour } from '../../hooks/useFeatureTour';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
@@ -55,6 +56,7 @@ export function PerfilScreen({
   aoAbrirDebugAcessibilidade,
 }: PerfilScreenProps) {
   useVoltarParaAbaHoje();
+  const { reiniciar: reiniciarTourFuncionalidades } = useFeatureTour();
 
   const {
     porqueTexto,
@@ -182,6 +184,14 @@ export function PerfilScreen({
         </Pressable>
 
         <Text style={styles.secaoTitulo}>Sobre</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={reiniciarTourFuncionalidades}
+          hitSlop={8}
+          style={styles.linkToque}
+        >
+          <Text style={styles.link}>Ver tutorial novamente</Text>
+        </Pressable>
         <LinkExterno url={URL_POLITICA_PRIVACIDADE} style={styles.linkLegal}>
           {ROTULO_POLITICA_PRIVACIDADE}
         </LinkExterno>
