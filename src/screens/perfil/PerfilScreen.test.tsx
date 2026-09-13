@@ -261,8 +261,8 @@ describe('PerfilScreen', () => {
       const estiloTexto = StyleSheet.flatten(botao.props.style);
       const estiloContainer = StyleSheet.flatten(botao.parent!.props.style);
 
-      expect(estiloTexto.color).toBe(theme.colors.textSecondary);
-      expect(estiloContainer.borderColor).toBe(theme.colors.border);
+      expect(estiloTexto.color).toBe(theme.colors.terraSuave);
+      expect(estiloContainer.borderColor).toBe(theme.colors.terraSuave);
       expect(estiloTexto.color).not.toBe(theme.colors.erro);
       expect(estiloContainer.borderColor).not.toBe(theme.colors.erro);
     });

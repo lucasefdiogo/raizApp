@@ -9,9 +9,14 @@ interface SecondaryButtonProps {
 }
 
 /**
- * Botão de ação secundária (ex: "Voltar" ao lado de um `PrimaryButton`).
- * Contorno em Musgo, sem preenchimento — nunca Cobre, pra sobrar só uma
- * ação em destaque por tela (ver regra de paleta em 02-identidade-visual.md).
+ * Botão de ação secundária/ghost — único tratamento pra esse tipo de ação
+ * no app (ex: "Voltar" ao lado de um `PrimaryButton`, "Continuar com
+ * Google", o botão secundário do tutorial). Contorno neutro em Terra
+ * Suave, sem preenchimento — nunca Cobre, pra sobrar só uma ação em
+ * destaque por tela (ver regra de paleta em 02-identidade-visual.md), e
+ * nunca Musgo: essa cor já significa "concluído/estrutura" em outro lugar
+ * do app (checkbox de tarefa feita, ramos do RootProgressIcon) — reusá-la
+ * aqui misturaria os dois significados.
  */
 export function SecondaryButton({
   titulo,
@@ -41,7 +46,7 @@ export function SecondaryButton({
 const styles = StyleSheet.create({
   botao: {
     borderWidth: 1.5,
-    borderColor: theme.colors.musgo,
+    borderColor: theme.colors.terraSuave,
     borderRadius: theme.radius.md,
     paddingVertical: theme.spacing.md,
     alignItems: 'center',
@@ -53,11 +58,14 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   texto: {
-    color: theme.colors.musgo,
+    color: theme.colors.terraSuave,
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
   },
+  // `border` (mais claro), não `textSecondary` — hoje textSecondary tem o
+  // mesmo valor de terraSuave, então usar ele aqui apagaria a distinção
+  // visual entre habilitado/desabilitado.
   textoDesabilitado: {
-    color: theme.colors.textSecondary,
+    color: theme.colors.border,
   },
 });

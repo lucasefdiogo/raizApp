@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { PrimaryButton } from '../PrimaryButton';
+import { SecondaryButton } from '../SecondaryButton';
 import { StepDots } from './StepDots';
 
 interface TutorialSlideBotao {
@@ -60,15 +61,10 @@ export function TutorialSlide({
             onPress={botaoPrimario.onPress}
           />
           {botaoSecundario && (
-            <Pressable
-              accessibilityRole="button"
+            <SecondaryButton
+              titulo={botaoSecundario.titulo}
               onPress={botaoSecundario.onPress}
-              style={styles.botaoSecundario}
-            >
-              <Text style={styles.botaoSecundarioTexto}>
-                {botaoSecundario.titulo}
-              </Text>
-            </Pressable>
+            />
           )}
         </View>
       </View>
@@ -129,17 +125,5 @@ const styles = StyleSheet.create({
   },
   botoes: {
     gap: theme.spacing.sm,
-  },
-  botaoSecundario: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-  },
-  botaoSecundarioTexto: {
-    fontSize: theme.typography.fontSize.md,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.textPrimary,
   },
 });

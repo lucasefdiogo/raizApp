@@ -289,13 +289,14 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     gap: theme.spacing.xs,
   },
-  // Sóbrio de propósito (ver 02-identidade-visual.md) — nem Cobre (destaque
-  // de CTA) nem a cor de erro/alerta. É uma ação real, mas não precisa
-  // competir visualmente nem soar punitiva (princípio 3 do CLAUDE.md).
+  // Sóbrio de propósito (ver 02-identidade-visual.md) — mesmo tratamento
+  // neutro do SecondaryButton (Terra Suave), nem Cobre (destaque de CTA)
+  // nem a cor de erro/alerta. É uma ação real, mas não precisa competir
+  // visualmente nem soar punitiva (princípio 3 do CLAUDE.md).
   botaoExcluirConta: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.terraSuave,
     borderRadius: theme.radius.sm,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
   textoExcluirConta: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.terraSuave,
   },
   avisoExclusao: {
     fontSize: theme.typography.fontSize.xs,

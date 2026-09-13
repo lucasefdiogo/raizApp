@@ -81,12 +81,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.sm,
   },
-  // Sóbrio de propósito (ver 02-identidade-visual.md) — nem Cobre nem a cor
-  // de erro/alerta. "Cancelar" (PrimaryButton, acima) já carrega o peso
+  // Sóbrio de propósito (ver 02-identidade-visual.md) — mesmo tratamento
+  // neutro do SecondaryButton (Terra Suave), nem Cobre nem a cor de
+  // erro/alerta. "Cancelar" (PrimaryButton, acima) já carrega o peso
   // visual da escolha segura; este não precisa competir nem soar punitivo.
   textoExcluir: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.textSecondary,
+    color: theme.colors.terraSuave,
   },
 });
