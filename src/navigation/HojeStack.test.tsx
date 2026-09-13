@@ -6,10 +6,10 @@ import { HojeStack } from './HojeStack';
 // HojeStack normalmente vive dentro do Tab.Navigator do MainTabNavigator,
 // que por sua vez vive dentro do NavigationContainer do RootNavigator —
 // aqui, isolado, precisa do próprio NavigationContainer pra registrar.
-function renderHojeStack(uid = 'uid-teste') {
+function renderHojeStack(uid = 'uid-teste', avaliarAlertaRisco = jest.fn()) {
   return render(
     <NavigationContainer>
-      <HojeStack uid={uid} />
+      <HojeStack uid={uid} avaliarAlertaRisco={avaliarAlertaRisco} />
     </NavigationContainer>,
   );
 }
@@ -17,7 +17,6 @@ function renderHojeStack(uid = 'uid-teste') {
 jest.mock('../hooks/useStreak');
 jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
-jest.mock('../hooks/useLocalNotifications');
 jest.mock('../hooks/useDailyTasks');
 jest.mock('../hooks/useAppBlockConfig');
 jest.mock('../hooks/useAppBlockBannerDismissido');
@@ -27,7 +26,6 @@ jest.mock('../utils/taskFeedbackMessages');
 const { useStreak } = require('../hooks/useStreak');
 const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
-const { useLocalNotifications } = require('../hooks/useLocalNotifications');
 const { useDailyTasks } = require('../hooks/useDailyTasks');
 const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
 const {
@@ -62,9 +60,6 @@ function configurarHooksPadrao() {
     corpoComTexto: 'Alguns dias passaram, e tudo bem.',
     carregando: false,
     enviarTarefaInicial: jest.fn().mockResolvedValue(undefined),
-  });
-  useLocalNotifications.mockReturnValue({
-    avaliarAlertaRisco: jest.fn(),
   });
   useDailyTasks.mockReturnValue({
     tarefas: [],

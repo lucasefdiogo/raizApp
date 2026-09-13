@@ -31,7 +31,7 @@ jest.mock('./PerfilStack', () => ({
 function renderMainTabNavigator(uid = 'uid-teste') {
   return render(
     <NavigationContainer>
-      <MainTabNavigator uid={uid} />
+      <MainTabNavigator uid={uid} avaliarAlertaRisco={jest.fn()} />
     </NavigationContainer>,
   );
 }

@@ -33,9 +33,14 @@ function PerfilTabIcon({ color, size }: TabIconProps) {
 
 interface MainTabNavigatorProps {
   uid: string;
+  /** Repassado só até o HojeStack — ver useLocalNotifications no RootNavigator. */
+  avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
 }
 
-export function MainTabNavigator({ uid }: MainTabNavigatorProps) {
+export function MainTabNavigator({
+  uid,
+  avaliarAlertaRisco,
+}: MainTabNavigatorProps) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -52,7 +57,9 @@ export function MainTabNavigator({ uid }: MainTabNavigatorProps) {
         name="HojeTab"
         options={{ title: 'Hoje', tabBarIcon: HojeTabIcon }}
       >
-        {() => <HojeStack uid={uid} />}
+        {() => (
+          <HojeStack uid={uid} avaliarAlertaRisco={avaliarAlertaRisco} />
+        )}
       </Tab.Screen>
       <Tab.Screen
         name="ProgressoTab"
