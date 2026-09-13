@@ -1,6 +1,8 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ConfirmDeleteAccountModal } from './ConfirmDeleteAccountModal';
+import { theme } from '../../theme';
 
 describe('ConfirmDeleteAccountModal', () => {
   it('mostra título e corpo de aviso quando visível', async () => {
@@ -52,6 +54,22 @@ describe('ConfirmDeleteAccountModal', () => {
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('o botão "Excluir conta" é sóbrio — nem Cobre nem cor de erro/alerta', async () => {
+    await render(
+      <ConfirmDeleteAccountModal
+        visible
+        onConfirm={jest.fn()}
+        onCancel={jest.fn()}
+      />,
+    );
+
+    const estilo = StyleSheet.flatten(screen.getByText('Excluir conta').props.style);
+
+    expect(estilo.color).toBe(theme.colors.textSecondary);
+    expect(estilo.color).not.toBe(theme.colors.erro);
+    expect(estilo.color).not.toBe(theme.colors.accent);
   });
 
   it('não renderiza o conteúdo quando visible é false', async () => {

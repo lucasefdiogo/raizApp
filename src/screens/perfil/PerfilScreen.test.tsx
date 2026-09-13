@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking, StyleSheet } from 'react-native';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { PerfilScreen } from './PerfilScreen';
+import { theme } from '../../theme';
 import {
   URL_POLITICA_PRIVACIDADE,
   URL_TERMOS_DE_USO,
@@ -251,6 +252,19 @@ describe('PerfilScreen', () => {
       await fireEvent.press(screen.getByText('Excluir conta'));
 
       expect(screen.getByText('Excluir sua conta')).toBeTruthy();
+    });
+
+    it('o botão "Excluir conta" é sóbrio — nem Cobre nem cor de erro/alerta', async () => {
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+      const botao = screen.getByText('Excluir conta');
+      const estiloTexto = StyleSheet.flatten(botao.props.style);
+      const estiloContainer = StyleSheet.flatten(botao.parent!.props.style);
+
+      expect(estiloTexto.color).toBe(theme.colors.textSecondary);
+      expect(estiloContainer.borderColor).toBe(theme.colors.border);
+      expect(estiloTexto.color).not.toBe(theme.colors.erro);
+      expect(estiloContainer.borderColor).not.toBe(theme.colors.erro);
     });
 
     it('confirmar no modal chama excluirConta do hook', async () => {
