@@ -38,7 +38,7 @@ describe('DayDetailSheet', () => {
     expect(screen.getByText('Quarta-feira · cumprido')).toBeTruthy();
   });
 
-  it('mostra o status "protegido pelo escudo" por extenso', async () => {
+  it('mostra o status "protegido" por extenso', async () => {
     await render(
       <DayDetailSheet
         visible
@@ -49,7 +49,7 @@ describe('DayDetailSheet', () => {
       />,
     );
 
-    expect(screen.getByText('Terça-feira · protegido pelo escudo')).toBeTruthy();
+    expect(screen.getByText('Terça-feira · protegido')).toBeTruthy();
   });
 
   it('lista todas as tarefas do dia, com o título de cada uma', async () => {
