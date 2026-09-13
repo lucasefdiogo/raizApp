@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { render, screen } from '@testing-library/react-native';
 import { LoadingIndicator } from './LoadingIndicator';
+import { theme } from '../../theme';
 
 describe('LoadingIndicator', () => {
   it('usa "Carregando" como label padrão', async () => {
@@ -35,7 +36,7 @@ describe('LoadingIndicator', () => {
       screen.getByTestId('loading-indicator').props.style,
     );
     expect(estilo.flex).toBe(1);
-    expect(estilo.backgroundColor).toBe('#F8F3E9');
+    expect(estilo.backgroundColor).toBe(theme.colors.background);
   });
 
   it("variante 'inline' não ocupa a tela inteira nem pinta fundo", async () => {
