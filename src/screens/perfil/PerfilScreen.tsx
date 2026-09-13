@@ -289,10 +289,13 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
     gap: theme.spacing.xs,
   },
+  // Sóbrio de propósito (ver 02-identidade-visual.md) — nem Cobre (destaque
+  // de CTA) nem a cor de erro/alerta. É uma ação real, mas não precisa
+  // competir visualmente nem soar punitiva (princípio 3 do CLAUDE.md).
   botaoExcluirConta: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: theme.colors.erro,
+    borderColor: theme.colors.border,
     borderRadius: theme.radius.sm,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
@@ -300,7 +303,7 @@ const styles = StyleSheet.create({
   textoExcluirConta: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.erro,
+    color: theme.colors.textSecondary,
   },
   avisoExclusao: {
     fontSize: theme.typography.fontSize.xs,
