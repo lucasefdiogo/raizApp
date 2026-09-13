@@ -7,7 +7,12 @@ import {
   validarPorqueTexto,
   validarTempoTelaEstimado,
 } from '../domain/onboarding';
+import { tituloTarefaValido } from '../domain/dailyTasks';
 import { STORAGE_KEYS, salvarItem } from '../utils/storage';
+import {
+  adicionarTarefaAoDailyLog,
+  marcarOnboardingConcluido,
+} from '../services/firestore';
 import { useOnboardingProgress } from './useOnboardingProgress';
 import { useToast } from './useToast';
 
@@ -25,11 +30,16 @@ interface UseOnboardingParams {
   onConcluir: () => void;
 }
 
+function hojeISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
   const { showToast } = useToast();
   const progresso = useOnboardingProgress(uid);
   const [passo, setPasso] = useState<number | null>(null);
   const [dados, setDados] = useState<OnboardingData>(DADOS_INICIAIS);
+  const [tituloPrimeiraTarefa, setTituloPrimeiraTarefa] = useState('');
   const [salvando, setSalvando] = useState(false);
 
   // Assim que o Firestore responde, retoma no passo certo e pré-preenche o
@@ -66,6 +76,14 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     return false;
   }, [passo, dados]);
 
+  // Passo de primeira tarefa não usa avancar()/podeAvancar — tem dois
+  // caminhos próprios (comecarComTarefa/pularPrimeiraTarefa), "Pular por
+  // hoje" nunca depende de validação nenhuma.
+  const podeComecar = useMemo(
+    () => tituloTarefaValido(tituloPrimeiraTarefa),
+    [tituloPrimeiraTarefa],
+  );
+
   const definirPorqueTexto = useCallback((texto: string) => {
     setDados(atual => ({ ...atual, porqueTexto: texto }));
   }, []);
@@ -76,6 +94,10 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
 
   const definirTempoTela = useCallback((horas: number) => {
     setDados(atual => ({ ...atual, tempoTelaEstimado: horas }));
+  }, []);
+
+  const definirTituloPrimeiraTarefa = useCallback((titulo: string) => {
+    setTituloPrimeiraTarefa(titulo);
   }, []);
 
   const voltar = useCallback(() => {
@@ -95,14 +117,9 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
       } else if (passo === PASSO_ONBOARDING.tempoTela) {
         await progresso.salvarTempoTela(dados.tempoTelaEstimado!);
         setPasso(PASSO_ONBOARDING.porque);
-      } else {
+      } else if (passo === PASSO_ONBOARDING.porque) {
         await progresso.salvarPorque(dados.porqueTexto);
-        await salvarItem(STORAGE_KEYS.onboarding, {
-          porqueTexto: dados.porqueTexto.trim(),
-          focoProcrastinacao: dados.focoProcrastinacao,
-          tempoTelaEstimado: dados.tempoTelaEstimado,
-        });
-        onConcluir();
+        setPasso(PASSO_ONBOARDING.primeiraTarefa);
       }
     } catch {
       // Falha de rede não deve avançar — o passo atual continua e o toast
@@ -111,7 +128,56 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     } finally {
       setSalvando(false);
     }
-  }, [passo, podeAvancar, salvando, dados, progresso, onConcluir, showToast]);
+  }, [passo, podeAvancar, salvando, dados, progresso, showToast]);
+
+  // Ponto único de conclusão de fato do onboarding — chamado pelos dois
+  // caminhos do passo de primeira tarefa (criar a tarefa ou pular), nunca
+  // mais ao final do porquê (esse agora é só mais um passo intermediário).
+  const concluirOnboarding = useCallback(async () => {
+    await marcarOnboardingConcluido(uid);
+    // Resposta otimista local — cobre o instante entre terminar o wizard e
+    // a escrita no Firestore confirmar (ver useOnboardingStatus).
+    await salvarItem(STORAGE_KEYS.onboarding, {
+      porqueTexto: dados.porqueTexto.trim(),
+      focoProcrastinacao: dados.focoProcrastinacao,
+      tempoTelaEstimado: dados.tempoTelaEstimado,
+    });
+    onConcluir();
+  }, [uid, dados, onConcluir]);
+
+  const comecarComTarefa = useCallback(async () => {
+    if (!podeComecar || salvando) {
+      return;
+    }
+    setSalvando(true);
+    try {
+      await adicionarTarefaAoDailyLog(uid, hojeISO(), {
+        id: `onboarding-${Date.now()}`,
+        titulo: tituloPrimeiraTarefa.trim(),
+        essencial: true,
+        concluida: false,
+      });
+      await concluirOnboarding();
+    } catch {
+      showToast(MENSAGEM_FALHA_ONBOARDING);
+    } finally {
+      setSalvando(false);
+    }
+  }, [podeComecar, salvando, uid, tituloPrimeiraTarefa, concluirOnboarding, showToast]);
+
+  const pularPrimeiraTarefa = useCallback(async () => {
+    if (salvando) {
+      return;
+    }
+    setSalvando(true);
+    try {
+      await concluirOnboarding();
+    } catch {
+      showToast(MENSAGEM_FALHA_ONBOARDING);
+    } finally {
+      setSalvando(false);
+    }
+  }, [salvando, concluirOnboarding, showToast]);
 
   return {
     passo: passo ?? progresso.passoInicial,
@@ -125,5 +191,10 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     definirTempoTela,
     avancar,
     voltar,
+    tituloPrimeiraTarefa,
+    definirTituloPrimeiraTarefa,
+    podeComecar,
+    comecarComTarefa,
+    pularPrimeiraTarefa,
   };
 }

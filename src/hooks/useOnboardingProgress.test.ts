@@ -58,7 +58,7 @@ describe('useOnboardingProgress', () => {
       });
     });
 
-    it('diagnóstico + porquê já preenchidos: permanece no passo do porquê', async () => {
+    it('diagnóstico + porquê já preenchidos: avança pro passo de primeira tarefa', async () => {
       buscarUsuario.mockResolvedValue(
         usuario({
           focoProcrastinacao: 'estudos',
@@ -70,7 +70,7 @@ describe('useOnboardingProgress', () => {
       const { result } = await renderHook(() => useOnboardingProgress('uid-1'));
 
       await waitFor(() => expect(result.current.carregando).toBe(false));
-      expect(result.current.passoInicial).toBe(PASSO_ONBOARDING.porque);
+      expect(result.current.passoInicial).toBe(PASSO_ONBOARDING.primeiraTarefa);
     });
 
     it('usuário inexistente no Firestore: começa no passo do foco', async () => {

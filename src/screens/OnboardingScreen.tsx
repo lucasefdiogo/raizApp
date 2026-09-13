@@ -18,6 +18,7 @@ import { SecondaryButton } from '../components/SecondaryButton';
 import { OnboardingStepPorque } from '../components/onboarding/OnboardingStepPorque';
 import { OnboardingStepFoco } from '../components/onboarding/OnboardingStepFoco';
 import { OnboardingStepTempoTela } from '../components/onboarding/OnboardingStepTempoTela';
+import { OnboardingStepPrimeiraTarefa } from '../components/onboarding/OnboardingStepPrimeiraTarefa';
 
 interface OnboardingScreenProps {
   uid: string;
@@ -37,6 +38,11 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
     definirTempoTela,
     avancar,
     voltar,
+    tituloPrimeiraTarefa,
+    definirTituloPrimeiraTarefa,
+    podeComecar,
+    comecarComTarefa,
+    pularPrimeiraTarefa,
   } = useOnboarding({ uid, onConcluir });
 
   // Sem isso, o botão físico voltar fecha o app inteiro nos passos 2 e 3
@@ -90,6 +96,12 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
               onAlterar={definirPorqueTexto}
             />
           )}
+          {passo === PASSO_ONBOARDING.primeiraTarefa && (
+            <OnboardingStepPrimeiraTarefa
+              valor={tituloPrimeiraTarefa}
+              onAlterar={definirTituloPrimeiraTarefa}
+            />
+          )}
           {mostrarAvisoPorque && (
             <Text style={styles.aviso}>Escreva um pouco mais sobre isso</Text>
           )}
@@ -98,18 +110,38 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
         <View style={styles.rodape}>
           <ProgressDots total={totalPassos} atual={passo} />
           <View style={styles.botoes}>
-            {passo > PASSO_ONBOARDING.foco && (
-              <View style={styles.botaoFlex}>
-                <SecondaryButton titulo="Voltar" onPress={voltar} />
-              </View>
+            {passo === PASSO_ONBOARDING.primeiraTarefa ? (
+              <>
+                <View style={styles.botaoFlex}>
+                  <SecondaryButton
+                    titulo="Pular por hoje"
+                    onPress={pularPrimeiraTarefa}
+                  />
+                </View>
+                <View style={styles.botaoFlex}>
+                  <PrimaryButton
+                    titulo="Começar"
+                    onPress={comecarComTarefa}
+                    desabilitado={!podeComecar || salvando}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                {passo > PASSO_ONBOARDING.foco && (
+                  <View style={styles.botaoFlex}>
+                    <SecondaryButton titulo="Voltar" onPress={voltar} />
+                  </View>
+                )}
+                <View style={styles.botaoFlex}>
+                  <PrimaryButton
+                    titulo="Continuar"
+                    onPress={avancar}
+                    desabilitado={!podeAvancar || salvando}
+                  />
+                </View>
+              </>
             )}
-            <View style={styles.botaoFlex}>
-              <PrimaryButton
-                titulo={passo === totalPassos - 1 ? 'Concluir' : 'Continuar'}
-                onPress={avancar}
-                desabilitado={!podeAvancar || salvando}
-              />
-            </View>
           </View>
         </View>
       </KeyboardAvoidingView>

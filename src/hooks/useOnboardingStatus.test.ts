@@ -33,14 +33,36 @@ describe('useOnboardingStatus', () => {
     expect(result.current.completo).toBe(true);
   });
 
-  it('é completo quando users/{uid}.porqueTexto já está no Firestore', async () => {
+  it('é completo quando users/{uid}.onboardingConcluido já é true no Firestore', async () => {
+    firestoreService.buscarUsuario.mockResolvedValue({
+      porqueTexto: 'Meu porquê salvo no Firestore',
+      onboardingConcluido: true,
+    });
+
+    const { result } = await renderHook(() => useOnboardingStatus('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.completo).toBe(true);
+  });
+
+  it('NÃO é completo só com porqueTexto preenchido — onboardingConcluido ainda false não sai do onboarding', async () => {
+    firestoreService.buscarUsuario.mockResolvedValue({
+      porqueTexto: 'Meu porquê salvo no Firestore',
+      onboardingConcluido: false,
+    });
+
+    const { result } = await renderHook(() => useOnboardingStatus('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.completo).toBe(false);
+  });
+
+  it('NÃO é completo com porqueTexto preenchido e onboardingConcluido ausente (conta anterior a esse campo)', async () => {
     firestoreService.buscarUsuario.mockResolvedValue({
       porqueTexto: 'Meu porquê salvo no Firestore',
     });
 
     const { result } = await renderHook(() => useOnboardingStatus('uid-1'));
     await waitFor(() => expect(result.current.carregando).toBe(false));
-    expect(result.current.completo).toBe(true);
+    expect(result.current.completo).toBe(false);
   });
 
   it('não consulta o Firestore quando não há uid', async () => {

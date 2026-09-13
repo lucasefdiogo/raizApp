@@ -42,23 +42,29 @@ export function onboardingEstaCompleto(dados: OnboardingData): boolean {
 }
 
 /**
- * Passos do onboarding, em ordem. O porquê fica por último de propósito:
- * é ele que tira o usuário do onboarding (gate `!porqueTexto` no
- * RootNavigator), então só deve ser gravado depois que foco e tempo de
- * tela já estiverem persistidos.
+ * Passos do onboarding, em ordem. `primeiraTarefa` é o último de propósito
+ * (03-mvp.md/fundamentação teórica 10.3 — tarefa fatiada até o ponto de
+ * aceitação sustenta o momentum): só depois dela o onboarding conta como
+ * concluído (ver users/{uid}.onboardingConcluido, o gate real usado pelo
+ * RootNavigator — não mais `porqueTexto`, que agora é só mais um passo
+ * intermediário como foco/tempoTela).
  */
 export const PASSO_ONBOARDING = {
   foco: 0,
   tempoTela: 1,
   porque: 2,
+  primeiraTarefa: 3,
 } as const;
 
-export const TOTAL_PASSOS_ONBOARDING = 3;
+export const TOTAL_PASSOS_ONBOARDING = 4;
 
 /**
  * Dado o que já existe em users/{uid}, em qual passo o onboarding deve
  * retomar se o app foi fechado no meio do fluxo. Função pura — quem lê o
- * Firestore é o hook.
+ * Firestore é o hook. Não dá pra saber por aqui se primeiraTarefa já foi
+ * concluída (isso não é um campo de OnboardingData, é uma ação) — quem
+ * chama só invoca isso quando onboardingConcluido ainda é false, então
+ * "já tem foco+tempo+porquê" sempre aponta pra primeiraTarefa.
  */
 export function passoInicialOnboarding(
   dados: Pick<
@@ -72,5 +78,8 @@ export function passoInicialOnboarding(
   if (!validarTempoTelaEstimado(dados.tempoTelaEstimado)) {
     return PASSO_ONBOARDING.tempoTela;
   }
-  return PASSO_ONBOARDING.porque;
+  if (!validarPorqueTexto(dados.porqueTexto)) {
+    return PASSO_ONBOARDING.porque;
+  }
+  return PASSO_ONBOARDING.primeiraTarefa;
 }

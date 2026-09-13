@@ -93,14 +93,14 @@ describe('passoInicialOnboarding', () => {
     ).toBe(PASSO_ONBOARDING.porque);
   });
 
-  it('já tem tudo (navegação direta): permanece no passo do porquê', () => {
+  it('tem foco, tempo e porquê, falta a primeira tarefa: começa no passo da primeira tarefa', () => {
     expect(
       passoInicialOnboarding({
         focoProcrastinacao: 'estudos',
         tempoTelaEstimado: 4,
         porqueTexto: 'Quero terminar meus estudos',
       }),
-    ).toBe(PASSO_ONBOARDING.porque);
+    ).toBe(PASSO_ONBOARDING.primeiraTarefa);
   });
 
   it('tempo de tela fora da faixa conta como não respondido', () => {
