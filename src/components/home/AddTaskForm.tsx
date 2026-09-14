@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { TextField } from '../TextField';
@@ -18,10 +18,19 @@ interface AddTaskFormProps {
   limiteEssenciaisAtingido: boolean;
 }
 
-export function AddTaskForm({
-  onAdicionar,
-  limiteEssenciaisAtingido,
-}: AddTaskFormProps) {
+/**
+ * `ref` aponta pro botão "Adicionar tarefa" (não o formulário inteiro) —
+ * único motivo de existir é o tour de funcionalidades pós-onboarding medir
+ * esse alvo de fora (ver FeatureTourOverlay/HomeScreen). Não é usado pra
+ * nenhum comportamento do próprio formulário.
+ */
+export const AddTaskForm = forwardRef<
+  React.ComponentRef<typeof View>,
+  AddTaskFormProps
+>(function AddTaskFormComRef(
+  { onAdicionar, limiteEssenciaisAtingido },
+  botaoAdicionarRef,
+) {
   const [titulo, setTitulo] = useState('');
   const [essencial, setEssencial] = useState(false);
   const [tipo, setTipo] = useState<TipoTarefa>('padrao');
@@ -111,14 +120,16 @@ export function AddTaskForm({
         </View>
       </Pressable>
 
-      <PrimaryButton
-        titulo="Adicionar tarefa"
-        onPress={adicionar}
-        desabilitado={tituloLimpo.length === 0}
-      />
+      <View ref={botaoAdicionarRef} collapsable={false}>
+        <PrimaryButton
+          titulo="Adicionar tarefa"
+          onPress={adicionar}
+          desabilitado={tituloLimpo.length === 0}
+        />
+      </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

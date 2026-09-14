@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   onboarding: '@rootora/onboarding',
   tutorialVisto: 'tutorial_visto',
   notificationPrimingShown: 'notification_priming_shown',
+  tourFuncionalidadesVisto: 'tour_funcionalidades_visto',
 } as const;
 
 export async function salvarItem<T>(chave: string, valor: T): Promise<void> {

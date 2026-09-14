@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { createRef } from 'react';
+import { View } from 'react-native';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { HojeStack } from './HojeStack';
@@ -9,7 +10,12 @@ import { HojeStack } from './HojeStack';
 function renderHojeStack(uid = 'uid-teste', avaliarAlertaRisco = jest.fn()) {
   return render(
     <NavigationContainer>
-      <HojeStack uid={uid} avaliarAlertaRisco={avaliarAlertaRisco} />
+      <HojeStack
+        uid={uid}
+        avaliarAlertaRisco={avaliarAlertaRisco}
+        progressoTabRef={createRef<React.ComponentRef<typeof View>>()}
+        perfilTabRef={createRef<React.ComponentRef<typeof View>>()}
+      />
     </NavigationContainer>,
   );
 }
@@ -20,6 +26,9 @@ jest.mock('../hooks/useReturnAfterPause');
 jest.mock('../hooks/useDailyTasks');
 jest.mock('../hooks/useAppBlockConfig');
 jest.mock('../hooks/useAppBlockBannerDismissido');
+// Não é o foco deste arquivo (tem teste próprio em useFeatureTour.test.ts) —
+// mantido inativo pra não interferir nas asserções de roteamento daqui.
+jest.mock('../hooks/useFeatureTour');
 jest.mock('../services/firestore');
 jest.mock('../utils/taskFeedbackMessages');
 
@@ -31,6 +40,7 @@ const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
 const {
   useAppBlockBannerDismissido,
 } = require('../hooks/useAppBlockBannerDismissido');
+const { useFeatureTour } = require('../hooks/useFeatureTour');
 const { buscarSystemMessage, buscarUsuario } = require('../services/firestore');
 const {
   obterMensagemTarefaConcluida,
@@ -90,6 +100,13 @@ function configurarHooksPadrao() {
     dispensadoHoje: true,
     carregando: false,
     dispensarHoje: jest.fn(),
+  });
+  useFeatureTour.mockReturnValue({
+    tourAtivo: false,
+    passoAtual: 0,
+    avancar: jest.fn(),
+    pular: jest.fn(),
+    reiniciar: jest.fn(),
   });
   buscarSystemMessage.mockResolvedValue({
     titulo: 'Sete dias seguidos',

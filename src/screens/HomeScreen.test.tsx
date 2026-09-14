@@ -1,5 +1,5 @@
-import React from 'react';
-import { Keyboard, ScrollView, StyleSheet } from 'react-native';
+import React, { createRef } from 'react';
+import { Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import {
   render as rtlRender,
   screen,
@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { HomeScreen } from './HomeScreen';
+import { TOUR_PASSOS } from '../components/tour/tourSteps';
 
 // TaskItem monta TaskActionsSheet (long-press), que lê useSafeAreaInsets
 // pra dar espaço ao "Cancelar" acima da barra de gestos do Android (ver
@@ -48,6 +49,14 @@ const { useRecarregarAoFocar } = require('../hooks/useRecarregarAoFocar');
 
 jest.mock('../hooks/useNomeUsuario');
 const { useNomeUsuario } = require('../hooks/useNomeUsuario');
+
+// useFeatureTour usa useNavigation/useFocusEffect (precisaria de um
+// NavigationContainer, que este arquivo não monta) — mockado e inativo por
+// padrão; o comportamento do hook em si tem teste próprio
+// (useFeatureTour.test.ts). Aqui só interessa o que a HomeScreen faz com
+// tourAtivo/passoAtual.
+jest.mock('../hooks/useFeatureTour');
+const { useFeatureTour } = require('../hooks/useFeatureTour');
 
 // useDailyTasks tem seus próprios testes cobrindo a integração com o
 // Firestore (src/hooks/useDailyTasks.test.ts) — aqui reimplementamos só o
@@ -146,6 +155,8 @@ const PROPS_PADRAO = {
   avaliarAlertaRisco: jest.fn(),
   recarregarStreak: jest.fn().mockResolvedValue(undefined),
   aoAbrirBloqueioApps: jest.fn(),
+  progressoTabRef: createRef<React.ComponentRef<typeof View>>(),
+  perfilTabRef: createRef<React.ComponentRef<typeof View>>(),
 };
 
 const CONFIG_BLOQUEIO_PADRAO = {
@@ -182,6 +193,13 @@ beforeEach(() => {
     dispensarHoje: jest.fn(),
   });
   useNomeUsuario.mockReturnValue('Ana');
+  useFeatureTour.mockReturnValue({
+    tourAtivo: false,
+    passoAtual: 0,
+    avancar: jest.fn(),
+    pular: jest.fn(),
+    reiniciar: jest.fn(),
+  });
 });
 
 describe('HomeScreen', () => {
@@ -580,6 +598,77 @@ describe('HomeScreen', () => {
       await fireEvent.press(screen.getByLabelText('Dispensar'));
 
       expect(dispensarHoje).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('tour de funcionalidades', () => {
+    it('tourAtivo false (flag já vista): não mostra o overlay do tour', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      expect(screen.queryByTestId('feature-tour-overlay')).toBeNull();
+    });
+
+    it('tourAtivo true: mostra o overlay com o texto do passo atual', async () => {
+      useFeatureTour.mockReturnValue({
+        tourAtivo: true,
+        passoAtual: 0,
+        avancar: jest.fn(),
+        pular: jest.fn(),
+        reiniciar: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      expect(screen.getByTestId('feature-tour-overlay')).toBeTruthy();
+      expect(screen.getByText(TOUR_PASSOS[0].texto)).toBeTruthy();
+      expect(screen.getByText('Passo 1 de 5')).toBeTruthy();
+    });
+
+    it('"Pular tour" chama pular()', async () => {
+      const pular = jest.fn();
+      useFeatureTour.mockReturnValue({
+        tourAtivo: true,
+        passoAtual: 0,
+        avancar: jest.fn(),
+        pular,
+        reiniciar: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      await fireEvent.press(screen.getByText('Pular tour'));
+
+      expect(pular).toHaveBeenCalledTimes(1);
+    });
+
+    it('"Próximo" chama avancar()', async () => {
+      const avancar = jest.fn();
+      useFeatureTour.mockReturnValue({
+        tourAtivo: true,
+        passoAtual: 1,
+        avancar,
+        pular: jest.fn(),
+        reiniciar: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      await fireEvent.press(screen.getByText('Próximo'));
+
+      expect(avancar).toHaveBeenCalledTimes(1);
+    });
+
+    it('regressão: com o tour ativo, o modal de marco continua podendo aparecer — o tour não o esconde/substitui', async () => {
+      useFeatureTour.mockReturnValue({
+        tourAtivo: true,
+        passoAtual: 0,
+        avancar: jest.fn(),
+        pular: jest.fn(),
+        reiniciar: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} marcoAtingido={7} />);
+
+      await waitFor(() => expect(screen.getByText('Marco atingido')).toBeTruthy());
+      expect(screen.getByTestId('feature-tour-overlay')).toBeTruthy();
     });
   });
 });

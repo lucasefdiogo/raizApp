@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Keyboard,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
@@ -14,6 +18,7 @@ import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
 import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
 import { useRecarregarAoFocar } from '../hooks/useRecarregarAoFocar';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
+import { useFeatureTour } from '../hooks/useFeatureTour';
 import { HomeHeader } from '../components/home/HomeHeader';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
@@ -24,6 +29,16 @@ import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { AppBlockBanner } from '../components/home/AppBlockBanner';
 import { AppBlockStatusCard } from '../components/home/AppBlockStatusCard';
+import {
+  FeatureTourOverlay,
+  MedidaAlvoTour,
+  RefAlvoTour,
+} from '../components/tour/FeatureTourOverlay';
+import {
+  TOTAL_PASSOS_TOUR,
+  TOUR_PASSOS,
+  TourAlvoId,
+} from '../components/tour/tourSteps';
 import { StatusDia } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
@@ -33,6 +48,17 @@ import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 // mão, criamos espaço equivalente no fim do ScrollView e rolamos até lá pra o
 // campo "Nova tarefa" ficar acima do teclado.
 const ATRASO_SCROLL_TECLADO_MS = 50;
+
+// Passos do tour de funcionalidades cujo alvo vive dentro do ScrollView (os
+// outros dois apontam pra tab bar, que nunca rola). Mesma ideia do atraso
+// acima: dá tempo do scroll assentar antes de remedir a posição final.
+const ALVOS_ROLAVEIS_TOUR: TourAlvoId[] = [
+  'streak',
+  'adicionarTarefa',
+  'bloqueioApps',
+];
+const MARGEM_ALVO_TOUR_PX = 96;
+const ATRASO_MEDICAO_TOUR_MS = 80;
 
 const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
   pendente: 'O dia ainda está começando.',
@@ -55,6 +81,11 @@ interface HomeScreenProps {
   /** Abre a tela de configuração do bloqueio de apps, já existente (Perfil
    * também linka pra ela — não é uma tela duplicada). */
   aoAbrirBloqueioApps: () => void;
+  /** Refs dos botões reais das abas Progresso/Perfil (criados no
+   * MainTabNavigator) — usados só pra medir a posição nos passos 4-5 do
+   * tour de funcionalidades, ver useFeatureTour/FeatureTourOverlay. */
+  progressoTabRef: RefAlvoTour;
+  perfilTabRef: RefAlvoTour;
 }
 
 export function HomeScreen({
@@ -65,6 +96,8 @@ export function HomeScreen({
   avaliarAlertaRisco,
   recarregarStreak,
   aoAbrirBloqueioApps,
+  progressoTabRef,
+  perfilTabRef,
 }: HomeScreenProps) {
   const nome = useNomeUsuario(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
@@ -99,6 +132,16 @@ export function HomeScreen({
   const [atualizando, setAtualizando] = useState(false);
   const [alturaTeclado, setAlturaTeclado] = useState(0);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+
+  const tour = useFeatureTour();
+  const streakCardRef = useRef<React.ComponentRef<typeof View>>(null);
+  const addTaskButtonRef = useRef<React.ComponentRef<typeof View>>(null);
+  const appBlockRef = useRef<React.ComponentRef<typeof View>>(null);
+  const scrollYRef = useRef(0);
+  const [medidaAlvoTour, setMedidaAlvoTour] = useState<MedidaAlvoTour | null>(
+    null,
+  );
+  const { height: alturaJanela } = useWindowDimensions();
 
   useEffect(() => {
     avaliarAlertaRisco(existeEssencialConcluida(tarefas));
@@ -157,6 +200,94 @@ export function HomeScreen({
   const mostrarStatusBloqueio =
     !bloqueioCarregando && bloqueioApps.appsSelecionados.length > 0;
 
+  const handleScroll = useCallback(
+    (evento: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollYRef.current = evento.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+
+  // Mede o alvo real do passo atual do tour em coordenadas de janela (não
+  // relativas ao pai — measureInWindow, não onLayout, ver racional da
+  // tarefa). Alvos 1-3 vivem dentro do ScrollView e podem estar fora da
+  // faixa visível quando o passo começa (ex: lista de tarefas longa empurra
+  // o botão "Adicionar tarefa" pra baixo) — nesse caso rola até uma posição
+  // previsível antes de remedir. O tour bloqueia toque no resto da tela
+  // (ver FeatureTourOverlay), então não existe scroll "ao vivo" pra
+  // acompanhar durante um passo, só essa correção pontual ao entrar nele.
+  useEffect(() => {
+    if (!tour.tourAtivo) {
+      setMedidaAlvoTour(null);
+      return;
+    }
+
+    const alvoId = TOUR_PASSOS[tour.passoAtual].alvo;
+    const refsPorAlvo: Record<TourAlvoId, RefAlvoTour> = {
+      streak: streakCardRef,
+      adicionarTarefa: addTaskButtonRef,
+      bloqueioApps: appBlockRef,
+      abaProgresso: progressoTabRef,
+      abaPerfil: perfilTabRef,
+    };
+    const node = refsPorAlvo[alvoId].current;
+    if (!node) {
+      setMedidaAlvoTour(null);
+      return;
+    }
+
+    let cancelado = false;
+    let idTimeout: ReturnType<typeof setTimeout> | undefined;
+    const alvoRolavel = ALVOS_ROLAVEIS_TOUR.includes(alvoId);
+
+    node.measureInWindow((x, y, width, height) => {
+      if (cancelado) {
+        return;
+      }
+
+      const dentroDaFaixaVisivel =
+        !alvoRolavel ||
+        (y >= MARGEM_ALVO_TOUR_PX &&
+          y + height <= alturaJanela - MARGEM_ALVO_TOUR_PX);
+
+      if (dentroDaFaixaVisivel) {
+        setMedidaAlvoTour({ x, y, width, height });
+        return;
+      }
+
+      scrollRef.current?.scrollTo({
+        y: scrollYRef.current + (y - MARGEM_ALVO_TOUR_PX),
+        animated: false,
+      });
+      idTimeout = setTimeout(() => {
+        if (cancelado) {
+          return;
+        }
+        node.measureInWindow((x2, y2, width2, height2) => {
+          if (!cancelado) {
+            setMedidaAlvoTour({ x: x2, y: y2, width: width2, height: height2 });
+          }
+        });
+      }, ATRASO_MEDICAO_TOUR_MS);
+    });
+
+    return () => {
+      cancelado = true;
+      if (idTimeout) {
+        clearTimeout(idTimeout);
+      }
+    };
+  }, [
+    tour.tourAtivo,
+    tour.passoAtual,
+    carregando,
+    bloqueioCarregando,
+    mostrarBannerBloqueio,
+    mostrarStatusBloqueio,
+    alturaJanela,
+    progressoTabRef,
+    perfilTabRef,
+  ]);
+
   const appsBloqueadosResolvidos = bloqueioApps.appsSelecionados
     .map(pacote => appsInstalados.find(app => app.packageName === pacote))
     .filter((app): app is (typeof appsInstalados)[number] => app !== undefined)
@@ -185,6 +316,8 @@ export function HomeScreen({
           },
         ]}
         keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             testID="home-refresh-control"
@@ -196,7 +329,9 @@ export function HomeScreen({
         }
       >
         <HomeHeader nome={nome} streakAtual={streakAtual} />
-        <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
+        <View ref={streakCardRef} collapsable={false}>
+          <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
+        </View>
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
         {carregando ? (
@@ -219,27 +354,30 @@ export function HomeScreen({
               />
             )}
             <AddTaskForm
+              ref={addTaskButtonRef}
               onAdicionar={adicionarTarefa}
               limiteEssenciaisAtingido={limiteEssenciaisAtingido}
             />
           </>
         )}
 
-        {mostrarBannerBloqueio && (
-          <AppBlockBanner
-            onConfigurar={aoAbrirBloqueioApps}
-            onDispensar={banner.dispensarHoje}
-          />
-        )}
-        {mostrarStatusBloqueio && (
-          <AppBlockStatusCard
-            apps={appsBloqueadosResolvidos}
-            ativo={bloqueioApps.ativo}
-            ativoAgora={bloqueioAtivoAgora}
-            horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
-            horarioFim={bloqueioApps.horarioFim ?? '--:--'}
-          />
-        )}
+        <View ref={appBlockRef} collapsable={false}>
+          {mostrarBannerBloqueio && (
+            <AppBlockBanner
+              onConfigurar={aoAbrirBloqueioApps}
+              onDispensar={banner.dispensarHoje}
+            />
+          )}
+          {mostrarStatusBloqueio && (
+            <AppBlockStatusCard
+              apps={appsBloqueadosResolvidos}
+              ativo={bloqueioApps.ativo}
+              ativoAgora={bloqueioAtivoAgora}
+              horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
+              horarioFim={bloqueioApps.horarioFim ?? '--:--'}
+            />
+          )}
+        </View>
       </ScrollView>
       <TaskCompletedOverlay
         visible={overlayVisivel}
@@ -252,6 +390,16 @@ export function HomeScreen({
           corpo={corpoParaExibir}
           visible={!overlayVisivel}
           onDismiss={limparMarcoExibido}
+        />
+      )}
+      {tour.tourAtivo && (
+        <FeatureTourOverlay
+          passoAtual={tour.passoAtual}
+          totalPassos={TOTAL_PASSOS_TOUR}
+          texto={TOUR_PASSOS[tour.passoAtual].texto}
+          medida={medidaAlvoTour}
+          onAvancar={tour.avancar}
+          onPular={tour.pular}
         />
       )}
     </SafeAreaView>

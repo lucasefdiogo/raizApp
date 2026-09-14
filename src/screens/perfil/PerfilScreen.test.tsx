@@ -12,10 +12,12 @@ jest.mock('../../hooks/usePerfil');
 jest.mock('../../hooks/useAuth');
 jest.mock('../../hooks/useAccountDeletion');
 jest.mock('../../hooks/useVoltarParaAbaHoje');
+jest.mock('../../hooks/useFeatureTour');
 
 const { usePerfil } = require('../../hooks/usePerfil');
 const { useAuth } = require('../../hooks/useAuth');
 const { useAccountDeletion } = require('../../hooks/useAccountDeletion');
+const { useFeatureTour } = require('../../hooks/useFeatureTour');
 
 function configurarPerfilPadrao(sobrescritas = {}) {
   usePerfil.mockReturnValue({
@@ -56,6 +58,13 @@ describe('PerfilScreen', () => {
       signInWithGoogle: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
+    });
+    useFeatureTour.mockReturnValue({
+      tourAtivo: false,
+      passoAtual: 0,
+      avancar: jest.fn(),
+      pular: jest.fn(),
+      reiniciar: jest.fn(),
     });
   });
 
@@ -221,6 +230,23 @@ describe('PerfilScreen', () => {
       await fireEvent.press(screen.getByText('Termos de Uso'));
 
       expect(Linking.openURL).toHaveBeenCalledWith(URL_TERMOS_DE_USO);
+    });
+
+    it('mostra "Ver tutorial novamente" e chama reiniciar() do useFeatureTour ao tocar', async () => {
+      const reiniciar = jest.fn();
+      useFeatureTour.mockReturnValue({
+        tourAtivo: false,
+        passoAtual: 0,
+        avancar: jest.fn(),
+        pular: jest.fn(),
+        reiniciar,
+      });
+
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('Ver tutorial novamente'));
+
+      expect(reiniciar).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -10,6 +10,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
 import { AppBlockConfigScreen } from '../screens/appblock/AppBlockConfigScreen';
+import { RefAlvoTour } from '../components/tour/FeatureTourOverlay';
 
 export type HojeStackParamList = {
   Home: undefined;
@@ -35,6 +36,14 @@ interface HojeStackProps {
    * agendarLembreteDiario a cada boot).
    */
   avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
+  /**
+   * Refs pros botões reais das abas Progresso/Perfil, criados no
+   * MainTabNavigator (só ele tem acesso a esses nós nativos) — repassados
+   * até a HomeScreen sem tocar neles, só pra ela medir a posição nos
+   * passos 4-5 do tour de funcionalidades (ver FeatureTourOverlay).
+   */
+  progressoTabRef: RefAlvoTour;
+  perfilTabRef: RefAlvoTour;
 }
 
 /**
@@ -44,7 +53,12 @@ interface HojeStackProps {
  * existirem, só que agora escopada à aba Hoje. useStreak roda aqui (não
  * mais no RootNavigator) porque só a aba Hoje depende do resultado dele.
  */
-export function HojeStack({ uid, avaliarAlertaRisco }: HojeStackProps) {
+export function HojeStack({
+  uid,
+  avaliarAlertaRisco,
+  progressoTabRef,
+  perfilTabRef,
+}: HojeStackProps) {
   const streak = useStreak(uid);
   const recovery = useRecoveryState(
     streak.statusDiaAnterior,
@@ -88,6 +102,8 @@ export function HojeStack({ uid, avaliarAlertaRisco }: HojeStackProps) {
               avaliarAlertaRisco={avaliarAlertaRisco}
               recarregarStreak={streak.recarregar}
               aoAbrirBloqueioApps={() => navigation.navigate('AppBlockConfig')}
+              progressoTabRef={progressoTabRef}
+              perfilTabRef={perfilTabRef}
             />
           )}
         </Stack.Screen>
