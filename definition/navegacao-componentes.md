@@ -85,11 +85,16 @@ enquanto resolve — nenhuma tela pisca durante o carregamento.
 ### HomeScreen
 Ordem real de renderização, de cima pra baixo:
 1. `HomeHeader` — saudação por horário + nome, badge de streak à direita
-2. `StreakCard` — streak atual + escudos disponíveis
+2. `StreakCard` — streak atual + escudos disponíveis (envolto num `View` com `ref`,
+   ver "Tour de funcionalidades" abaixo)
 3. Headline "Tarefas de hoje"
-4. Lista de `TaskItem` + `AddTaskForm`
-5. `AppBlockBanner` OU `AppBlockStatusCard` (mutuamente exclusivos, no fim da rolagem)
-6. Overlays condicionais por cima de tudo: `TaskCompletedOverlay`, `StreakMilestoneModal`
+4. Lista de `TaskItem` + `AddTaskForm` (`forwardRef` — o `ref` aponta só pro botão
+   "Adicionar tarefa", não pro formulário inteiro)
+5. `AppBlockBanner` OU `AppBlockStatusCard` (mutuamente exclusivos, no fim da rolagem;
+   o wrapper dos dois também carrega um `ref`)
+6. Overlays condicionais por cima de tudo, nesta ordem: `TaskCompletedOverlay`,
+   `StreakMilestoneModal`, `FeatureTourOverlay` (por último — fica por cima dos outros
+   dois se coincidirem)
 
 ### `TaskItem`
 | Prop | Tipo | Descrição |
@@ -147,9 +152,10 @@ importa o componente).
 
 ### PerfilScreen
 Seções, em ordem: "Seu porquê" (campo + botão Salvar explícito) → Notificações
-(toggle + `DateTimePicker`) → entrada "Bloqueio de apps" → links legais (Política de
-Privacidade / Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho,
-abre `ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
+(toggle + `DateTimePicker`) → entrada "Bloqueio de apps" → "Sobre" ("Ver tutorial
+novamente", reinicia o tour de funcionalidades — ver seção própria abaixo — + links
+legais: Política de Privacidade / Termos) → "Excluir conta" (`SecondaryButton` neutro,
+sem vermelho, abre `ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
 
 ### AppBlockConfigScreen
 Se `isAccessibilityServiceEnabled() === false`: renderiza `AccessibilityPrimingScreen`
@@ -173,6 +179,32 @@ pausa de respiração), com exigência crescente conforme `desbloqueiosApps` do 
 `AccessibilityPrimingScreen` (dentro do fluxo de AppBlockConfigScreen) e
 `NotificationPrimingScreen` (antes do primeiro pedido de permissão de notificação, pós-
 onboarding) — conteúdo fixo de explicação, sem lógica de negócio própria.
+
+### Tour de funcionalidades (pós-onboarding)
+Diferente do Tutorial Inicial (conceitual, pré-login, carrossel de 4 slides) — este
+aponta pra elementos REAIS da UI já logada, na primeira vez que a `HomeScreen` renderiza
+depois do onboarding. Controlado por `useFeatureTour` (AsyncStorage
+`tour_funcionalidades_visto`, mesmo padrão de `tutorial_visto`); conteúdo dos 5 passos
+em `src/components/tour/tourSteps.ts`; renderização em `FeatureTourOverlay.tsx`
+(componente burro — recebe posição e texto já resolvidos, não decide nenhum dos dois).
+
+5 alvos, nesta ordem: `StreakCard` → botão "Adicionar tarefa" → banner/status card de
+bloqueio de apps (os 3 dentro da `HomeScreen`) → aba Progresso → aba Perfil (os 2
+últimos na tab bar do `MainTabNavigator`, sem navegar de verdade — só recorte visual).
+
+Posição vem de `measureInWindow` nos refs reais dos 5 elementos, nunca coordenada fixa.
+Os refs das abas Progresso/Perfil só podem ser criados no `MainTabNavigator` (onde os
+nós nativos existem — via `tabBarButton` customizado nessas 2 abas, preservando o toque
+normal) e são repassados como prop simples até a `HomeScreen`, atravessando o
+`HojeStack` sem lógica no meio (mesmo padrão de repasse já usado por
+`avaliarAlertaRisco`). O overlay bloqueia toque em qualquer coisa por baixo enquanto
+ativo — por isso não existe scroll "ao vivo" a acompanhar: ao entrar num passo cujo
+alvo está fora da faixa visível, a `HomeScreen` rola até uma posição previsível antes de
+remedir.
+
+Link "Ver tutorial novamente" na `PerfilScreen` (seção "Sobre", junto dos links legais)
+chama `useFeatureTour().reiniciar()` — reseta a flag e navega de volta pra aba Hoje, que
+é onde o tour de fato aparece.
 
 ---
 
