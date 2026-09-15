@@ -193,13 +193,37 @@ export async function atualizarEstadoStreak(
   );
 }
 
+/**
+ * `tarefas`/`statusDia`/`escudoUsado` podem estar ausentes num documento
+ * que EXISTE: `incrementarDesbloqueiosHoje` grava `dailyLogs/{data}` com
+ * `setDoc({ desbloqueiosApps }, { merge: true })`, que cria o documento na
+ * primeira vez sem nenhum desses três campos (ex: usuário desbloqueia um
+ * app bloqueado antes de mexer em qualquer tarefa no dia). Sem normalizar
+ * aqui, todo consumidor de buscarDailyLog (useDailyTasks em primeiro
+ * lugar) recebia `tarefas: undefined` e quebrava em
+ * `calcularStatusDia(tarefas)` → `tarefas.length` (crash real visto em
+ * device físico ao reabrir um app já desbloqueado por respiração).
+ */
 export async function buscarDailyLog(
   uid: string,
   data: string,
 ): Promise<DailyLog | null> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
   const snapshot = await getDoc(referencia);
-  return snapshot.exists() ? (snapshot.data() as DailyLog) : null;
+  if (!snapshot.exists()) {
+    return null;
+  }
+
+  const bruto = snapshot.data() as Partial<DailyLog>;
+  return {
+    data,
+    tarefas: bruto.tarefas ?? [],
+    statusDia: bruto.statusDia ?? 'pendente',
+    escudoUsado: bruto.escudoUsado ?? false,
+    ...(bruto.desbloqueiosApps !== undefined
+      ? { desbloqueiosApps: bruto.desbloqueiosApps }
+      : {}),
+  };
 }
 
 /**

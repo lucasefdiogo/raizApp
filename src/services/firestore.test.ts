@@ -569,6 +569,26 @@ describe('services/firestore', () => {
       expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(1);
     });
 
+    // Regressão: desbloquear um app bloqueado antes de mexer em qualquer
+    // tarefa no dia cria dailyLogs/{data} só com desbloqueiosApps (merge
+    // num documento que ainda não existia) — sem normalizar em
+    // buscarDailyLog, useDailyTasks recebia tarefas: undefined e quebrava
+    // em calcularStatusDia (crash real visto em device físico ao reabrir
+    // um app já desbloqueado por respiração).
+    it('buscarDailyLog normaliza tarefas/statusDia/escudoUsado quando o documento só tem desbloqueiosApps', async () => {
+      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+
+      expect(log).toEqual({
+        data: '2026-09-15',
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+        desbloqueiosApps: 1,
+      });
+    });
+
     it('acumula ao longo de várias chamadas', async () => {
       await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
       await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
