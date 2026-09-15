@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { PrimaryButton } from '../PrimaryButton';
+import { ALTURA_MINIMA_TOOLTIP_TOUR } from './tourSteps';
 
 export interface MedidaAlvoTour {
   x: number;
@@ -27,7 +28,7 @@ export interface MedidaAlvoTour {
  */
 export type RefAlvoTour = React.RefObject<React.ComponentRef<typeof View> | null>;
 
-interface FeatureTourOverlayProps {
+export interface FeatureTourOverlayProps {
   /** 0-indexado. */
   passoAtual: number;
   totalPassos: number;
@@ -41,12 +42,6 @@ interface FeatureTourOverlayProps {
 
 const BORDA_DESTAQUE = 3;
 const MARGEM_BALAO = theme.spacing.md;
-// Espaço mínimo garantido pro balão, e também teto de segurança: entre o
-// topo calculado e a base segura da tela sempre sobra pelo menos isso —
-// suficiente pro indicador + 2-3 linhas de texto + a linha de controles.
-// Ainda assim, o texto tem scroll interno (ver ScrollView abaixo) — nunca
-// deve faltar, mas nada trava mesmo que falte.
-const ALTURA_MINIMA_BALAO = 160;
 
 /**
  * Coach mark de tela cheia: 4 faixas escurecidas ao redor do retângulo do
@@ -57,6 +52,16 @@ const ALTURA_MINIMA_BALAO = 160;
  * ao vivo durante um passo: nada por baixo responde a toque enquanto isso
  * está montado. Componente burro: não mede nada, não decide texto — só
  * desenha a partir de `medida`/`texto` recebidos.
+ *
+ * Renderizado a partir do MainTabNavigator, não da HomeScreen — a tab bar
+ * é uma árvore irmã da tela de conteúdo (fora do container que a
+ * HomeScreen consegue cobrir), então um overlay montado dentro da
+ * HomeScreen nunca conseguiria desenhar por cima dela (ficava atrás,
+ * cortado — bug real visto em device físico nos passos com alvo perto do
+ * fim da tela: balão cortado, e o recorte das abas Progresso/Perfil nem
+ * aparecia). A HomeScreen mede os 5 alvos e repassa o resultado pra cima
+ * via callback (aoAtualizarTour), e é o MainTabNavigator quem efetivamente
+ * renderiza este componente, num nível que cobre tela inteira + tab bar.
  *
  * useWindowDimensions() dá a altura CHEIA da janela (o app roda
  * edge-to-edge — ver CLAUDE.md/memória do projeto), incluindo a área atrás
@@ -83,7 +88,7 @@ export function FeatureTourOverlay({
   const topoSeguro = insets.top + MARGEM_BALAO;
   const baseSegura = alturaTela - insets.bottom - MARGEM_BALAO;
   const limiteInferiorTopo = Math.max(
-    baseSegura - ALTURA_MINIMA_BALAO,
+    baseSegura - ALTURA_MINIMA_TOOLTIP_TOUR,
     topoSeguro,
   );
 
@@ -92,10 +97,10 @@ export function FeatureTourOverlay({
       return alturaTela * 0.4;
     }
     const espacoAbaixo = baseSegura - (medida.y + medida.height + MARGEM_BALAO);
-    if (espacoAbaixo >= ALTURA_MINIMA_BALAO) {
+    if (espacoAbaixo >= ALTURA_MINIMA_TOOLTIP_TOUR) {
       return medida.y + medida.height + MARGEM_BALAO;
     }
-    const topoSeAcima = medida.y - MARGEM_BALAO - ALTURA_MINIMA_BALAO;
+    const topoSeAcima = medida.y - MARGEM_BALAO - ALTURA_MINIMA_TOOLTIP_TOUR;
     if (topoSeAcima >= topoSeguro) {
       return topoSeAcima;
     }

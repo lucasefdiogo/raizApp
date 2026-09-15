@@ -30,11 +30,12 @@ import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { AppBlockBanner } from '../components/home/AppBlockBanner';
 import { AppBlockStatusCard } from '../components/home/AppBlockStatusCard';
 import {
-  FeatureTourOverlay,
+  FeatureTourOverlayProps,
   MedidaAlvoTour,
   RefAlvoTour,
 } from '../components/tour/FeatureTourOverlay';
 import {
+  ALTURA_MINIMA_TOOLTIP_TOUR,
   TOTAL_PASSOS_TOUR,
   TOUR_PASSOS,
   TourAlvoId,
@@ -57,8 +58,17 @@ const ALVOS_ROLAVEIS_TOUR: TourAlvoId[] = [
   'adicionarTarefa',
   'bloqueioApps',
 ];
-const MARGEM_ALVO_TOUR_PX = 96;
 const ATRASO_MEDICAO_TOUR_MS = 80;
+// Maior que ALTURA_MINIMA_TOOLTIP_TOUR de propósito: aqui a checagem é
+// grosseira — alturaJanela (useWindowDimensions) é a altura CHEIA da
+// janela, sem descontar a tab bar nem a barra de gestos do Android (a
+// HomeScreen não sabe a altura exata de nenhuma das duas). A folga
+// extra cobre as duas, pra quase nunca depender do fallback de scroll
+// interno do próprio balão (ver FeatureTourOverlay, que sim calcula a área
+// segura com precisão via useSafeAreaInsets — bug real visto em device
+// físico: com uma folga pequena aqui, a HomeScreen achava "cabe" e nunca
+// rolava, mas o balão ficava espremido/cortado mesmo assim).
+const ESPACO_MINIMO_SCROLL_TOUR_PX = ALTURA_MINIMA_TOOLTIP_TOUR + 160;
 
 const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
   pendente: 'O dia ainda está começando.',
@@ -86,6 +96,14 @@ interface HomeScreenProps {
    * tour de funcionalidades, ver useFeatureTour/FeatureTourOverlay. */
   progressoTabRef: RefAlvoTour;
   perfilTabRef: RefAlvoTour;
+  /**
+   * A HomeScreen não renderiza o FeatureTourOverlay ela mesma — quem
+   * decide o passo/avança/mede os alvos é ela, mas quem desenha é o
+   * MainTabNavigator (só ele cobre a tab bar também, ver comentário em
+   * FeatureTourOverlay.tsx). Chamado com `null` quando o tour não está
+   * ativo.
+   */
+  aoAtualizarTour: (props: FeatureTourOverlayProps | null) => void;
 }
 
 export function HomeScreen({
@@ -98,6 +116,7 @@ export function HomeScreen({
   aoAbrirBloqueioApps,
   progressoTabRef,
   perfilTabRef,
+  aoAtualizarTour,
 }: HomeScreenProps) {
   const nome = useNomeUsuario(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
@@ -246,8 +265,8 @@ export function HomeScreen({
 
       const dentroDaFaixaVisivel =
         !alvoRolavel ||
-        (y >= MARGEM_ALVO_TOUR_PX &&
-          y + height <= alturaJanela - MARGEM_ALVO_TOUR_PX);
+        (y >= ESPACO_MINIMO_SCROLL_TOUR_PX &&
+          y + height <= alturaJanela - ESPACO_MINIMO_SCROLL_TOUR_PX);
 
       if (dentroDaFaixaVisivel) {
         setMedidaAlvoTour({ x, y, width, height });
@@ -255,7 +274,7 @@ export function HomeScreen({
       }
 
       scrollRef.current?.scrollTo({
-        y: scrollYRef.current + (y - MARGEM_ALVO_TOUR_PX),
+        y: scrollYRef.current + (y - ESPACO_MINIMO_SCROLL_TOUR_PX),
         animated: false,
       });
       idTimeout = setTimeout(() => {
@@ -286,6 +305,31 @@ export function HomeScreen({
     alturaJanela,
     progressoTabRef,
     perfilTabRef,
+  ]);
+
+  // Repassa o estado do tour pra cima — quem efetivamente desenha é o
+  // MainTabNavigator (ver FeatureTourOverlay.tsx pro motivo). `null`
+  // desliga o overlay lá em cima.
+  useEffect(() => {
+    if (!tour.tourAtivo) {
+      aoAtualizarTour(null);
+      return;
+    }
+    aoAtualizarTour({
+      passoAtual: tour.passoAtual,
+      totalPassos: TOTAL_PASSOS_TOUR,
+      texto: TOUR_PASSOS[tour.passoAtual].texto,
+      medida: medidaAlvoTour,
+      onAvancar: tour.avancar,
+      onPular: tour.pular,
+    });
+  }, [
+    tour.tourAtivo,
+    tour.passoAtual,
+    tour.avancar,
+    tour.pular,
+    medidaAlvoTour,
+    aoAtualizarTour,
   ]);
 
   const appsBloqueadosResolvidos = bloqueioApps.appsSelecionados
@@ -390,16 +434,6 @@ export function HomeScreen({
           corpo={corpoParaExibir}
           visible={!overlayVisivel}
           onDismiss={limparMarcoExibido}
-        />
-      )}
-      {tour.tourAtivo && (
-        <FeatureTourOverlay
-          passoAtual={tour.passoAtual}
-          totalPassos={TOTAL_PASSOS_TOUR}
-          texto={TOUR_PASSOS[tour.passoAtual].texto}
-          medida={medidaAlvoTour}
-          onAvancar={tour.avancar}
-          onPular={tour.pular}
         />
       )}
     </SafeAreaView>

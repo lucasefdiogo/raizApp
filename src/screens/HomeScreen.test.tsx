@@ -157,6 +157,7 @@ const PROPS_PADRAO = {
   aoAbrirBloqueioApps: jest.fn(),
   progressoTabRef: createRef<React.ComponentRef<typeof View>>(),
   perfilTabRef: createRef<React.ComponentRef<typeof View>>(),
+  aoAtualizarTour: jest.fn(),
 };
 
 const CONFIG_BLOQUEIO_PADRAO = {
@@ -176,6 +177,7 @@ const CONFIG_BLOQUEIO_PADRAO = {
 };
 
 beforeEach(() => {
+  PROPS_PADRAO.aoAtualizarTour.mockClear();
   obterMensagemTarefaConcluida.mockClear();
   obterMensagemTarefaConcluida.mockReturnValue('Feito. Isso conta.');
   buscarSystemMessage.mockReset();
@@ -602,13 +604,25 @@ describe('HomeScreen', () => {
   });
 
   describe('tour de funcionalidades', () => {
-    it('tourAtivo false (flag já vista): não mostra o overlay do tour', async () => {
+    // A HomeScreen não renderiza o FeatureTourOverlay ela mesma — só quem
+    // vive dentro dela (StreakCard, AddTaskForm, bloqueio de apps) consegue
+    // medir seus próprios elementos; quem desenha é o MainTabNavigator, que
+    // cobre a tab bar também (ver comentário em FeatureTourOverlay.tsx —
+    // um overlay montado dentro da Home nunca conseguiria desenhar por
+    // cima da tab bar, ela é uma árvore irmã). Por isso os testes aqui
+    // checam o que é repassado via aoAtualizarTour, não o que é renderizado.
+    function ultimaChamada() {
+      const chamadas = PROPS_PADRAO.aoAtualizarTour.mock.calls;
+      return chamadas[chamadas.length - 1][0];
+    }
+
+    it('tourAtivo false (flag já vista): chama aoAtualizarTour(null)', async () => {
       await render(<HomeScreen {...PROPS_PADRAO} />);
 
-      expect(screen.queryByTestId('feature-tour-overlay')).toBeNull();
+      expect(ultimaChamada()).toBeNull();
     });
 
-    it('tourAtivo true: mostra o overlay com o texto do passo atual', async () => {
+    it('tourAtivo true: chama aoAtualizarTour com o passo/texto atuais', async () => {
       useFeatureTour.mockReturnValue({
         tourAtivo: true,
         passoAtual: 0,
@@ -619,12 +633,14 @@ describe('HomeScreen', () => {
 
       await render(<HomeScreen {...PROPS_PADRAO} />);
 
-      expect(screen.getByTestId('feature-tour-overlay')).toBeTruthy();
-      expect(screen.getByText(TOUR_PASSOS[0].texto)).toBeTruthy();
-      expect(screen.getByText('Passo 1 de 5')).toBeTruthy();
+      const chamada = ultimaChamada();
+      expect(chamada).not.toBeNull();
+      expect(chamada.passoAtual).toBe(0);
+      expect(chamada.totalPassos).toBe(5);
+      expect(chamada.texto).toBe(TOUR_PASSOS[0].texto);
     });
 
-    it('"Pular tour" chama pular()', async () => {
+    it('onPular repassado chama pular() do useFeatureTour', async () => {
       const pular = jest.fn();
       useFeatureTour.mockReturnValue({
         tourAtivo: true,
@@ -635,12 +651,12 @@ describe('HomeScreen', () => {
       });
 
       await render(<HomeScreen {...PROPS_PADRAO} />);
-      await fireEvent.press(screen.getByText('Pular tour'));
+      ultimaChamada().onPular();
 
       expect(pular).toHaveBeenCalledTimes(1);
     });
 
-    it('"Próximo" chama avancar()', async () => {
+    it('onAvancar repassado chama avancar() do useFeatureTour', async () => {
       const avancar = jest.fn();
       useFeatureTour.mockReturnValue({
         tourAtivo: true,
@@ -651,12 +667,12 @@ describe('HomeScreen', () => {
       });
 
       await render(<HomeScreen {...PROPS_PADRAO} />);
-      await fireEvent.press(screen.getByText('Próximo'));
+      ultimaChamada().onAvancar();
 
       expect(avancar).toHaveBeenCalledTimes(1);
     });
 
-    it('regressão: com o tour ativo, o modal de marco continua podendo aparecer — o tour não o esconde/substitui', async () => {
+    it('regressão: com o tour ativo, o modal de marco continua podendo aparecer — nenhum dos dois suprime o outro', async () => {
       useFeatureTour.mockReturnValue({
         tourAtivo: true,
         passoAtual: 0,
@@ -668,7 +684,7 @@ describe('HomeScreen', () => {
       await render(<HomeScreen {...PROPS_PADRAO} marcoAtingido={7} />);
 
       await waitFor(() => expect(screen.getByText('Marco atingido')).toBeTruthy());
-      expect(screen.getByTestId('feature-tour-overlay')).toBeTruthy();
+      expect(ultimaChamada()).not.toBeNull();
     });
   });
 });
