@@ -30,15 +30,16 @@ describe('TutorialScreen', () => {
     expect(screen.getByText('Já tenho conta')).toBeTruthy();
   });
 
-  it('chama onConcluir ao pular a partir do primeiro slide', async () => {
+  it('chama onConcluir(false) ao pular a partir do primeiro slide', async () => {
     const onConcluir = jest.fn();
     await render(<TutorialScreen onConcluir={onConcluir} />);
 
     await fireEvent.press(screen.getByText('pular'));
     expect(onConcluir).toHaveBeenCalledTimes(1);
+    expect(onConcluir).toHaveBeenCalledWith(false);
   });
 
-  it('chama onConcluir ao pressionar "Começar" no último slide', async () => {
+  it('chama onConcluir(true) ao pressionar "Começar" no último slide', async () => {
     const onConcluir = jest.fn();
     await render(<TutorialScreen onConcluir={onConcluir} />);
 
@@ -48,9 +49,10 @@ describe('TutorialScreen', () => {
     await fireEvent.press(screen.getByText('Começar'));
 
     expect(onConcluir).toHaveBeenCalledTimes(1);
+    expect(onConcluir).toHaveBeenCalledWith(true);
   });
 
-  it('chama onConcluir ao pressionar "Já tenho conta" no último slide', async () => {
+  it('chama onConcluir(true) ao pressionar "Já tenho conta" no último slide', async () => {
     const onConcluir = jest.fn();
     await render(<TutorialScreen onConcluir={onConcluir} />);
 
@@ -60,6 +62,7 @@ describe('TutorialScreen', () => {
     await fireEvent.press(screen.getByText('Já tenho conta'));
 
     expect(onConcluir).toHaveBeenCalledTimes(1);
+    expect(onConcluir).toHaveBeenCalledWith(true);
   });
 
   it('não mostra "pular" no último slide', async () => {

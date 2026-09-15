@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './OnboardingScreen';
 
 jest.mock('../services/firestore');
+jest.mock('../services/analytics');
+jest.mock('../services/crashlytics');
 jest.mock('../hooks/useToast');
 const {
   buscarUsuario,
@@ -12,6 +14,8 @@ const {
   adicionarTarefaAoDailyLog,
   marcarOnboardingConcluido,
 } = require('../services/firestore');
+const { logOnboardingConcluido } = require('../services/analytics');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('../hooks/useToast');
 
 const showToast = jest.fn();
@@ -201,6 +205,10 @@ describe('OnboardingScreen', () => {
     expect(showToast).toHaveBeenCalledWith(
       'Não conseguimos salvar agora. Tente de novo.',
     );
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useOnboarding.avancar',
+    );
   });
 
   it('não dispara toast quando a gravação de um passo sucede', async () => {
@@ -292,6 +300,7 @@ describe('OnboardingScreen', () => {
       });
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
     });
 
     it('"Pular por hoje": não cria tarefa nenhuma, mas marca concluído e chama onConcluir', async () => {
@@ -302,6 +311,7 @@ describe('OnboardingScreen', () => {
       expect(adicionarTarefaAoDailyLog).not.toHaveBeenCalled();
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
     });
 
     it('sem "Voltar" — o secundário aqui é "Pular por hoje"', async () => {
@@ -321,8 +331,13 @@ describe('OnboardingScreen', () => {
 
       expect(marcarOnboardingConcluido).not.toHaveBeenCalled();
       expect(onConcluir).not.toHaveBeenCalled();
+      expect(logOnboardingConcluido).not.toHaveBeenCalled();
       expect(showToast).toHaveBeenCalledWith(
         'Não conseguimos salvar agora. Tente de novo.',
+      );
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useOnboarding.comecarComTarefa',
       );
     });
   });

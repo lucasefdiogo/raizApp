@@ -10,6 +10,7 @@ import {
   getInstalledApps,
   syncBloqueioConfig,
 } from '../native/AccessibilityDetection';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const CONFIG_PADRAO: BloqueioAppsConfig = {
@@ -96,7 +97,8 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
   const recarregar = useCallback(async () => {
     try {
       await carregar();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useAppBlockConfig.recarregar');
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [carregar, showToast]);
@@ -108,7 +110,8 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
       try {
         await atualizarConfigBloqueioApps(uid, novaConfig);
         syncBloqueioConfig(novaConfig);
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'useAppBlockConfig.persistir');
         setConfig(anterior);
         showToast(mensagemFalha);
       }

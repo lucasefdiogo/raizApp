@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from '../utils/storage';
 
 jest.mock('../services/firestore');
 jest.mock('../services/notifications');
+jest.mock('../services/analytics');
 
 const { buscarUsuario } = require('../services/firestore');
 const {
@@ -12,6 +13,7 @@ const {
   agendarLembreteDiario,
   avaliarNecessidadeAlertaRisco,
 } = require('../services/notifications');
+const { logPermissaoNotificacao } = require('../services/analytics');
 
 describe('useLocalNotifications', () => {
   beforeEach(async () => {
@@ -134,6 +136,7 @@ describe('useLocalNotifications', () => {
       expect(solicitarPermissao).toHaveBeenCalledTimes(1);
       expect(agendarLembreteDiario).toHaveBeenCalledWith('08:00');
       expect(result.current.deveExibirPriming).toBe(false);
+      expect(logPermissaoNotificacao).toHaveBeenCalledWith(true);
     });
 
     it('concluirPriming(false): grava a flag e agenda o lembrete, mas nunca chama solicitarPermissao', async () => {
@@ -157,6 +160,7 @@ describe('useLocalNotifications', () => {
       expect(solicitarPermissao).not.toHaveBeenCalled();
       expect(agendarLembreteDiario).toHaveBeenCalledWith('08:00');
       expect(result.current.deveExibirPriming).toBe(false);
+      expect(logPermissaoNotificacao).toHaveBeenCalledWith(false);
     });
   });
 });

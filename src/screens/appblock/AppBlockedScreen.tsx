@@ -37,7 +37,7 @@ interface AppBlockedScreenProps {
    * vazio (ver domain/appBlockEscalation.ts).
    */
   precisaReflexao: boolean;
-  onDesbloquear: (minutos: number) => void;
+  onDesbloquear: (minutos: number, metodo: 'tarefas' | 'respiracao') => void;
   onFechar: () => void;
 }
 
@@ -65,6 +65,11 @@ export function AppBlockedScreen({
     duracaoRespiracaoSegundos,
   );
   const [reflexaoTexto, setReflexaoTexto] = useState('');
+  // Método que levou ao modo 'reflexao' — os dois caminhos convergem nele,
+  // então precisa ser lembrado pra logAppDesbloqueado saber qual foi.
+  const [metodoDesbloqueio, setMetodoDesbloqueio] = useState<
+    'tarefas' | 'respiracao'
+  >('tarefas');
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -82,7 +87,7 @@ export function AppBlockedScreen({
       if (precisaReflexao) {
         setModo('reflexao');
       } else {
-        onDesbloquear(MINUTOS_DESBLOQUEIO);
+        onDesbloquear(MINUTOS_DESBLOQUEIO, 'respiracao');
         setModo('liberado');
       }
       return;
@@ -102,15 +107,17 @@ export function AppBlockedScreen({
       setModo('tarefas_pendentes');
       return;
     }
+    setMetodoDesbloqueio('tarefas');
     if (precisaReflexao) {
       setModo('reflexao');
     } else {
-      onDesbloquear(MINUTOS_DESBLOQUEIO);
+      onDesbloquear(MINUTOS_DESBLOQUEIO, 'tarefas');
       setModo('liberado');
     }
   }
 
   function handleIniciarRespiracao() {
+    setMetodoDesbloqueio('respiracao');
     setSegundosRestantes(duracaoRespiracaoSegundos);
     setModo('respiracao');
   }
@@ -119,7 +126,7 @@ export function AppBlockedScreen({
     if (reflexaoTexto.trim().length === 0) {
       return;
     }
-    onDesbloquear(MINUTOS_DESBLOQUEIO);
+    onDesbloquear(MINUTOS_DESBLOQUEIO, metodoDesbloqueio);
     setModo('liberado');
   }
 

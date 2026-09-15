@@ -6,7 +6,12 @@ import { TutorialSlide } from '../../components/tutorial/TutorialSlide';
 import { RootProgressIcon } from '../../components/RootProgressIcon';
 
 interface TutorialScreenProps {
-  onConcluir: () => void;
+  /**
+   * `concluiuTudo` distingue terminar o tutorial de verdade (último slide)
+   * de pular em qualquer slide anterior — ver logTutorialConcluido em
+   * services/analytics.ts, que só deve disparar no primeiro caso.
+   */
+  onConcluir: (concluiuTudo: boolean) => void;
 }
 
 const TOTAL_PASSOS = 4;
@@ -68,6 +73,8 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
   const [passo, setPasso] = useState(0);
 
   const avancar = () => setPasso(atual => Math.min(TOTAL_PASSOS - 1, atual + 1));
+  const pular = () => onConcluir(false);
+  const concluir = () => onConcluir(true);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,7 +86,7 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           corpo={<CicloList />}
           rodape="Isso não é falta de força de vontade. É um ciclo — e ciclos se quebram com o passo certo, não com mais cobrança."
           botaoPrimario={{ titulo: 'Continuar', onPress: avancar }}
-          onPular={onConcluir}
+          onPular={pular}
         />
       )}
       {passo === 1 && (
@@ -90,7 +97,7 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           corpo={<ExemploChecklist />}
           rodape="Você escolhe até 3 tarefas essenciais por dia. Elas contam. O resto é bônus."
           botaoPrimario={{ titulo: 'Continuar', onPress: avancar }}
-          onPular={onConcluir}
+          onPular={pular}
         />
       )}
       {passo === 2 && (
@@ -102,7 +109,7 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           corpo={<RootProgressIcon variant="reduzido" tamanho={112} />}
           rodape="Você tem 1 dia de proteção por semana. Depois disso, o progresso cai, mas nunca some."
           botaoPrimario={{ titulo: 'Continuar', onPress: avancar }}
-          onPular={onConcluir}
+          onPular={pular}
         />
       )}
       {passo === 3 && (
@@ -111,8 +118,8 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           totalPassos={TOTAL_PASSOS}
           titulo="Vamos começar pequeno."
           rodape="Antes de tudo, queremos entender o que mais pesa pra você hoje. Leva menos de 2 minutos."
-          botaoPrimario={{ titulo: 'Começar', onPress: onConcluir }}
-          botaoSecundario={{ titulo: 'Já tenho conta', onPress: onConcluir }}
+          botaoPrimario={{ titulo: 'Começar', onPress: concluir }}
+          botaoSecundario={{ titulo: 'Já tenho conta', onPress: concluir }}
         />
       )}
     </SafeAreaView>

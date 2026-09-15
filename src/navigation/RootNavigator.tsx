@@ -109,9 +109,9 @@ export function RootNavigator() {
                     que já linka para as duas telas. */}
                 {() => (
                   <TutorialScreen
-                    onConcluir={() => {
+                    onConcluir={concluiuTudo => {
                       setVoltouParaTutorial(false);
-                      tutorial.marcarTutorialVisto();
+                      tutorial.marcarTutorialVisto(concluiuTudo);
                     }}
                   />
                 )}

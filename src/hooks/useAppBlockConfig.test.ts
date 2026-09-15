@@ -3,10 +3,12 @@ import { useAppBlockConfig } from './useAppBlockConfig';
 
 jest.mock('../services/firestore');
 jest.mock('../native/AccessibilityDetection');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 
 const firestore = require('../services/firestore');
 const nativo = require('../native/AccessibilityDetection');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -148,6 +150,10 @@ describe('useAppBlockConfig', () => {
       // Só a sincronia do boot — a escrita falhou, não sincroniza a config
       // errada pro lado nativo.
       expect(nativo.syncBloqueioConfig).toHaveBeenCalledTimes(1);
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useAppBlockConfig.persistir',
+      );
     });
   });
 
@@ -295,6 +301,10 @@ describe('useAppBlockConfig', () => {
 
       expect(showToast).toHaveBeenCalledWith(
         'Não conseguimos atualizar agora. Tente de novo.',
+      );
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useAppBlockConfig.recarregar',
       );
     });
   });

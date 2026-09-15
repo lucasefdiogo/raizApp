@@ -15,6 +15,8 @@ import {
   existeAlgumDailyLog,
   salvarDailyLog,
 } from '../services/firestore';
+import { logTarefaConcluida, logTarefaCriada } from '../services/analytics';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 // Tarefas de exemplo semeadas SÓ no primeiro dia de uso (nenhum dailyLog
@@ -172,7 +174,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const recarregar = useCallback(async () => {
     try {
       await carregar();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useDailyTasks.recarregar');
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [carregar, showToast]);
@@ -189,7 +192,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
           statusDia: calcularStatusDia(novasTarefas),
           escudoUsado,
         });
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'useDailyTasks.persistir');
         setTarefas(anterior);
         showToast(mensagemFalha);
       }
@@ -199,14 +203,20 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
 
   const alternarTarefa = useCallback(
     (id: string) => {
+      const tarefa = tarefas.find(item => item.id === id);
+      const vaiConcluir = tarefa !== undefined && !tarefa.concluida;
+
       persistir(
-        tarefas.map(tarefa =>
-          tarefa.id === id
-            ? { ...tarefa, concluida: !tarefa.concluida }
-            : tarefa,
+        tarefas.map(item =>
+          item.id === id ? { ...item, concluida: !item.concluida } : item,
         ),
         MENSAGEM_FALHA_ALTERACAO,
       );
+
+      // Só ao concluir, nunca ao desmarcar — ver services/analytics.ts.
+      if (vaiConcluir && tarefa) {
+        logTarefaConcluida(tarefa.essencial, tarefa.tipo ?? 'padrao');
+      }
     },
     [tarefas, persistir],
   );
@@ -241,6 +251,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
         return;
       }
 
+      logTarefaCriada(essencial, tipo);
+
       if (!repetirTodosOsDias) {
         persistir(resultado.tarefas, MENSAGEM_FALHA_ADICIONAR);
         return;
@@ -262,7 +274,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
           tarefa.id === nova.id ? { ...tarefa, origemRecorrenteId } : tarefa,
         );
         persistir(tarefasComOrigem, MENSAGEM_FALHA_ADICIONAR);
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'useDailyTasks.adicionarTarefa');
         showToast(MENSAGEM_FALHA_ADICIONAR);
       }
     },
@@ -304,7 +317,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     async (_tarefaId: string, origemRecorrenteId: string) => {
       try {
         await desativarTarefaRecorrente(uid, origemRecorrenteId);
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'useDailyTasks.pararDeRepetir');
         showToast(MENSAGEM_FALHA_PARAR_DE_REPETIR);
       }
     },

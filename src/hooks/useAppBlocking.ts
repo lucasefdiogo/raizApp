@@ -15,6 +15,10 @@ import {
   exigeReflexao,
   obterDuracaoRespiracao,
 } from '../domain/appBlockEscalation';
+import {
+  logAppBloqueadoDetectado,
+  logAppDesbloqueado,
+} from '../services/analytics';
 
 function hojeISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -39,7 +43,7 @@ interface UseAppBlockingResultado {
    * não bloqueia o desbloqueio) o contador de desbloqueios do dia, usado pra
    * escalar a exigência dos próximos — ver domain/appBlockEscalation.ts.
    */
-  desbloquear: (minutos: number) => void;
+  desbloquear: (minutos: number, metodo: 'tarefas' | 'respiracao') => void;
   /** Fecha a tela de bloqueio sem registrar nenhum desbloqueio. */
   dispensar: () => void;
 }
@@ -81,6 +85,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
       nome: encontrado?.nome ?? packageName,
       icone: encontrado?.icone ?? null,
     });
+    logAppBloqueadoDetectado();
   }, []);
 
   useEffect(() => {
@@ -116,7 +121,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
   const precisaReflexao = exigeReflexao(nivelAtual);
 
   const desbloquear = useCallback(
-    (minutos: number) => {
+    (minutos: number, metodo: 'tarefas' | 'respiracao') => {
       if (!appBloqueadoAtual) {
         return;
       }
@@ -127,8 +132,9 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
         incrementarDesbloqueiosHoje(uid, hojeISO());
       }
       registrarDesbloqueioTemporario(appBloqueadoAtual.packageName, minutos);
+      logAppDesbloqueado(metodo, nivelAtual);
     },
-    [appBloqueadoAtual, uid],
+    [appBloqueadoAtual, uid, nivelAtual],
   );
 
   const dispensar = useCallback(() => setAppBloqueadoAtual(null), []);

@@ -4,11 +4,13 @@ import { useAccountDeletion } from './useAccountDeletion';
 jest.mock('../services/auth');
 jest.mock('../services/firestore');
 jest.mock('../services/notifications');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 
 const authService = require('../services/auth');
 const firestoreService = require('../services/firestore');
 const notificationsService = require('../services/notifications');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -89,6 +91,10 @@ describe('useAccountDeletion', () => {
     expect(authService.excluirContaAuth).not.toHaveBeenCalled();
     expect(result.current.carregando).toBe(false);
     expect(result.current.precisaReautenticar).toBe(false);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useAccountDeletion.excluirConta.limpeza',
+    );
   });
 
   it('falha de rede no passo 5 (não requires-recent-login): toast do cenário de borda', async () => {
@@ -103,6 +109,10 @@ describe('useAccountDeletion', () => {
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ENCERRAR_ACESSO);
     expect(result.current.carregando).toBe(false);
     expect(result.current.precisaReautenticar).toBe(false);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useAccountDeletion.excluirConta.apagarContaAuth',
+    );
   });
 
   it('requires-recent-login (senha): pausa, reautentica com a senha e conclui', async () => {
@@ -133,6 +143,8 @@ describe('useAccountDeletion', () => {
     expect(firestoreService.apagarTodosOsDadosDoUsuario).toHaveBeenCalledTimes(1);
     expect(result.current.precisaReautenticar).toBe(false);
     expect(showToast).not.toHaveBeenCalled();
+    // requires-recent-login é fluxo esperado, não um bug — não reporta.
+    expect(registrarErro).not.toHaveBeenCalled();
   });
 
   it('requires-recent-login (Google): reautentica sem senha refazendo o login Google', async () => {
@@ -181,6 +193,36 @@ describe('useAccountDeletion', () => {
     );
     expect(result.current.precisaReautenticar).toBe(true);
     expect(authService.excluirContaAuth).toHaveBeenCalledTimes(1);
+    // senha errada é entrada inválida do usuário, não um bug — não reporta.
+    expect(registrarErro).not.toHaveBeenCalled();
+  });
+
+  it('falha inesperada (não senha errada) na reautenticação: reporta o erro', async () => {
+    authService.excluirContaAuth.mockRejectedValueOnce({
+      code: 'auth/requires-recent-login',
+    });
+    authService.reautenticarComSenha.mockRejectedValueOnce(
+      new Error('offline'),
+    );
+
+    const { result } = await renderHook(() => useAccountDeletion());
+
+    await act(async () => {
+      await result.current.excluirConta();
+    });
+    await act(async () => {
+      await result.current.reautenticar('minhaSenha');
+    });
+
+    await waitFor(() =>
+      expect(result.current.erro).toBe(
+        'Não foi possível confirmar sua identidade agora. Tente de novo.',
+      ),
+    );
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useAccountDeletion.reautenticar',
+    );
   });
 
   it('cancelar a reautenticação limpa o estado sem concluir a exclusão', async () => {
@@ -201,5 +243,6 @@ describe('useAccountDeletion', () => {
     expect(result.current.provedor).toBeNull();
     expect(result.current.erro).toBeNull();
     expect(authService.excluirContaAuth).toHaveBeenCalledTimes(1);
+    expect(registrarErro).not.toHaveBeenCalled();
   });
 });

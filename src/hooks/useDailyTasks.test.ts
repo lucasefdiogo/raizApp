@@ -2,6 +2,8 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useDailyTasks } from './useDailyTasks';
 
 jest.mock('../services/firestore');
+jest.mock('../services/analytics');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 
 const {
@@ -12,6 +14,8 @@ const {
   criarTarefaRecorrente,
   desativarTarefaRecorrente,
 } = require('../services/firestore');
+const { logTarefaCriada, logTarefaConcluida } = require('../services/analytics');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -97,6 +101,7 @@ describe('useDailyTasks', () => {
     );
     expect(logGravado.statusDia).toBe('cumprido');
     expect(logGravado.escudoUsado).toBe(false);
+    expect(logTarefaConcluida).toHaveBeenCalledWith(true, 'padrao');
   });
 
   it('preserva escudoUsado vindo do dailyLog carregado ao gravar um toggle', async () => {
@@ -138,6 +143,8 @@ describe('useDailyTasks', () => {
     });
 
     expect(result.current.statusDia).toBe('pendente');
+    // Desmarcar não é "concluir" — não deve gerar o evento de conclusão.
+    expect(logTarefaConcluida).not.toHaveBeenCalled();
   });
 
   it('adicionarTarefa insere no estado local e grava o dia inteiro', async () => {
@@ -157,6 +164,7 @@ describe('useDailyTasks', () => {
     const [, , logGravado] = salvarDailyLog.mock.calls[0];
     expect(logGravado.tarefas).toHaveLength(4);
     expect(showToast).not.toHaveBeenCalled();
+    expect(logTarefaCriada).toHaveBeenCalledWith(false, 'padrao');
   });
 
   it('adicionarTarefa grava tipo "exercicio" e duracaoMinutos quando fornecidos', async () => {
@@ -183,6 +191,7 @@ describe('useDailyTasks', () => {
         (t: { titulo: string }) => t.titulo === 'Caminhada leve',
       ),
     ).toMatchObject({ tipo: 'exercicio', duracaoMinutos: 20 });
+    expect(logTarefaCriada).toHaveBeenCalledWith(false, 'exercicio');
   });
 
   it('adicionarTarefa como exercício sem duração: grava tipo, sem o campo duracaoMinutos', async () => {
@@ -245,6 +254,7 @@ describe('useDailyTasks', () => {
     );
     expect(result.current.tarefas).toHaveLength(3);
     expect(salvarDailyLog).not.toHaveBeenCalled();
+    expect(logTarefaCriada).not.toHaveBeenCalled();
   });
 
   it('editarTarefa renomeia e grava o dia inteiro', async () => {
@@ -278,6 +288,10 @@ describe('useDailyTasks', () => {
     expect(result.current.tarefas).toEqual(tarefasAntes);
     expect(result.current.tarefas.find(t => t.id === '1')?.concluida).toBe(false);
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ALTERACAO);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useDailyTasks.persistir',
+    );
   });
 
   it('adicionarTarefa com falha de rede: reverte e dispara o toast de adicionar', async () => {
@@ -294,6 +308,10 @@ describe('useDailyTasks', () => {
 
     expect(result.current.tarefas).toEqual(tarefasAntes);
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ADICIONAR);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useDailyTasks.persistir',
+    );
   });
 
   it('removerTarefa tira do estado local e grava o dia inteiro sem a tarefa', async () => {
@@ -487,6 +505,10 @@ describe('useDailyTasks', () => {
       ).toBe(false);
       expect(salvarDailyLog).not.toHaveBeenCalled();
       expect(showToast).toHaveBeenCalledWith(MSG_FALHA_ADICIONAR);
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useDailyTasks.adicionarTarefa',
+      );
     });
 
     it('repetirTodosOsDias=true mas título inválido: nem valida o título mostrando erro, nem cria a recorrente', async () => {
@@ -561,6 +583,10 @@ describe('useDailyTasks', () => {
       expect(showToast).toHaveBeenCalledWith(
         'Não conseguimos salvar agora. Tente de novo.',
       );
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useDailyTasks.pararDeRepetir',
+      );
     });
   });
 
@@ -586,5 +612,9 @@ describe('useDailyTasks', () => {
 
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
     expect(result.current.tarefas).toEqual(tarefasAntes);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useDailyTasks.recarregar',
+    );
   });
 });

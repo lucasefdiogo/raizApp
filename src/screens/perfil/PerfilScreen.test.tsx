@@ -28,6 +28,7 @@ function configurarPerfilPadrao(sobrescritas = {}) {
     salvarPorque: jest.fn().mockResolvedValue(true),
     alternarNotificacoes: jest.fn().mockResolvedValue(undefined),
     alterarHorario: jest.fn().mockResolvedValue(undefined),
+    testarCrash: jest.fn(),
     ...sobrescritas,
   });
 }
@@ -383,6 +384,35 @@ describe('PerfilScreen', () => {
       await fireEvent.press(screen.getByText('🔧 Debug: detecção de apps'));
 
       expect(aoAbrir).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('"Testar Crashlytics" (dev)', () => {
+    it('aparece em __DEV__ e chama testarCrash do hook ao tocar', async () => {
+      const testarCrash = jest.fn();
+      configurarPerfilPadrao({ testarCrash });
+
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('🔧 Testar Crashlytics'));
+
+      expect(testarCrash).toHaveBeenCalledTimes(1);
+    });
+
+    it('não aparece fora de __DEV__', async () => {
+      const devOriginal = __DEV__;
+      // @ts-expect-error __DEV__ é `declare var` só-leitura no ambiente RN
+      __DEV__ = false;
+
+      try {
+        await render(
+          <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />,
+        );
+        expect(screen.queryByText('🔧 Testar Crashlytics')).toBeNull();
+      } finally {
+        // @ts-expect-error ver acima
+        __DEV__ = devOriginal;
+      }
     });
   });
 });

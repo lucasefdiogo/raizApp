@@ -17,12 +17,14 @@ TypeScript, `strict: true`.
 | Firestore | Banco de dados principal (ver `schema-firebase.md`) |
 | Cloud Messaging (FCM) | Reservado pra Fase 2 (reengajamento) — **não usado no MVP**, que usa notificação local |
 | Cloud Functions | **Ainda não usado.** Único uso planejado: verificação de assinatura via Google Play Developer API (`procedimento-loja.md`) — exige migração pro plano Blaze quando chegar lá |
+| Analytics | Eventos custom de produto (tarefas, streak, bloqueio de apps, onboarding/tutorial/tour, permissões) — wrapper em `src/services/analytics.ts`, uma função por evento |
+| Crashlytics | Relato de crash + `registrarErro` manual nos catches existentes de `hooks/` — wrapper em `src/services/crashlytics.ts` |
 
 ## 3. Bibliotecas em uso
 
 | Necessidade | Biblioteca |
 |---|---|
-| Firebase (nativo) | `@react-native-firebase/app`, `/auth`, `/firestore`, `/messaging` |
+| Firebase (nativo) | `@react-native-firebase/app`, `/auth`, `/firestore`, `/messaging`, `/analytics`, `/crashlytics` |
 | Login Google | `@react-native-google-signin/google-signin` |
 | Navegação | `@react-navigation/native` + `/native-stack` + `/bottom-tabs` |
 | Armazenamento local leve | `@react-native-async-storage/async-storage` |

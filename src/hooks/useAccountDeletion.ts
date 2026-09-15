@@ -3,6 +3,7 @@ import * as authService from '../services/auth';
 import type { ProvedorConta } from '../services/auth';
 import { apagarTodosOsDadosDoUsuario } from '../services/firestore';
 import { cancelarTodasNotificacoes } from '../services/notifications';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const MENSAGEM_FALHA_LIMPEZA =
@@ -71,7 +72,8 @@ export function useAccountDeletion(): UseAccountDeletionResultado {
     try {
       await apagarTodosOsDadosDoUsuario(usuario.uid);
       await cancelarTodasNotificacoes();
-    } catch {
+    } catch (erroLimpeza) {
+      registrarErro(erroLimpeza as Error, 'useAccountDeletion.excluirConta.limpeza');
       setCarregando(false);
       showToast(MENSAGEM_FALHA_LIMPEZA);
       return;
@@ -88,6 +90,10 @@ export function useAccountDeletion(): UseAccountDeletionResultado {
         setCarregando(false);
         return;
       }
+      registrarErro(
+        erroAuth as Error,
+        'useAccountDeletion.excluirConta.apagarContaAuth',
+      );
       setCarregando(false);
       showToast(MENSAGEM_FALHA_ENCERRAR_ACESSO);
       return;
@@ -118,12 +124,14 @@ export function useAccountDeletion(): UseAccountDeletionResultado {
           // usuário abandonou o fluxo do Google — segue aguardando, sem erro
           return;
         }
-        setErro(
-          codigo === 'auth/wrong-password' ||
-            codigo === 'auth/invalid-credential'
-            ? MENSAGEM_SENHA_INCORRETA
-            : MENSAGEM_FALHA_REAUTENTICACAO,
-        );
+        const senhaIncorreta =
+          codigo === 'auth/wrong-password' || codigo === 'auth/invalid-credential';
+        if (!senhaIncorreta) {
+          // Senha incorreta é entrada inválida do usuário, não um bug —
+          // só reporta falhas de fato inesperadas (rede, etc.).
+          registrarErro(erroReauth as Error, 'useAccountDeletion.reautenticar');
+        }
+        setErro(senhaIncorreta ? MENSAGEM_SENHA_INCORRETA : MENSAGEM_FALHA_REAUTENTICACAO);
         return;
       }
 
@@ -132,7 +140,11 @@ export function useAccountDeletion(): UseAccountDeletionResultado {
       // Retoma o passo 5.
       try {
         await apagarContaAuth();
-      } catch {
+      } catch (erroApagarConta) {
+        registrarErro(
+          erroApagarConta as Error,
+          'useAccountDeletion.reautenticar.apagarContaAuth',
+        );
         setCarregando(false);
         showToast(MENSAGEM_FALHA_ENCERRAR_ACESSO);
       }

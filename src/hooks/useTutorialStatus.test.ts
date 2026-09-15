@@ -2,8 +2,12 @@ import { renderHook, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTutorialStatus } from './useTutorialStatus';
 
+jest.mock('../services/analytics');
+const { logTutorialConcluido } = require('../services/analytics');
+
 describe('useTutorialStatus', () => {
   afterEach(async () => {
+    jest.clearAllMocks();
     await AsyncStorage.clear();
   });
 
@@ -23,16 +27,28 @@ describe('useTutorialStatus', () => {
     expect(result.current.tutorialVisto).toBe(true);
   });
 
-  it('marcarTutorialVisto grava a flag e atualiza o estado', async () => {
+  it('marcarTutorialVisto(true) grava a flag, atualiza o estado e dispara logTutorialConcluido', async () => {
     const { result } = await renderHook(() => useTutorialStatus());
     expect(result.current.tutorialVisto).toBe(false);
 
     await act(async () => {
-      await result.current.marcarTutorialVisto();
+      await result.current.marcarTutorialVisto(true);
     });
 
     expect(result.current.tutorialVisto).toBe(true);
     const salvo = await AsyncStorage.getItem('tutorial_visto');
     expect(salvo).toBe('true');
+    expect(logTutorialConcluido).toHaveBeenCalledTimes(1);
+  });
+
+  it('marcarTutorialVisto(false) (pulou) grava a flag mas NÃO dispara logTutorialConcluido', async () => {
+    const { result } = await renderHook(() => useTutorialStatus());
+
+    await act(async () => {
+      await result.current.marcarTutorialVisto(false);
+    });
+
+    expect(result.current.tutorialVisto).toBe(true);
+    expect(logTutorialConcluido).not.toHaveBeenCalled();
   });
 });

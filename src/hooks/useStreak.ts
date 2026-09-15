@@ -11,6 +11,8 @@ import {
   buscarDailyLog,
   buscarEstadoStreak,
 } from '../services/firestore';
+import { logMarcoStreakAtingido } from '../services/analytics';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const MENSAGEM_FALHA_RECARREGAR =
@@ -119,6 +121,9 @@ export function useStreak(uid: string | null): UseStreakResultado {
         setStatusDiaAnterior(resultado.statusDiaResultante);
       }
       setMarcoAtingido(resultado.marcoAtingido);
+      if (resultado.marcoAtingido !== null) {
+        logMarcoStreakAtingido(resultado.marcoAtingido);
+      }
     }
 
     const dataRenovacao = estadoAtual.dataUltimaRenovacaoEscudo
@@ -144,7 +149,8 @@ export function useStreak(uid: string | null): UseStreakResultado {
   const recarregar = useCallback(async () => {
     try {
       await processar();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useStreak.recarregar');
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [processar, showToast]);

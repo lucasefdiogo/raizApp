@@ -13,6 +13,8 @@ import {
 } from '../domain/challenges';
 import { DailyLogResumo } from '../domain/progress';
 import { DailyLog, Desafio, PeriodoDesafio } from '../domain/types';
+import { logDesafioConcluido } from '../services/analytics';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const MENSAGEM_FALHA_RECARREGAR =
@@ -100,6 +102,10 @@ export function useDesafios(uid: string): UseDesafiosResultado {
         );
       }
 
+      if (atualizado.status === 'concluido' && base.status !== 'concluido') {
+        logDesafioConcluido(atualizado.tipo);
+      }
+
       return atualizado;
     },
     [uid],
@@ -130,6 +136,10 @@ export function useDesafios(uid: string): UseDesafiosResultado {
         fechado.progresso,
         fechado.status,
       );
+
+      if (fechado.status === 'concluido' && antigo.status !== 'concluido') {
+        logDesafioConcluido(fechado.tipo);
+      }
     }
 
     const semanal = await resolverDesafio(
@@ -160,7 +170,8 @@ export function useDesafios(uid: string): UseDesafiosResultado {
   const recarregar = useCallback(async () => {
     try {
       await carregar();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useDesafios.recarregar');
       setCarregando(false);
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }

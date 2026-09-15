@@ -66,6 +66,7 @@ export function PerfilScreen({
     alternarNotificacoes,
     alterarHorario,
     carregando,
+    testarCrash,
   } = usePerfil(uid);
   const { signOut } = useAuth();
   const {
@@ -224,6 +225,17 @@ export function PerfilScreen({
             hitSlop={8}
           >
             <Text style={styles.debugTexto}>🔧 Debug: detecção de apps</Text>
+          </Pressable>
+        )}
+
+        {__DEV__ && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={testarCrash}
+            style={styles.debugLink}
+            hitSlop={8}
+          >
+            <Text style={styles.debugTexto}>🔧 Testar Crashlytics</Text>
           </Pressable>
         )}
       </ScrollView>

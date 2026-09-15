@@ -2,8 +2,12 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useStreak } from './useStreak';
 
 jest.mock('../services/firestore');
+jest.mock('../services/analytics');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 const firestoreService = require('../services/firestore');
+const { logMarcoStreakAtingido } = require('../services/analytics');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -88,6 +92,30 @@ describe('useStreak', () => {
       'uid-1',
       expect.objectContaining({ streakAtual: 5, ultimoDiaAtivo: '2026-09-09' }),
     );
+    // 4 -> 5 não cruza nenhum marco (3 já tinha sido cruzado antes).
+    expect(logMarcoStreakAtingido).not.toHaveBeenCalled();
+  });
+
+  it('dia anterior cumprido cruzando um marco: dispara logMarcoStreakAtingido', async () => {
+    mockAgora('2026-09-09');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 2,
+    });
+    firestoreService.buscarDailyLog.mockResolvedValue({
+      data: '2026-09-08',
+      tarefas: [
+        { id: '1', titulo: 'tarefa', essencial: true, concluida: true },
+      ],
+      statusDia: 'cumprido',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.streakAtual).toBe(3);
+    expect(logMarcoStreakAtingido).toHaveBeenCalledWith(3);
   });
 
   it('dia anterior sem log (nenhuma tarefa registrada) conta como não cumprido', async () => {
@@ -196,5 +224,9 @@ describe('useStreak', () => {
     });
 
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useStreak.recarregar',
+    );
   });
 });

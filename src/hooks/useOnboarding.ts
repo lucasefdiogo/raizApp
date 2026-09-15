@@ -13,6 +13,8 @@ import {
   adicionarTarefaAoDailyLog,
   marcarOnboardingConcluido,
 } from '../services/firestore';
+import { logOnboardingConcluido } from '../services/analytics';
+import { registrarErro } from '../services/crashlytics';
 import { useOnboardingProgress } from './useOnboardingProgress';
 import { useToast } from './useToast';
 
@@ -121,9 +123,10 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
         await progresso.salvarPorque(dados.porqueTexto);
         setPasso(PASSO_ONBOARDING.primeiraTarefa);
       }
-    } catch {
+    } catch (erro) {
       // Falha de rede não deve avançar — o passo atual continua e o toast
       // avisa que não salvou; o usuário toca de novo.
+      registrarErro(erro as Error, 'useOnboarding.avancar');
       showToast(MENSAGEM_FALHA_ONBOARDING);
     } finally {
       setSalvando(false);
@@ -142,6 +145,7 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
       focoProcrastinacao: dados.focoProcrastinacao,
       tempoTelaEstimado: dados.tempoTelaEstimado,
     });
+    logOnboardingConcluido();
     onConcluir();
   }, [uid, dados, onConcluir]);
 
@@ -158,7 +162,8 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
         concluida: false,
       });
       await concluirOnboarding();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useOnboarding.comecarComTarefa');
       showToast(MENSAGEM_FALHA_ONBOARDING);
     } finally {
       setSalvando(false);
@@ -172,7 +177,8 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     setSalvando(true);
     try {
       await concluirOnboarding();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useOnboarding.pularPrimeiraTarefa');
       showToast(MENSAGEM_FALHA_ONBOARDING);
     } finally {
       setSalvando(false);
