@@ -1,5 +1,13 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { PrimaryButton } from '../PrimaryButton';
 
@@ -33,7 +41,12 @@ interface FeatureTourOverlayProps {
 
 const BORDA_DESTAQUE = 3;
 const MARGEM_BALAO = theme.spacing.md;
-const ALTURA_MINIMA_BALAO_ABAIXO = 160;
+// Espaço mínimo garantido pro balão, e também teto de segurança: entre o
+// topo calculado e a base segura da tela sempre sobra pelo menos isso —
+// suficiente pro indicador + 2-3 linhas de texto + a linha de controles.
+// Ainda assim, o texto tem scroll interno (ver ScrollView abaixo) — nunca
+// deve faltar, mas nada trava mesmo que falte.
+const ALTURA_MINIMA_BALAO = 160;
 
 /**
  * Coach mark de tela cheia: 4 faixas escurecidas ao redor do retângulo do
@@ -44,6 +57,16 @@ const ALTURA_MINIMA_BALAO_ABAIXO = 160;
  * ao vivo durante um passo: nada por baixo responde a toque enquanto isso
  * está montado. Componente burro: não mede nada, não decide texto — só
  * desenha a partir de `medida`/`texto` recebidos.
+ *
+ * useWindowDimensions() dá a altura CHEIA da janela (o app roda
+ * edge-to-edge — ver CLAUDE.md/memória do projeto), incluindo a área atrás
+ * da status bar e da barra de gestos do Android. Sem descontar
+ * useSafeAreaInsets() dali, o balão podia acabar posicionado atrás da barra
+ * de gestos — os controles ficavam inacessíveis e, como o overlay bloqueia
+ * toque no resto da tela, travava o tour sem saída (bug real, reportado em
+ * device físico). `topoBalao`/`alturaMaximaBalao` abaixo garantem que o
+ * balão nunca começa nem termina fora da área seguro-visível, não importa
+ * a posição do alvo.
  */
 export function FeatureTourOverlay({
   passoAtual,
@@ -54,16 +77,42 @@ export function FeatureTourOverlay({
   onPular,
 }: FeatureTourOverlayProps) {
   const { height: alturaTela } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const ultimoPasso = passoAtual >= totalPassos - 1;
 
-  const espacoAbaixo = medida ? alturaTela - (medida.y + medida.height) : 0;
-  const balaoAbaixo = medida !== null && espacoAbaixo >= ALTURA_MINIMA_BALAO_ABAIXO;
+  const topoSeguro = insets.top + MARGEM_BALAO;
+  const baseSegura = alturaTela - insets.bottom - MARGEM_BALAO;
+  const limiteInferiorTopo = Math.max(
+    baseSegura - ALTURA_MINIMA_BALAO,
+    topoSeguro,
+  );
 
-  const estiloBalao = medida
-    ? balaoAbaixo
-      ? { top: medida.y + medida.height + MARGEM_BALAO }
-      : { bottom: alturaTela - medida.y + MARGEM_BALAO }
-    : { top: alturaTela * 0.4 };
+  function calcularTopoBalao(): number {
+    if (!medida) {
+      return alturaTela * 0.4;
+    }
+    const espacoAbaixo = baseSegura - (medida.y + medida.height + MARGEM_BALAO);
+    if (espacoAbaixo >= ALTURA_MINIMA_BALAO) {
+      return medida.y + medida.height + MARGEM_BALAO;
+    }
+    const topoSeAcima = medida.y - MARGEM_BALAO - ALTURA_MINIMA_BALAO;
+    if (topoSeAcima >= topoSeguro) {
+      return topoSeAcima;
+    }
+    return topoSeguro;
+  }
+
+  // Trava final: não importa o que calcularTopoBalao() devolveu, o balão
+  // nunca começa acima da status bar nem se estende além da barra de
+  // gestos — maxHeight faz o texto ganhar scroll interno em vez de vazar
+  // pra fora da área segura.
+  const topoBalao = Math.min(
+    Math.max(calcularTopoBalao(), topoSeguro),
+    limiteInferiorTopo,
+  );
+  const alturaMaximaBalao = baseSegura - topoBalao;
+
+  const estiloBalao = { top: topoBalao, maxHeight: alturaMaximaBalao };
 
   return (
     <View style={StyleSheet.absoluteFill} testID="feature-tour-overlay">
@@ -125,11 +174,23 @@ export function FeatureTourOverlay({
         <View style={[styles.faixaDim, StyleSheet.absoluteFill]} />
       )}
 
-      <View style={[styles.balao, estiloBalao]}>
-        <Text style={styles.indicador}>
-          Passo {passoAtual + 1} de {totalPassos}
-        </Text>
-        <Text style={styles.texto}>{texto}</Text>
+      <View
+        style={[styles.balao, estiloBalao]}
+        testID="feature-tour-balao"
+      >
+        {/* Scroll interno só no texto — os controles ficam fora, sempre
+            renderizados por inteiro. Mesmo se o texto precisasse de mais
+            espaço do que a área segura tem, dá pra rolar até o fim em vez
+            de perder acesso aos botões (ver nota de segurança acima). */}
+        <ScrollView
+          style={styles.textoRolavel}
+          contentContainerStyle={styles.textoRolavelConteudo}
+        >
+          <Text style={styles.indicador}>
+            Passo {passoAtual + 1} de {totalPassos}
+          </Text>
+          <Text style={styles.texto}>{texto}</Text>
+        </ScrollView>
         <View style={styles.controles}>
           <Pressable
             accessibilityRole="button"
@@ -170,6 +231,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.terraEscura,
     borderRadius: theme.radius.md,
     padding: theme.spacing.lg,
+  },
+  textoRolavel: {
+    flexShrink: 1,
+  },
+  textoRolavelConteudo: {
     gap: theme.spacing.sm,
   },
   indicador: {
