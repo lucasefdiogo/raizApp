@@ -15,6 +15,7 @@ function renderHojeStack(uid = 'uid-teste', avaliarAlertaRisco = jest.fn()) {
         avaliarAlertaRisco={avaliarAlertaRisco}
         progressoTabRef={createRef<React.ComponentRef<typeof View>>()}
         perfilTabRef={createRef<React.ComponentRef<typeof View>>()}
+        aoAtualizarTour={jest.fn()}
       />
     </NavigationContainer>,
   );

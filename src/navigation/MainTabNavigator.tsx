@@ -1,5 +1,5 @@
-import React, { useCallback, useRef } from 'react';
-import { Pressable, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import {
   BottomTabBarButtonProps,
   createBottomTabNavigator,
@@ -9,7 +9,11 @@ import { theme } from '../theme';
 import { HojeStack } from './HojeStack';
 import { ProgressoStack } from './ProgressoStack';
 import { PerfilStack } from './PerfilStack';
-import { RefAlvoTour } from '../components/tour/FeatureTourOverlay';
+import {
+  FeatureTourOverlay,
+  FeatureTourOverlayProps,
+  RefAlvoTour,
+} from '../components/tour/FeatureTourOverlay';
 
 export type MainTabParamList = {
   HojeTab: undefined;
@@ -83,51 +87,71 @@ export function MainTabNavigator({
     [perfilTabRef],
   );
 
+  // Quem decide o passo/mede os alvos é a HomeScreen (só ela tem acesso
+  // aos refs de dentro do seu próprio ScrollView) — mas quem desenha é
+  // aqui: a tab bar é uma árvore irmã do conteúdo de cada aba, então um
+  // overlay montado dentro da HomeScreen nunca cobriria a tab bar (ficava
+  // atrás dela, cortado — ver comentário longo em FeatureTourOverlay.tsx).
+  // Aqui, como sibling do Tab.Navigator inteiro, cobre os dois.
+  const [propsTour, setPropsTour] = useState<FeatureTourOverlayProps | null>(
+    null,
+  );
+
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        // Cobre é a única cor de destaque por tela (mesma regra do botão
-        // primário e do ponto de crescimento do RootProgressIcon) — Musgo
-        // não entra aqui porque já carrega o significado de
-        // estrutura/conclusão em outros lugares do app.
-        tabBarActiveTintColor: theme.colors.accent,
-        tabBarInactiveTintColor: theme.colors.terraSuave,
-      }}
-    >
-      <Tab.Screen
-        name="HojeTab"
-        options={{ title: 'Hoje', tabBarIcon: HojeTabIcon }}
-      >
-        {() => (
-          <HojeStack
-            uid={uid}
-            avaliarAlertaRisco={avaliarAlertaRisco}
-            progressoTabRef={progressoTabRef}
-            perfilTabRef={perfilTabRef}
-          />
-        )}
-      </Tab.Screen>
-      <Tab.Screen
-        name="ProgressoTab"
-        options={{
-          title: 'Progresso',
-          tabBarIcon: ProgressoTabIcon,
-          tabBarButton: renderProgressoTabButton,
+    <View style={styles.raiz}>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          // Cobre é a única cor de destaque por tela (mesma regra do botão
+          // primário e do ponto de crescimento do RootProgressIcon) — Musgo
+          // não entra aqui porque já carrega o significado de
+          // estrutura/conclusão em outros lugares do app.
+          tabBarActiveTintColor: theme.colors.accent,
+          tabBarInactiveTintColor: theme.colors.terraSuave,
         }}
       >
-        {() => <ProgressoStack uid={uid} />}
-      </Tab.Screen>
-      <Tab.Screen
-        name="PerfilTab"
-        options={{
-          title: 'Perfil',
-          tabBarIcon: PerfilTabIcon,
-          tabBarButton: renderPerfilTabButton,
-        }}
-      >
-        {() => <PerfilStack uid={uid} />}
-      </Tab.Screen>
-    </Tab.Navigator>
+        <Tab.Screen
+          name="HojeTab"
+          options={{ title: 'Hoje', tabBarIcon: HojeTabIcon }}
+        >
+          {() => (
+            <HojeStack
+              uid={uid}
+              avaliarAlertaRisco={avaliarAlertaRisco}
+              progressoTabRef={progressoTabRef}
+              perfilTabRef={perfilTabRef}
+              aoAtualizarTour={setPropsTour}
+            />
+          )}
+        </Tab.Screen>
+        <Tab.Screen
+          name="ProgressoTab"
+          options={{
+            title: 'Progresso',
+            tabBarIcon: ProgressoTabIcon,
+            tabBarButton: renderProgressoTabButton,
+          }}
+        >
+          {() => <ProgressoStack uid={uid} />}
+        </Tab.Screen>
+        <Tab.Screen
+          name="PerfilTab"
+          options={{
+            title: 'Perfil',
+            tabBarIcon: PerfilTabIcon,
+            tabBarButton: renderPerfilTabButton,
+          }}
+        >
+          {() => <PerfilStack uid={uid} />}
+        </Tab.Screen>
+      </Tab.Navigator>
+      {propsTour && <FeatureTourOverlay {...propsTour} />}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  raiz: {
+    flex: 1,
+  },
+});

@@ -10,7 +10,10 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
 import { AppBlockConfigScreen } from '../screens/appblock/AppBlockConfigScreen';
-import { RefAlvoTour } from '../components/tour/FeatureTourOverlay';
+import {
+  FeatureTourOverlayProps,
+  RefAlvoTour,
+} from '../components/tour/FeatureTourOverlay';
 
 export type HojeStackParamList = {
   Home: undefined;
@@ -44,6 +47,9 @@ interface HojeStackProps {
    */
   progressoTabRef: RefAlvoTour;
   perfilTabRef: RefAlvoTour;
+  /** Ver comentário em HomeScreen.tsx — quem desenha o overlay é o
+   * MainTabNavigator, a Home só reporta o estado atual pra cima. */
+  aoAtualizarTour: (props: FeatureTourOverlayProps | null) => void;
 }
 
 /**
@@ -58,6 +64,7 @@ export function HojeStack({
   avaliarAlertaRisco,
   progressoTabRef,
   perfilTabRef,
+  aoAtualizarTour,
 }: HojeStackProps) {
   const streak = useStreak(uid);
   const recovery = useRecoveryState(
@@ -104,6 +111,7 @@ export function HojeStack({
               aoAbrirBloqueioApps={() => navigation.navigate('AppBlockConfig')}
               progressoTabRef={progressoTabRef}
               perfilTabRef={perfilTabRef}
+              aoAtualizarTour={aoAtualizarTour}
             />
           )}
         </Stack.Screen>

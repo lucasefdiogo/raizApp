@@ -43,3 +43,16 @@ export const TOUR_PASSOS: TourPasso[] = [
 ];
 
 export const TOTAL_PASSOS_TOUR = TOUR_PASSOS.length;
+
+/**
+ * Espaço vertical mínimo garantido pro balão de um passo — indicador
+ * ("Passo N de 5") + até 3 linhas do texto mais longo + a linha de
+ * controles ("Pular tour"/"Próximo") + padding, com folga. Compartilhado
+ * entre quem decide SE precisa rolar a tela antes de medir (HomeScreen,
+ * pros alvos dentro do ScrollView) e quem efetivamente limita a altura do
+ * balão (FeatureTourOverlay) — os dois precisam concordar no mesmo número,
+ * senão um acha que "cabe" enquanto o outro ainda corta o texto (bug real
+ * visto em device físico: o texto vinha cortado mesmo no lado que a
+ * HomeScreen já tinha decidido "está visível o suficiente").
+ */
+export const ALTURA_MINIMA_TOOLTIP_TOUR = 240;
