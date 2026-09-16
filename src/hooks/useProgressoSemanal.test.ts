@@ -2,8 +2,10 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useProgressoSemanal } from './useProgressoSemanal';
 
 jest.mock('../services/firestore');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 const { buscarUltimosDailyLogs, buscarEstadoStreak } = require('../services/firestore');
+const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -126,5 +128,9 @@ describe('useProgressoSemanal', () => {
     });
 
     expect(showToast).toHaveBeenCalledWith(MSG_FALHA_RECARREGAR);
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'useProgressoSemanal.recarregar',
+    );
   });
 });

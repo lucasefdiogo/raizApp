@@ -3,6 +3,7 @@ import { usePerfil } from './usePerfil';
 
 jest.mock('../services/firestore');
 jest.mock('../services/notifications');
+jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 
 const { buscarUsuario, atualizarPerfilUsuario } = require('../services/firestore');
@@ -11,6 +12,7 @@ const {
   avaliarNecessidadeAlertaRisco,
   cancelarLembreteDiario,
 } = require('../services/notifications');
+const { registrarErro, testarCrash } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
 const showToast = jest.fn();
@@ -83,6 +85,10 @@ describe('usePerfil', () => {
     expect(showToast).toHaveBeenCalledWith(
       'Não conseguimos salvar seu porquê agora. Tente de novo.',
     );
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'usePerfil.salvarPorque',
+    );
   });
 
   it('alternarNotificacoes com falha de rede: dispara toast e não muda o estado local', async () => {
@@ -100,6 +106,10 @@ describe('usePerfil', () => {
     expect(showToast).toHaveBeenCalledWith(
       'Não conseguimos atualizar as notificações agora. Tente de novo.',
     );
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'usePerfil.alternarNotificacoes',
+    );
   });
 
   it('alterarHorario com falha de rede: dispara toast e não muda o estado local', async () => {
@@ -116,6 +126,10 @@ describe('usePerfil', () => {
     expect(result.current.horarioLembreteDiario).toBeNull();
     expect(showToast).toHaveBeenCalledWith(
       'Não conseguimos salvar o horário agora. Tente de novo.',
+    );
+    expect(registrarErro).toHaveBeenCalledWith(
+      expect.any(Error),
+      'usePerfil.alterarHorario',
     );
   });
 
@@ -222,5 +236,15 @@ describe('usePerfil', () => {
 
     expect(agendarLembreteDiario).not.toHaveBeenCalled();
     expect(result.current.notificacoesAtivas).toBe(true);
+  });
+
+  it('testarCrash repassa direto pro service (guard __DEV__ já vive lá)', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    result.current.testarCrash();
+
+    expect(testarCrash).toHaveBeenCalledTimes(1);
   });
 });

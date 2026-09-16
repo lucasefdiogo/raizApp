@@ -135,7 +135,7 @@ describe('AppBlockedScreen', () => {
         fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
       });
 
-      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
       expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
@@ -237,7 +237,7 @@ describe('AppBlockedScreen', () => {
 
       await avancarSegundos(60);
 
-      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(onDesbloquear).toHaveBeenCalledWith(15, 'respiracao');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
       expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
@@ -358,7 +358,7 @@ describe('AppBlockedScreen', () => {
         fireEvent.press(screen.getByText('Confirmar'));
       });
 
-      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
     });
 
@@ -398,7 +398,7 @@ describe('AppBlockedScreen', () => {
         fireEvent.press(screen.getByText('Confirmar'));
       });
 
-      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(onDesbloquear).toHaveBeenCalledWith(15, 'respiracao');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
     });
   });
@@ -438,7 +438,7 @@ describe('AppBlockedScreen', () => {
         fireEvent.press(screen.getByText('Confirmar'));
       });
 
-      expect(onDesbloquear).toHaveBeenCalledWith(15);
+      expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
     });
 
     it('completa os 120s de respiração antes de liberar', async () => {

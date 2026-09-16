@@ -16,9 +16,14 @@ jest.mock('../services/firestore', () => ({
   buscarDesbloqueiosHojeDoApp: jest.fn(),
   incrementarDesbloqueiosHoje: jest.fn(),
 }));
+jest.mock('../services/analytics');
 
 const nativo = require('../native/AccessibilityDetection');
 const firestore = require('../services/firestore');
+const {
+  logAppBloqueadoDetectado,
+  logAppDesbloqueado,
+} = require('../services/analytics');
 
 /**
  * O listener de blocked-app-detected (resolverEExibir) é assíncrono —
@@ -72,6 +77,7 @@ describe('useAppBlocking', () => {
         icone: 'data:image/png;base64,QQ==',
       }),
     );
+    expect(logAppBloqueadoDetectado).toHaveBeenCalledTimes(1);
   });
 
   it('atualiza appBloqueadoAtual quando o evento blocked-app-detected dispara', async () => {
@@ -85,6 +91,7 @@ describe('useAppBlocking', () => {
       nome: 'WhatsApp',
       icone: null,
     });
+    expect(logAppBloqueadoDetectado).toHaveBeenCalledTimes(1);
   });
 
   it('usa o próprio packageName como nome quando não encontra na lista de apps', async () => {
@@ -179,7 +186,7 @@ describe('useAppBlocking', () => {
       await waitFor(() => expect(result.current.appBloqueadoAtual).not.toBeNull());
 
       await act(async () => {
-        result.current.desbloquear(15);
+        result.current.desbloquear(15, 'tarefas');
       });
 
       expect(nativo.registrarDesbloqueioTemporario).toHaveBeenCalledWith(
@@ -187,6 +194,19 @@ describe('useAppBlocking', () => {
         15,
       );
       expect(result.current.appBloqueadoAtual).not.toBeNull();
+      expect(logAppDesbloqueado).toHaveBeenCalledWith('tarefas', 1);
+    });
+
+    it('repassa o método "respiracao" pro evento de analytics', async () => {
+      nativo.getInitialBlockedPackage.mockResolvedValue('com.instagram.android');
+      const { result } = await renderHook(() => useAppBlocking('uid-teste'));
+      await waitFor(() => expect(result.current.appBloqueadoAtual).not.toBeNull());
+
+      await act(async () => {
+        result.current.desbloquear(15, 'respiracao');
+      });
+
+      expect(logAppDesbloqueado).toHaveBeenCalledWith('respiracao', 1);
     });
 
     it('incrementa desbloqueiosHoje (uid + data de hoje) antes de registrar o desbloqueio nativo', async () => {
@@ -195,7 +215,7 @@ describe('useAppBlocking', () => {
       await waitFor(() => expect(result.current.appBloqueadoAtual).not.toBeNull());
 
       await act(async () => {
-        result.current.desbloquear(15);
+        result.current.desbloquear(15, 'tarefas');
       });
 
       expect(firestore.incrementarDesbloqueiosHoje).toHaveBeenCalledWith(
@@ -210,7 +230,7 @@ describe('useAppBlocking', () => {
       await waitFor(() => expect(result.current.appBloqueadoAtual).not.toBeNull());
 
       await act(async () => {
-        result.current.desbloquear(15);
+        result.current.desbloquear(15, 'tarefas');
       });
 
       expect(firestore.incrementarDesbloqueiosHoje).not.toHaveBeenCalled();
@@ -224,11 +244,12 @@ describe('useAppBlocking', () => {
       const { result } = await renderHook(() => useAppBlocking('uid-teste'));
 
       await act(async () => {
-        result.current.desbloquear(15);
+        result.current.desbloquear(15, 'tarefas');
       });
 
       expect(nativo.registrarDesbloqueioTemporario).not.toHaveBeenCalled();
       expect(firestore.incrementarDesbloqueiosHoje).not.toHaveBeenCalled();
+      expect(logAppDesbloqueado).not.toHaveBeenCalled();
     });
   });
 

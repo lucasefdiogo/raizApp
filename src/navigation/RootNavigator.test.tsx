@@ -172,6 +172,12 @@ describe('RootNavigator', () => {
   });
 
   it('SignIn: voltar mostra o Tutorial de novo, e concluí-lo de novo volta pro SignIn', async () => {
+    const marcarTutorialVisto = jest.fn();
+    useTutorialStatus.mockReturnValue({
+      carregando: false,
+      tutorialVisto: true,
+      marcarTutorialVisto,
+    });
     useAuth.mockReturnValue({ ...authAutenticado(), user: null });
 
     await render(<RootNavigator />);
@@ -185,6 +191,9 @@ describe('RootNavigator', () => {
     await fireEvent.press(screen.getByText('pular'));
 
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeTruthy();
+    // "pular" repassa concluiuTudo=false — ver useTutorialStatus.ts, que só
+    // dispara logTutorialConcluido quando esse valor é true.
+    expect(marcarTutorialVisto).toHaveBeenCalledWith(false);
   });
 
   it('autenticado, onboarding incompleto: mostra a OnboardingScreen depois da splash', async () => {

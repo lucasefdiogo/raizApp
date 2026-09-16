@@ -3,9 +3,11 @@ import { useAuth } from './useAuth';
 
 jest.mock('../services/auth');
 jest.mock('../services/firestore');
+jest.mock('../services/crashlytics');
 
 const authService = require('../services/auth');
 const firestoreService = require('../services/firestore');
+const { setUsuarioId } = require('../services/crashlytics');
 
 describe('useAuth', () => {
   beforeEach(() => {
@@ -21,6 +23,7 @@ describe('useAuth', () => {
 
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.user).toBeNull();
+    expect(setUsuarioId).toHaveBeenCalledWith(null);
   });
 
   it('reflete o usuário quando onAuthStateChanged dispara com um usuário', async () => {
@@ -36,6 +39,7 @@ describe('useAuth', () => {
 
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.user).toEqual(usuarioFalso);
+    expect(setUsuarioId).toHaveBeenCalledWith('1');
   });
 
   it('signUp encadeia com criarDocumentoUsuario após sucesso, passando o nome informado na tela', async () => {

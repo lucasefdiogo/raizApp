@@ -4,6 +4,10 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../navigation/MainTabNavigator';
 import { STORAGE_KEYS, lerItem, salvarItem } from '../utils/storage';
 import { TOTAL_PASSOS_TOUR } from '../components/tour/tourSteps';
+import {
+  logTourFuncionalidadesConcluido,
+  logTourFuncionalidadesPulado,
+} from '../services/analytics';
 
 interface UseFeatureTourResultado {
   tourAtivo: boolean;
@@ -59,6 +63,7 @@ export function useFeatureTour(): UseFeatureTourResultado {
 
   const avancar = useCallback(() => {
     if (passoAtual >= TOTAL_PASSOS_TOUR - 1) {
+      logTourFuncionalidadesConcluido();
       concluir();
       return;
     }
@@ -66,8 +71,9 @@ export function useFeatureTour(): UseFeatureTourResultado {
   }, [passoAtual, concluir]);
 
   const pular = useCallback(() => {
+    logTourFuncionalidadesPulado(passoAtual);
     concluir();
-  }, [concluir]);
+  }, [passoAtual, concluir]);
 
   const reiniciar = useCallback(() => {
     (async () => {

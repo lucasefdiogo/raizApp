@@ -14,6 +14,11 @@ jest.mock('@react-navigation/native', () => ({
   },
   useNavigation: () => mockNavigation,
 }));
+jest.mock('../services/analytics');
+const {
+  logTourFuncionalidadesConcluido,
+  logTourFuncionalidadesPulado,
+} = require('../services/analytics');
 
 const navigate = jest.fn();
 let mockNavigation: { getParent: jest.Mock };
@@ -21,6 +26,7 @@ let mockNavigation: { getParent: jest.Mock };
 describe('useFeatureTour', () => {
   beforeEach(async () => {
     navigate.mockClear();
+    jest.clearAllMocks();
     mockNavigation = { getParent: jest.fn().mockReturnValue({ navigate }) };
     await AsyncStorage.clear();
   });
@@ -54,6 +60,7 @@ describe('useFeatureTour', () => {
       });
       expect(result.current.passoAtual).toBe(esperado);
       expect(result.current.tourAtivo).toBe(true);
+      expect(logTourFuncionalidadesConcluido).not.toHaveBeenCalled();
     }
 
     // último passo (índice TOTAL_PASSOS_TOUR - 1) — avancar() conclui em vez
@@ -66,6 +73,8 @@ describe('useFeatureTour', () => {
     expect(
       await AsyncStorage.getItem(STORAGE_KEYS.tourFuncionalidadesVisto),
     ).toBe(JSON.stringify(true));
+    expect(logTourFuncionalidadesConcluido).toHaveBeenCalledTimes(1);
+    expect(logTourFuncionalidadesPulado).not.toHaveBeenCalled();
   });
 
   it('pular() encerra o tour imediatamente em qualquer passo, gravando a flag', async () => {
@@ -86,6 +95,8 @@ describe('useFeatureTour', () => {
     expect(
       await AsyncStorage.getItem(STORAGE_KEYS.tourFuncionalidadesVisto),
     ).toBe(JSON.stringify(true));
+    expect(logTourFuncionalidadesPulado).toHaveBeenCalledWith(2);
+    expect(logTourFuncionalidadesConcluido).not.toHaveBeenCalled();
   });
 
   it('reiniciar() (chamado da Perfil): limpa a flag, reativa o tour do passo 0 e navega pra HojeTab', async () => {

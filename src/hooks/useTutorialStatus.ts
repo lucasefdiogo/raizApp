@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { STORAGE_KEYS, lerItem, salvarItem } from '../utils/storage';
+import { logTutorialConcluido } from '../services/analytics';
 
 export function useTutorialStatus() {
   const [carregando, setCarregando] = useState(true);
@@ -15,9 +16,14 @@ export function useTutorialStatus() {
     verificar();
   }, [verificar]);
 
-  const marcarTutorialVisto = useCallback(async () => {
+  // `concluiuTudo` (repassado do TutorialScreen): só dispara o evento de
+  // analytics quando a pessoa terminou o último slide, não quando pulou.
+  const marcarTutorialVisto = useCallback(async (concluiuTudo: boolean) => {
     await salvarItem(STORAGE_KEYS.tutorialVisto, true);
     setTutorialVisto(true);
+    if (concluiuTudo) {
+      logTutorialConcluido();
+    }
   }, []);
 
   return { carregando, tutorialVisto, marcarTutorialVisto };

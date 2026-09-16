@@ -6,11 +6,13 @@ jest.mock('../native/AccessibilityDetection', () => ({
   isAccessibilityServiceEnabled: jest.fn(),
   openAccessibilitySettings: jest.fn(),
 }));
+jest.mock('../services/analytics');
 
 const {
   isAccessibilityServiceEnabled,
   openAccessibilitySettings,
 } = require('../native/AccessibilityDetection');
+const { logPermissaoAccessibility } = require('../services/analytics');
 
 describe('useAccessibilityPermission', () => {
   beforeEach(() => {
@@ -25,6 +27,8 @@ describe('useAccessibilityPermission', () => {
 
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.ativo).toBe(true);
+    // 1ª checagem nunca dispara o evento — só transições depois dela.
+    expect(logPermissaoAccessibility).not.toHaveBeenCalled();
   });
 
   it('desativado: ativo fica false', async () => {
@@ -47,6 +51,22 @@ describe('useAccessibilityPermission', () => {
     });
 
     expect(result.current.ativo).toBe(true);
+    // Transição real (false -> true) depois da 1ª checagem: dispara o evento.
+    expect(logPermissaoAccessibility).toHaveBeenCalledWith(true);
+    expect(logPermissaoAccessibility).toHaveBeenCalledTimes(1);
+  });
+
+  it('verificarNovamente sem mudança de valor: não dispara o evento de novo', async () => {
+    isAccessibilityServiceEnabled.mockResolvedValue(false);
+    const { result } = await renderHook(() => useAccessibilityPermission());
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.verificarNovamente();
+    });
+
+    expect(result.current.ativo).toBe(false);
+    expect(logPermissaoAccessibility).not.toHaveBeenCalled();
   });
 
   it('abrirConfiguracoes chama openAccessibilitySettings', async () => {
@@ -80,6 +100,7 @@ describe('useAccessibilityPermission', () => {
 
       expect(isAccessibilityServiceEnabled).toHaveBeenCalledTimes(2);
       expect(result.current.ativo).toBe(true);
+      expect(logPermissaoAccessibility).toHaveBeenCalledWith(true);
     } finally {
       addListener.mockRestore();
     }

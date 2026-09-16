@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buscarUsuario } from '../services/firestore';
+import { logPermissaoNotificacao } from '../services/analytics';
 import {
   agendarLembreteDiario,
   avaliarNecessidadeAlertaRisco,
@@ -79,6 +80,7 @@ export function useLocalNotifications(
     async (permitiuNotificacoes: boolean) => {
       await salvarItem(STORAGE_KEYS.notificationPrimingShown, true);
       setDeveExibirPriming(false);
+      logPermissaoNotificacao(permitiuNotificacoes);
 
       if (permitiuNotificacoes) {
         await solicitarPermissao();

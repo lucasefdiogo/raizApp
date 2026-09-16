@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { construirHistoricoSemana, DiaHistorico } from '../domain/progress';
 import { buscarEstadoStreak, buscarUltimosDailyLogs } from '../services/firestore';
+import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const DIAS_HISTORICO = 7;
@@ -62,7 +63,8 @@ export function useProgressoSemanal(uid: string): UseProgressoSemanalResultado {
   const recarregar = useCallback(async () => {
     try {
       await carregar();
-    } catch {
+    } catch (erro) {
+      registrarErro(erro as Error, 'useProgressoSemanal.recarregar');
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [carregar, showToast]);

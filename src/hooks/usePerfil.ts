@@ -5,6 +5,7 @@ import {
   avaliarNecessidadeAlertaRisco,
   cancelarLembreteDiario,
 } from '../services/notifications';
+import { registrarErro, testarCrash } from '../services/crashlytics';
 import { useToast } from './useToast';
 
 const MENSAGEM_FALHA_PORQUE =
@@ -23,6 +24,8 @@ interface UsePerfilResultado {
   salvarPorque: (texto: string) => Promise<boolean>;
   alternarNotificacoes: (ativo: boolean) => Promise<void>;
   alterarHorario: (horario: string) => Promise<void>;
+  /** Só tem efeito em __DEV__ (ver services/crashlytics.ts). */
+  testarCrash: () => void;
 }
 
 /**
@@ -69,7 +72,8 @@ export function usePerfil(uid: string): UsePerfilResultado {
         await atualizarPerfilUsuario(uid, { porqueTexto: texto });
         setPorqueTexto(texto);
         return true;
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'usePerfil.salvarPorque');
         showToast(MENSAGEM_FALHA_PORQUE);
         return false;
       }
@@ -95,7 +99,8 @@ export function usePerfil(uid: string): UsePerfilResultado {
           // recriar.
           await avaliarNecessidadeAlertaRisco(true);
         }
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'usePerfil.alternarNotificacoes');
         showToast(MENSAGEM_FALHA_NOTIFICACOES);
       }
     },
@@ -111,7 +116,8 @@ export function usePerfil(uid: string): UsePerfilResultado {
         if (notificacoesAtivas) {
           await agendarLembreteDiario(horario);
         }
-      } catch {
+      } catch (erro) {
+        registrarErro(erro as Error, 'usePerfil.alterarHorario');
         showToast(MENSAGEM_FALHA_HORARIO);
       }
     },
@@ -126,5 +132,6 @@ export function usePerfil(uid: string): UsePerfilResultado {
     salvarPorque,
     alternarNotificacoes,
     alterarHorario,
+    testarCrash,
   };
 }

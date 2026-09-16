@@ -6,6 +6,7 @@ import {
   preencherNomeSeVazio,
 } from '../services/firestore';
 import { mapearErroAuth } from '../domain/authErrors';
+import { setUsuarioId } from '../services/crashlytics';
 
 function erroMapeado(erro: unknown): Error {
   const codigo = (erro as { code?: string } | undefined)?.code;
@@ -20,6 +21,7 @@ export function useAuth() {
     const unsubscribe = authService.onAuthStateChanged(usuario => {
       setUser(usuario);
       setCarregando(false);
+      setUsuarioId(usuario?.uid ?? null);
     });
     return unsubscribe;
   }, []);

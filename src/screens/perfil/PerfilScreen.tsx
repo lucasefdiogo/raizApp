@@ -22,6 +22,7 @@ import {
   URL_POLITICA_PRIVACIDADE,
   URL_TERMOS_DE_USO,
 } from '../../config/legalLinks';
+import { MOSTRAR_TESTAR_CRASHLYTICS } from '../../config/debugFlags';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_PADRAO = '08:00';
@@ -66,6 +67,7 @@ export function PerfilScreen({
     alternarNotificacoes,
     alterarHorario,
     carregando,
+    testarCrash,
   } = usePerfil(uid);
   const { signOut } = useAuth();
   const {
@@ -224,6 +226,17 @@ export function PerfilScreen({
             hitSlop={8}
           >
             <Text style={styles.debugTexto}>🔧 Debug: detecção de apps</Text>
+          </Pressable>
+        )}
+
+        {(__DEV__ || MOSTRAR_TESTAR_CRASHLYTICS) && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={testarCrash}
+            style={styles.debugLink}
+            hitSlop={8}
+          >
+            <Text style={styles.debugTexto}>🔧 Testar Crashlytics</Text>
           </Pressable>
         )}
       </ScrollView>
