@@ -4,6 +4,7 @@ import {
   recordError,
   setUserId as definirUsuarioIdNoCrashlytics,
 } from '@react-native-firebase/crashlytics';
+import { MOSTRAR_TESTAR_CRASHLYTICS } from '../config/debugFlags';
 
 function crashlytics() {
   return getCrashlytics();
@@ -36,7 +37,7 @@ export function setUsuarioId(uid: string | null): void {
  * o app uma vez).
  */
 export function testarCrash(): void {
-  if (!__DEV__) {
+  if (!__DEV__ && !MOSTRAR_TESTAR_CRASHLYTICS) {
     return;
   }
   crash(crashlytics());

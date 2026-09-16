@@ -22,6 +22,7 @@ import {
   URL_POLITICA_PRIVACIDADE,
   URL_TERMOS_DE_USO,
 } from '../../config/legalLinks';
+import { MOSTRAR_TESTAR_CRASHLYTICS } from '../../config/debugFlags';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_PADRAO = '08:00';
@@ -228,7 +229,7 @@ export function PerfilScreen({
           </Pressable>
         )}
 
-        {__DEV__ && (
+        {(__DEV__ || MOSTRAR_TESTAR_CRASHLYTICS) && (
           <Pressable
             accessibilityRole="button"
             onPress={testarCrash}

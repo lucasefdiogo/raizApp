@@ -73,5 +73,31 @@ describe('services/crashlytics', () => {
         __DEV__ = devOriginal;
       }
     });
+
+    it('funciona fora de __DEV__ quando MOSTRAR_TESTAR_CRASHLYTICS está ligada (build de teste em device)', () => {
+      const devOriginal = __DEV__;
+      // @ts-expect-error __DEV__ é `declare var` só-leitura no ambiente RN
+      __DEV__ = false;
+      jest.resetModules();
+      jest.doMock('../config/debugFlags', () => ({
+        MOSTRAR_DEBUG_ACESSIBILIDADE: false,
+        MOSTRAR_TESTAR_CRASHLYTICS: true,
+      }));
+
+      try {
+        const { testarCrash: testarCrashComFlag } = require('./crashlytics');
+        const crashlyticsMockIsolado = require('@react-native-firebase/crashlytics');
+        crashlyticsMockIsolado.__reset();
+
+        testarCrashComFlag();
+
+        expect(crashlyticsMockIsolado.crash).toHaveBeenCalledTimes(1);
+      } finally {
+        // @ts-expect-error ver acima
+        __DEV__ = devOriginal;
+        jest.dontMock('../config/debugFlags');
+        jest.resetModules();
+      }
+    });
   });
 });
