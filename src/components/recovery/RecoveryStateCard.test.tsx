@@ -25,13 +25,13 @@ describe('RecoveryStateCard', () => {
     await render(
       <RecoveryStateCard
         tipo="reduzido"
-        corpo="O streak caiu, mas continua de pé."
+        corpo="A sequência caiu, mas continua de pé."
       />,
     );
 
-    expect(screen.getByText('Streak reduzido')).toBeTruthy();
+    expect(screen.getByText('Sequência reduzida')).toBeTruthy();
     expect(
-      screen.getByText('O streak caiu, mas continua de pé.'),
+      screen.getByText('A sequência caiu, mas continua de pé.'),
     ).toBeTruthy();
 
     const ramo = screen.getByTestId('root-progress-icon-ramo-variavel');

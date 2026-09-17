@@ -36,7 +36,7 @@ export function HomeHeader({ nome, streakAtual }: HomeHeaderProps) {
       <Text style={styles.saudacao}>{saudacao}</Text>
       <View
         style={styles.badge}
-        accessibilityLabel={`Streak de ${streakAtual} dias`}
+        accessibilityLabel={`Sequência de ${streakAtual} dias`}
       >
         <Text style={styles.badgeTexto}>🌱 {streakAtual} dias</Text>
       </View>

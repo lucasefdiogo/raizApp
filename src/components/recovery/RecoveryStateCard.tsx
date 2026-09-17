@@ -10,7 +10,7 @@ interface RecoveryStateCardProps {
 
 const EYEBROW: Record<RecoveryStateCardProps['tipo'], string> = {
   escudo: 'Proteção ativada',
-  reduzido: 'Streak reduzido',
+  reduzido: 'Sequência reduzida',
 };
 
 export function RecoveryStateCard({ tipo, corpo }: RecoveryStateCardProps) {

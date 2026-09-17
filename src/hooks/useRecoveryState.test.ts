@@ -36,8 +36,8 @@ describe('useRecoveryState', () => {
 
   it('perdido ainda não exibido: deveExibir true, tipo reduzido, com placeholders substituídos', async () => {
     buscarSystemMessage.mockResolvedValue({
-      titulo: 'Streak reduzido',
-      corpo: 'Seu streak caiu para {{streak}} de {{diasTotais}} dias totais.',
+      titulo: 'Sequência reduzida',
+      corpo: 'Sua sequência caiu para {{streak}} de {{diasTotais}} dias totais.',
     });
 
     const { result } = await renderHook(() => useRecoveryState('perdido', 3, 20));
@@ -45,7 +45,7 @@ describe('useRecoveryState', () => {
     await waitFor(() => expect(result.current.deveExibir).toBe(true));
     expect(result.current.tipo).toBe('reduzido');
     expect(buscarSystemMessage).toHaveBeenCalledWith('streak_reduzido');
-    expect(result.current.corpo).toBe('Seu streak caiu para 3 de 20 dias totais.');
+    expect(result.current.corpo).toBe('Sua sequência caiu para 3 de 20 dias totais.');
   });
 
   it('já exibido hoje para essa data: não exibe de novo', async () => {

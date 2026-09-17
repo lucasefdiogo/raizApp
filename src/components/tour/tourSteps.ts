@@ -24,7 +24,7 @@ export const TOUR_PASSOS: TourPasso[] = [
   {
     alvo: 'adicionarTarefa',
     texto:
-      'Toque aqui pra adicionar uma tarefa. Marque até 3 como essenciais — só elas contam pro seu streak.',
+      'Toque aqui pra adicionar uma tarefa. Marque até 3 como essenciais — só elas contam pra sua sequência.',
   },
   {
     alvo: 'bloqueioApps',
