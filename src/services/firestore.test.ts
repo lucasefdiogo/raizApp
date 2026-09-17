@@ -387,6 +387,31 @@ describe('services/firestore', () => {
 
         expect(id1).not.toBe(id2);
       });
+
+      it('grava tipo e duracaoMinutos quando a recorrente é de exercício', async () => {
+        const id = await criarTarefaRecorrente(
+          'uid-1',
+          'Fazer exercício',
+          false,
+          'exercicio',
+          20,
+        );
+
+        const tarefas = await buscarTarefasRecorrentesAtivas('uid-1');
+        expect(tarefas.find(t => t.id === id)).toMatchObject({
+          tipo: 'exercicio',
+          duracaoMinutos: 20,
+        });
+      });
+
+      it('não grava tipo/duracaoMinutos pra recorrente comum (retrocompatível)', async () => {
+        const id = await criarTarefaRecorrente('uid-1', 'Ler 5 páginas', true);
+
+        const tarefas = await buscarTarefasRecorrentesAtivas('uid-1');
+        const criada = tarefas.find(t => t.id === id);
+        expect(criada).not.toHaveProperty('tipo');
+        expect(criada).not.toHaveProperty('duracaoMinutos');
+      });
     });
 
     describe('buscarTarefasRecorrentesAtivas', () => {

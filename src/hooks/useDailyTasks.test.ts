@@ -402,6 +402,87 @@ describe('useDailyTasks', () => {
       expect(salvarDailyLog).not.toHaveBeenCalled();
     });
 
+    it('regressão: recorrente concluída ontem aparece concluida:false hoje, com um id novo — mesmo sem o app ter reiniciado (hojeISO não pode "congelar" no dia do mount)', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
+
+      buscarTarefasRecorrentesAtivas.mockResolvedValue([
+        { id: 'rec-1', titulo: 'Ler 5 páginas', essencial: true, ativa: true },
+      ]);
+
+      // Dia 1: sem dailyLog ainda — pré-popula a partir da recorrente.
+      const logsSalvos: Record<string, unknown> = {};
+      buscarDailyLog.mockImplementation((_uid: string, data: string) =>
+        Promise.resolve(logsSalvos[data] ?? null),
+      );
+      existeAlgumDailyLog.mockResolvedValue(true);
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      const idDia1 = result.current.tarefas[0].id;
+      expect(result.current.tarefas[0].concluida).toBe(false);
+
+      // Usuário conclui a recorrente ainda no dia 1 — persistir grava
+      // concluida:true no dailyLog de 2026-09-15.
+      await act(async () => {
+        result.current.alternarTarefa(idDia1);
+      });
+      expect(salvarDailyLog).toHaveBeenCalledWith(
+        'uid-1',
+        '2026-09-15',
+        expect.objectContaining({
+          tarefas: [expect.objectContaining({ id: idDia1, concluida: true })],
+        }),
+      );
+      logsSalvos['2026-09-15'] = {
+        data: '2026-09-15',
+        tarefas: [{ id: idDia1, titulo: 'Ler 5 páginas', essencial: true, concluida: true, origemRecorrenteId: 'rec-1' }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      };
+
+      // O app nunca é fechado — só passa a meia-noite (mesma instância do
+      // hook, sem remount) e o usuário volta a abrir a tela no dia 2. Sem a
+      // correção, hojeISO ficaria travado em 2026-09-15 e recarregar()
+      // devolveria o dailyLog de ONTEM (concluida:true) em vez de recalcular
+      // "hoje" e cair no ramo de pré-popular a partir de essentialTasks.
+      jest.setSystemTime(new Date('2026-09-16T09:00:00Z'));
+
+      await act(async () => {
+        await result.current.recarregar();
+      });
+
+      expect(result.current.tarefas).toHaveLength(1);
+      expect(result.current.tarefas[0].concluida).toBe(false);
+      expect(result.current.tarefas[0].origemRecorrenteId).toBe('rec-1');
+      expect(result.current.tarefas[0].id).not.toBe(idDia1);
+
+      jest.useRealTimers();
+    });
+
+    it('copia tipo e duracaoMinutos da recorrente pra instância de hoje (tarefa de exercício)', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      existeAlgumDailyLog.mockResolvedValue(true);
+      buscarTarefasRecorrentesAtivas.mockResolvedValue([
+        {
+          id: 'rec-1',
+          titulo: 'Fazer exercício',
+          essencial: false,
+          ativa: true,
+          tipo: 'exercicio',
+          duracaoMinutos: 20,
+        },
+      ]);
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      expect(result.current.tarefas[0]).toMatchObject({
+        tipo: 'exercicio',
+        duracaoMinutos: 20,
+      });
+    });
+
     it('dailyLog já existente: NÃO repopula com recorrentes (usa o que já está salvo)', async () => {
       buscarDailyLog.mockResolvedValue({
         data: '2026-09-15',
@@ -456,6 +537,8 @@ describe('useDailyTasks', () => {
         'uid-1',
         'Meditar',
         false,
+        'padrao',
+        undefined,
       );
       const nova = result.current.tarefas.find(t => t.titulo === 'Meditar');
       expect(nova?.origemRecorrenteId).toBe('rec-novo');
@@ -464,6 +547,32 @@ describe('useDailyTasks', () => {
       expect(
         logGravado.tarefas.find((t: { titulo: string }) => t.titulo === 'Meditar'),
       ).toMatchObject({ origemRecorrenteId: 'rec-novo' });
+    });
+
+    it('adicionarTarefa com repetirTodosOsDias=true e tipo exercício: repassa tipo/duracaoMinutos pra criarTarefaRecorrente', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      criarTarefaRecorrente.mockResolvedValue('rec-novo');
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.adicionarTarefa(
+          'Fazer exercício',
+          false,
+          'exercicio',
+          20,
+          true,
+        );
+      });
+
+      expect(criarTarefaRecorrente).toHaveBeenCalledWith(
+        'uid-1',
+        'Fazer exercício',
+        false,
+        'exercicio',
+        20,
+      );
     });
 
     it('adicionarTarefa com repetirTodosOsDias=false (ou omitido): não cria recorrente, sem origemRecorrenteId', async () => {

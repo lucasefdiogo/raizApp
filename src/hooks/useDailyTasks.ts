@@ -117,7 +117,6 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [escudoUsado, setEscudoUsado] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [hojeISO] = useState(() => paraISO(new Date()));
   const contadorId = useRef(0);
   // Token da leitura em curso: se outra começar (troca de uid ou recarregar
   // manual), a anterior descarta o próprio resultado ao terminar.
@@ -126,6 +125,14 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const carregar = useCallback(async () => {
     const leitura = ++leituraRef.current;
     const aindaAtual = () => leituraRef.current === leitura;
+    // Recalculado a cada chamada — nunca "congela" no dia em que o hook
+    // montou. Sem isso, um app que fica aberto (foreground ou background,
+    // sem o processo morrer) atravessando a meia-noite continua lendo/
+    // gravando o dailyLog de ONTEM como se fosse hoje: como o dailyLog de
+    // ontem já existe e tem concluida:true, o código nem chega a cair no
+    // ramo de pré-popular a partir de essentialTasks — é isso que fazia
+    // tarefa recorrente aparecer concluída no dia seguinte.
+    const hojeISO = paraISO(new Date());
 
     const log = await buscarDailyLog(uid, hojeISO);
     if (!aindaAtual()) {
@@ -153,19 +160,31 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
 
     if (recorrentes.length > 0) {
       setTarefas(
-        recorrentes.map(recorrente => ({
-          id: `recorrente-${recorrente.id}-${hojeISO}`,
-          titulo: recorrente.titulo,
-          essencial: recorrente.essencial,
-          concluida: false,
-          origemRecorrenteId: recorrente.id,
-        })),
+        recorrentes.map(recorrente => {
+          // Instância nova pra hoje: nasce sempre concluida:false, com um
+          // id novo (embute a data de hoje, nunca reaproveita o de outro
+          // dia) — nenhum campo de estado de conclusão vem de dia anterior.
+          const tarefa: Tarefa = {
+            id: `recorrente-${recorrente.id}-${hojeISO}`,
+            titulo: recorrente.titulo,
+            essencial: recorrente.essencial,
+            concluida: false,
+            origemRecorrenteId: recorrente.id,
+          };
+          if (recorrente.tipo === 'exercicio') {
+            tarefa.tipo = recorrente.tipo;
+            if (recorrente.duracaoMinutos !== undefined) {
+              tarefa.duracaoMinutos = recorrente.duracaoMinutos;
+            }
+          }
+          return tarefa;
+        }),
       );
     } else {
       setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
     }
     setCarregando(false);
-  }, [uid, hojeISO]);
+  }, [uid]);
 
   useEffect(() => {
     carregar();
@@ -184,6 +203,10 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     async (novasTarefas: Tarefa[], mensagemFalha: string) => {
       const anterior = tarefas;
       setTarefas(novasTarefas);
+      // Recalculado a cada chamada — mesmo racional de carregar(): grava
+      // sempre no dailyLog do dia real da gravação, nunca no de um dia
+      // anterior "congelado" desde o mount do hook.
+      const hojeISO = paraISO(new Date());
 
       try {
         await salvarDailyLog(uid, hojeISO, {
@@ -198,7 +221,7 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
         showToast(mensagemFalha);
       }
     },
-    [tarefas, uid, hojeISO, escudoUsado, showToast],
+    [tarefas, uid, escudoUsado, showToast],
   );
 
   const alternarTarefa = useCallback(
@@ -269,6 +292,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
           uid,
           tituloGravado,
           essencial,
+          tipo,
+          duracaoMinutos,
         );
         const tarefasComOrigem = resultado.tarefas.map(tarefa =>
           tarefa.id === nova.id ? { ...tarefa, origemRecorrenteId } : tarefa,
