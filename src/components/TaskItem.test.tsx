@@ -213,17 +213,11 @@ describe('TaskItem', () => {
       origemRecorrenteId: 'rec-1',
     };
 
-    it('mostra o ícone de recorrente', async () => {
+    it('não mostra nenhum ícone permanente de recorrência (removido — ver toque longo abaixo)', async () => {
       await render(<TaskItem tarefa={tarefaRecorrente} onAlternar={jest.fn()} />);
 
-      expect(screen.getByTestId('task-item-recorrente-icone')).toBeTruthy();
-      expect(screen.getByLabelText('recorrente')).toBeTruthy();
-    });
-
-    it('tarefa avulsa (sem origemRecorrenteId): não mostra o ícone de recorrente', async () => {
-      await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
-
       expect(screen.queryByTestId('task-item-recorrente-icone')).toBeNull();
+      expect(screen.queryByLabelText('recorrente')).toBeNull();
     });
 
     it('long-press abre o menu de 3 opções da recorrente, mesmo sem onEditar/onRemover', async () => {

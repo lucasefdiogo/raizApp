@@ -22,6 +22,7 @@ import {
   StatusDesafio,
   StatusStreak,
   Tarefa,
+  TipoTarefa,
 } from '../domain/types';
 
 export interface UsuarioDocumento {
@@ -339,6 +340,9 @@ export interface TarefaRecorrente {
   essencial: boolean;
   ativa: boolean;
   criadaEm: unknown;
+  /** Ausente = tarefa comum (mesmo shape de Tarefa, sem tipo/duracaoMinutos). */
+  tipo?: TipoTarefa;
+  duracaoMinutos?: number;
 }
 
 function documentoTarefaRecorrente(uid: string, taskId: string) {
@@ -362,14 +366,25 @@ export async function criarTarefaRecorrente(
   uid: string,
   titulo: string,
   essencial: boolean,
+  tipo?: TipoTarefa,
+  duracaoMinutos?: number,
 ): Promise<string> {
   const id = gerarIdTarefaRecorrente();
-  await setDoc(documentoTarefaRecorrente(uid, id), {
+  const dados: Omit<TarefaRecorrente, 'id'> = {
     titulo,
     essencial,
     ativa: true,
     criadaEm: serverTimestamp(),
-  });
+  };
+  // Só grava os campos de exercício quando são de fato exercício — mesmo
+  // racional de adicionarTarefa em useDailyTasks.ts.
+  if (tipo === 'exercicio') {
+    dados.tipo = tipo;
+    if (duracaoMinutos !== undefined) {
+      dados.duracaoMinutos = duracaoMinutos;
+    }
+  }
+  await setDoc(documentoTarefaRecorrente(uid, id), dados);
   return id;
 }
 

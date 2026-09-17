@@ -6,7 +6,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Dumbbell, Repeat, Star } from 'lucide-react-native';
+import { Dumbbell, Star } from 'lucide-react-native';
 import { theme } from '../theme';
 import { Tarefa } from '../domain/types';
 import { TaskActionsSheet } from './home/TaskActionsSheet';
@@ -108,14 +108,6 @@ export function TaskItem({
           )}
         </View>
         <View style={styles.selos}>
-          {ehRecorrente && (
-            <View
-              testID="task-item-recorrente-icone"
-              accessibilityLabel="recorrente"
-            >
-              <Repeat size={13} color={theme.colors.textSecondary} />
-            </View>
-          )}
           {ehExercicio && (
             <View
               testID="task-item-exercicio-icone"
