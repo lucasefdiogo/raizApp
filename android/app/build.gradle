@@ -4,6 +4,18 @@ apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
 
+// Keystore de release (android/keystore.properties, nunca commitado — ver
+// .gitignore) — carregado só se existir, pra quem não tem o arquivo (CI,
+// outro dev) ainda conseguir buildar debug/release de teste sem quebrar,
+// caindo pro fallback assinado com a debug.keystore (ver signingConfigs
+// abaixo). Sem isso, cada checkout novo do projeto ficaria sem conseguir
+// gerar o release build.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -94,15 +106,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (keystorePropertiesFile.exists()) {
+            release {
+                storeFile file(keystoreProperties['RELEASE_STORE_FILE'])
+                storePassword keystoreProperties['RELEASE_STORE_PASSWORD']
+                keyAlias keystoreProperties['RELEASE_KEY_ALIAS']
+                keyPassword keystoreProperties['RELEASE_KEY_PASSWORD']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Keystore de produção própria (android/keystore.properties) —
+            // cai pra debug.keystore só se ela não existir nesse checkout
+            // (ver comentário no topo do arquivo).
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
