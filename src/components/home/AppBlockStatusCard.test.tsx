@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppBlockStatusCard } from './AppBlockStatusCard';
 
 const APPS = [
@@ -95,5 +95,62 @@ describe('AppBlockStatusCard', () => {
     );
 
     expect(screen.getByTestId('app-block-status-card')).toBeTruthy();
+  });
+
+  describe('acessibilidadeDesativada', () => {
+    it('ativo=true e acessibilidadeDesativada=true: mostra o aviso e chama onReativarAcessibilidade ao tocar', async () => {
+      const onReativarAcessibilidade = jest.fn();
+      await render(
+        <AppBlockStatusCard
+          apps={APPS}
+          ativo={true}
+          ativoAgora={true}
+          horarioInicio="09:00"
+          horarioFim="18:00"
+          acessibilidadeDesativada={true}
+          onReativarAcessibilidade={onReativarAcessibilidade}
+        />,
+      );
+
+      expect(
+        screen.getByTestId('app-block-aviso-acessibilidade-desativada'),
+      ).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Reativar'));
+      expect(onReativarAcessibilidade).toHaveBeenCalledTimes(1);
+    });
+
+    it('ativo=false: não mostra o aviso mesmo com acessibilidadeDesativada=true', async () => {
+      await render(
+        <AppBlockStatusCard
+          apps={APPS}
+          ativo={false}
+          ativoAgora={false}
+          horarioInicio="09:00"
+          horarioFim="18:00"
+          acessibilidadeDesativada={true}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
+      ).toBeNull();
+    });
+
+    it('acessibilidadeDesativada omitido: não mostra o aviso', async () => {
+      await render(
+        <AppBlockStatusCard
+          apps={APPS}
+          ativo={true}
+          ativoAgora={true}
+          horarioInicio="09:00"
+          horarioFim="18:00"
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
+      ).toBeNull();
+    });
   });
 });

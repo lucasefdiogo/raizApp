@@ -12,6 +12,7 @@ const { setUsuarioId } = require('../services/crashlytics');
 describe('useAuth', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    authService.getCurrentUser.mockReturnValue(null);
     authService.onAuthStateChanged.mockImplementation((cb: (u: unknown) => void) => {
       cb(null);
       return () => {};
@@ -24,6 +25,18 @@ describe('useAuth', () => {
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.user).toBeNull();
     expect(setUsuarioId).toHaveBeenCalledWith(null);
+  });
+
+  it('seeda o estado inicial com getCurrentUser() de forma síncrona — não espera o 1º callback de onAuthStateChanged', async () => {
+    const usuarioFalso = { uid: '1', email: 'a@a.com' };
+    authService.getCurrentUser.mockReturnValue(usuarioFalso);
+    // onAuthStateChanged nunca chama o callback nesta chamada — isola o
+    // valor vindo só do lazy initializer do useState.
+    authService.onAuthStateChanged.mockImplementation(() => () => {});
+
+    const { result } = await renderHook(() => useAuth());
+
+    expect(result.current.user).toEqual(usuarioFalso);
   });
 
   it('reflete o usuário quando onAuthStateChanged dispara com um usuário', async () => {

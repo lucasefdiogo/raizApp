@@ -176,6 +176,26 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   }
 
   /**
+   * Reabre packageName depois de um desbloqueio — o usuário não deve
+   * precisar sair do Rootora manualmente pra voltar ao app que queria usar.
+   * Resolve false (sem lançar) se o app não tiver mais um Launch Intent
+   * (ex: foi desinstalado nesse meio tempo) — a tela de bloqueio já
+   * concedeu o desbloqueio de qualquer forma, então isso nunca deve travar
+   * nem mostrar erro.
+   */
+  @ReactMethod
+  fun abrirApp(packageName: String, promise: Promise) {
+    val intent = reactApplicationContext.packageManager.getLaunchIntentForPackage(packageName)
+    if (intent == null) {
+      promise.resolve(false)
+      return
+    }
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    reactApplicationContext.startActivity(intent)
+    promise.resolve(true)
+  }
+
+  /**
    * Reduz pra um tamanho pequeno antes de codificar — é só pra uma linha de
    * lista, ícone em resolução cheia (xxxhdpi) deixaria o payload e a
    * codificação bem mais lentos sem ganho visual nenhum.

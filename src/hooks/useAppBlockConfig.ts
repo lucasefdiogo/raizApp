@@ -66,9 +66,17 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
   // Token da leitura em curso: se outra começar (troca de uid ou recarregar
   // manual), a anterior descarta o próprio resultado ao terminar.
   const leituraRef = useRef(0);
+  // Token compartilhado entre carregar() e persistir(): só quem começou por
+  // último pode aplicar o resultado no estado local e sincronizar o nativo.
+  // Sem isso, uma leitura do Firestore que já estava em voo antes de um
+  // toggle (persistir) pode resolver DEPOIS e sobrescrever tanto `config`
+  // quanto o SharedPreferences com o dado antigo, mesmo com leituraRef
+  // intacto (leituraRef só serializa carregar() contra outro carregar()).
+  const operacaoRef = useRef(0);
 
   const carregar = useCallback(async () => {
     const leitura = ++leituraRef.current;
+    const operacao = ++operacaoRef.current;
 
     const [usuario, apps] = await Promise.all([
       buscarUsuario(uid),
@@ -79,10 +87,17 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
       return;
     }
 
-    const configLida = usuario?.bloqueioApps ?? CONFIG_PADRAO;
-    setConfig(configLida);
     setAppsInstalados(apps);
     setCarregando(false);
+
+    if (operacaoRef.current !== operacao) {
+      // Um persistir() (ou outro carregar()) mais recente já começou —
+      // aplicar esta leitura agora sobrescreveria dado mais novo com um
+      // mais velho.
+      return;
+    }
+    const configLida = usuario?.bloqueioApps ?? CONFIG_PADRAO;
+    setConfig(configLida);
 
     // Garante que o lado nativo tem a config mais recente mesmo se a última
     // mudança foi feita e o app fechado antes de qualquer outra sincronia
@@ -106,13 +121,18 @@ export function useAppBlockConfig(uid: string): UseAppBlockConfigResultado {
   const persistir = useCallback(
     async (novaConfig: BloqueioAppsConfig, mensagemFalha: string) => {
       const anterior = config;
+      const operacao = ++operacaoRef.current;
       setConfig(novaConfig);
       try {
         await atualizarConfigBloqueioApps(uid, novaConfig);
-        syncBloqueioConfig(novaConfig);
+        if (operacaoRef.current === operacao) {
+          syncBloqueioConfig(novaConfig);
+        }
       } catch (erro) {
         registrarErro(erro as Error, 'useAppBlockConfig.persistir');
-        setConfig(anterior);
+        if (operacaoRef.current === operacao) {
+          setConfig(anterior);
+        }
         showToast(mensagemFalha);
       }
     },

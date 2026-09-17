@@ -118,6 +118,23 @@ describe('useAppBlocking', () => {
     expect(nativo.getInstalledApps).toHaveBeenCalledTimes(1);
   });
 
+  it('deteccaoId incrementa a cada nova detecção, mesmo repetindo o mesmo packageName — use como key da AppBlockedScreen pra forçar reset do estado interno dela', async () => {
+    const { result } = await renderHook(() => useAppBlocking('uid-teste'));
+    await waitFor(() => expect(nativo.getInitialBlockedPackage).toHaveBeenCalled());
+
+    const deteccaoInicial = result.current.deteccaoId;
+
+    await emitirBloqueado('com.instagram.android');
+    expect(result.current.deteccaoId).toBe(deteccaoInicial + 1);
+
+    await act(async () => {
+      result.current.dispensar();
+    });
+
+    await emitirBloqueado('com.instagram.android');
+    expect(result.current.deteccaoId).toBe(deteccaoInicial + 2);
+  });
+
   describe('nível de escalação (nivelAtual/duracaoRespiracaoSegundos/precisaReflexao)', () => {
     it('sem app bloqueado ainda: nível 1 (nenhuma busca de desbloqueiosHoje disparada)', async () => {
       const { result } = await renderHook(() => useAppBlocking('uid-teste'));

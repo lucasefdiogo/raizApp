@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   BackHandler,
   Image,
@@ -13,6 +13,7 @@ import { theme } from '../../theme';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
 import { existeEssencialConcluida } from '../../domain/streak';
 import { AppBloqueadoInfo } from '../../hooks/useAppBlocking';
+import { abrirApp } from '../../native/AccessibilityDetection';
 import { RootProgressIcon } from '../../components/RootProgressIcon';
 import { PrimaryButton } from '../../components/PrimaryButton';
 
@@ -79,6 +80,20 @@ export function AppBlockedScreen({
     return () => subscription.remove();
   }, []);
 
+  // Confirma o desbloqueio e reabre o app de origem sozinho — o usuário não
+  // deve precisar sair do Rootora manualmente. Se abrirApp resolver false
+  // (app desinstalado nesse meio tempo, por exemplo), fica na tela normal
+  // do Rootora sem travar nem mostrar erro: o desbloqueio em si já foi
+  // concedido com sucesso independente disso.
+  const confirmarDesbloqueio = useCallback(
+    (minutos: number, metodo: 'tarefas' | 'respiracao') => {
+      onDesbloquear(minutos, metodo);
+      abrirApp(appBloqueado.packageName);
+      setModo('liberado');
+    },
+    [onDesbloquear, appBloqueado.packageName],
+  );
+
   useEffect(() => {
     if (modo !== 'respiracao') {
       return;
@@ -87,8 +102,7 @@ export function AppBlockedScreen({
       if (precisaReflexao) {
         setModo('reflexao');
       } else {
-        onDesbloquear(MINUTOS_DESBLOQUEIO, 'respiracao');
-        setModo('liberado');
+        confirmarDesbloqueio(MINUTOS_DESBLOQUEIO, 'respiracao');
       }
       return;
     }
@@ -97,7 +111,7 @@ export function AppBlockedScreen({
       1000,
     );
     return () => clearTimeout(temporizador);
-  }, [modo, segundosRestantes, onDesbloquear, precisaReflexao]);
+  }, [modo, segundosRestantes, precisaReflexao, confirmarDesbloqueio]);
 
   function handleCumprirTarefas() {
     if (tarefasCarregando) {
@@ -111,8 +125,7 @@ export function AppBlockedScreen({
     if (precisaReflexao) {
       setModo('reflexao');
     } else {
-      onDesbloquear(MINUTOS_DESBLOQUEIO, 'tarefas');
-      setModo('liberado');
+      confirmarDesbloqueio(MINUTOS_DESBLOQUEIO, 'tarefas');
     }
   }
 
@@ -126,8 +139,7 @@ export function AppBlockedScreen({
     if (reflexaoTexto.trim().length === 0) {
       return;
     }
-    onDesbloquear(MINUTOS_DESBLOQUEIO, metodoDesbloqueio);
-    setModo('liberado');
+    confirmarDesbloqueio(MINUTOS_DESBLOQUEIO, metodoDesbloqueio);
   }
 
   return (

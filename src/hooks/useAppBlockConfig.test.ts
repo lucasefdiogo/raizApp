@@ -83,6 +83,49 @@ describe('useAppBlockConfig', () => {
     ]);
   });
 
+  it('persistir mais recente não é sobrescrito por um carregar() mais antigo ainda em voo (race condition)', async () => {
+    let resolverBuscarUsuario: (valor: unknown) => void = () => {};
+    firestore.buscarUsuario.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolverBuscarUsuario = resolve;
+        }),
+    );
+
+    const { result } = await renderHook(() => useAppBlockConfig('uid-1'));
+    // carregar() do mount fica em voo aqui, esperando buscarUsuario resolver.
+
+    await act(async () => {
+      await result.current.alternarAtivo(true);
+    });
+
+    expect(result.current.configAtual.ativo).toBe(true);
+
+    // A leitura antiga finalmente resolve, com dado desatualizado (sem o
+    // ativo:true que já foi gravado por persistir()).
+    await act(async () => {
+      resolverBuscarUsuario({
+        email: 'a@a.com',
+        bloqueioApps: {
+          ativo: false,
+          appsSelecionados: [],
+          horarioInicio: null,
+          horarioFim: null,
+        },
+      });
+      await Promise.resolve();
+    });
+
+    // config local continua com o que persistir() gravou — não foi
+    // sobrescrita pela leitura antiga que só resolveu depois.
+    expect(result.current.configAtual.ativo).toBe(true);
+    // E o SharedPreferences nativo também não foi ressincronizado com o
+    // dado velho.
+    expect(nativo.syncBloqueioConfig).not.toHaveBeenCalledWith(
+      expect.objectContaining({ ativo: false }),
+    );
+  });
+
   describe('alternarApp', () => {
     it('adiciona o app à seleção e persiste a config inteira', async () => {
       firestore.buscarUsuario.mockResolvedValue({ email: 'a@a.com' });

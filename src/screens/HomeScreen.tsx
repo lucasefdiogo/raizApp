@@ -15,6 +15,7 @@ import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
+import { useAccessibilityPermission } from '../hooks/useAccessibilityPermission';
 import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
 import { useRecarregarAoFocar } from '../hooks/useRecarregarAoFocar';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
@@ -141,6 +142,11 @@ export function HomeScreen({
     carregando: bloqueioCarregando,
     recarregar: recarregarBloqueioApps,
   } = useAppBlockConfig(uid);
+  const {
+    ativo: acessibilidadeAtiva,
+    carregando: acessibilidadeCarregando,
+    abrirConfiguracoes: abrirConfiguracoesAcessibilidade,
+  } = useAccessibilityPermission();
   const banner = useAppBlockBannerDismissido();
   // A Home não desmonta quando empurra a AppBlockConfigScreen na mesma
   // stack (HojeStack) — só perde o foco. Sem isso, editar a config lá e
@@ -218,6 +224,14 @@ export function HomeScreen({
     !banner.dispensadoHoje;
   const mostrarStatusBloqueio =
     !bloqueioCarregando && bloqueioApps.appsSelecionados.length > 0;
+  // Só vale a pena avisar quando o bloqueio está de fato configurado como
+  // ativo — accessibility desligada com o bloqueio já desligado no toggle
+  // geral não é uma surpresa ruim pra ninguém.
+  const mostrarAvisoAcessibilidadeDesativada =
+    mostrarStatusBloqueio &&
+    bloqueioApps.ativo &&
+    !acessibilidadeCarregando &&
+    !acessibilidadeAtiva;
 
   const handleScroll = useCallback(
     (evento: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -419,6 +433,8 @@ export function HomeScreen({
               ativoAgora={bloqueioAtivoAgora}
               horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
               horarioFim={bloqueioApps.horarioFim ?? '--:--'}
+              acessibilidadeDesativada={mostrarAvisoAcessibilidadeDesativada}
+              onReativarAcessibilidade={abrirConfiguracoesAcessibilidade}
             />
           )}
         </View>
