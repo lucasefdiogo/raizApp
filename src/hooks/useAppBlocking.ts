@@ -32,6 +32,15 @@ export interface AppBloqueadoInfo {
 
 interface UseAppBlockingResultado {
   appBloqueadoAtual: AppBloqueadoInfo | null;
+  /**
+   * Incrementado a cada nova detecção (mesmo repetindo o mesmo packageName)
+   * — use como `key` da AppBlockedScreen pra forçar um remount real a cada
+   * bloqueio novo. Sem isso, dispensar() seguido de uma nova detecção quase
+   * imediata pode não desmontar o componente entre os dois renders, e o
+   * `modo` interno da tela (ex: "tarefas_pendentes") fica preso de uma
+   * detecção anterior em vez de voltar pra "escolha".
+   */
+  deteccaoId: number;
   /** Duração da pausa de respiração pro nível de escalação atual (segundos). */
   duracaoRespiracaoSegundos: number;
   /** Se true, a tela de bloqueio exige um texto de reflexão antes de liberar. */
@@ -70,6 +79,7 @@ interface UseAppBlockingResultado {
 export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
   const [appBloqueadoAtual, setAppBloqueadoAtual] =
     useState<AppBloqueadoInfo | null>(null);
+  const [deteccaoId, setDeteccaoId] = useState(0);
   const [desbloqueiosHoje, setDesbloqueiosHoje] = useState(0);
   const appsCacheRef = useRef<AppInstalado[] | null>(null);
 
@@ -85,6 +95,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
       nome: encontrado?.nome ?? packageName,
       icone: encontrado?.icone ?? null,
     });
+    setDeteccaoId(atual => atual + 1);
     logAppBloqueadoDetectado();
   }, []);
 
@@ -141,6 +152,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
 
   return {
     appBloqueadoAtual,
+    deteccaoId,
     duracaoRespiracaoSegundos,
     precisaReflexao,
     desbloquear,

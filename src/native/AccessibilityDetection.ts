@@ -28,6 +28,7 @@ interface RootoraAccessibilityNative {
   syncBloqueioConfig(configJson: string): void;
   registrarDesbloqueioTemporario(packageName: string, minutos: number): void;
   getInitialBlockedPackage(): Promise<string | null>;
+  abrirApp(packageName: string): Promise<boolean>;
 }
 
 interface EventoAppPrimeiroPlano {
@@ -142,6 +143,22 @@ export async function getInitialBlockedPackage(): Promise<string | null> {
     return null;
   }
   return modulo.getInitialBlockedPackage();
+}
+
+/**
+ * Reabre packageName depois de um desbloqueio — chamado pela AppBlockedScreen
+ * assim que qualquer um dos 2 métodos de desbloqueio confirma sucesso, pra o
+ * usuário não precisar sair do Rootora manualmente. Resolve false (nunca
+ * rejeita) se o app não puder ser reaberto (ex: desinstalado nesse meio
+ * tempo) ou sem o módulo nativo — quem chama não deve travar nem mostrar
+ * erro nesse caso, já que o desbloqueio em si já foi concedido.
+ */
+export async function abrirApp(packageName: string): Promise<boolean> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return false;
+  }
+  return modulo.abrirApp(packageName);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
 import {
+  abrirApp,
   getInitialBlockedPackage,
   getInstalledApps,
   isAccessibilityServiceEnabled,
@@ -17,6 +18,7 @@ const moduloMock = {
   syncBloqueioConfig: jest.fn(),
   registrarDesbloqueioTemporario: jest.fn(),
   getInitialBlockedPackage: jest.fn(),
+  abrirApp: jest.fn(),
 };
 
 describe('AccessibilityDetection', () => {
@@ -182,6 +184,26 @@ describe('AccessibilityDetection', () => {
     it('resolve null quando o módulo nativo não está linkado', async () => {
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
       await expect(getInitialBlockedPackage()).resolves.toBeNull();
+    });
+  });
+
+  describe('abrirApp', () => {
+    it('repassa o resultado do módulo nativo (sucesso)', async () => {
+      moduloMock.abrirApp.mockResolvedValueOnce(true);
+
+      await expect(abrirApp('com.instagram.android')).resolves.toBe(true);
+      expect(moduloMock.abrirApp).toHaveBeenCalledWith('com.instagram.android');
+    });
+
+    it('repassa false quando o app não pôde ser reaberto', async () => {
+      moduloMock.abrirApp.mockResolvedValueOnce(false);
+
+      await expect(abrirApp('com.instagram.android')).resolves.toBe(false);
+    });
+
+    it('resolve false quando o módulo nativo não está linkado', async () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(abrirApp('com.instagram.android')).resolves.toBe(false);
     });
   });
 

@@ -39,6 +39,11 @@ const { buscarSystemMessage } = require('../services/firestore');
 jest.mock('../hooks/useAppBlockConfig');
 const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
 
+jest.mock('../hooks/useAccessibilityPermission');
+const {
+  useAccessibilityPermission,
+} = require('../hooks/useAccessibilityPermission');
+
 jest.mock('../hooks/useAppBlockBannerDismissido');
 const {
   useAppBlockBannerDismissido,
@@ -189,6 +194,12 @@ beforeEach(() => {
   // são sobre bloqueio de apps — 0 apps selecionados normalmente mostraria
   // o banner, então o "dispensado hoje" cobre esse caso por padrão.
   useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
+  useAccessibilityPermission.mockReturnValue({
+    ativo: true,
+    carregando: false,
+    verificarNovamente: jest.fn(),
+    abrirConfiguracoes: jest.fn(),
+  });
   useAppBlockBannerDismissido.mockReturnValue({
     dispensadoHoje: true,
     carregando: false,
@@ -600,6 +611,106 @@ describe('HomeScreen', () => {
       await fireEvent.press(screen.getByLabelText('Dispensar'));
 
       expect(dispensarHoje).toHaveBeenCalledTimes(1);
+    });
+
+    describe('accessibility desativada por fora do app', () => {
+      const CONFIG_COM_APP_ATIVO = {
+        ...CONFIG_BLOQUEIO_PADRAO,
+        appsInstalados: [
+          { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
+        ],
+        configAtual: {
+          ativo: true,
+          appsSelecionados: ['com.whatsapp'],
+          horarioInicio: '09:00',
+          horarioFim: '18:00',
+        },
+        ativoAgora: true,
+      };
+
+      it('bloqueio ativo mas accessibility desligada: mostra o aviso com link "Reativar"', async () => {
+        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
+        useAccessibilityPermission.mockReturnValue({
+          ativo: false,
+          carregando: false,
+          verificarNovamente: jest.fn(),
+          abrirConfiguracoes: jest.fn(),
+        });
+
+        await render(<HomeScreen {...PROPS_PADRAO} />);
+
+        expect(
+          screen.getByTestId('app-block-aviso-acessibilidade-desativada'),
+        ).toBeTruthy();
+      });
+
+      it('"Reativar" chama abrirConfiguracoes do hook', async () => {
+        const abrirConfiguracoes = jest.fn();
+        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
+        useAccessibilityPermission.mockReturnValue({
+          ativo: false,
+          carregando: false,
+          verificarNovamente: jest.fn(),
+          abrirConfiguracoes,
+        });
+
+        await render(<HomeScreen {...PROPS_PADRAO} />);
+        await fireEvent.press(screen.getByText('Reativar'));
+
+        expect(abrirConfiguracoes).toHaveBeenCalledTimes(1);
+      });
+
+      it('accessibility ativa: não mostra o aviso', async () => {
+        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
+        useAccessibilityPermission.mockReturnValue({
+          ativo: true,
+          carregando: false,
+          verificarNovamente: jest.fn(),
+          abrirConfiguracoes: jest.fn(),
+        });
+
+        await render(<HomeScreen {...PROPS_PADRAO} />);
+
+        expect(
+          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
+        ).toBeNull();
+      });
+
+      it('bloqueio desligado no toggle geral: não mostra o aviso mesmo com accessibility desativada', async () => {
+        useAppBlockConfig.mockReturnValue({
+          ...CONFIG_COM_APP_ATIVO,
+          configAtual: { ...CONFIG_COM_APP_ATIVO.configAtual, ativo: false },
+          ativoAgora: false,
+        });
+        useAccessibilityPermission.mockReturnValue({
+          ativo: false,
+          carregando: false,
+          verificarNovamente: jest.fn(),
+          abrirConfiguracoes: jest.fn(),
+        });
+
+        await render(<HomeScreen {...PROPS_PADRAO} />);
+
+        expect(
+          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
+        ).toBeNull();
+      });
+
+      it('ainda carregando o status da accessibility: não mostra o aviso (evita piscar antes de saber)', async () => {
+        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
+        useAccessibilityPermission.mockReturnValue({
+          ativo: false,
+          carregando: true,
+          verificarNovamente: jest.fn(),
+          abrirConfiguracoes: jest.fn(),
+        });
+
+        await render(<HomeScreen {...PROPS_PADRAO} />);
+
+        expect(
+          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
+        ).toBeNull();
+      });
     });
   });
 

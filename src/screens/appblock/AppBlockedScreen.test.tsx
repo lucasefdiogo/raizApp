@@ -3,7 +3,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { AppBlockedScreen } from './AppBlockedScreen';
 
 jest.mock('../../hooks/useDailyTasks');
+jest.mock('../../native/AccessibilityDetection');
 const { useDailyTasks } = require('../../hooks/useDailyTasks');
+const { abrirApp } = require('../../native/AccessibilityDetection');
 
 /**
  * A contagem usa setTimeout recursivo (cada próximo só é agendado depois
@@ -51,6 +53,7 @@ describe('AppBlockedScreen', () => {
     jest.useFakeTimers();
     onDesbloquear = jest.fn();
     onFechar = jest.fn();
+    abrirApp.mockResolvedValue(true);
     configurarTarefas();
   });
 
@@ -136,6 +139,7 @@ describe('AppBlockedScreen', () => {
       });
 
       expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
       expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
@@ -238,6 +242,7 @@ describe('AppBlockedScreen', () => {
       await avancarSegundos(60);
 
       expect(onDesbloquear).toHaveBeenCalledWith(15, 'respiracao');
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
       expect(screen.queryByTestId('reflexao-input')).toBeNull();
     });
@@ -359,6 +364,7 @@ describe('AppBlockedScreen', () => {
       });
 
       expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
     });
 
@@ -399,6 +405,7 @@ describe('AppBlockedScreen', () => {
       });
 
       expect(onDesbloquear).toHaveBeenCalledWith(15, 'respiracao');
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
       expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
     });
   });
@@ -439,6 +446,7 @@ describe('AppBlockedScreen', () => {
       });
 
       expect(onDesbloquear).toHaveBeenCalledWith(15, 'tarefas');
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
     });
 
     it('completa os 120s de respiração antes de liberar', async () => {
@@ -464,6 +472,32 @@ describe('AppBlockedScreen', () => {
 
       expect(onDesbloquear).not.toHaveBeenCalled();
       expect(screen.getByLabelText('Reflexão antes de desbloquear')).toBeTruthy();
+    });
+  });
+
+  describe('abrirApp após desbloqueio', () => {
+    it('quando abrirApp resolve false (app desinstalado): não trava nem mostra erro, continua em "Liberado"', async () => {
+      abrirApp.mockResolvedValue(false);
+      configurarTarefas({
+        tarefas: [{ id: '1', titulo: 'Ler', essencial: true, concluida: true }],
+      });
+      await render(
+        <AppBlockedScreen
+          uid="uid-teste"
+          appBloqueado={APP_BLOQUEADO}
+          duracaoRespiracaoSegundos={60}
+          precisaReflexao={false}
+          onDesbloquear={onDesbloquear}
+          onFechar={onFechar}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cumprir minhas tarefas essenciais'));
+      });
+
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+      expect(screen.getByText('Liberado por 15 minutos')).toBeTruthy();
     });
   });
 });

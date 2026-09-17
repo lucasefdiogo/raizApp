@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 
 interface AppBlockStatusCardApp {
@@ -17,6 +17,16 @@ interface AppBlockStatusCardProps {
   ativoAgora: boolean;
   horarioInicio: string;
   horarioFim: string;
+  /**
+   * true quando o bloqueio está configurado (ativo) mas o Accessibility
+   * Service do sistema foi desligado por fora do app — o Android faz isso
+   * sozinho quando o processo do Rootora é encerrado à força (pelo usuário
+   * ou por gerenciadores de bateria de alguns fabricantes), sem avisar.
+   * Sem essa checagem o bloqueio simplesmente para de funcionar, sem
+   * nenhum sinal pro usuário. Omitido (undefined) não mostra o aviso.
+   */
+  acessibilidadeDesativada?: boolean;
+  onReativarAcessibilidade?: () => void;
 }
 
 /**
@@ -35,9 +45,27 @@ export function AppBlockStatusCard({
   ativoAgora,
   horarioInicio,
   horarioFim,
+  acessibilidadeDesativada,
+  onReativarAcessibilidade,
 }: AppBlockStatusCardProps) {
   return (
     <View style={styles.container} testID="app-block-status-card">
+      {ativo && acessibilidadeDesativada && (
+        <View testID="app-block-aviso-acessibilidade-desativada">
+          <Text style={styles.avisoAcessibilidade}>
+            O bloqueio parou de funcionar — a permissão de acessibilidade foi
+            desligada.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onReativarAcessibilidade}
+            hitSlop={8}
+          >
+            <Text style={styles.avisoAcessibilidadeLink}>Reativar</Text>
+          </Pressable>
+        </View>
+      )}
+
       {!ativo ? (
         <Text style={styles.textoNeutro}>Bloqueio desativado</Text>
       ) : ativoAgora ? (
@@ -84,6 +112,16 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  avisoAcessibilidade: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
+  },
+  avisoAcessibilidadeLink: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.cobre,
   },
   linhaStatus: {
     flexDirection: 'row',

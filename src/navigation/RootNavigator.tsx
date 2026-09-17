@@ -188,6 +188,7 @@ export function RootNavigator() {
       {auth.user && appBlocking.appBloqueadoAtual && (
         <View style={StyleSheet.absoluteFill}>
           <AppBlockedScreen
+            key={appBlocking.deteccaoId}
             uid={auth.user.uid}
             appBloqueado={appBlocking.appBloqueadoAtual}
             duracaoRespiracaoSegundos={appBlocking.duracaoRespiracaoSegundos}
