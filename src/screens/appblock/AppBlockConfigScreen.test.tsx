@@ -10,10 +10,14 @@ import { AppBlockConfigScreen } from './AppBlockConfigScreen';
 
 jest.mock('../../hooks/useAppBlockConfig');
 jest.mock('../../hooks/useAccessibilityPermission');
+jest.mock('../../hooks/useToast');
 const { useAppBlockConfig } = require('../../hooks/useAppBlockConfig');
 const {
   useAccessibilityPermission,
 } = require('../../hooks/useAccessibilityPermission');
+const { useToast } = require('../../hooks/useToast');
+
+const showToast = jest.fn();
 
 const APPS_MOCK = [
   { packageName: 'com.instagram.android', nome: 'Instagram', icone: null },
@@ -53,6 +57,7 @@ describe('AppBlockConfigScreen', () => {
     jest.resetAllMocks();
     configurarHookPadrao();
     configurarAcessibilidade();
+    useToast.mockReturnValue({ showToast });
   });
 
   it('chama aoVoltar ao tocar no botão de voltar', async () => {
@@ -131,13 +136,12 @@ describe('AppBlockConfigScreen', () => {
     expect(salvarHorario).toHaveBeenCalledWith('09:00', '18:00');
   });
 
-  it('mostra "Salvo" depois de salvar o horário', async () => {
+  it('mostra um toast depois de salvar o horário', async () => {
     await render(<AppBlockConfigScreen uid="uid-1" aoVoltar={jest.fn()} />);
 
-    expect(screen.queryByText('Salvo')).toBeNull();
     await fireEvent.press(screen.getByText('Salvar horário'));
 
-    await waitFor(() => expect(screen.getByText('Salvo')).toBeTruthy());
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Horário salvo'));
   });
 
   it('sem apps instalados: mostra o estado vazio', async () => {

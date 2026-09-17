@@ -14,13 +14,13 @@ import DateTimePicker, {
 import { theme } from '../../theme';
 import { useAppBlockConfig } from '../../hooks/useAppBlockConfig';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
+import { useToast } from '../../hooks/useToast';
 import { AppSelectorItem } from '../../components/appblock/AppSelectorItem';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BackButton } from '../../components/common/BackButton';
 
-const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_INICIO_PADRAO = '09:00';
 const HORARIO_FIM_PADRAO = '18:00';
 
@@ -61,13 +61,13 @@ export function AppBlockConfigScreen({
     verificarNovamente: reverificarAcessibilidade,
     abrirConfiguracoes: abrirConfiguracoesAcessibilidade,
   } = useAccessibilityPermission();
+  const { showToast } = useToast();
 
   const [rascunhoInicio, setRascunhoInicio] = useState(HORARIO_INICIO_PADRAO);
   const [rascunhoFim, setRascunhoFim] = useState(HORARIO_FIM_PADRAO);
   const [seletorAberto, setSeletorAberto] = useState<'inicio' | 'fim' | null>(
     null,
   );
-  const [salvoVisivel, setSalvoVisivel] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
   const aoAtualizar = useCallback(async () => {
@@ -88,17 +88,6 @@ export function AppBlockConfigScreen({
     }
   }, [configAtual.horarioInicio, configAtual.horarioFim]);
 
-  useEffect(() => {
-    if (!salvoVisivel) {
-      return;
-    }
-    const temporizador = setTimeout(
-      () => setSalvoVisivel(false),
-      DURACAO_FEEDBACK_SALVO_MS,
-    );
-    return () => clearTimeout(temporizador);
-  }, [salvoVisivel]);
-
   const handleEscolherHorario = (
     evento: DateTimePickerEvent,
     data?: Date,
@@ -117,7 +106,7 @@ export function AppBlockConfigScreen({
 
   const handleSalvarHorario = async () => {
     await salvarHorario(rascunhoInicio, rascunhoFim);
-    setSalvoVisivel(true);
+    showToast('Horário salvo');
   };
 
   if (carregando) {
@@ -236,7 +225,6 @@ export function AppBlockConfigScreen({
               />
             )}
             <PrimaryButton titulo="Salvar horário" onPress={handleSalvarHorario} />
-            {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
 
             <Text style={styles.secaoTitulo}>Apps</Text>
           </View>
@@ -335,10 +323,5 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.lg,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
-  },
-  feedbackSalvo: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.musgo,
   },
 });
