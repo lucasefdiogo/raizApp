@@ -13,6 +13,7 @@ import {
   criarTarefaRecorrente,
   desativarTarefaRecorrente,
   existeAlgumDailyLog,
+  garantirDailyLogDoDia,
   salvarDailyLog,
 } from '../services/firestore';
 import { logTarefaConcluida, logTarefaCriada } from '../services/analytics';
@@ -104,13 +105,17 @@ interface UseDailyTasksResultado {
 }
 
 /**
- * Lê dailyLogs/{hoje} no boot. Se não existir: no primeiro dia de uso
- * (nenhum dailyLog gravado) começa com TAREFAS_EXEMPLO; senão começa vazio.
- * Nada é gravado até a primeira mudança — salvarDailyLog sobrescreve o dia
- * inteiro, então "criar" e "atualizar" são a mesma operação. Toda mutação
- * é otimista: o estado local muda na hora e, se a gravação falhar, volta ao
- * que era e dispara um toast — nada de perder o toque do usuário em
- * silêncio.
+ * Lê dailyLogs/{hoje} no boot. Se não existir: o estado local começa com as
+ * recorrentes ativas pré-populadas (ou TAREFAS_EXEMPLO no primeiro dia de
+ * uso, sem nenhum dailyLog gravado ainda) — e garantirDailyLogDoDia grava
+ * esse mesmo dia no Firestore (tarefas reais a partir de essentialTasks,
+ * nunca o exemplo) na hora, não só na primeira mutação. Sem isso, um dia em
+ * que o usuário abre o app e não toca em nenhuma tarefa nunca gera registro
+ * e aparece como `sem_registro` no histórico/desafios em vez de `perdido`
+ * (ver domain/progress.ts). Depois da leitura inicial, toda mutação
+ * continua otimista: o estado local muda na hora e, se a gravação falhar,
+ * volta ao que era e dispara um toast — nada de perder o toque do usuário
+ * em silêncio.
  */
 export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const { showToast } = useToast();
@@ -147,9 +152,7 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     }
 
     // Dia sem dailyLog ainda: pré-popula com as recorrentes ativas (se
-    // houver) antes de cair pro exemplo do primeiro dia — nada é
-    // persistido aqui, só estado local (mesmo padrão de TAREFAS_EXEMPLO;
-    // a primeira mutação real do dia é o que grava, via persistir).
+    // houver) antes de cair pro exemplo do primeiro dia.
     const [jaUsouAntes, recorrentes] = await Promise.all([
       existeAlgumDailyLog(uid),
       buscarTarefasRecorrentesAtivas(uid),
@@ -158,32 +161,41 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       return;
     }
 
-    if (recorrentes.length > 0) {
-      setTarefas(
-        recorrentes.map(recorrente => {
-          // Instância nova pra hoje: nasce sempre concluida:false, com um
-          // id novo (embute a data de hoje, nunca reaproveita o de outro
-          // dia) — nenhum campo de estado de conclusão vem de dia anterior.
-          const tarefa: Tarefa = {
-            id: `recorrente-${recorrente.id}-${hojeISO}`,
-            titulo: recorrente.titulo,
-            essencial: recorrente.essencial,
-            concluida: false,
-            origemRecorrenteId: recorrente.id,
-          };
-          if (recorrente.tipo === 'exercicio') {
-            tarefa.tipo = recorrente.tipo;
-            if (recorrente.duracaoMinutos !== undefined) {
-              tarefa.duracaoMinutos = recorrente.duracaoMinutos;
-            }
-          }
-          return tarefa;
-        }),
-      );
-    } else {
-      setTarefas(jaUsouAntes ? [] : TAREFAS_EXEMPLO);
-    }
+    const tarefasRecorrentes: Tarefa[] = recorrentes.map(recorrente => {
+      // Instância nova pra hoje: nasce sempre concluida:false, com um
+      // id novo (embute a data de hoje, nunca reaproveita o de outro
+      // dia) — nenhum campo de estado de conclusão vem de dia anterior.
+      const tarefa: Tarefa = {
+        id: `recorrente-${recorrente.id}-${hojeISO}`,
+        titulo: recorrente.titulo,
+        essencial: recorrente.essencial,
+        concluida: false,
+        origemRecorrenteId: recorrente.id,
+      };
+      if (recorrente.tipo === 'exercicio') {
+        tarefa.tipo = recorrente.tipo;
+        if (recorrente.duracaoMinutos !== undefined) {
+          tarefa.duracaoMinutos = recorrente.duracaoMinutos;
+        }
+      }
+      return tarefa;
+    });
+
+    setTarefas(
+      tarefasRecorrentes.length > 0
+        ? tarefasRecorrentes
+        : jaUsouAntes
+          ? []
+          : TAREFAS_EXEMPLO,
+    );
     setCarregando(false);
+
+    // Grava o dia real no Firestore com as mesmas tarefas do estado local
+    // (nunca TAREFAS_EXEMPLO — essa é só demonstração visual do primeiro
+    // dia, o registro persistido reflete o que existe de fato em
+    // essentialTasks). Idempotente: se outra escrita já criou o documento
+    // nesse meio-tempo, garantirDailyLogDoDia não sobrescreve.
+    await garantirDailyLogDoDia(uid, hojeISO, tarefasRecorrentes);
   }, [uid]);
 
   useEffect(() => {

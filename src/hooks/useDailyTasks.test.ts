@@ -10,6 +10,7 @@ const {
   buscarDailyLog,
   existeAlgumDailyLog,
   salvarDailyLog,
+  garantirDailyLogDoDia,
   buscarTarefasRecorrentesAtivas,
   criarTarefaRecorrente,
   desativarTarefaRecorrente,
@@ -29,6 +30,7 @@ describe('useDailyTasks', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     salvarDailyLog.mockResolvedValue(undefined);
+    garantirDailyLogDoDia.mockResolvedValue(undefined);
     existeAlgumDailyLog.mockResolvedValue(false);
     buscarTarefasRecorrentesAtivas.mockResolvedValue([]);
     criarTarefaRecorrente.mockResolvedValue('recorrente-1');
@@ -36,7 +38,7 @@ describe('useDailyTasks', () => {
     useToast.mockReturnValue({ showToast });
   });
 
-  it('primeiro dia de uso (nenhum dailyLog): semeia as tarefas de exemplo, sem escrever nada', async () => {
+  it('primeiro dia de uso (nenhum dailyLog): semeia as tarefas de exemplo localmente, mas grava o dia real vazio via garantirDailyLogDoDia', async () => {
     buscarDailyLog.mockResolvedValue(null);
     existeAlgumDailyLog.mockResolvedValue(false);
 
@@ -45,10 +47,18 @@ describe('useDailyTasks', () => {
     await waitFor(() => expect(result.current.carregando).toBe(false));
     expect(result.current.tarefas).toHaveLength(3);
     expect(result.current.tarefas.every(t => !t.concluida)).toBe(true);
+    // TAREFAS_EXEMPLO é só demonstração local — o dailyLog gravado não leva
+    // o exemplo, só o que existe de fato em essentialTasks (nada, aqui).
     expect(salvarDailyLog).not.toHaveBeenCalled();
+    expect(garantirDailyLogDoDia).toHaveBeenCalledTimes(1);
+    const [uidChamado, dataChamada, tarefasIniciais] =
+      garantirDailyLogDoDia.mock.calls[0];
+    expect(uidChamado).toBe('uid-1');
+    expect(dataChamada).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(tarefasIniciais).toEqual([]);
   });
 
-  it('dia novo depois de já ter usado antes: começa vazio (não semeia de novo)', async () => {
+  it('dia novo depois de já ter usado antes: começa vazio (não semeia de novo) e grava o dia real vazio', async () => {
     buscarDailyLog.mockResolvedValue(null);
     existeAlgumDailyLog.mockResolvedValue(true);
 
@@ -58,6 +68,11 @@ describe('useDailyTasks', () => {
     expect(result.current.tarefas).toEqual([]);
     expect(result.current.statusDia).toBe('pendente');
     expect(salvarDailyLog).not.toHaveBeenCalled();
+    expect(garantirDailyLogDoDia).toHaveBeenCalledWith(
+      'uid-1',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      [],
+    );
   });
 
   it('com dailyLog já salvo: carrega o estado persistido em vez do padrão', async () => {
@@ -380,7 +395,7 @@ describe('useDailyTasks', () => {
   });
 
   describe('tarefas recorrentes', () => {
-    it('dia novo com recorrentes ativas: pré-popula tarefas[] a partir delas, sem gravar nada', async () => {
+    it('dia novo com recorrentes ativas: pré-popula tarefas[] a partir delas e grava o mesmo conteúdo via garantirDailyLogDoDia', async () => {
       buscarDailyLog.mockResolvedValue(null);
       existeAlgumDailyLog.mockResolvedValue(true);
       buscarTarefasRecorrentesAtivas.mockResolvedValue([
@@ -400,6 +415,11 @@ describe('useDailyTasks', () => {
         ['Beber água', 'rec-2'],
       ]);
       expect(salvarDailyLog).not.toHaveBeenCalled();
+      expect(garantirDailyLogDoDia).toHaveBeenCalledTimes(1);
+      const [, , tarefasIniciais] = garantirDailyLogDoDia.mock.calls[0];
+      expect(
+        tarefasIniciais.map((t: { titulo: string }) => t.titulo),
+      ).toEqual(['Ler 5 páginas', 'Beber água']);
     });
 
     it('regressão: recorrente concluída ontem aparece concluida:false hoje, com um id novo — mesmo sem o app ter reiniciado (hojeISO não pode "congelar" no dia do mount)', async () => {
