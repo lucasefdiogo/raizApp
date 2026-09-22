@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 
-const DURACAO_MS = 1500;
+const DURACAO_MS = 3000;
 
 interface TaskCompletedOverlayProps {
   visible: boolean;

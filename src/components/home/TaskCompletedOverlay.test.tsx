@@ -33,7 +33,7 @@ describe('TaskCompletedOverlay', () => {
     expect(screen.getByText('Mais um passo real.')).toBeTruthy();
   });
 
-  it('chama onHide depois de ~1.5s', async () => {
+  it('chama onHide depois de ~3s', async () => {
     const onHide = jest.fn();
     await render(
       <TaskCompletedOverlay
@@ -46,7 +46,7 @@ describe('TaskCompletedOverlay', () => {
     expect(onHide).not.toHaveBeenCalled();
 
     await act(async () => {
-      jest.advanceTimersByTime(1500);
+      jest.advanceTimersByTime(3000);
     });
 
     expect(onHide).toHaveBeenCalledTimes(1);
