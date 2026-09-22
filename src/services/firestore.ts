@@ -290,6 +290,36 @@ export async function salvarDailyLog(
 }
 
 /**
+ * Garante que dailyLogs/{data} existe, criando com `tarefasIniciais` (já
+ * pré-populadas a partir de essentialTasks — ver useDailyTasks.carregar())
+ * se ainda não existir. Idempotente por leitura antes de escrever: nunca
+ * sobrescreve um documento que já tem progresso real do dia, só preenche a
+ * lacuna de um dia aberto mas nunca tocado — sem isso, esse dia não gera
+ * dailyLog nenhum e aparece como `sem_registro` no histórico/desafios em vez
+ * de `perdido` quando as tarefas continuam sem conclusão (ver domain/progress.ts).
+ */
+export async function garantirDailyLogDoDia(
+  uid: string,
+  data: string,
+  tarefasIniciais: Tarefa[],
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  const snapshot = await getDoc(referencia);
+  if (snapshot.exists()) {
+    return;
+  }
+
+  await setDoc(referencia, {
+    data,
+    tarefas: tarefasIniciais,
+    statusDia: 'pendente',
+    escudoUsado: false,
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+  });
+}
+
+/**
  * Acrescenta uma tarefa a dailyLogs/{data}, criando o documento se ainda não
  * existir. Usado pela tela de retorno após pausa para registrar a tarefa
  * pequena que o usuário escolhe pra recomeçar o dia.

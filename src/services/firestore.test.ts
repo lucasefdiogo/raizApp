@@ -9,6 +9,7 @@ import {
   buscarUltimosDailyLogs,
   existeAlgumDailyLog,
   salvarDailyLog,
+  garantirDailyLogDoDia,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
   buscarDesbloqueiosHojeDoApp,
@@ -256,6 +257,64 @@ describe('services/firestore', () => {
       const log = await buscarDailyLog('uid-1', '2026-09-15');
       expect(log?.statusDia).toBe('cumprido');
       expect(log?.tarefas[0].concluida).toBe(true);
+    });
+  });
+
+  describe('garantirDailyLogDoDia', () => {
+    it('cria dailyLogs/{data} pendente com as tarefas iniciais quando ainda não existe', async () => {
+      await garantirDailyLogDoDia('uid-1', '2026-09-15', [
+        { id: 'recorrente-rec-1-2026-09-15', titulo: 'Ler 5 páginas', essencial: true, concluida: false, origemRecorrenteId: 'rec-1' },
+      ]);
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log).toEqual({
+        data: '2026-09-15',
+        tarefas: [
+          { id: 'recorrente-rec-1-2026-09-15', titulo: 'Ler 5 páginas', essencial: true, concluida: false, origemRecorrenteId: 'rec-1' },
+        ],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+    });
+
+    it('sem nenhuma tarefa recorrente: cria o dia com tarefas vazio (nunca TAREFAS_EXEMPLO)', async () => {
+      await garantirDailyLogDoDia('uid-1', '2026-09-15', []);
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.tarefas).toEqual([]);
+      expect(log?.statusDia).toBe('pendente');
+    });
+
+    it('idempotente: não sobrescreve um dia que já tem progresso real', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa concluída de verdade', essencial: true, concluida: true },
+        ],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await garantirDailyLogDoDia('uid-1', '2026-09-15', [
+        { id: 'outra', titulo: 'não deveria aparecer', essencial: false, concluida: false },
+      ]);
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log).toEqual({
+        data: '2026-09-15',
+        tarefas: [
+          { id: '1', titulo: 'tarefa concluída de verdade', essencial: true, concluida: true },
+        ],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+    });
+
+    it('não vaza entre usuários nem entre datas', async () => {
+      await garantirDailyLogDoDia('uid-1', '2026-09-15', []);
+
+      expect(await buscarDailyLog('uid-2', '2026-09-15')).toBeNull();
+      expect(await buscarDailyLog('uid-1', '2026-09-16')).toBeNull();
     });
   });
 
