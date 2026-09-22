@@ -2,6 +2,7 @@ import {
   agendarLembreteDiario,
   avaliarNecessidadeAlertaRisco,
 } from './notifications';
+import { MENSAGENS_NOTIFICACAO } from '../utils/notificationMessages';
 
 const notifeeMock = require('@notifee/react-native');
 
@@ -11,7 +12,22 @@ describe('services/notifications', () => {
     jest.useRealTimers();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('agendarLembreteDiario', () => {
+    it('o corpo inclui o texto informativo original e uma frase de reforço sorteada', async () => {
+      jest.spyOn(Math, 'random').mockReturnValue(0);
+
+      await agendarLembreteDiario('08:00');
+
+      const [notification] = notifeeMock.createTriggerNotification.mock.calls[0];
+      expect(notification.body).toBe(
+        `Hora de decidir sua vitória de hoje.\n\n${MENSAGENS_NOTIFICACAO[0]}`,
+      );
+    });
+
     it('cancela o lembrete diário anterior antes de criar um novo', async () => {
       await agendarLembreteDiario('08:00');
 
@@ -67,6 +83,20 @@ describe('services/notifications', () => {
       expect(notification.id).toBe('risco-streak-2026-09-15');
       const disparo = new Date(trigger.timestamp);
       expect(disparo.getHours()).toBe(20);
+    });
+
+    it('o corpo inclui o texto informativo original e uma frase de reforço sorteada', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T15:00:00'));
+      jest.spyOn(Math, 'random').mockReturnValue(0.999);
+
+      await avaliarNecessidadeAlertaRisco(false);
+
+      const [notification] = notifeeMock.createTriggerNotification.mock.calls[0];
+      expect(notification.body).toBe(
+        `Ainda dá tempo de cumprir sua tarefa essencial hoje.\n\n${
+          MENSAGENS_NOTIFICACAO[MENSAGENS_NOTIFICACAO.length - 1]
+        }`,
+      );
     });
 
     it('essencial não concluída, mas já passou das 20:00: não agenda nada', async () => {

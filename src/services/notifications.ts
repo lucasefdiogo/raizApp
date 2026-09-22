@@ -1,4 +1,5 @@
 import notifee, { RepeatFrequency, TriggerType } from '@notifee/react-native';
+import { obterMensagemNotificacao } from '../utils/notificationMessages';
 
 const CANAL_ID = 'lembretes-rootora';
 const ID_LEMBRETE_DIARIO = 'lembrete-diario';
@@ -13,6 +14,12 @@ const HORA_ALERTA_RISCO = 20;
 
 async function garantirCanal(): Promise<void> {
   await notifee.createChannel({ id: CANAL_ID, name: 'Lembretes' });
+}
+
+// Sorteada a cada agendamento (não uma vez só) — complementa o texto
+// informativo, nunca o substitui.
+function corpoComReforco(textoBase: string): string {
+  return `${textoBase}\n\n${obterMensagemNotificacao()}`;
 }
 
 // Usa componentes de data LOCAIS (não toISOString/UTC) — o alerta é
@@ -49,7 +56,7 @@ export async function agendarLembreteDiario(horario: string): Promise<void> {
     {
       id: ID_LEMBRETE_DIARIO,
       title: TITULO,
-      body: TEXTO_LEMBRETE_DIARIO,
+      body: corpoComReforco(TEXTO_LEMBRETE_DIARIO),
       android: { channelId: CANAL_ID },
     },
     {
@@ -94,7 +101,7 @@ export async function avaliarNecessidadeAlertaRisco(
     {
       id,
       title: TITULO,
-      body: TEXTO_ALERTA_RISCO,
+      body: corpoComReforco(TEXTO_ALERTA_RISCO),
       android: { channelId: CANAL_ID },
     },
     {

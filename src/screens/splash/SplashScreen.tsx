@@ -13,7 +13,7 @@ const DURACAO_ENTRADA_FRASE_MS = 420;
  * evita o "pisca" quando as checagens de boot resolvem quase instantâneas.
  * A entrada animada (ícone + frase) cabe folgada dentro dele.
  */
-export const DURACAO_SPLASH_MS = 1200;
+export const DURACAO_SPLASH_MS = 2500;
 
 interface SplashScreenProps {
   onAnimationEnd: () => void;
