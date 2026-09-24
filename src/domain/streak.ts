@@ -36,7 +36,7 @@ export function calcularStatusDia(tarefas: Tarefa[]): StatusDia {
   return avaliarDiaCumprido(tarefas) ? 'cumprido' : 'nao_cumprido';
 }
 
-const MARCOS_STREAK = [3, 7, 14, 30, 60, 90];
+export const MARCOS_STREAK = [3, 7, 14, 30, 60, 90];
 
 /**
  * Retorna o marco cruzado na transição de streakAnterior -> streakNovo, se
@@ -52,6 +52,43 @@ export function verificarMarco(
     m => streakNovo >= m && streakAnterior < m && !marcosAtingidos.includes(m),
   );
   return marco ?? null;
+}
+
+export interface ProgressoProximoMarco {
+  /** Próximo marco (3/7/14/30/60/90) ainda não atingido, ou null depois do último (90+). */
+  proximoMarco: number | null;
+  /** Dias que faltam pro próximo marco — 0 quando proximoMarco é null. */
+  diasFaltantes: number;
+  /**
+   * Fração preenchida (0-1) da barra entre o marco anterior (ou 0, se
+   * nenhum) e o próximo — reinicia em 0 logo depois de cruzar um marco.
+   * 1 quando já passou do último marco (nada mais a preencher).
+   */
+  fracaoPreenchida: number;
+}
+
+/**
+ * Progresso do streak atual em direção ao próximo marco — usado pela barra
+ * de progresso da animação de regar a raiz (ver RootWateringOverlay).
+ */
+export function calcularProgressoProximoMarco(
+  diasSequencia: number,
+): ProgressoProximoMarco {
+  const proximoMarco = MARCOS_STREAK.find(m => m > diasSequencia) ?? null;
+
+  if (proximoMarco === null) {
+    return { proximoMarco: null, diasFaltantes: 0, fracaoPreenchida: 1 };
+  }
+
+  const marcoAnterior =
+    [...MARCOS_STREAK].reverse().find(m => m <= diasSequencia) ?? 0;
+
+  return {
+    proximoMarco,
+    diasFaltantes: proximoMarco - diasSequencia,
+    fracaoPreenchida:
+      (diasSequencia - marcoAnterior) / (proximoMarco - marcoAnterior),
+  };
 }
 
 function diferencaEmDias(dataAnterior: string, dataAtual: string): number {

@@ -1,6 +1,7 @@
 import {
   aplicarResultadoDia,
   avaliarDiaCumprido,
+  calcularProgressoProximoMarco,
   calcularStatusDia,
   deveRenovarEscudo,
   existeEssencialConcluida,
@@ -121,6 +122,44 @@ describe('verificarMarco', () => {
 
   it('retorna null quando o marco já está em marcosAtingidos', () => {
     expect(verificarMarco(2, 3, [3])).toBeNull();
+  });
+});
+
+describe('calcularProgressoProximoMarco', () => {
+  it('0 dias: próximo marco é 3, faltam 3, fração 0', () => {
+    expect(calcularProgressoProximoMarco(0)).toEqual({
+      proximoMarco: 3,
+      diasFaltantes: 3,
+      fracaoPreenchida: 0,
+    });
+  });
+
+  it('logo depois de cruzar um marco: fração reinicia em 0', () => {
+    expect(calcularProgressoProximoMarco(3)).toEqual({
+      proximoMarco: 7,
+      diasFaltantes: 4,
+      fracaoPreenchida: 0,
+    });
+  });
+
+  it('no meio do caminho entre dois marcos: fração proporcional', () => {
+    // entre 7 e 14: dia 10 -> 3 de 7 dias percorridos
+    const resultado = calcularProgressoProximoMarco(10);
+    expect(resultado.proximoMarco).toBe(14);
+    expect(resultado.diasFaltantes).toBe(4);
+    expect(resultado.fracaoPreenchida).toBeCloseTo(3 / 7, 5);
+  });
+
+  it('exatamente no marco final (90): não há próximo marco', () => {
+    expect(calcularProgressoProximoMarco(90)).toEqual({
+      proximoMarco: null,
+      diasFaltantes: 0,
+      fracaoPreenchida: 1,
+    });
+  });
+
+  it('além do último marco: continua sem próximo marco', () => {
+    expect(calcularProgressoProximoMarco(150).proximoMarco).toBeNull();
   });
 });
 

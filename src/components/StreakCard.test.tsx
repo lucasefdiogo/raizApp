@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 import { StreakCard } from './StreakCard';
 
 const streakBase = {
@@ -46,6 +46,31 @@ describe('StreakCard', () => {
     it('hojeCumprido=true: mostra "Já garantiu hoje." sem mudar o número do streak', async () => {
       await render(<StreakCard streak={streakBase} hojeCumprido={true} />);
       expect(screen.getByText('Já garantiu hoje.')).toBeTruthy();
+      expect(screen.getByText('4')).toBeTruthy();
+    });
+  });
+
+  describe('raiz visual (RootProgressIcon)', () => {
+    it('renderiza a raiz com a altura correspondente ao streakAtual', async () => {
+      await render(<StreakCard streak={streakBase} />);
+      expect(screen.getByTestId('root-progress-icon')).toBeTruthy();
+    });
+
+    it('hojeCumprido=true: a raiz fica mais alta do que sem cumprir (+1 dia visual, sem mudar o número)', async () => {
+      const { rerender } = await render(
+        <StreakCard streak={streakBase} hojeCumprido={false} />,
+      );
+      const caminhoSemCumprir =
+        screen.getByTestId('root-progress-icon-caule').props.d;
+
+      await act(async () => {
+        rerender(<StreakCard streak={streakBase} hojeCumprido={true} />);
+      });
+      const caminhoComCumprir =
+        screen.getByTestId('root-progress-icon-caule').props.d;
+
+      expect(caminhoComCumprir).not.toBe(caminhoSemCumprir);
+      // Número exibido continua o mesmo — só a raiz reflete o "+1" visual.
       expect(screen.getByText('4')).toBeTruthy();
     });
   });

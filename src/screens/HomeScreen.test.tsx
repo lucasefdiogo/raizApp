@@ -394,6 +394,44 @@ describe('HomeScreen', () => {
     expect(obterMensagemTarefaConcluida).toHaveBeenCalledTimes(1);
   });
 
+  describe('regressão: animação de regar a raiz só pra tarefa essencial', () => {
+    it('tarefa essencial: mostra RootWateringOverlay, não o TaskCompletedOverlay simples', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      await fireEvent.press(
+        screen.getByText('Abrir o material de estudo por 5 minutos'),
+      );
+
+      expect(screen.getByTestId('root-watering-overlay')).toBeTruthy();
+      expect(screen.getByText('A raiz recebeu hoje.')).toBeTruthy();
+      // "✓" isolado é exclusivo do TaskCompletedOverlay simples — não deve
+      // aparecer nesse caminho (a linha de desbloqueio, quando presente,
+      // vem junto de texto, nunca um "✓" sozinho).
+      expect(screen.queryByText('✓')).toBeNull();
+    });
+
+    it('tarefa comum: mostra o TaskCompletedOverlay simples, não a animação de regar', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      await fireEvent.press(
+        screen.getByText('Guardar o celular durante o almoço'),
+      );
+
+      expect(screen.getByText('Feito. Isso conta.')).toBeTruthy();
+      expect(screen.queryByTestId('root-watering-overlay')).toBeNull();
+      expect(screen.queryByText('A raiz recebeu hoje.')).toBeNull();
+    });
+
+    it('tarefa essencial: diasSequencia da animação é streakAtual + 1 (conta hoje sem esperar o boot de amanhã)', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} streakAtual={4} />);
+      await fireEvent.press(
+        screen.getByText('Abrir o material de estudo por 5 minutos'),
+      );
+
+      // streakAtual (4) + 1 = 5 -> próximo marco 7, faltam 2.
+      expect(screen.getByText('5 dias')).toBeTruthy();
+      expect(screen.getByText('próximo ramo em 2')).toBeTruthy();
+    });
+  });
+
   it('mostra o modal de marco quando marcoAtingido vem preenchido via prop', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} marcoAtingido={7} />);
 
