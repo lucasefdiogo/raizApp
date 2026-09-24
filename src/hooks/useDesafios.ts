@@ -12,6 +12,7 @@ import {
   gerarCatalogoDoPeriodo,
 } from '../domain/challenges';
 import { DailyLogResumo } from '../domain/progress';
+import { hojeISOLocal } from '../domain/data';
 import { DailyLog, Desafio, PeriodoDesafio } from '../domain/types';
 import { logDesafioConcluido } from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
@@ -39,10 +40,6 @@ function paraResumo(log: DailyLog): DailyLogResumo {
     tarefas: log.tarefas,
     escudoUsado: log.escudoUsado,
   };
-}
-
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /**
@@ -116,7 +113,7 @@ export function useDesafios(uid: string): UseDesafiosResultado {
   const carregar = useCallback(async () => {
     const leitura = ++leituraRef.current;
     const hoje = new Date();
-    const limite = hojeISO();
+    const limite = hojeISOLocal();
 
     const ativos = await buscarDesafiosAtivos(uid);
 

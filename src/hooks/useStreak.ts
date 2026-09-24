@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   aplicarResultadoDia,
   avaliarDiaCumprido,
@@ -7,6 +8,7 @@ import {
   renovarEscudo,
 } from '../domain/streak';
 import { EstadoStreak, StatusDiaResultante, StatusStreak } from '../domain/types';
+import { dataDeOntemLocal, dataLocalDeISO, hojeISOLocal } from '../domain/data';
 import {
   atualizarEstadoStreak,
   buscarDailyLog,
@@ -38,16 +40,6 @@ interface UseStreakResultado {
   recarregar: () => Promise<void>;
 }
 
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
-
-function dataDeOntem(hoje: Date): string {
-  const ontem = new Date(hoje);
-  ontem.setUTCDate(ontem.getUTCDate() - 1);
-  return paraISO(ontem);
-}
-
 /**
  * Lê o estado do streak no Firestore, roda a avaliação do dia anterior e a
  * renovação semanal do escudo (domain/streak.ts) e grava o resultado de
@@ -57,7 +49,8 @@ function dataDeOntem(hoje: Date): string {
  * ultimoDiaAtivo vazio (usuário novo ou conta legada nunca inicializada)
  * é um caso à parte: não há dia anterior pra avaliar, então só inicializa
  * (inicializarPrimeiroDia) em vez de chamar aplicarResultadoDia — ver o
- * `if` logo abaixo.
+ * `if` logo abaixo. Também reprocessa sozinho se o app voltar do
+ * background num dia local diferente do que tinha processado (AppState).
  */
 export function useStreak(uid: string | null): UseStreakResultado {
   const { showToast } = useToast();
@@ -69,6 +62,9 @@ export function useStreak(uid: string | null): UseStreakResultado {
   // Token do processamento em curso: se outro começar (troca de uid ou
   // recarregar manual), o anterior descarta o próprio resultado ao terminar.
   const processamentoRef = useRef(0);
+  // Data (YYYY-MM-DD local) que o processamento mais recente considerou
+  // "hoje" — usado só pelo listener de AppState abaixo.
+  const dataProcessadaRef = useRef<string | null>(null);
 
   const processar = useCallback(async () => {
     if (!uid) {
@@ -80,7 +76,8 @@ export function useStreak(uid: string | null): UseStreakResultado {
     const aindaAtual = () => processamentoRef.current === processamento;
 
     const hoje = new Date();
-    const hojeISO = paraISO(hoje);
+    const hojeISO = hojeISOLocal();
+    dataProcessadaRef.current = hojeISO;
 
     let estadoAtual = await buscarEstadoStreak(uid);
     if (!aindaAtual()) {
@@ -101,7 +98,7 @@ export function useStreak(uid: string | null): UseStreakResultado {
       // por essa lacuna se corrige sozinha no próximo login.
       estadoAtual = inicializarPrimeiroDia(estadoAtual, hojeISO);
     } else if (estadoAtual.ultimoDiaAtivo !== hojeISO) {
-      const logOntem = await buscarDailyLog(uid, dataDeOntem(hoje));
+      const logOntem = await buscarDailyLog(uid, dataDeOntemLocal(hoje));
       if (!aindaAtual()) {
         return;
       }
@@ -142,7 +139,7 @@ export function useStreak(uid: string | null): UseStreakResultado {
     }
 
     const dataRenovacao = estadoAtual.dataUltimaRenovacaoEscudo
-      ? new Date(`${estadoAtual.dataUltimaRenovacaoEscudo}T00:00:00Z`)
+      ? dataLocalDeISO(estadoAtual.dataUltimaRenovacaoEscudo)
       : new Date(0);
     if (deveRenovarEscudo(dataRenovacao, hoje)) {
       estadoAtual = renovarEscudo(estadoAtual, hoje);
@@ -169,6 +166,22 @@ export function useStreak(uid: string | null): UseStreakResultado {
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [processar, showToast]);
+
+  // App deixado em background durante a virada do dia e trazido de volta:
+  // sem isso, ultimoDiaAtivo em memória fica preso no dia antigo até algum
+  // outro gatilho reprocessar. Só reprocessa quando a data local realmente
+  // mudou — não a cada volta ao primeiro plano.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', estadoApp => {
+      if (
+        estadoApp === 'active' &&
+        dataProcessadaRef.current !== hojeISOLocal()
+      ) {
+        recarregar();
+      }
+    });
+    return () => subscription.remove();
+  }, [recarregar]);
 
   const marcarRetornoConcluido = useCallback(() => {
     setEstado(atual => (atual ? { ...atual, statusStreak: 'ativo' } : atual));

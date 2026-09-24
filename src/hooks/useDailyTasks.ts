@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { StatusDia, Tarefa, TipoTarefa } from '../domain/types';
 import { calcularStatusDia } from '../domain/streak';
+import { hojeISOLocal } from '../domain/data';
 import {
   adicionarTarefa as adicionarTarefaNoDia,
   editarTarefa as editarTarefaNoDia,
@@ -53,10 +55,6 @@ const MENSAGEM_FALHA_RECARREGAR =
   'Não conseguimos atualizar agora. Tente de novo.';
 const MENSAGEM_FALHA_PARAR_DE_REPETIR =
   'Não conseguimos salvar agora. Tente de novo.';
-
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
 
 interface UseDailyTasksResultado {
   tarefas: Tarefa[];
@@ -112,10 +110,12 @@ interface UseDailyTasksResultado {
  * nunca o exemplo) na hora, não só na primeira mutação. Sem isso, um dia em
  * que o usuário abre o app e não toca em nenhuma tarefa nunca gera registro
  * e aparece como `sem_registro` no histórico/desafios em vez de `perdido`
- * (ver domain/progress.ts). Depois da leitura inicial, toda mutação
- * continua otimista: o estado local muda na hora e, se a gravação falhar,
- * volta ao que era e dispara um toast — nada de perder o toque do usuário
- * em silêncio.
+ * (ver domain/progress.ts). Também recarrega sozinho se o app voltar do
+ * background num dia local diferente do que tinha carregado (AppState),
+ * então não fica preso com as tarefas de ontem até algum outro gatilho
+ * aparecer. Depois da leitura inicial, toda mutação continua otimista: o
+ * estado local muda na hora e, se a gravação falhar, volta ao que era e
+ * dispara um toast — nada de perder o toque do usuário em silêncio.
  */
 export function useDailyTasks(uid: string): UseDailyTasksResultado {
   const { showToast } = useToast();
@@ -126,6 +126,10 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
   // Token da leitura em curso: se outra começar (troca de uid ou recarregar
   // manual), a anterior descarta o próprio resultado ao terminar.
   const leituraRef = useRef(0);
+  // Data (YYYY-MM-DD local) que a leitura mais recente considerou "hoje" —
+  // usado só pelo listener de AppState abaixo, pra saber se a virada do dia
+  // aconteceu enquanto o app estava em background.
+  const dataCarregadaRef = useRef<string | null>(null);
 
   const carregar = useCallback(async () => {
     const leitura = ++leituraRef.current;
@@ -137,7 +141,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     // ontem já existe e tem concluida:true, o código nem chega a cair no
     // ramo de pré-popular a partir de essentialTasks — é isso que fazia
     // tarefa recorrente aparecer concluída no dia seguinte.
-    const hojeISO = paraISO(new Date());
+    const hojeISO = hojeISOLocal();
+    dataCarregadaRef.current = hojeISO;
 
     const log = await buscarDailyLog(uid, hojeISO);
     if (!aindaAtual()) {
@@ -211,6 +216,20 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     }
   }, [carregar, showToast]);
 
+  // App deixado em background durante a virada do dia e trazido de volta:
+  // sem isso, o processo continua vivo com o dailyLog de ontem em memória
+  // até algum outro gatilho (pull-to-refresh) recarregar. Só recarrega
+  // quando a data local realmente mudou — não a cada volta ao primeiro
+  // plano (a maioria delas é no mesmo dia, recarregar à toa é desperdício).
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', estado => {
+      if (estado === 'active' && dataCarregadaRef.current !== hojeISOLocal()) {
+        recarregar();
+      }
+    });
+    return () => subscription.remove();
+  }, [recarregar]);
+
   const persistir = useCallback(
     async (novasTarefas: Tarefa[], mensagemFalha: string) => {
       const anterior = tarefas;
@@ -218,7 +237,7 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       // Recalculado a cada chamada — mesmo racional de carregar(): grava
       // sempre no dailyLog do dia real da gravação, nunca no de um dia
       // anterior "congelado" desde o mount do hook.
-      const hojeISO = paraISO(new Date());
+      const hojeISO = hojeISOLocal();
 
       try {
         await salvarDailyLog(uid, hojeISO, {

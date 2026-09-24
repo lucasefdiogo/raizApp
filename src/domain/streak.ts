@@ -5,6 +5,7 @@ import {
   StatusStreak,
   Tarefa,
 } from './types';
+import { diferencaEmDiasLocal, paraISOLocal } from './data';
 
 const PROPORCAO_MINIMA_CUMPRIMENTO = 0.6;
 
@@ -91,12 +92,6 @@ export function calcularProgressoProximoMarco(
   };
 }
 
-function diferencaEmDias(dataAnterior: string, dataAtual: string): number {
-  const anterior = new Date(`${dataAnterior}T00:00:00Z`).getTime();
-  const atual = new Date(`${dataAtual}T00:00:00Z`).getTime();
-  return Math.round((atual - anterior) / (1000 * 60 * 60 * 24));
-}
-
 /**
  * Estado inicial de streak pro primeiro dia de uso — ultimoDiaAtivo ainda
  * vazio (usuário novo) ou nunca inicializado (conta legada de antes desta
@@ -142,7 +137,7 @@ export function aplicarResultadoDia(
   hoje: string,
 ): ResultadoAplicacaoDia {
   const diasSemAtividade = estadoAtual.ultimoDiaAtivo
-    ? diferencaEmDias(estadoAtual.ultimoDiaAtivo, hoje)
+    ? diferencaEmDiasLocal(estadoAtual.ultimoDiaAtivo, hoje)
     : 1;
 
   if (diasSemAtividade >= 2) {
@@ -202,18 +197,16 @@ export function aplicarResultadoDia(
 }
 
 /**
- * Segunda-feira (00:00 UTC) da semana que contém `data`. Fonte única do que
- * "semana" significa no produto — reaproveitado pela renovação do escudo e
- * pelos desafios semanais (domain/challenges.ts).
+ * Segunda-feira (00:00 hora LOCAL) da semana que contém `data`. Fonte única
+ * do que "semana" significa no produto — reaproveitado pela renovação do
+ * escudo e pelos desafios semanais (domain/challenges.ts). Hora local, não
+ * UTC — mesmo racional de domain/data.ts: perto da meia-noite local, um
+ * cálculo em UTC pode colocar `data` na semana errada.
  */
 export function inicioDaSemana(data: Date): Date {
-  const inicio = new Date(
-    Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()),
-  );
-  const diaDaSemana = inicio.getUTCDay();
+  const diaDaSemana = data.getDay();
   const deslocamento = diaDaSemana === 0 ? 6 : diaDaSemana - 1;
-  inicio.setUTCDate(inicio.getUTCDate() - deslocamento);
-  return inicio;
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate() - deslocamento);
 }
 
 /**
@@ -229,6 +222,6 @@ export function renovarEscudo(estadoAtual: EstadoStreak, hoje: Date): EstadoStre
   return {
     ...estadoAtual,
     escudosDisponiveis: 1,
-    dataUltimaRenovacaoEscudo: hoje.toISOString().slice(0, 10),
+    dataUltimaRenovacaoEscudo: paraISOLocal(hoje),
   };
 }

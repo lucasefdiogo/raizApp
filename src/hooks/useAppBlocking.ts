@@ -19,10 +19,7 @@ import {
   logAppBloqueadoDetectado,
   logAppDesbloqueado,
 } from '../services/analytics';
-
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { hojeISOLocal } from '../domain/data';
 
 export interface AppBloqueadoInfo {
   packageName: string;
@@ -117,7 +114,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
       return;
     }
     let cancelado = false;
-    buscarDesbloqueiosHojeDoApp(uid, hojeISO()).then(quantidade => {
+    buscarDesbloqueiosHojeDoApp(uid, hojeISOLocal()).then(quantidade => {
       if (!cancelado) {
         setDesbloqueiosHoje(quantidade);
       }
@@ -140,7 +137,7 @@ export function useAppBlocking(uid: string | null): UseAppBlockingResultado {
         // Fire-and-forget: o incremento atômico não precisa terminar antes
         // de liberar o app (é a exigência do PRÓXIMO desbloqueio que
         // escala, não este).
-        incrementarDesbloqueiosHoje(uid, hojeISO());
+        incrementarDesbloqueiosHoje(uid, hojeISOLocal());
       }
       registrarDesbloqueioTemporario(appBloqueadoAtual.packageName, minutos);
       logAppDesbloqueado(metodo, nivelAtual);

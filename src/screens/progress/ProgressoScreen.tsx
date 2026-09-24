@@ -18,6 +18,7 @@ import { DayDetailSheet } from '../../components/progress/DayDetailSheet';
 import { ChallengeCard } from '../../components/challenges/ChallengeCard';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
+import { dataLocalDeISO } from '../../domain/data';
 
 interface ProgressoScreenProps {
   uid: string;
@@ -36,12 +37,12 @@ const LABEL_DIA_SEMANA_COMPLETO = [
 ];
 
 function labelParaData(dataISO: string): string {
-  const diaSemana = new Date(`${dataISO}T00:00:00Z`).getUTCDay();
+  const diaSemana = dataLocalDeISO(dataISO).getDay();
   return LABEL_DIA_SEMANA[diaSemana];
 }
 
 function labelCompletoParaData(dataISO: string): string {
-  const diaSemana = new Date(`${dataISO}T00:00:00Z`).getUTCDay();
+  const diaSemana = dataLocalDeISO(dataISO).getDay();
   return LABEL_DIA_SEMANA_COMPLETO[diaSemana];
 }
 

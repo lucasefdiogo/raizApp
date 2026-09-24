@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import { useDailyTasks } from './useDailyTasks';
 
 jest.mock('../services/firestore');
@@ -29,6 +30,13 @@ const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
 describe('useDailyTasks', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    // Sem isso, a chamada real de AppState.addEventListener quebra neste
+    // ambiente de teste (RN sem NativeEventEmitter de verdade) — os testes
+    // específicos de AppState abaixo substituem por uma versão que captura
+    // o callback.
+    jest
+      .spyOn(AppState, 'addEventListener')
+      .mockReturnValue({ remove: jest.fn() } as never);
     salvarDailyLog.mockResolvedValue(undefined);
     garantirDailyLogDoDia.mockResolvedValue(undefined);
     existeAlgumDailyLog.mockResolvedValue(false);
@@ -745,5 +753,90 @@ describe('useDailyTasks', () => {
       expect.any(Error),
       'useDailyTasks.recarregar',
     );
+  });
+
+  describe('AppState: volta do background', () => {
+    function mockAppStateListener() {
+      const ouvintes: Record<string, (estado: string) => void> = {};
+      const addListener = jest
+        .spyOn(AppState, 'addEventListener')
+        .mockImplementation(((evento: string, cb: (estado: string) => void) => {
+          ouvintes[evento] = cb;
+          return { remove: jest.fn() } as never;
+        }) as never);
+      return { ouvintes, addListener };
+    }
+
+    it('data local mudou: reganhar o primeiro plano recarrega', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 23, 23, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        buscarDailyLog.mockResolvedValue(null);
+        const { result } = await renderHook(() => useDailyTasks('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+
+        // Vira o dia local enquanto o app estava em background.
+        jest.setSystemTime(new Date(2026, 8, 24, 0, 5, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('active');
+        });
+
+        expect(buscarDailyLog).toHaveBeenCalledTimes(2);
+        expect(buscarDailyLog).toHaveBeenLastCalledWith('uid-1', '2026-09-24');
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
+
+    it('mesma data local: reganhar o primeiro plano NÃO recarrega', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 23, 10, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        buscarDailyLog.mockResolvedValue(null);
+        const { result } = await renderHook(() => useDailyTasks('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+
+        // Mesmo dia local, só um tempo depois.
+        jest.setSystemTime(new Date(2026, 8, 23, 15, 0, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('active');
+        });
+
+        expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
+
+    it('ir pro background não dispara recarregamento', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 23, 10, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        buscarDailyLog.mockResolvedValue(null);
+        const { result } = await renderHook(() => useDailyTasks('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+
+        jest.setSystemTime(new Date(2026, 8, 24, 0, 5, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('background');
+        });
+
+        expect(buscarDailyLog).toHaveBeenCalledTimes(1);
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
   });
 });

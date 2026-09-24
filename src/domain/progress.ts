@@ -1,4 +1,5 @@
 import { avaliarDiaCumprido } from './streak';
+import { paraISOLocal } from './data';
 import { Tarefa } from './types';
 
 export type StatusHistoricoDia =
@@ -21,14 +22,10 @@ export interface DiaHistorico {
 
 const DIAS_HISTORICO = 7;
 
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
-
-function dataUTC(data: Date): Date {
-  return new Date(
-    Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()),
-  );
+/** Meia-noite LOCAL de `data`, sem componente de hora — base segura pra
+ * iterar dia a dia (getDate/setDate, nunca getUTCDate/setUTCDate). */
+function inicioDoDiaLocal(data: Date): Date {
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
 }
 
 function statusDoLog(log: DailyLogResumo): StatusHistoricoDia {
@@ -66,7 +63,7 @@ export function avaliarStatusHistoricoDia(
   hoje: Date,
   opcoes: OpcoesIntervalo = {},
 ): StatusHistoricoDia {
-  const hojeISO = paraISO(hoje);
+  const hojeISO = paraISOLocal(hoje);
 
   if (dataISO > hojeISO) {
     return 'sem_registro';
@@ -99,18 +96,18 @@ export function construirHistoricoIntervalo(
   const porData = new Map(dailyLogs.map(log => [log.data, log]));
 
   const dias: DiaHistorico[] = [];
-  const cursor = dataUTC(inicio);
-  const ultimo = dataUTC(fim);
+  const cursor = inicioDoDiaLocal(inicio);
+  const ultimo = inicioDoDiaLocal(fim);
 
   while (cursor.getTime() <= ultimo.getTime()) {
-    const dataISO = paraISO(cursor);
+    const dataISO = paraISOLocal(cursor);
     const log = porData.get(dataISO) ?? null;
     dias.push({
       data: dataISO,
       status: avaliarStatusHistoricoDia(log, dataISO, hoje, opcoes),
     });
 
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    cursor.setDate(cursor.getDate() + 1);
   }
 
   return dias;
@@ -127,8 +124,8 @@ export function construirHistoricoSemana(
   dailyLogs: DailyLogResumo[],
   hoje: Date,
 ): DiaHistorico[] {
-  const inicio = dataUTC(hoje);
-  inicio.setUTCDate(inicio.getUTCDate() - (DIAS_HISTORICO - 1));
+  const inicio = inicioDoDiaLocal(hoje);
+  inicio.setDate(inicio.getDate() - (DIAS_HISTORICO - 1));
   return construirHistoricoIntervalo(dailyLogs, inicio, hoje, hoje, {
     avaliarHojeAoVivo: true,
   });

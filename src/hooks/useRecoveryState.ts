@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StatusDiaResultante } from '../domain/types';
 import { buscarSystemMessage } from '../services/firestore';
 import { chaveRecoveryShown, lerItem, salvarItem } from '../utils/storage';
+import { dataDeOntemLocal } from '../domain/data';
 
 export type RecoveryStateTipo = 'escudo' | 'reduzido';
 
@@ -16,12 +17,6 @@ const SYSTEM_MESSAGE_KEY: Record<RecoveryStateTipo, string> = {
   escudo: 'escudo_ativado',
   reduzido: 'streak_reduzido',
 };
-
-function dataDeOntemISO(): string {
-  const ontem = new Date();
-  ontem.setUTCDate(ontem.getUTCDate() - 1);
-  return ontem.toISOString().slice(0, 10);
-}
 
 function substituirPlaceholders(
   corpo: string,
@@ -47,7 +42,7 @@ export function useRecoveryState(
   const [deveExibir, setDeveExibir] = useState(false);
   const [tipo, setTipo] = useState<RecoveryStateTipo | null>(null);
   const [corpo, setCorpo] = useState<string | null>(null);
-  const [dataOntem] = useState(dataDeOntemISO);
+  const [dataOntem] = useState(() => dataDeOntemLocal(new Date()));
 
   useEffect(() => {
     if (
