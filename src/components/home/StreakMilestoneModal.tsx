@@ -28,7 +28,7 @@ export function StreakMilestoneModal({
       <View style={styles.fundo}>
         <View style={styles.cartao}>
           <Text style={styles.eyebrow}>Marco atingido</Text>
-          <RootProgressIcon variant="completo" tamanho={96} />
+          <RootProgressIcon variant="completo" tamanho={96} diasSequencia={marco} />
           <Text style={styles.numero}>{marco}</Text>
           <Text style={styles.legenda}>dias seguidos</Text>
           {corpo ? <Text style={styles.corpo}>{corpo}</Text> : null}

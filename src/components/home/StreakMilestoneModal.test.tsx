@@ -55,6 +55,21 @@ describe('StreakMilestoneModal', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('passa o marco como diasSequencia pra raiz — a altura reflete o marco atingido', async () => {
+    await render(
+      <StreakMilestoneModal
+        marco={30}
+        corpo="Um mês inteiro."
+        visible={true}
+        onDismiss={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('root-progress-icon-caule').props.d).not.toBe(
+      'M48 4 C48 28 48 40 48 92', // caminho padrão (dias=90) — dia 30 é visivelmente menor
+    );
+  });
+
   it('não mostra o corpo quando a prop vem vazia', async () => {
     await render(
       <StreakMilestoneModal

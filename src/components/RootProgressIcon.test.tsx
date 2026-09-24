@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 import { RootProgressIcon } from './RootProgressIcon';
 
 describe('RootProgressIcon', () => {
@@ -42,5 +42,57 @@ describe('RootProgressIcon', () => {
 
     rerender(<RootProgressIcon variant="escudo" />);
     expect(screen.queryByTestId('root-progress-icon-ponto')).toBeNull();
+  });
+
+  describe('diasSequencia (crescimento contínuo do caule)', () => {
+    it('omitido: mantém o caminho padrão de sempre (altura fixa)', async () => {
+      await render(<RootProgressIcon variant="completo" />);
+      const caule = screen.getByTestId('root-progress-icon-caule');
+      expect(caule.props.d).toBe('M48 4 C48 28 48 40 48 92');
+    });
+
+    it('diasSequencia diferentes produzem caules com alturas (d) diferentes', async () => {
+      const { rerender } = await render(
+        <RootProgressIcon variant="completo" diasSequencia={1} />,
+      );
+      const caminho1 = screen.getByTestId('root-progress-icon-caule').props.d;
+
+      await act(async () => {
+        rerender(<RootProgressIcon variant="completo" diasSequencia={30} />);
+      });
+      const caminho30 = screen.getByTestId('root-progress-icon-caule').props.d;
+
+      expect(caminho1).not.toBe(caminho30);
+    });
+
+    it('diasSequencia mais alto sempre produz caule mais alto (ponto final maior)', async () => {
+      const { rerender } = await render(
+        <RootProgressIcon variant="completo" diasSequencia={1} />,
+      );
+      const fimDia1 = Number(
+        screen.getByTestId('root-progress-icon-caule').props.d.split(' ').pop(),
+      );
+
+      await act(async () => {
+        rerender(<RootProgressIcon variant="completo" diasSequencia={30} />);
+      });
+      const fimDia30 = Number(
+        screen.getByTestId('root-progress-icon-caule').props.d.split(' ').pop(),
+      );
+
+      expect(fimDia30).toBeGreaterThan(fimDia1);
+    });
+
+    it('diasSequencia=90 produz o mesmo caminho do padrão (teto igual à altura fixa de sempre)', async () => {
+      await render(<RootProgressIcon variant="completo" diasSequencia={90} />);
+      const caule = screen.getByTestId('root-progress-icon-caule');
+      expect(caule.props.d).toBe('M48 4 C48 28 48 40 48 92');
+    });
+
+    it('variant broto ignora diasSequencia — mantém o caule curto do broto', async () => {
+      await render(<RootProgressIcon variant="broto" diasSequencia={30} />);
+      const caule = screen.getByTestId('root-progress-icon-caule');
+      expect(caule.props.d).toBe('M48 8 C48 16 48 22 48 32');
+    });
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { theme } from '../theme';
+import { calcularAlturaCaule } from '../domain/rootGrowth';
 
 export type RootProgressIconVariant =
   | 'completo'
@@ -11,6 +12,37 @@ export type RootProgressIconVariant =
 interface RootProgressIconProps {
   variant?: RootProgressIconVariant;
   tamanho?: number;
+  /**
+   * Dias de sequência atual — quando presente (e variant !== 'broto'), o
+   * caule principal é desenhado com a altura de calcularAlturaCaule
+   * (domain/rootGrowth.ts) em vez da altura fixa de sempre. Os ramos
+   * continuam aparecendo por marco, exatamente como hoje — só o
+   * comprimento do caule central passa a refletir o progresso contínuo.
+   * Ausente: comportamento inalterado (altura fixa de sempre — mesmo valor
+   * que calcularAlturaCaule(90) produz, então nenhum uso existente muda).
+   */
+  diasSequencia?: number;
+}
+
+export const ALTURA_CAULE_PADRAO = 88;
+
+function arredondado(valor: number): number {
+  return Math.round(valor * 100) / 100;
+}
+
+/**
+ * Caminho do caule principal, escalado proporcionalmente pra `altura` (px
+ * do viewBox) — preserva a curvatura visual de hoje (pontos de controle nas
+ * mesmas frações do comprimento), só varia o comprimento final. Exportada
+ * pra ser reaproveitada por RootWateringOverlay, que desenha o mesmo caule
+ * numa camada animada separada por cima deste componente (ver lá).
+ */
+export function caminhoCaule(altura: number): string {
+  const topo = 4;
+  const controle1 = arredondado(topo + altura * (24 / ALTURA_CAULE_PADRAO));
+  const controle2 = arredondado(topo + altura * (36 / ALTURA_CAULE_PADRAO));
+  const fim = arredondado(topo + altura);
+  return `M48 ${topo} C48 ${controle1} 48 ${controle2} 48 ${fim}`;
 }
 
 /**
@@ -28,11 +60,17 @@ interface RootProgressIconProps {
 export function RootProgressIcon({
   variant = 'completo',
   tamanho = 96,
+  diasSequencia,
 }: RootProgressIconProps) {
   const reduzido = variant === 'reduzido';
   const escudo = variant === 'escudo';
   const completo = variant === 'completo';
   const broto = variant === 'broto';
+
+  const alturaCaule =
+    diasSequencia !== undefined
+      ? calcularAlturaCaule(diasSequencia)
+      : ALTURA_CAULE_PADRAO;
 
   return (
     <Svg
@@ -52,7 +90,8 @@ export function RootProgressIcon({
         />
       )}
       <Path
-        d={broto ? 'M48 8 C48 16 48 22 48 32' : 'M48 4 C48 28 48 40 48 92'}
+        testID="root-progress-icon-caule"
+        d={broto ? 'M48 8 C48 16 48 22 48 32' : caminhoCaule(alturaCaule)}
         stroke={theme.colors.musgo}
         strokeWidth={broto ? 4 : 6}
         strokeLinecap="round"

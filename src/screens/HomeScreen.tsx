@@ -27,6 +27,7 @@ import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { EmptyState } from '../components/common/EmptyState';
 import { AddTaskForm } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
+import { RootWateringOverlay } from '../components/home/RootWateringOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
 import { AppBlockBanner } from '../components/home/AppBlockBanner';
 import { AppBlockStatusCard } from '../components/home/AppBlockStatusCard';
@@ -154,6 +155,13 @@ export function HomeScreen({
   useRecarregarAoFocar(recarregarBloqueioApps);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
+  const [overlayRaizVisivel, setOverlayRaizVisivel] = useState(false);
+  // Congelado no momento do toque (igual a mensagemOverlay acima) — não
+  // recalcula a cada render enquanto a animação de regar está na tela.
+  const [dadosOverlayRaiz, setDadosOverlayRaiz] = useState({
+    diasSequencia: 0,
+    submensagem: '',
+  });
   const [atualizando, setAtualizando] = useState(false);
   const [alturaTeclado, setAlturaTeclado] = useState(0);
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -203,15 +211,29 @@ export function HomeScreen({
 
       alternarTarefa(id);
 
-      if (vaiConcluir) {
-        setMensagemOverlay(obterMensagemTarefaConcluida());
-        setOverlayVisivel(true);
+      if (vaiConcluir && tarefa) {
+        if (tarefa.essencial) {
+          // Concluir QUALQUER essencial já satisfaz avaliarDiaCumprido — não
+          // precisa esperar statusDia recalcular (que ainda reflete o
+          // `tarefas` de antes do toque neste mesmo closure) pra saber que
+          // hoje passou a contar: streakAtual + 1 é sempre o valor correto
+          // aqui, mesmo padrão do +1 visual já usado no StreakCard.
+          setDadosOverlayRaiz({
+            diasSequencia: streakAtual + 1,
+            submensagem: obterMensagemTarefaConcluida(),
+          });
+          setOverlayRaizVisivel(true);
+        } else {
+          setMensagemOverlay(obterMensagemTarefaConcluida());
+          setOverlayVisivel(true);
+        }
       }
     },
-    [tarefas, alternarTarefa],
+    [tarefas, alternarTarefa, streakAtual],
   );
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
+  const esconderOverlayRaiz = useCallback(() => setOverlayRaizVisivel(false), []);
 
   // Mutuamente exclusivos por construção: length === 0 e length > 0 nunca
   // são verdadeiros ao mesmo tempo. Os dois só aparecem depois que
@@ -447,11 +469,18 @@ export function HomeScreen({
         mensagem={mensagemOverlay}
         onHide={esconderOverlay}
       />
+      <RootWateringOverlay
+        visible={overlayRaizVisivel}
+        diasSequencia={dadosOverlayRaiz.diasSequencia}
+        submensagem={dadosOverlayRaiz.submensagem}
+        appsDesbloqueados={appsBloqueadosResolvidos.map(app => app.nome)}
+        onHide={esconderOverlayRaiz}
+      />
       {marcoParaExibir !== null && (
         <StreakMilestoneModal
           marco={marcoParaExibir}
           corpo={corpoParaExibir}
-          visible={!overlayVisivel}
+          visible={!overlayVisivel && !overlayRaizVisivel}
           onDismiss={limparMarcoExibido}
         />
       )}

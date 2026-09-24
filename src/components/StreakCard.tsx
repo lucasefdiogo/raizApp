@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../theme';
+import { RootProgressIcon } from './RootProgressIcon';
+
 interface StreakCardProps {
   streak: {
     streakAtual: number;
@@ -11,16 +13,27 @@ interface StreakCardProps {
    * calculado pela Home a cada render) — streakAtual só incrementa de fato
    * no boot do dia seguinte (useStreak.processar() avaliando o dia
    * anterior), então mostra esse aviso em vez de fingir que o número já
-   * subiu. Ausente/false: não mostra nada (comportamento de hoje).
+   * subiu. Também soma +1 na altura visual da raiz (ver diasSequencia
+   * abaixo) — sem isso, a raiz ficaria visualmente idêntica a ontem no
+   * mesmo momento em que o texto diz "já garantiu hoje", uma contradição
+   * visual. Ausente/false: não mostra o aviso nem o +1 de altura.
    */
   hojeCumprido?: boolean;
 }
 
 export function StreakCard({ streak, hojeCumprido = false }: StreakCardProps) {
   const rotuloDias = streak.streakAtual === 1 ? 'dia seguido' : 'dias seguidos';
+  const diasSequenciaVisivel = streak.streakAtual + (hojeCumprido ? 1 : 0);
 
   return (
     <View style={styles.card}>
+      <View style={styles.icone}>
+        <RootProgressIcon
+          variant="completo"
+          tamanho={64}
+          diasSequencia={diasSequenciaVisivel}
+        />
+      </View>
       <Text style={styles.valor}>{streak.streakAtual}</Text>
       <Text style={styles.rotulo}>{rotuloDias}</Text>
       {hojeCumprido && (
@@ -44,6 +57,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg,
     padding: theme.spacing.lg,
     alignItems: 'center',
+  },
+  icone: {
+    marginBottom: theme.spacing.sm,
   },
   valor: {
     fontSize: theme.typography.fontSize.xxl * 1.5,
