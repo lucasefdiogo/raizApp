@@ -136,14 +136,30 @@
 | Migração pra plano Blaze + Cloud Functions + RTDN | 📋 (`procedimento-loja.md`) |
 | Fluxo de compra no app (`react-native-iap`) + paywall | 📋 (`procedimento-loja.md`) |
 
-## 14. Pendente de decisão (não atacar sem definir escopo antes)
+## 14. Ponte fuga→tarefa (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
+
+Caminho **paralelo** ao bloqueio de apps do item 8 — não substitui nada de lá.
+
+| Item | Status |
+|---|---|
+| Dados: `tarefaPaiId`/`quando` em tarefas, `sessoesFoco`/`interceptacoes` em `dailyLogs`, `regrasBloqueio`/`regrasBloqueioPendentes` em `users` | ✅ |
+| TravadoFlow (4 estados: confusão/medo/tédio/energia) — mesmo componente nas 3 entradas (Home, toque longo, InterceptScreen) | ✅ |
+| SessaoFocoScreen (timer + FimSessao) — sessões de foco não alteram `streakAtual` | ✅ |
+| InterceptScreen (estados A/B/C) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
+| Tela de debug da InterceptScreen (Perfil → dev) | ✅ |
+| AccessibilityService: gatilho paralelo pra `InterceptActivity` (`regrasBloqueio` → `deveInterceptar`) + "sessão ativa" (reabrir com o timer em andamento) | 🚧 implementado, não confirmado em device físico |
+| Tela de configuração de `regrasBloqueio` | 📋 sem ela, o gatilho novo do Service nunca dispara de verdade — `bloqueioApps`/`AppBlockedScreen` (item 8) continuam sendo o único caminho real |
+| "Desbloquear com desafio" (ação secundária do estado A) | 📋 mecanismo de desbloqueio-por-desafio não existe no produto — omitido por enquanto |
+| Migração/remoção do bloqueio antigo (`bloqueioApps`/custo crescente/`AppBlockedScreen`) | 📋 decisão explicitamente adiada — os dois sistemas convivem em paralelo |
+
+## 15. Pendente de decisão (não atacar sem definir escopo antes)
 
 - XP e níveis — risco de métrica vazia identificado, aguardando decisão de formato
 - Micro-reflexão pós-recaída
 - Conteúdo bíblico (toggle)
 - Seleção de tema visual (Amanhecer/Raiz/Maré)
 
-## 15. Publicação (fora do código, `procedimento-loja.md`)
+## 16. Publicação (fora do código, `procedimento-loja.md`)
 
 - Conta de desenvolvedor Google Play
 - Ficha da app na loja (inclui justificativa de Accessibility Service)

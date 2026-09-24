@@ -51,7 +51,10 @@ arrays que crescem indefinidamente no documento do usuário.
 | `notificacoesAtivas` | boolean | |
 | `horarioLembreteDiario` | string (`HH:mm`) | |
 | **Bloqueio de apps** *(campo novo — Fase 3)* | | |
-| `bloqueioApps` | map | `{ ativo: boolean, appsSelecionados: string[] (package names), horarioInicio: string (HH:mm), horarioFim: string (HH:mm) }`. Default de quem nunca configurou: `{ ativo: false, appsSelecionados: [], horarioInicio: null, horarioFim: null }` |
+| `bloqueioApps` | map | `{ ativo: boolean, appsSelecionados: string[] (package names), horarioInicio: string (HH:mm), horarioFim: string (HH:mm) }`. Default de quem nunca configurou: `{ ativo: false, appsSelecionados: [], horarioInicio: null, horarioFim: null }`. **Ainda é o único schema de bloqueio com dado real** — ver abaixo |
+| **Ponte fuga→tarefa** *(campos novos — spec `09-ponte-fuga-tarefa-e-estou-travado.md`)* | | |
+| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Schema paralelo a `bloqueioApps` (múltiplas janelas + dia da semana) — **sem nenhuma tela que o grave ainda**, fica sempre ausente num usuário real |
+| `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: string (YYYY-MM-DD)` — alteração que afrouxa `regrasBloqueio`, só promovida a partir de `efetivaEm` (`aplicarRegrasBloqueioPendentesSeVencidas`, domain/appBlock.ts). Mesma situação: lógica pronta, sem produtor real |
 
 > Nota de segurança já registrada: `streakAtual`/`escudosDisponiveis` continuam
 > graváveis diretamente pelo client (dívida técnica original, ainda não endurecida).
@@ -67,6 +70,8 @@ arrays que crescem indefinidamente no documento do usuário.
 | `statusDia` | string | `pendente` \| `cumprido` \| `protegido_escudo` \| `perdido` |
 | `escudoUsado` | boolean | |
 | `desbloqueiosApps` | number | **Campo novo.** Contador de desbloqueios de apps bloqueados nesse dia — usado pela lógica de custo crescente (Fase 3). Default 0, incrementado atomicamente (`FieldValue.increment`) |
+| `sessoesFoco` | array\<map\> \| ausente | **Campo novo** (spec `09-ponte-fuga-tarefa`). Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Ausente = nenhuma ainda |
+| `interceptacoes` | array\<map\> \| ausente | **Campo novo** (idem). Decisões tomadas na InterceptScreen — ver estrutura abaixo. Ausente = nenhuma ainda |
 | `criadoEm` / `atualizadoEm` | timestamp | |
 
 **Estrutura de cada item em `tarefas[]`:**
@@ -77,15 +82,46 @@ arrays que crescem indefinidamente no documento do usuário.
   essencial: boolean,
   concluida: boolean,
   concluidaEm: timestamp | null,
-  tipo?: 'padrao' | 'exercicio',        // novo — default 'padrao' se ausente (retrocompat)
-  duracaoMinutos?: number,               // novo — só relevante quando tipo === 'exercicio'
-  origemRecorrenteId?: string            // novo — presente quando a tarefa nasceu de essentialTasks
+  tipo?: 'padrao' | 'exercicio',        // default 'padrao' se ausente (retrocompat)
+  duracaoMinutos?: number,               // só relevante quando tipo === 'exercicio'
+  origemRecorrenteId?: string,           // presente quando a tarefa nasceu de essentialTasks
+  tarefaPaiId?: string,                  // novo — presente quando nasceu do passo "confusão" do TravadoFlow
+  quando?: string                        // novo — "HH:mm", intenção de implementação (se-então)
+}
+```
+
+**Estrutura de cada item em `sessoesFoco[]`** (novo, spec `09-ponte-fuga-tarefa`):
+```
+{
+  id: string,
+  tarefaId: string | null,
+  origem: 'interceptacao' | 'travado' | 'home',
+  estadoTravado: 'confusao' | 'medo' | 'tedio' | 'energia' | null,  // dado emocional — nunca sai pro Analytics com identificador
+  duracaoPlanejadaSeg: number,
+  duracaoRealSeg: number,
+  resultado: 'continuou' | 'concluiu_tarefa' | 'parou' | 'liberou_app',
+  criadoEm: string  // ISO 8601
+}
+```
+
+**Estrutura de cada item em `interceptacoes[]`** (novo, idem):
+```
+{
+  app: string,       // package name
+  hora: string,      // ISO 8601
+  estadoTela: 'A' | 'B' | 'C',
+  acao: 'sessao' | 'travado' | 'desafio' | 'liberou' | 'saiu'
 }
 ```
 
 Ao CRIAR um `dailyLog` novo (primeira leitura do dia, `garantirDailyLogDoDia`), o array
 `tarefas[]` já nasce pré-populado com as `essentialTasks` ativas do usuário (ver seção 4)
 — não é mais criado vazio por padrão.
+
+> Nota técnica: `salvarDailyLog` grava com `merge: true` (corrigido junto da spec
+> `09-ponte-fuga-tarefa`) — antes disso, qualquer toque numa tarefa sobrescrevia o
+> documento inteiro e apagava `desbloqueiosApps`/`sessoesFoco`/`interceptacoes` gravados
+> por outra via.
 
 ---
 
@@ -219,6 +255,8 @@ excluir o Auth) — ver dívida técnica equivalente já registrada no `CLAUDE.m
 | ProgressoScreen | `dailyLogs` (últimos 7 dias), `users/{uid}` (streak/dias ativos), `challenges` | — |
 | AppBlockConfigScreen | `users/{uid}.bloqueioApps` | `users/{uid}.bloqueioApps` |
 | AppBlockedScreen | `dailyLogs/{hoje}` (checar tarefas essenciais) | `dailyLogs/{hoje}.desbloqueiosApps` (increment) |
+| TravadoFlowScreen / SessaoFocoScreen | `dailyLogs/{hoje}` (tarefas, via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (subtarefa/edição/move pra amanhã), `dailyLogs/{hoje}.sessoesFoco[]` |
+| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (estado C), `dailyLogs/{hoje}.interceptacoes[]` |
 | PerfilScreen | `users/{uid}` | `users/{uid}` (porquê, notificações, horário), exclusão completa via `apagarTodosOsDadosDoUsuario` |
 
 ---
