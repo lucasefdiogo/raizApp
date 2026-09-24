@@ -9,6 +9,7 @@ import {
   renovarEscudo,
   verificarMarco,
 } from './streak';
+import { dataLocalDeISO } from './data';
 import { EstadoStreak, Tarefa } from './types';
 
 function criarTarefa(sobrescritas: Partial<Tarefa>): Tarefa {
@@ -167,8 +168,8 @@ describe('deveRenovarEscudo', () => {
   it('retorna true quando nunca foi renovado (data muito antiga)', () => {
     expect(
       deveRenovarEscudo(
-        new Date('2020-01-01T00:00:00Z'),
-        new Date('2026-09-09T00:00:00Z'),
+        dataLocalDeISO('2020-01-01'),
+        dataLocalDeISO('2026-09-09'),
       ),
     ).toBe(true);
   });
@@ -177,8 +178,8 @@ describe('deveRenovarEscudo', () => {
     // 2026-09-07 é segunda-feira; 2026-09-09 é quarta da mesma semana
     expect(
       deveRenovarEscudo(
-        new Date('2026-09-07T00:00:00Z'),
-        new Date('2026-09-09T00:00:00Z'),
+        dataLocalDeISO('2026-09-07'),
+        dataLocalDeISO('2026-09-09'),
       ),
     ).toBe(false);
   });
@@ -187,26 +188,44 @@ describe('deveRenovarEscudo', () => {
     // 2026-08-31 é segunda da semana anterior; 2026-09-07 é a segunda seguinte
     expect(
       deveRenovarEscudo(
-        new Date('2026-08-31T00:00:00Z'),
-        new Date('2026-09-07T00:00:00Z'),
+        dataLocalDeISO('2026-08-31'),
+        dataLocalDeISO('2026-09-07'),
       ),
     ).toBe(true);
+  });
+
+  it('CASO CRÍTICO: renovado domingo 22h local, reaberto segunda de manhã — não renova de novo (mesma semana)', () => {
+    // Renovação no domingo 2026-09-13 às 22h local (2026-09-14T01:00:00Z em
+    // GMT-3) — uma implementação baseada em UTC leria a renovação como já
+    // tendo acontecido na segunda 14, e erraria a semana de referência.
+    const renovadoDomingo22hLocal = new Date('2026-09-14T01:00:00Z');
+    const abertoSegundaDeManha = dataLocalDeISO('2026-09-14');
+    expect(
+      deveRenovarEscudo(renovadoDomingo22hLocal, abertoSegundaDeManha),
+    ).toBe(true); // semana anterior -> semana nova, precisa renovar
   });
 });
 
 describe('renovarEscudo', () => {
   it('define escudosDisponiveis como 1 e atualiza dataUltimaRenovacaoEscudo', () => {
     const estado: EstadoStreak = { ...estadoBase, escudosDisponiveis: 0 };
-    const resultado = renovarEscudo(estado, new Date('2026-09-07T00:00:00Z'));
+    const resultado = renovarEscudo(estado, dataLocalDeISO('2026-09-07'));
     expect(resultado.escudosDisponiveis).toBe(1);
     expect(resultado.dataUltimaRenovacaoEscudo).toBe('2026-09-07');
   });
 
   it('não altera os demais campos do estado', () => {
     const estado: EstadoStreak = { ...estadoBase, streakAtual: 7 };
-    const resultado = renovarEscudo(estado, new Date('2026-09-07T00:00:00Z'));
+    const resultado = renovarEscudo(estado, dataLocalDeISO('2026-09-07'));
     expect(resultado.streakAtual).toBe(7);
     expect(resultado.diasTotaisAtivos).toBe(estadoBase.diasTotaisAtivos);
+  });
+
+  it('CASO CRÍTICO: renovado às 22h local, grava a data local corrente, não o dia seguinte (UTC)', () => {
+    const as22hLocal = new Date(2026, 8, 7, 22, 0, 0);
+    const estado: EstadoStreak = { ...estadoBase, escudosDisponiveis: 0 };
+    const resultado = renovarEscudo(estado, as22hLocal);
+    expect(resultado.dataUltimaRenovacaoEscudo).toBe('2026-09-07');
   });
 });
 

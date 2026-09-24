@@ -5,16 +5,13 @@ import {
   buscarSystemMessage,
   buscarUsuario,
 } from '../services/firestore';
+import { hojeISOLocal } from '../domain/data';
 
 interface UseReturnAfterPauseResultado {
   porqueTexto: string;
   corpoComTexto: string;
   carregando: boolean;
   enviarTarefaInicial: (tituloTarefa: string) => Promise<void>;
-}
-
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
 }
 
 /**
@@ -59,7 +56,7 @@ export function useReturnAfterPause(
 
   const enviarTarefaInicial = useCallback(
     async (tituloTarefa: string) => {
-      const hojeISO = paraISO(new Date());
+      const hojeISO = hojeISOLocal();
       await adicionarTarefaAoDailyLog(uid, hojeISO, {
         id: `inicial-${Date.now()}`,
         titulo: tituloTarefa,

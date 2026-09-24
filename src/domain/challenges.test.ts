@@ -39,13 +39,21 @@ describe('calcularPeriodoSemanal', () => {
   });
 
   it('na própria segunda: início é o mesmo dia', () => {
-    expect(calcularPeriodoSemanal(D('2026-09-14', 'T00:00:00Z')).inicio).toBe(
-      '2026-09-14',
-    );
+    expect(calcularPeriodoSemanal(D('2026-09-14')).inicio).toBe('2026-09-14');
   });
 
   it('no domingo: ainda pertence à semana que começou na segunda anterior', () => {
     expect(calcularPeriodoSemanal(D('2026-09-13', 'T23:00:00Z'))).toEqual({
+      inicio: '2026-09-07',
+      fim: '2026-09-13',
+    });
+  });
+
+  it('CASO CRÍTICO: domingo 22h local (GMT-3) ainda é domingo, não segunda seguinte', () => {
+    // 2026-09-14T01:00:00Z = 2026-09-13 22:00 local — uma implementação
+    // baseada em UTC leria "2026-09-14" (segunda) e começaria uma semana
+    // nova cedo demais.
+    expect(calcularPeriodoSemanal(D('2026-09-14', 'T01:00:00Z'))).toEqual({
       inicio: '2026-09-07',
       fim: '2026-09-13',
     });

@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import { useStreak } from './useStreak';
 
 jest.mock('../services/firestore');
@@ -32,6 +33,12 @@ describe('useStreak', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useRealTimers();
+    // Sem isso, a chamada real de AppState.addEventListener quebra neste
+    // ambiente de teste — os testes específicos de AppState abaixo
+    // substituem por uma versão que captura o callback.
+    jest
+      .spyOn(AppState, 'addEventListener')
+      .mockReturnValue({ remove: jest.fn() } as never);
     firestoreService.buscarDailyLog.mockResolvedValue(null);
     firestoreService.atualizarEstadoStreak.mockResolvedValue(undefined);
     useToast.mockReturnValue({ showToast });
@@ -328,5 +335,97 @@ describe('useStreak', () => {
       expect.any(Error),
       'useStreak.recarregar',
     );
+  });
+
+  describe('AppState: volta do background', () => {
+    function mockAppStateListener() {
+      const ouvintes: Record<string, (estado: string) => void> = {};
+      const addListener = jest
+        .spyOn(AppState, 'addEventListener')
+        .mockImplementation(((evento: string, cb: (estado: string) => void) => {
+          ouvintes[evento] = cb;
+          return { remove: jest.fn() } as never;
+        }) as never);
+      return { ouvintes, addListener };
+    }
+
+    it('data local mudou: reganhar o primeiro plano reprocessa', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 8, 23, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        firestoreService.buscarEstadoStreak.mockResolvedValue({
+          ...ESTADO_BASE,
+        });
+
+        const { result } = await renderHook(() => useStreak('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+
+        // Vira o dia local enquanto o app estava em background.
+        jest.setSystemTime(new Date(2026, 8, 9, 0, 5, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('active');
+        });
+
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(2);
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
+
+    it('mesma data local: reganhar o primeiro plano NÃO reprocessa', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 8, 10, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        firestoreService.buscarEstadoStreak.mockResolvedValue({
+          ...ESTADO_BASE,
+        });
+
+        const { result } = await renderHook(() => useStreak('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+
+        jest.setSystemTime(new Date(2026, 8, 8, 15, 0, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('active');
+        });
+
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
+
+    it('ir pro background não dispara reprocessamento', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 8, 8, 10, 0, 0));
+      const { ouvintes, addListener } = mockAppStateListener();
+
+      try {
+        firestoreService.buscarEstadoStreak.mockResolvedValue({
+          ...ESTADO_BASE,
+        });
+
+        const { result } = await renderHook(() => useStreak('uid-1'));
+        await waitFor(() => expect(result.current.carregando).toBe(false));
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+
+        jest.setSystemTime(new Date(2026, 8, 9, 0, 5, 0));
+
+        await act(async () => {
+          await ouvintes.change?.('background');
+        });
+
+        expect(firestoreService.buscarEstadoStreak).toHaveBeenCalledTimes(1);
+      } finally {
+        addListener.mockRestore();
+        jest.useRealTimers();
+      }
+    });
   });
 });

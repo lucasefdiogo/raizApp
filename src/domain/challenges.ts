@@ -1,4 +1,5 @@
 import { inicioDaSemana } from './streak';
+import { dataLocalDeISO, paraISOLocal } from './data';
 import {
   construirHistoricoIntervalo,
   DailyLogResumo,
@@ -7,8 +8,10 @@ import {
 import { Desafio, PeriodoDesafio, TipoDesafio } from './types';
 
 // Segunda-feira fixa (2024-01-01 caiu numa segunda) usada como âncora pra
-// numerar as semanas e alternar o desafio semanal por paridade.
-const EPOCA_SEMANAL_UTC = Date.UTC(2024, 0, 1);
+// numerar as semanas e alternar o desafio semanal por paridade. Hora
+// LOCAL, não UTC — precisa bater com inicioDaSemana (domain/streak.ts),
+// que também passou a ser local.
+const EPOCA_SEMANAL = new Date(2024, 0, 1).getTime();
 const MS_POR_SEMANA = 7 * 24 * 60 * 60 * 1000;
 
 const STATUS_CONTAM_COMO_ATIVO: ReadonlySet<StatusHistoricoDia> = new Set([
@@ -45,35 +48,21 @@ interface Periodo {
   fim: string;
 }
 
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
-
-function dataDeISO(iso: string): Date {
-  return new Date(`${iso}T00:00:00Z`);
-}
-
 function numeroDaSemana(inicioSemana: Date): number {
-  return Math.floor(
-    (inicioSemana.getTime() - EPOCA_SEMANAL_UTC) / MS_POR_SEMANA,
-  );
+  return Math.floor((inicioSemana.getTime() - EPOCA_SEMANAL) / MS_POR_SEMANA);
 }
 
 export function calcularPeriodoSemanal(hoje: Date): Periodo {
   const inicio = inicioDaSemana(hoje);
   const fim = new Date(inicio);
-  fim.setUTCDate(fim.getUTCDate() + 6);
-  return { inicio: paraISO(inicio), fim: paraISO(fim) };
+  fim.setDate(fim.getDate() + 6);
+  return { inicio: paraISOLocal(inicio), fim: paraISOLocal(fim) };
 }
 
 export function calcularPeriodoMensal(hoje: Date): Periodo {
-  const inicio = new Date(
-    Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1),
-  );
-  const fim = new Date(
-    Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 0),
-  );
-  return { inicio: paraISO(inicio), fim: paraISO(fim) };
+  const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  return { inicio: paraISOLocal(inicio), fim: paraISOLocal(fim) };
 }
 
 /**
@@ -91,7 +80,7 @@ export function gerarCatalogoDoPeriodo(
   if (periodo === 'mensal') {
     tipo = 'dias_ativos_20';
   } else {
-    const par = numeroDaSemana(dataDeISO(inicio)) % 2 === 0;
+    const par = numeroDaSemana(dataLocalDeISO(inicio)) % 2 === 0;
     tipo = par ? 'exercicio_3x' : 'essencial_todo_dia';
   }
 
@@ -130,8 +119,8 @@ function contarDiasAtivos(
 ): number {
   const dias = construirHistoricoIntervalo(
     logs,
-    dataDeISO(dataInicio),
-    dataDeISO(dataFim),
+    dataLocalDeISO(dataInicio),
+    dataLocalDeISO(dataFim),
     hoje,
     { avaliarHojeAoVivo: true },
   );
@@ -169,7 +158,7 @@ export function calcularProgressoDesafio(
   let status: Desafio['status'];
   if (progresso >= desafio.meta) {
     status = 'concluido';
-  } else if (paraISO(hoje) > desafio.dataFim) {
+  } else if (paraISOLocal(hoje) > desafio.dataFim) {
     status = 'expirado';
   } else {
     status = 'ativo';

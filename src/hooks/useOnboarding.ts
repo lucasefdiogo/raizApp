@@ -8,6 +8,7 @@ import {
   validarTempoTelaEstimado,
 } from '../domain/onboarding';
 import { tituloTarefaValido } from '../domain/dailyTasks';
+import { hojeISOLocal } from '../domain/data';
 import { STORAGE_KEYS, salvarItem } from '../utils/storage';
 import {
   adicionarTarefaAoDailyLog,
@@ -30,10 +31,6 @@ const DADOS_INICIAIS: OnboardingData = {
 interface UseOnboardingParams {
   uid: string;
   onConcluir: () => void;
-}
-
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
@@ -155,7 +152,7 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     }
     setSalvando(true);
     try {
-      await adicionarTarefaAoDailyLog(uid, hojeISO(), {
+      await adicionarTarefaAoDailyLog(uid, hojeISOLocal(), {
         id: `onboarding-${Date.now()}`,
         titulo: tituloPrimeiraTarefa.trim(),
         essencial: true,

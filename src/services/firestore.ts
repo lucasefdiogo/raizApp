@@ -24,6 +24,7 @@ import {
   Tarefa,
   TipoTarefa,
 } from '../domain/types';
+import { dataLocalDeISO, paraISOLocal } from '../domain/data';
 
 export interface UsuarioDocumento {
   email: string;
@@ -168,7 +169,7 @@ export async function buscarEstadoStreak(
     ultimoDiaAtivo: usuario.ultimoDiaAtivo ?? '',
     statusStreak: usuario.statusStreak,
     dataUltimaRenovacaoEscudo: usuario.dataUltimaRenovacaoEscudo
-      ? usuario.dataUltimaRenovacaoEscudo.toDate().toISOString().slice(0, 10)
+      ? paraISOLocal(usuario.dataUltimaRenovacaoEscudo.toDate())
       : '',
   };
 }
@@ -252,9 +253,8 @@ export async function buscarUltimosDailyLogs(
   const hoje = new Date();
   const datas: string[] = [];
   for (let i = quantidadeDias - 1; i >= 0; i--) {
-    const data = new Date(hoje);
-    data.setUTCDate(data.getUTCDate() - i);
-    datas.push(data.toISOString().slice(0, 10));
+    const data = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - i);
+    datas.push(paraISOLocal(data));
   }
 
   const logs = await Promise.all(datas.map(data => buscarDailyLog(uid, data)));
@@ -567,10 +567,6 @@ export async function apagarTodosOsDadosDoUsuario(uid: string): Promise<void> {
   await deleteDoc(documentoUsuario(uid));
 }
 
-function paraISO(data: Date): string {
-  return data.toISOString().slice(0, 10);
-}
-
 /**
  * Busca os dailyLogs entre `inicioISO` e `fimISO` (inclusivos). Datas sem
  * documento simplesmente não aparecem — quem consome decide o que fazer com
@@ -583,11 +579,11 @@ export async function buscarDailyLogsNoIntervalo(
   fimISO: string,
 ): Promise<DailyLog[]> {
   const datas: string[] = [];
-  const cursor = new Date(`${inicioISO}T00:00:00Z`);
-  const fim = new Date(`${fimISO}T00:00:00Z`);
+  const cursor = dataLocalDeISO(inicioISO);
+  const fim = dataLocalDeISO(fimISO);
   while (cursor.getTime() <= fim.getTime()) {
-    datas.push(paraISO(cursor));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+    datas.push(paraISOLocal(cursor));
+    cursor.setDate(cursor.getDate() + 1);
   }
 
   const logs = await Promise.all(datas.map(data => buscarDailyLog(uid, data)));

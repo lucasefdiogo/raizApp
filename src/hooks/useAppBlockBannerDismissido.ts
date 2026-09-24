@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { chaveAppBlockBannerDismissed, lerItem, salvarItem } from '../utils/storage';
-
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { hojeISOLocal } from '../domain/data';
 
 interface UseAppBlockBannerDismissidoResultado {
   dispensadoHoje: boolean;
@@ -18,7 +15,7 @@ interface UseAppBlockBannerDismissidoResultado {
  * mais descobre o recurso.
  */
 export function useAppBlockBannerDismissido(): UseAppBlockBannerDismissidoResultado {
-  const [dia] = useState(hojeISO);
+  const [dia] = useState(hojeISOLocal);
   const [dispensadoHoje, setDispensadoHoje] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
