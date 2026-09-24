@@ -3,6 +3,7 @@ import {
   aplicarResultadoDia,
   avaliarDiaCumprido,
   deveRenovarEscudo,
+  inicializarPrimeiroDia,
   renovarEscudo,
 } from '../domain/streak';
 import { EstadoStreak, StatusDiaResultante, StatusStreak } from '../domain/types';
@@ -52,6 +53,11 @@ function dataDeOntem(hoje: Date): string {
  * renovação semanal do escudo (domain/streak.ts) e grava o resultado de
  * volta. Roda uma vez por abertura do app (por mudança de uid), não a cada
  * render — nenhum efeito colateral acontece fora desse único useEffect.
+ *
+ * ultimoDiaAtivo vazio (usuário novo ou conta legada nunca inicializada)
+ * é um caso à parte: não há dia anterior pra avaliar, então só inicializa
+ * (inicializarPrimeiroDia) em vez de chamar aplicarResultadoDia — ver o
+ * `if` logo abaixo.
  */
 export function useStreak(uid: string | null): UseStreakResultado {
   const { showToast } = useToast();
@@ -85,7 +91,16 @@ export function useStreak(uid: string | null): UseStreakResultado {
       return;
     }
 
-    if (estadoAtual.ultimoDiaAtivo && estadoAtual.ultimoDiaAtivo !== hojeISO) {
+    if (!estadoAtual.ultimoDiaAtivo) {
+      // Primeiro dia de uso (usuário novo) ou conta legada que nunca teve
+      // o campo inicializado — sem dia anterior, nada a avaliar. NÃO passa
+      // por aplicarResultadoDia (que trataria um dia fictício como "não
+      // cumprido" e chegaria a consumir a proteção do usuário no dia 1):
+      // só marca hoje como ponto de partida. Self-healing: roda de novo em
+      // todo boot até o campo sair do vazio, então conta antiga afetada
+      // por essa lacuna se corrige sozinha no próximo login.
+      estadoAtual = inicializarPrimeiroDia(estadoAtual, hojeISO);
+    } else if (estadoAtual.ultimoDiaAtivo !== hojeISO) {
       const logOntem = await buscarDailyLog(uid, dataDeOntem(hoje));
       if (!aindaAtual()) {
         return;

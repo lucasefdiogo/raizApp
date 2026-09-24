@@ -58,6 +58,106 @@ describe('useStreak', () => {
     expect(firestoreService.atualizarEstadoStreak).not.toHaveBeenCalled();
   });
 
+  it('usuário novo (ultimoDiaAtivo vazio): inicializa com hoje, sem penalizar nem consumir proteção', async () => {
+    mockAgora('2026-09-08');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      escudosDisponiveis: 1,
+      ultimoDiaAtivo: '',
+    });
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    // Não chega a olhar pro "dia anterior" — não existe um de verdade.
+    expect(firestoreService.buscarDailyLog).not.toHaveBeenCalled();
+    expect(result.current.streakAtual).toBe(0);
+    expect(result.current.escudosDisponiveis).toBe(1);
+    expect(result.current.statusDiaAnterior).toBeNull();
+    expect(result.current.statusStreak).toBe('ativo');
+    expect(firestoreService.atualizarEstadoStreak).toHaveBeenCalledWith(
+      'uid-1',
+      expect.objectContaining({ ultimoDiaAtivo: '2026-09-08', streakAtual: 0 }),
+    );
+  });
+
+  it('conta legada (ultimoDiaAtivo null vindo do Firestore): mesmo tratamento do usuário novo', async () => {
+    mockAgora('2026-09-08');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      ultimoDiaAtivo: '',
+    });
+
+    const { result } = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.streakAtual).toBe(0);
+    expect(firestoreService.atualizarEstadoStreak).toHaveBeenCalledWith(
+      'uid-1',
+      expect.objectContaining({ ultimoDiaAtivo: '2026-09-08' }),
+    );
+  });
+
+  it('sequência completa a partir de usuário novo: 3 dias cumpridos seguidos resultam em streakAtual > 0', async () => {
+    // Dia 1 (2026-09-08): primeiro boot, ultimoDiaAtivo vazio -> só inicializa.
+    mockAgora('2026-09-08');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      escudosDisponiveis: 1,
+      ultimoDiaAtivo: '',
+    });
+    const dia1 = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(dia1.result.current.carregando).toBe(false));
+    expect(dia1.result.current.streakAtual).toBe(0);
+
+    // Dia 1 foi cumprido (usuário concluiu a essencial) — dailyLog real.
+    const logDia1Cumprido = {
+      data: '2026-09-08',
+      tarefas: [{ id: '1', titulo: 'x', essencial: true, concluida: true }],
+      statusDia: 'cumprido',
+      escudoUsado: false,
+    };
+
+    // Dia 2 (2026-09-09): boot reavalia ontem (dia 1) como cumprido.
+    mockAgora('2026-09-09');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      escudosDisponiveis: 1,
+      ultimoDiaAtivo: '2026-09-08',
+    });
+    firestoreService.buscarDailyLog.mockResolvedValue(logDia1Cumprido);
+    const dia2 = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(dia2.result.current.carregando).toBe(false));
+    expect(dia2.result.current.streakAtual).toBe(1);
+    expect(dia2.result.current.diasTotaisAtivos).toBe(1);
+
+    // Dia 3 (2026-09-10): boot reavalia ontem (dia 2, também cumprido).
+    const logDia2Cumprido = { ...logDia1Cumprido, data: '2026-09-09' };
+    mockAgora('2026-09-10');
+    firestoreService.buscarEstadoStreak.mockResolvedValue({
+      ...ESTADO_BASE,
+      streakAtual: 1,
+      diasTotaisAtivos: 1,
+      escudosDisponiveis: 1,
+      ultimoDiaAtivo: '2026-09-09',
+    });
+    firestoreService.buscarDailyLog.mockResolvedValue(logDia2Cumprido);
+    const dia3 = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() => expect(dia3.result.current.carregando).toBe(false));
+
+    expect(dia3.result.current.streakAtual).toBe(2);
+    expect(dia3.result.current.diasTotaisAtivos).toBe(2);
+    expect(dia3.result.current.streakAtual).toBeGreaterThan(0);
+  });
+
   it('mesmo dia (ultimoDiaAtivo == hoje): não reavalia nenhum dia anterior', async () => {
     mockAgora('2026-09-08');
     firestoreService.buscarEstadoStreak.mockResolvedValue({ ...ESTADO_BASE });

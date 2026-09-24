@@ -4,6 +4,7 @@ import {
   calcularStatusDia,
   deveRenovarEscudo,
   existeEssencialConcluida,
+  inicializarPrimeiroDia,
   renovarEscudo,
   verificarMarco,
 } from './streak';
@@ -167,6 +168,43 @@ describe('renovarEscudo', () => {
     const resultado = renovarEscudo(estado, new Date('2026-09-07T00:00:00Z'));
     expect(resultado.streakAtual).toBe(7);
     expect(resultado.diasTotaisAtivos).toBe(estadoBase.diasTotaisAtivos);
+  });
+});
+
+describe('inicializarPrimeiroDia', () => {
+  it('usuário novo (ultimoDiaAtivo vazio): só marca hoje, sem mexer em mais nada', () => {
+    const estado: EstadoStreak = {
+      ...estadoBase,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      escudosDisponiveis: 1,
+      marcosAtingidos: [],
+      ultimoDiaAtivo: '',
+    };
+
+    const resultado = inicializarPrimeiroDia(estado, '2026-09-08');
+
+    expect(resultado).toEqual({
+      ...estado,
+      ultimoDiaAtivo: '2026-09-08',
+    });
+  });
+
+  it('não penaliza: streakAtual, diasTotaisAtivos e escudosDisponiveis continuam exatamente iguais', () => {
+    const estado: EstadoStreak = {
+      ...estadoBase,
+      streakAtual: 0,
+      diasTotaisAtivos: 0,
+      escudosDisponiveis: 1,
+      ultimoDiaAtivo: '',
+    };
+
+    const resultado = inicializarPrimeiroDia(estado, '2026-09-08');
+
+    expect(resultado.streakAtual).toBe(0);
+    expect(resultado.diasTotaisAtivos).toBe(0);
+    expect(resultado.escudosDisponiveis).toBe(1);
+    expect(resultado.statusStreak).toBe('ativo');
   });
 });
 
