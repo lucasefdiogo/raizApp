@@ -3,6 +3,7 @@ import {
   Keyboard,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -42,9 +43,11 @@ import {
   TOUR_PASSOS,
   TourAlvoId,
 } from '../components/tour/tourSteps';
-import { StatusDia } from '../domain/types';
+import { StatusDia, Tarefa } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
+import { selecionarTarefaIntercept } from '../domain/intercept';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
+import { TravadoFlowScreen } from './intercept/TravadoFlowScreen';
 
 // No Android com edge-to-edge (RN 0.81+) o `adjustResize` não encolhe mais a
 // janela — o teclado entra por cima. Então acompanhamos a altura do teclado à
@@ -131,11 +134,17 @@ export function HomeScreen({
     removerTarefa,
     removerTarefaHoje,
     pararDeRepetir,
+    criarSubtarefa,
+    moverTarefaParaAmanha,
     statusDia,
     carregando,
     limiteEssenciaisAtingido,
     recarregar,
   } = useDailyTasks(uid);
+  const [travadoAberto, setTravadoAberto] = useState(false);
+  const [travadoAberturaId, setTravadoAberturaId] = useState(0);
+  const [travadoTarefaContexto, setTravadoTarefaContexto] =
+    useState<Tarefa | null>(null);
   const {
     appsInstalados,
     configAtual: bloqueioApps,
@@ -234,6 +243,32 @@ export function HomeScreen({
 
   const esconderOverlay = useCallback(() => setOverlayVisivel(false), []);
   const esconderOverlayRaiz = useCallback(() => setOverlayRaizVisivel(false), []);
+
+  // As 3 entradas do TravadoFlow (seção 2 da spec 09-ponte-fuga-tarefa)
+  // compartilham a mesma origem='travado' — o que muda é só a tarefa de
+  // contexto, resolvida na hora de abrir. `travadoAberturaId` força um
+  // remount real do componente a cada abertura (mesmo racional de
+  // deteccaoId em useAppBlocking), pra nunca reaparecer no passo/estado da
+  // vez anterior.
+  const abrirTravado = useCallback((tarefaContexto: Tarefa | null) => {
+    setTravadoTarefaContexto(tarefaContexto);
+    setTravadoAberturaId(atual => atual + 1);
+    setTravadoAberto(true);
+  }, []);
+
+  const abrirTravadoComTarefa = useCallback(
+    (id: string) => {
+      abrirTravado(tarefas.find(tarefa => tarefa.id === id) ?? null);
+    },
+    [tarefas, abrirTravado],
+  );
+
+  const abrirTravadoDaHome = useCallback(() => {
+    const resultado = selecionarTarefaIntercept({ tarefas }, new Date());
+    abrirTravado(resultado.estado === 'A' ? resultado.tarefa : null);
+  }, [tarefas, abrirTravado]);
+
+  const fecharTravado = useCallback(() => setTravadoAberto(false), []);
 
   // Mutuamente exclusivos por construção: length === 0 e length > 0 nunca
   // são verdadeiros ao mesmo tempo. Os dois só aparecem depois que
@@ -430,12 +465,22 @@ export function HomeScreen({
               <TaskList
                 tarefas={tarefas}
                 onAlternar={handleAlternarTarefa}
+                onEstouTravado={abrirTravadoComTarefa}
                 onEditar={(id, titulo) => editarTarefa(id, { titulo })}
                 onRemover={removerTarefa}
                 onRemoverHoje={removerTarefaHoje}
                 onPararDeRepetir={pararDeRepetir}
               />
             )}
+            <Pressable
+              testID="botao-estou-travado"
+              accessibilityRole="button"
+              onPress={abrirTravadoDaHome}
+              hitSlop={8}
+              style={styles.botaoEstouTravado}
+            >
+              <Text style={styles.botaoEstouTravadoTexto}>Estou travado</Text>
+            </Pressable>
             <AddTaskForm
               ref={addTaskButtonRef}
               onAdicionar={adicionarTarefa}
@@ -484,6 +529,20 @@ export function HomeScreen({
           onDismiss={limparMarcoExibido}
         />
       )}
+      {travadoAberto && (
+        <TravadoFlowScreen
+          key={travadoAberturaId}
+          uid={uid}
+          tarefaContexto={travadoTarefaContexto}
+          tarefas={tarefas}
+          origem="travado"
+          criarSubtarefa={criarSubtarefa}
+          editarTarefa={editarTarefa}
+          moverTarefaParaAmanha={moverTarefaParaAmanha}
+          alternarTarefa={alternarTarefa}
+          onFechar={fecharTravado}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -504,6 +563,15 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
   },
   statusDia: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  botaoEstouTravado: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  botaoEstouTravadoTexto: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,

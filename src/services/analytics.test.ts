@@ -2,6 +2,9 @@ import {
   logAppBloqueadoDetectado,
   logAppDesbloqueado,
   logDesafioConcluido,
+  logFocusSessionEnd,
+  logInterceptAction,
+  logInterceptShown,
   logMarcoStreakAtingido,
   logOnboardingConcluido,
   logPermissaoAccessibility,
@@ -10,6 +13,8 @@ import {
   logTarefaCriada,
   logTourFuncionalidadesConcluido,
   logTourFuncionalidadesPulado,
+  logTravadoAberto,
+  logTravadoEstado,
   logTutorialConcluido,
 } from './analytics';
 
@@ -133,6 +138,56 @@ describe('services/analytics', () => {
       expect.anything(),
       'permissao_notificacao',
       { concedida: false },
+    );
+  });
+
+  it('logTravadoAberto envia a origem', () => {
+    logTravadoAberto('travado');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'travado_opened',
+      { origem: 'travado' },
+    );
+  });
+
+  it('logTravadoEstado envia o estado', () => {
+    logTravadoEstado('confusao');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'travado_state',
+      { estado: 'confusao' },
+    );
+  });
+
+  it('logInterceptShown envia o estado da tela', () => {
+    logInterceptShown('A');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'intercept_shown',
+      { estado_tela: 'A' },
+    );
+  });
+
+  it('logInterceptAction envia a ação', () => {
+    logInterceptAction('liberou');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'intercept_action',
+      { acao: 'liberou' },
+    );
+  });
+
+  it('logFocusSessionEnd envia duração planejada e resultado', () => {
+    logFocusSessionEnd(120, 'concluiu_tarefa');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'focus_session_end',
+      { duracao_planejada: 120, resultado: 'concluiu_tarefa' },
     );
   });
 });

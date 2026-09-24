@@ -134,6 +134,8 @@ jest.mock('../hooks/useDailyTasks', () => {
       const removerTarefa = (id: string) => {
         setTarefas(removerNoDia(tarefas, id));
       };
+      const criarSubtarefa = jest.fn().mockReturnValue('subtarefa-mock');
+      const moverTarefaParaAmanha = jest.fn().mockResolvedValue(undefined);
 
       return {
         tarefas,
@@ -141,6 +143,10 @@ jest.mock('../hooks/useDailyTasks', () => {
         adicionarTarefa,
         editarTarefa,
         removerTarefa,
+        removerTarefaHoje: jest.fn(),
+        pararDeRepetir: jest.fn(),
+        criarSubtarefa,
+        moverTarefaParaAmanha,
         statusDia: calcularStatusDia(tarefas),
         carregando: false,
         limiteEssenciaisAtingido: limiteEssenciaisAtingido(tarefas),
@@ -847,6 +853,42 @@ describe('HomeScreen', () => {
 
       await waitFor(() => expect(screen.getByText('Marco atingido')).toBeTruthy());
       expect(ultimaChamada()).not.toBeNull();
+    });
+  });
+
+  describe('TravadoFlow ("Estou travado")', () => {
+    it('botão discreto abaixo da lista abre o TravadoFlow com a 1ª essencial pendente como contexto', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      await fireEvent.press(screen.getByTestId('botao-estou-travado'));
+
+      expect(screen.getByText('O que está pegando agora?')).toBeTruthy();
+    });
+
+    it('toque longo numa tarefa abre o TravadoFlow com aquela tarefa (via TaskActionsSheet)', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      await fireEvent(
+        screen.getByText('Guardar o celular durante o almoço'),
+        'longPress',
+      );
+      // 2 ocorrências na tela: o item do menu de long-press e o botão
+      // discreto abaixo da lista — o do menu vem primeiro na árvore.
+      await fireEvent.press(screen.getAllByText('Estou travado')[0]);
+
+      expect(screen.getByText('O que está pegando agora?')).toBeTruthy();
+    });
+
+    it('"Fechar" no TravadoFlow volta pra Home normalmente', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      await fireEvent.press(screen.getByTestId('botao-estou-travado'));
+      expect(screen.getByText('O que está pegando agora?')).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Fechar'));
+
+      expect(screen.queryByText('O que está pegando agora?')).toBeNull();
+      expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
     });
   });
 });

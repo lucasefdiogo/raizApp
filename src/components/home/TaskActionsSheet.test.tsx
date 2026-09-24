@@ -85,4 +85,21 @@ describe('TaskActionsSheet', () => {
     expect(screen.queryByText('Excluir')).toBeNull();
     expect(screen.getByText('Editar')).toBeTruthy();
   });
+
+  it('omite a linha "Estou travado" quando onEstouTravado não é passado', async () => {
+    await render(<TaskActionsSheet {...props} />);
+
+    expect(screen.queryByText('Estou travado')).toBeNull();
+  });
+
+  it('"Estou travado" aparece e chama onEstouTravado quando passado', async () => {
+    const onEstouTravado = jest.fn();
+    await render(
+      <TaskActionsSheet {...props} onEstouTravado={onEstouTravado} />,
+    );
+
+    await fireEvent.press(screen.getByText('Estou travado'));
+
+    expect(onEstouTravado).toHaveBeenCalledTimes(1);
+  });
 });

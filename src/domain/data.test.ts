@@ -1,4 +1,5 @@
 import {
+  dataDeAmanhaLocal,
   dataDeOntemLocal,
   dataLocalDeISO,
   diferencaEmDiasLocal,
@@ -76,6 +77,31 @@ describe('dataDeOntemLocal', () => {
   it('CASO CRÍTICO: às 22h local, "ontem" continua sendo o dia anterior ao corrente local', () => {
     const as22hLocal = new Date(2026, 8, 24, 22, 0, 0);
     expect(dataDeOntemLocal(as22hLocal)).toBe('2026-09-23');
+  });
+});
+
+describe('dataDeAmanhaLocal', () => {
+  it('aceita um Date e devolve o dia seguinte local', () => {
+    expect(dataDeAmanhaLocal(new Date(2026, 8, 24, 8, 0, 0))).toBe(
+      '2026-09-25',
+    );
+  });
+
+  it('aceita uma string YYYY-MM-DD e devolve o dia seguinte', () => {
+    expect(dataDeAmanhaLocal('2026-09-24')).toBe('2026-09-25');
+  });
+
+  it('vira o mês corretamente (último dia do mês -> 1º do mês seguinte)', () => {
+    expect(dataDeAmanhaLocal('2026-09-30')).toBe('2026-10-01');
+  });
+
+  it('vira o ano corretamente (31 de dezembro -> 1º de janeiro do ano seguinte)', () => {
+    expect(dataDeAmanhaLocal('2026-12-31')).toBe('2027-01-01');
+  });
+
+  it('CASO CRÍTICO: às 22h local, "amanhã" continua sendo o dia seguinte ao corrente local', () => {
+    const as22hLocal = new Date(2026, 8, 24, 22, 0, 0);
+    expect(dataDeAmanhaLocal(as22hLocal)).toBe('2026-09-25');
   });
 });
 

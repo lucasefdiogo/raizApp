@@ -4,6 +4,7 @@ import {
   editarTarefa,
   limiteEssenciaisAtingido,
   removerTarefa,
+  tarefaDoDiaAPartirDeRecorrente,
   tituloTarefaValido,
   MENSAGEM_LIMITE_ESSENCIAIS,
   MENSAGEM_TITULO_VAZIO,
@@ -157,5 +158,45 @@ describe('editarTarefa', () => {
   it('rebaixar essencial -> comum é sempre permitido, mesmo no teto', () => {
     const resultado = editarTarefa(tresEssenciais, '3', { essencial: false });
     expect(resultado.ok && contarEssenciais(resultado.tarefas)).toBe(2);
+  });
+});
+
+describe('tarefaDoDiaAPartirDeRecorrente', () => {
+  it('monta a instância do dia com id derivado, concluida:false e origemRecorrenteId', () => {
+    const resultado = tarefaDoDiaAPartirDeRecorrente(
+      { id: 'rec-1', titulo: 'Ler 5 páginas', essencial: true },
+      '2026-09-25',
+    );
+    expect(resultado).toEqual({
+      id: 'recorrente-rec-1-2026-09-25',
+      titulo: 'Ler 5 páginas',
+      essencial: true,
+      concluida: false,
+      origemRecorrenteId: 'rec-1',
+    });
+  });
+
+  it('copia tipo e duracaoMinutos quando a recorrente é de exercício', () => {
+    const resultado = tarefaDoDiaAPartirDeRecorrente(
+      {
+        id: 'rec-2',
+        titulo: 'Alongar',
+        essencial: false,
+        tipo: 'exercicio',
+        duracaoMinutos: 10,
+      },
+      '2026-09-25',
+    );
+    expect(resultado.tipo).toBe('exercicio');
+    expect(resultado.duracaoMinutos).toBe(10);
+  });
+
+  it('não grava tipo/duracaoMinutos pra recorrente comum', () => {
+    const resultado = tarefaDoDiaAPartirDeRecorrente(
+      { id: 'rec-3', titulo: 'Guardar o celular', essencial: false },
+      '2026-09-25',
+    );
+    expect(resultado).not.toHaveProperty('tipo');
+    expect(resultado).not.toHaveProperty('duracaoMinutos');
   });
 });

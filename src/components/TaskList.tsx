@@ -6,6 +6,7 @@ import { TaskItem } from './TaskItem';
 interface TaskListProps {
   tarefas: Tarefa[];
   onAlternar: (id: string) => void;
+  onEstouTravado?: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
   onRemover?: (id: string) => void;
   onRemoverHoje?: (id: string) => void;
@@ -15,6 +16,7 @@ interface TaskListProps {
 export function TaskList({
   tarefas,
   onAlternar,
+  onEstouTravado,
   onEditar,
   onRemover,
   onRemoverHoje,
@@ -27,6 +29,7 @@ export function TaskList({
           key={tarefa.id}
           tarefa={tarefa}
           onAlternar={onAlternar}
+          onEstouTravado={onEstouTravado}
           onEditar={onEditar}
           onRemover={onRemover}
           onRemoverHoje={onRemoverHoje}

@@ -1,4 +1,13 @@
-import { Tarefa } from './types';
+import { Tarefa, TipoTarefa } from './types';
+
+/** Só os campos de TarefaRecorrente (services/firestore.ts) que a conversão usa — evita domain/ importar de services/. */
+export interface RecorrenteParaConverter {
+  id: string;
+  titulo: string;
+  essencial: boolean;
+  tipo?: TipoTarefa;
+  duracaoMinutos?: number;
+}
 
 /**
  * Teto de tarefas essenciais por dia. Vem da mecânica do produto: o dia é
@@ -31,6 +40,34 @@ export function limiteEssenciaisAtingido(tarefas: Tarefa[]): boolean {
 
 export function tituloTarefaValido(titulo: string): boolean {
   return titulo.trim().length > 0;
+}
+
+/**
+ * Instância do dia a partir de uma tarefa recorrente (users/{uid}/essentialTasks)
+ * — usada tanto na pré-população do dailyLog novo (useDailyTasks.carregar)
+ * quanto no carry-over de "Passar para amanhã" (TravadoFlow, seção 4 da spec
+ * 09-ponte-fuga-tarefa), pra garantir que as recorrentes de amanhã não somem
+ * quando o dailyLog de amanhã é criado antes da hora por esse carry-over. Id
+ * embute a data (nunca reaproveita o de outro dia); nasce sempre concluida:false.
+ */
+export function tarefaDoDiaAPartirDeRecorrente(
+  recorrente: RecorrenteParaConverter,
+  dataISO: string,
+): Tarefa {
+  const tarefa: Tarefa = {
+    id: `recorrente-${recorrente.id}-${dataISO}`,
+    titulo: recorrente.titulo,
+    essencial: recorrente.essencial,
+    concluida: false,
+    origemRecorrenteId: recorrente.id,
+  };
+  if (recorrente.tipo === 'exercicio') {
+    tarefa.tipo = recorrente.tipo;
+    if (recorrente.duracaoMinutos !== undefined) {
+      tarefa.duracaoMinutos = recorrente.duracaoMinutos;
+    }
+  }
+  return tarefa;
 }
 
 /**

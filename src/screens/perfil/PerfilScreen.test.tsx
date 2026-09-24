@@ -385,6 +385,26 @@ describe('PerfilScreen', () => {
 
       expect(aoAbrir).toHaveBeenCalledTimes(1);
     });
+
+    it('"Debug: InterceptScreen" não aparece quando aoAbrirDebugIntercept não é passado', async () => {
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+      expect(screen.queryByText('🔧 Debug: InterceptScreen')).toBeNull();
+    });
+
+    it('"Debug: InterceptScreen" aparece e chama o handler ao tocar quando o prop é passado', async () => {
+      const aoAbrir = jest.fn();
+      await render(
+        <PerfilScreen
+          uid="uid-teste"
+          aoAbrirBloqueioApps={jest.fn()}
+          aoAbrirDebugIntercept={aoAbrir}
+        />,
+      );
+
+      await fireEvent.press(screen.getByText('🔧 Debug: InterceptScreen'));
+
+      expect(aoAbrir).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('"Testar Crashlytics" (dev)', () => {

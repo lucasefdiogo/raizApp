@@ -4,8 +4,12 @@ import {
   getInitialBlockedPackage,
   getInstalledApps,
   isAccessibilityServiceEnabled,
+  limparSessaoAtiva,
   openAccessibilitySettings,
   registrarDesbloqueioTemporario,
+  salvarRegrasBloqueio,
+  salvarSessaoAtiva,
+  salvarSnapshotDoDia,
   subscribeToBlockedApp,
   subscribeToForegroundApp,
   syncBloqueioConfig,
@@ -19,6 +23,10 @@ const moduloMock = {
   registrarDesbloqueioTemporario: jest.fn(),
   getInitialBlockedPackage: jest.fn(),
   abrirApp: jest.fn(),
+  salvarSnapshotDoDia: jest.fn(),
+  salvarRegrasBloqueio: jest.fn(),
+  salvarSessaoAtiva: jest.fn(),
+  limparSessaoAtiva: jest.fn(),
 };
 
 describe('AccessibilityDetection', () => {
@@ -150,6 +158,87 @@ describe('AccessibilityDetection', () => {
           horarioFim: null,
         }),
       ).not.toThrow();
+    });
+  });
+
+  describe('salvarSnapshotDoDia', () => {
+    it('serializa o snapshot e chama o módulo nativo', () => {
+      const snapshot = {
+        tarefas: [
+          { id: '1', titulo: 'Ler', essencial: true, concluida: false },
+        ],
+      };
+      salvarSnapshotDoDia(snapshot);
+
+      expect(moduloMock.salvarSnapshotDoDia).toHaveBeenCalledWith(
+        JSON.stringify(snapshot),
+      );
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() => salvarSnapshotDoDia({ tarefas: [] })).not.toThrow();
+    });
+  });
+
+  describe('salvarRegrasBloqueio', () => {
+    it('serializa as regras e chama o módulo nativo', () => {
+      const regras = {
+        apps: ['com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3] }],
+      };
+      salvarRegrasBloqueio(regras);
+
+      expect(moduloMock.salvarRegrasBloqueio).toHaveBeenCalledWith(
+        JSON.stringify(regras),
+      );
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() =>
+        salvarRegrasBloqueio({ apps: [], janelas: [] }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('salvarSessaoAtiva', () => {
+    it('serializa a sessão e chama o módulo nativo', () => {
+      const sessao = {
+        packageName: 'com.instagram.android',
+        tarefaId: 'tarefa-1',
+        estadoTravado: 'confusao' as const,
+        fimEm: 1700000000000,
+      };
+      salvarSessaoAtiva(sessao);
+
+      expect(moduloMock.salvarSessaoAtiva).toHaveBeenCalledWith(
+        JSON.stringify(sessao),
+      );
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() =>
+        salvarSessaoAtiva({
+          packageName: 'com.instagram.android',
+          tarefaId: null,
+          estadoTravado: null,
+          fimEm: 0,
+        }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('limparSessaoAtiva', () => {
+    it('chama o módulo nativo', () => {
+      limparSessaoAtiva();
+      expect(moduloMock.limparSessaoAtiva).toHaveBeenCalledTimes(1);
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() => limparSessaoAtiva()).not.toThrow();
     });
   });
 

@@ -4,6 +4,8 @@ import { theme } from '../../theme';
 
 interface RecurringTaskActionSheetProps {
   visible: boolean;
+  /** Ausente = a linha "Estou travado" não aparece (tarefa já concluída — ver TaskItem). */
+  onEstouTravado?: () => void;
   onRemoverHoje: () => void;
   onPararDeRepetir: () => void;
   onCancelar: () => void;
@@ -15,10 +17,13 @@ interface RecurringTaskActionSheetProps {
  * avulsas continuam abrindo TaskActionsSheet). Mesmo padrão visual de modal
  * centralizado do ConfirmDeleteAccountModal — não introduz um terceiro
  * padrão de modal no projeto. Componente burro: não sabe o que cada opção
- * faz de fato, só repassa o toque.
+ * faz de fato, só repassa o toque. "Estou travado" (ver TaskActionsSheet)
+ * também vive aqui — o long-press é a mesma entrada do TravadoFlow
+ * independente da tarefa ser recorrente ou não.
  */
 export function RecurringTaskActionSheet({
   visible,
+  onEstouTravado,
   onRemoverHoje,
   onPararDeRepetir,
   onCancelar,
@@ -34,6 +39,16 @@ export function RecurringTaskActionSheet({
         <View style={styles.cartao}>
           <Text style={styles.titulo}>Tarefa recorrente</Text>
           <Text style={styles.corpo}>Essa tarefa se repete todos os dias.</Text>
+
+          {onEstouTravado && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onEstouTravado}
+              style={styles.opcao}
+            >
+              <Text style={styles.opcaoTexto}>Estou travado</Text>
+            </Pressable>
+          )}
 
           <Pressable
             accessibilityRole="button"

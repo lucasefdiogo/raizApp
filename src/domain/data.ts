@@ -45,6 +45,17 @@ export function dataDeOntemLocal(hoje: Date | string): string {
 }
 
 /**
+ * "Amanhã" em relação a `hoje` (Date ou string YYYY-MM-DD) — simétrica a
+ * dataDeOntemLocal, mesmo racional (nunca soma 24h em milissegundos, que
+ * quebra em mudança de horário de verão em fusos que o usam).
+ */
+export function dataDeAmanhaLocal(hoje: Date | string): string {
+  const base = typeof hoje === 'string' ? dataLocalDeISO(hoje) : hoje;
+  const amanha = new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1);
+  return paraISOLocal(amanha);
+}
+
+/**
  * Diferença em dias corridos entre duas datas YYYY-MM-DD (b - a), sempre
  * calculada a partir de meia-noite LOCAL das duas — nunca parse com sufixo
  * Z. Positivo quando `b` é posterior a `a`.

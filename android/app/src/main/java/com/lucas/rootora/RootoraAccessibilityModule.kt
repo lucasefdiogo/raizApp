@@ -196,6 +196,49 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   }
 
   /**
+   * Espelha o snapshot do dia em SharedPreferences (ver BloqueioPrefs) —
+   * mesma postura de falha silenciosa de syncBloqueioConfig: um JSON
+   * malformado não derruba o app, e o snapshot sincroniza de novo na
+   * próxima mudança de tarefas.
+   */
+  @ReactMethod
+  fun salvarSnapshotDoDia(snapshotJson: String) {
+    try {
+      BloqueioPrefs.salvarSnapshotDia(reactApplicationContext, snapshotJson)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
+  /** Espelha regrasBloqueio em SharedPreferences — mesmo racional acima. */
+  @ReactMethod
+  fun salvarRegrasBloqueio(regrasJson: String) {
+    try {
+      BloqueioPrefs.salvarRegrasBloqueio(reactApplicationContext, regrasJson)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
+  /**
+   * Marca a sessão de foco em andamento — ver BloqueioPrefs.salvarSessaoAtiva.
+   * Mesma postura de falha silenciosa das outras gravações deste módulo.
+   */
+  @ReactMethod
+  fun salvarSessaoAtiva(sessaoJson: String) {
+    try {
+      BloqueioPrefs.salvarSessaoAtiva(reactApplicationContext, sessaoJson)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
+  @ReactMethod
+  fun limparSessaoAtiva() {
+    BloqueioPrefs.limparSessaoAtiva(reactApplicationContext)
+  }
+
+  /**
    * Reduz pra um tamanho pequeno antes de codificar — é só pra uma linha de
    * lista, ícone em resolução cheia (xxxhdpi) deixaria o payload e a
    * codificação bem mais lentos sem ganho visual nenhum.
