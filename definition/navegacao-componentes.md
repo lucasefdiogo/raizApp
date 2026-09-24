@@ -56,15 +56,37 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │     └── PerfilStack
 │           ├── PerfilScreen
 │           ├── AppBlockConfigScreen     (mesma tela referenciada acima)
-│           └── AccessibilityDebug       (condicional a __DEV__, temporária por
-│                 design — não remover sem avisar, ainda é usada pra validar a
-│                 detecção em dispositivo físico)
+│           ├── AccessibilityDebug       (condicional a __DEV__, temporária por
+│           │     design — não remover sem avisar, ainda é usada pra validar a
+│           │     detecção em dispositivo físico)
+│           └── InterceptDebug           (idem, mesma flag — abre a InterceptScreen
+│                 de verdade com props mockadas, spec 09-ponte-fuga-tarefa)
 │
 └── AppBlockedScreen
       NÃO é filha de nenhum stack/tab acima — é renderizada pelo próprio
       RootNavigator como overlay position: absolute por cima de TUDO, disparada por
       evento nativo (Accessibility Service detectando um app bloqueado em primeiro
       plano). Aparece independente de qual aba/tela estava ativa no momento.
+      Ainda é o ÚNICO caminho de bloqueio com dado real — ver nota abaixo.
+```
+
+### Root separado — `Intercept` (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
+
+Fora da árvore acima por completo — não é uma rota do `RootNavigator`, é um **segundo
+componente registrado no `AppRegistry`** (`index.js`), montado por uma Activity Android
+diferente da `MainActivity` (`InterceptRoot.tsx`: `SafeAreaProvider` + `ToastProvider`
+próprios, sem `RootNavigator`/`MainTabNavigator`). Pensado pra abrir em <300ms sem
+carregar a navegação inteira. Caminho **paralelo** ao `AppBlockedScreen` acima — o
+`AccessibilityService` hoje só dispara de verdade `bloqueioApps`→`AppBlockedScreen`; o
+gatilho novo (`regrasBloqueio`→`Intercept`) existe mas fica inerte sem uma tela que grave
+`regrasBloqueio` (ver `roadmap-e-status.md`).
+
+```
+InterceptRoot (packageName, appLabel, snapshotJson, sessaoAtivaJson? via initialProps)
+└── InterceptScreen — estados A / B / C (seção 3 da spec)
+      ├── "Fazer 2 minutos" → SessaoFocoScreen (origem 'interceptacao')
+      ├── "Estou travado"   → TravadoFlowScreen (mesmo componente da Home/TaskCard)
+      └── "Liberar"/"Agora não" (estado B) → sai
 ```
 
 ### Lógica de decisão do `RootNavigator`
@@ -88,13 +110,16 @@ Ordem real de renderização, de cima pra baixo:
 2. `StreakCard` — streak atual + escudos disponíveis (envolto num `View` com `ref`,
    ver "Tour de funcionalidades" abaixo)
 3. Headline "Tarefas de hoje"
-4. Lista de `TaskItem` + `AddTaskForm` (`forwardRef` — o `ref` aponta só pro botão
-   "Adicionar tarefa", não pro formulário inteiro)
+4. Lista de `TaskItem` + botão discreto "Estou travado" (abre `TravadoFlowScreen`,
+   spec `09-ponte-fuga-tarefa`) + `AddTaskForm` (`forwardRef` — o `ref` aponta só pro
+   botão "Adicionar tarefa", não pro formulário inteiro)
 5. `AppBlockBanner` OU `AppBlockStatusCard` (mutuamente exclusivos, no fim da rolagem;
    o wrapper dos dois também carrega um `ref`)
 6. Overlays condicionais por cima de tudo, nesta ordem: `TaskCompletedOverlay`,
    `StreakMilestoneModal`, `FeatureTourOverlay` (por último — fica por cima dos outros
-   dois se coincidirem)
+   dois se coincidirem), e `TravadoFlowScreen` quando aberto (botão da Home ou toque
+   longo numa tarefa — remonta com uma `key` nova a cada abertura, sempre começa do
+   passo "escolha")
 
 ### `TaskItem`
 | Prop | Tipo | Descrição |
@@ -106,6 +131,10 @@ Ordem real de renderização, de cima pra baixo:
 | `duracaoMinutos` | number opcional | Só exibido quando `tipo === 'exercicio'` |
 | `origemRecorrenteId` | string opcional | Exibe ícone ↻; habilita toque longo → `RecurringTaskActionSheet` |
 | `onToggle` | function | Escrita otimista + rollback silencioso em falha |
+
+Toque longo abre `TaskActionsSheet` (avulsa) ou `RecurringTaskActionSheet` (recorrente)
+— as duas ganharam a linha **"Estou travado"** (spec `09-ponte-fuga-tarefa`, primeira
+opção do menu), que não aparece pra tarefa já concluída.
 
 ### `AddTaskForm`
 Campo de título + toggle essencial + `TaskTypeToggle` (exercício/duração) + toggle
@@ -173,7 +202,38 @@ customizado, não Switch) + 2 seletores de horário + checkbox geral de ativaç�
 Disparada por evento nativo (`blocked-app-detected`), não por navegação normal.
 Mostra nome/ícone do app bloqueado + 2 caminhos de desbloqueio (tarefas essenciais /
 pausa de respiração), com exigência crescente conforme `desbloqueiosApps` do dia
-(ver `regras-streak-e-textos-mvp.md` e `05-fase3.md` pra regra de escalação).
+(ver `regras-de-negocio.md` seção 4 pra regra de escalação).
+
+### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
+Componente único, reutilizado sem diferença nas 3 entradas (botão da Home, toque longo
+em `TaskItem`, e o "Estou travado" da `InterceptScreen`). Máquina de passos interna —
+mesmo espírito do `OnboardingScreen` — não uma sequência de rotas:
+
+| Prop | Tipo | Descrição |
+|---|---|---|
+| `tarefaContexto` | `Tarefa \| null` | A tarefa que estava travando — `null` quando não há essencial pendente hoje |
+| `tarefas` | `Tarefa[]` | Lista do dia, pra checar se já foi concluída por outro caminho enquanto o fluxo estava aberto |
+| `origem` | `OrigemSessaoFoco` | Sempre `'travado'` nas 3 entradas hoje — `'interceptacao'` é reservado pro "Fazer 2 minutos" direto da `InterceptScreen` (não passa por aqui) |
+| `criarSubtarefa` / `editarTarefa` / `moverTarefaParaAmanha` / `alternarTarefa` | function | Vêm de `useDailyTasks` — o componente nunca fala com Firestore direto |
+| `onFechar` | function | Volta pra Home/pro app de origem |
+
+Passos: `escolha` (4 chips) → `resposta` (texto + ação por estado) → `sessao`
+(`SessaoFocoScreen`) ou `concluido` (energia → versão menor/amanhã, sem timer).
+
+### SessaoFocoScreen
+Timer + FimSessao, usada tanto pelo `TravadoFlowScreen` quanto direto pela
+`InterceptScreen` ("Fazer 2 minutos"). Botão "Liberar o [app] por 15 minutos" só
+aparece com `origem === 'interceptacao'` e `onLiberarApp` passado.
+
+### InterceptScreen (root `Intercept`, spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
+Ver "Root separado — `Intercept`" na seção 1 acima pra árvore completa. Decide o estado
+A/B/C na hora a partir do `snapshot` (prop, veio do nativo) e troca sozinha pro dado ao
+vivo (`useDailyTasks`) assim que ele resolve. `sessaoAtivaResumida` (prop opcional) pula
+a decisão inteira e abre a `SessaoFocoScreen` já retomando o tempo restante.
+
+### InterceptDebugScreen
+Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) — 3
+botões que abrem o `InterceptRoot` de verdade com snapshot mockado pra cada estado.
 
 ### Telas de permissão
 `AccessibilityPrimingScreen` (dentro do fluxo de AppBlockConfigScreen) e

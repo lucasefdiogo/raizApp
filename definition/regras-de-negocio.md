@@ -121,7 +121,56 @@ tela, dados pessoais).
 
 ---
 
-## 5. Princípios que regem qualquer regra nova
+## 5. Ponte fuga→tarefa e TravadoFlow
+
+Extensão do bloqueio de apps (spec `09-ponte-fuga-tarefa-e-estou-travado.md`): o app de
+fuga passa a levar de volta à tarefa evitada, reduzida a um passo mínimo, em vez de só
+bloquear. **Caminho paralelo ao bloqueio da seção 4** — `bloqueioApps`/custo crescente/
+`AppBlockedScreen` continuam sendo o único caminho que roda de verdade hoje; o que segue
+aqui usa um schema novo (`regrasBloqueio`) sem nenhuma tela que o grave ainda, então fica
+inerte num device real (ver seções 8 e 14 de `roadmap-e-status.md`).
+
+### InterceptScreen — 3 estados
+| Estado | Condição | Ação primária |
+|---|---|---|
+| A | Existe essencial pendente | "Fazer 2 minutos" (sessão de foco de 2 min na tarefa) |
+| B | Essenciais do dia já cumpridas | "Liberar" o app por 15 minutos |
+| C | Nenhuma essencial cadastrada hoje | Campo de texto → cria a essencial → vira estado A |
+
+Seleção da tarefa no estado A: a primeira essencial pendente, ou — se alguma tiver o
+campo `quando` (HH:mm) preenchido — a de horário mais próximo do momento atual.
+
+### TravadoFlow — "O que está pegando agora?"
+Acessível pelas 3 entradas com o **mesmo componente**: botão discreto abaixo da lista na
+Home, toque longo numa tarefa (`TaskCard`/`TaskItem`), e a partir do estado A da
+InterceptScreen ("Estou travado"). 4 chips de toque único:
+
+| Chip | Resposta | Ação |
+|---|---|---|
+| Não sei por onde começar | Escreve o primeiro passo físico | Cria subtarefa (`tarefaPaiId`) → sessão de 2 min |
+| Tenho medo de ficar ruim | "Faça a versão feia primeiro" | Sessão de 5 min direto, sem subtarefa |
+| Está chato demais | "Não precisa gostar" | Sessão de 5 min direto |
+| Estou sem energia | 3 opções | Versão menor da tarefa · Descansar 10 min · Passar pra amanhã |
+
+"Passar para amanhã" nunca mostra texto de culpa; se era a única essencial do dia, segue
+a regra normal de proteção/queda parcial (seção 1).
+
+### Regra do streak
+Sessões de foco (2/5/10 minutos, qualquer origem) **nunca alteram `streakAtual`** — só a
+conclusão da tarefa essencial em si conta (regra "dia cumprido" da seção 1, inalterada).
+Evita que o timer vire atalho e esvazie o significado do streak.
+
+### Regra de pré-compromisso (schema `regrasBloqueio`, não `bloqueioApps`)
+Pensada para substituir o custo crescente da seção 4 quando `regrasBloqueio` passar a ter
+uma tela que o edite: qualquer alteração que **afrouxa** as regras (remover app, encurtar
+janela) só valeria a partir do dia seguinte (`regrasBloqueioPendentes.efetivaEm`);
+alterações que endurecem valeriam na hora. Lógica pura já existe e é testada
+(`aplicarRegrasBloqueioPendentesSeVencidas`), mas **sem nenhuma tela que grave
+`regrasBloqueioPendentes`**, essa regra não roda em nenhum fluxo real ainda.
+
+---
+
+## 6. Princípios que regem qualquer regra nova
 
 Antes de adicionar ou ajustar qualquer mecânica (streak, desafio, bloqueio ou o que vier
 depois), checar contra os 5 princípios do produto (`CLAUDE.md`):
