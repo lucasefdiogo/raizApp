@@ -83,4 +83,21 @@ describe('RecurringTaskActionSheet', () => {
     expect(onRemoverHoje).not.toHaveBeenCalled();
     expect(onPararDeRepetir).not.toHaveBeenCalled();
   });
+
+  it('omite "Estou travado" quando onEstouTravado não é passado', async () => {
+    await render(<RecurringTaskActionSheet {...props} />);
+
+    expect(screen.queryByText('Estou travado')).toBeNull();
+  });
+
+  it('"Estou travado" aparece e chama onEstouTravado quando passado', async () => {
+    const onEstouTravado = jest.fn();
+    await render(
+      <RecurringTaskActionSheet {...props} onEstouTravado={onEstouTravado} />,
+    );
+
+    await fireEvent.press(screen.getByText('Estou travado'));
+
+    expect(onEstouTravado).toHaveBeenCalledTimes(1);
+  });
 });

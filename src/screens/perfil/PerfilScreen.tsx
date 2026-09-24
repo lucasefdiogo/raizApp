@@ -36,6 +36,11 @@ interface PerfilScreenProps {
    * parte 1). Ausente = o botão não aparece.
    */
   aoAbrirDebugAcessibilidade?: () => void;
+  /**
+   * Só em dev: abre a tela temporária de debug da InterceptScreen (Etapa 3
+   * da spec 09-ponte-fuga-tarefa). Ausente = o botão não aparece.
+   */
+  aoAbrirDebugIntercept?: () => void;
 }
 
 function horarioParaDate(horario: string | null): Date {
@@ -55,6 +60,7 @@ export function PerfilScreen({
   uid,
   aoAbrirBloqueioApps,
   aoAbrirDebugAcessibilidade,
+  aoAbrirDebugIntercept,
 }: PerfilScreenProps) {
   useVoltarParaAbaHoje();
   const { reiniciar: reiniciarTourFuncionalidades } = useFeatureTour();
@@ -226,6 +232,17 @@ export function PerfilScreen({
             hitSlop={8}
           >
             <Text style={styles.debugTexto}>🔧 Debug: detecção de apps</Text>
+          </Pressable>
+        )}
+
+        {aoAbrirDebugIntercept && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={aoAbrirDebugIntercept}
+            style={styles.debugLink}
+            hitSlop={8}
+          >
+            <Text style={styles.debugTexto}>🔧 Debug: InterceptScreen</Text>
           </Pressable>
         )}
 

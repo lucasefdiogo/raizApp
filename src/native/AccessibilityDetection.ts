@@ -1,5 +1,6 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
-import { BloqueioAppsConfig } from '../domain/types';
+import { BloqueioAppsConfig, EstadoTravado, RegrasBloqueio } from '../domain/types';
+import { SnapshotDia } from '../domain/intercept';
 
 /** Mesmo nome do evento emitido pelo RootoraAccessibilityService.kt. */
 const EVENTO_APP_PRIMEIRO_PLANO = 'app-foreground-changed';
@@ -21,6 +22,21 @@ export interface AppInstalado {
   icone: string | null;
 }
 
+/**
+ * Sessão de foco em andamento (só quando origem === 'interceptacao') — o
+ * suficiente pro AccessibilityService (Etapa 4) reconhecer "esse pacote tem
+ * um timer rodando" e reabrir a InterceptActivity direto na SessaoFocoScreen
+ * em vez da tela de decisão A/B/C (seção 5 da spec: "a interceptação
+ * reaparece mostrando o timer em andamento").
+ */
+export interface SessaoAtivaNativa {
+  packageName: string;
+  tarefaId: string | null;
+  estadoTravado: EstadoTravado | null;
+  /** Epoch ms de quando o timer termina. */
+  fimEm: number;
+}
+
 interface RootoraAccessibilityNative {
   isAccessibilityServiceEnabled(): Promise<boolean>;
   openAccessibilitySettings(): void;
@@ -29,6 +45,10 @@ interface RootoraAccessibilityNative {
   registrarDesbloqueioTemporario(packageName: string, minutos: number): void;
   getInitialBlockedPackage(): Promise<string | null>;
   abrirApp(packageName: string): Promise<boolean>;
+  salvarSnapshotDoDia(snapshotJson: string): void;
+  salvarRegrasBloqueio(regrasJson: string): void;
+  salvarSessaoAtiva(sessaoJson: string): void;
+  limparSessaoAtiva(): void;
 }
 
 interface EventoAppPrimeiroPlano {
@@ -159,6 +179,48 @@ export async function abrirApp(packageName: string): Promise<boolean> {
     return false;
   }
   return modulo.abrirApp(packageName);
+}
+
+/**
+ * Espelha o snapshot do dia (tarefas essenciais, `quando`, etc — ver
+ * domain/intercept.ts) em SharedPreferences — é o que o AccessibilityService
+ * (Etapa 4) vai passar como `initialProps.snapshot` pro root 'Intercept' ao
+ * abrir a InterceptActivity, sem esperar um round-trip ao Firestore. Chamado
+ * de useDailyTasks.persistir a cada mudança em tarefas[] (seção 8 da spec
+ * 09-ponte-fuga-tarefa: "sempre que tarefas mudarem"). Sem o módulo nativo,
+ * não faz nada.
+ */
+export function salvarSnapshotDoDia(snapshot: SnapshotDia): void {
+  moduloNativo()?.salvarSnapshotDoDia(JSON.stringify(snapshot));
+}
+
+/**
+ * Espelha `regrasBloqueio` em SharedPreferences — mesmo racional de
+ * salvarSnapshotDoDia, pro Service consultar as regras vigentes sem
+ * depender do JS estar rodando. Ainda sem nenhum chamador real: só existe
+ * tela pra editar `bloqueioApps` (o schema antigo) — chamar isso a partir
+ * de uma tela de configuração de `regrasBloqueio` fica pra quando ela for
+ * construída.
+ */
+export function salvarRegrasBloqueio(regras: RegrasBloqueio): void {
+  moduloNativo()?.salvarRegrasBloqueio(JSON.stringify(regras));
+}
+
+/**
+ * Marca (ou atualiza) a sessão de foco em andamento pro pacote em questão —
+ * ver SessaoAtivaNativa. Chamado por useFocusSession a cada início de perna
+ * do timer (inicial ou "+10 min"), nunca a cada segundo.
+ */
+export function salvarSessaoAtiva(sessao: SessaoAtivaNativa): void {
+  moduloNativo()?.salvarSessaoAtiva(JSON.stringify(sessao));
+}
+
+/**
+ * Limpa a sessão ativa — chamado ao sair da fase 'contando' (parou,
+ * concluiu, liberou, ou o timer chegou a zero) e no unmount.
+ */
+export function limparSessaoAtiva(): void {
+  moduloNativo()?.limparSessaoAtiva();
 }
 
 /**

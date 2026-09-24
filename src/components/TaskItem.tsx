@@ -17,6 +17,8 @@ const ATRASO_LONG_PRESS_MS = 350;
 interface TaskItemProps {
   tarefa: Tarefa;
   onAlternar: (id: string) => void;
+  /** TravadoFlow (ver TaskActionsSheet/RecurringTaskActionSheet) — não aparece pra tarefa já concluída. */
+  onEstouTravado?: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
   onRemover?: (id: string) => void;
   /** Só chamado pra tarefas com origemRecorrenteId — ver RecurringTaskActionSheet. */
@@ -28,6 +30,7 @@ interface TaskItemProps {
 export function TaskItem({
   tarefa,
   onAlternar,
+  onEstouTravado,
   onEditar,
   onRemover,
   onRemoverHoje,
@@ -39,7 +42,8 @@ export function TaskItem({
 
   const ehRecorrente = tarefa.origemRecorrenteId !== undefined;
   const temAcoes = onEditar !== undefined || onRemover !== undefined;
-  const podeAbrirMenu = ehRecorrente || temAcoes;
+  const podeEstouTravado = onEstouTravado !== undefined && !tarefa.concluida;
+  const podeAbrirMenu = ehRecorrente || temAcoes || podeEstouTravado;
 
   function abrirEdicao() {
     setRascunho(tarefa.titulo);
@@ -131,6 +135,14 @@ export function TaskItem({
       {ehRecorrente ? (
         <RecurringTaskActionSheet
           visible={menuAberto}
+          onEstouTravado={
+            podeEstouTravado
+              ? () => {
+                  setMenuAberto(false);
+                  onEstouTravado?.(tarefa.id);
+                }
+              : undefined
+          }
           onRemoverHoje={() => {
             setMenuAberto(false);
             onRemoverHoje?.(tarefa.id);
@@ -145,6 +157,14 @@ export function TaskItem({
         <TaskActionsSheet
           visible={menuAberto}
           tituloTarefa={tarefa.titulo}
+          onEstouTravado={
+            podeEstouTravado
+              ? () => {
+                  setMenuAberto(false);
+                  onEstouTravado?.(tarefa.id);
+                }
+              : undefined
+          }
           onEditar={
             onEditar
               ? () => {

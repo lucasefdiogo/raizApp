@@ -5,6 +5,7 @@ import { useDailyTasks } from './useDailyTasks';
 jest.mock('../services/firestore');
 jest.mock('../services/analytics');
 jest.mock('../services/crashlytics');
+jest.mock('../native/AccessibilityDetection');
 jest.mock('./useToast');
 
 const {
@@ -15,7 +16,9 @@ const {
   buscarTarefasRecorrentesAtivas,
   criarTarefaRecorrente,
   desativarTarefaRecorrente,
+  adicionarTarefaAoDailyLog,
 } = require('../services/firestore');
+const { salvarSnapshotDoDia } = require('../native/AccessibilityDetection');
 const { logTarefaCriada, logTarefaConcluida } = require('../services/analytics');
 const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
@@ -43,6 +46,7 @@ describe('useDailyTasks', () => {
     buscarTarefasRecorrentesAtivas.mockResolvedValue([]);
     criarTarefaRecorrente.mockResolvedValue('recorrente-1');
     desativarTarefaRecorrente.mockResolvedValue(undefined);
+    adicionarTarefaAoDailyLog.mockResolvedValue(undefined);
     useToast.mockReturnValue({ showToast });
   });
 
@@ -837,6 +841,198 @@ describe('useDailyTasks', () => {
         addListener.mockRestore();
         jest.useRealTimers();
       }
+    });
+  });
+
+  describe('espelho do snapshot pro lado nativo (Etapa 3/4)', () => {
+    it('toda persistência de tarefas chama salvarSnapshotDoDia com o array atualizado', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.adicionarTarefa('Nova', true);
+      });
+
+      expect(salvarSnapshotDoDia).toHaveBeenCalledWith({
+        tarefas: expect.arrayContaining([
+          expect.objectContaining({ titulo: 'Nova' }),
+        ]),
+      });
+    });
+
+    it('falha ao salvar no Firestore: não chama salvarSnapshotDoDia', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      salvarDailyLog.mockRejectedValueOnce(new Error('offline'));
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.adicionarTarefa('Nova', true);
+      });
+
+      expect(salvarSnapshotDoDia).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('criarSubtarefa (TravadoFlow, passo confusao)', () => {
+    it('com tarefaPaiId: cria subtarefa não-essencial e devolve o id gerado', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      let idGerado: string | null = null;
+      await act(async () => {
+        idGerado = result.current.criarSubtarefa('abrir o arquivo', 'pai-1');
+      });
+
+      expect(idGerado).not.toBeNull();
+      const criada = result.current.tarefas.find(t => t.id === idGerado);
+      expect(criada).toMatchObject({
+        titulo: 'abrir o arquivo',
+        essencial: false,
+        concluida: false,
+        tarefaPaiId: 'pai-1',
+      });
+    });
+
+    it('sem tarefaPaiId (sem tarefa de contexto): cria como essencial avulsa', async () => {
+      buscarDailyLog.mockResolvedValue(null);
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      let idGerado: string | null = null;
+      await act(async () => {
+        idGerado = result.current.criarSubtarefa('separar o material');
+      });
+
+      const criada = result.current.tarefas.find(t => t.id === idGerado);
+      expect(criada?.essencial).toBe(true);
+      expect(criada).not.toHaveProperty('tarefaPaiId');
+    });
+
+    it('recusa e mostra toast quando o teto de essenciais já foi atingido (sem tarefaPaiId)', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: '2026-09-24',
+        tarefas: [
+          { id: '1', titulo: 'a', essencial: true, concluida: false },
+          { id: '2', titulo: 'b', essencial: true, concluida: false },
+          { id: '3', titulo: 'c', essencial: true, concluida: false },
+        ],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      let idGerado: string | null = 'não deveria mudar';
+      await act(async () => {
+        idGerado = result.current.criarSubtarefa('mais uma');
+      });
+
+      expect(idGerado).toBeNull();
+      expect(showToast).toHaveBeenCalledWith(
+        'Só dá pra marcar até 3 tarefas essenciais por dia',
+      );
+    });
+  });
+
+  describe('moverTarefaParaAmanha (TravadoFlow, passo energia)', () => {
+    const tarefaHoje = {
+      id: 'hoje-1',
+      titulo: 'Escrever relatório',
+      essencial: true,
+      concluida: false,
+    };
+
+    it('remove de hoje só depois de gravar amanhã, pré-populando as recorrentes de amanhã antes', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: '2026-09-24',
+        tarefas: [tarefaHoje],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+      buscarTarefasRecorrentesAtivas.mockResolvedValue([
+        { id: 'rec-1', titulo: 'Recorrente', essencial: true, ativa: true },
+      ]);
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.moverTarefaParaAmanha(tarefaHoje, '09:00');
+      });
+
+      expect(result.current.tarefas).toEqual([]);
+
+      const [, dataAmanha, tarefasIniciais] =
+        garantirDailyLogDoDia.mock.calls[0];
+      expect(dataAmanha).not.toBe('2026-09-24');
+      expect(tarefasIniciais).toEqual([
+        expect.objectContaining({ titulo: 'Recorrente', origemRecorrenteId: 'rec-1' }),
+      ]);
+
+      const [, , tarefaGravada] = adicionarTarefaAoDailyLog.mock.calls[0];
+      expect(tarefaGravada).toMatchObject({
+        titulo: 'Escrever relatório',
+        essencial: true,
+        concluida: false,
+        quando: '09:00',
+      });
+
+      // garantirDailyLogDoDia (pré-popula recorrentes) roda ANTES de
+      // adicionarTarefaAoDailyLog (acrescenta a tarefa movida) — nessa
+      // ordem, nunca o contrário, senão a pré-população pisaria na tarefa
+      // recém movida se o documento ainda não existisse.
+      expect(garantirDailyLogDoDia.mock.invocationCallOrder[0]).toBeLessThan(
+        adicionarTarefaAoDailyLog.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('sem quando: grava a tarefa de amanhã sem o campo', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: '2026-09-24',
+        tarefas: [tarefaHoje],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.moverTarefaParaAmanha(tarefaHoje);
+      });
+
+      const [, , tarefaGravada] = adicionarTarefaAoDailyLog.mock.calls[0];
+      expect(tarefaGravada).not.toHaveProperty('quando');
+    });
+
+    it('falha ao gravar amanhã: NÃO remove a tarefa de hoje e mostra o toast', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: '2026-09-24',
+        tarefas: [tarefaHoje],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+      adicionarTarefaAoDailyLog.mockRejectedValueOnce(new Error('offline'));
+
+      const { result } = await renderHook(() => useDailyTasks('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      await act(async () => {
+        await result.current.moverTarefaParaAmanha(tarefaHoje, '09:00');
+      });
+
+      expect(result.current.tarefas).toEqual([tarefaHoje]);
+      expect(salvarDailyLog).not.toHaveBeenCalled();
+      expect(showToast).toHaveBeenCalledWith(
+        'Não conseguimos mover a tarefa agora. Tente de novo.',
+      );
+      expect(registrarErro).toHaveBeenCalledWith(
+        expect.any(Error),
+        'useDailyTasks.moverTarefaParaAmanha',
+      );
     });
   });
 });

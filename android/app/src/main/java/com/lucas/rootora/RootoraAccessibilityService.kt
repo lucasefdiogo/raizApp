@@ -2,10 +2,12 @@ package com.lucas.rootora
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import org.json.JSONObject
 
 /**
  * Detecta qual app está em primeiro plano via TYPE_WINDOW_STATE_CHANGED.
@@ -31,6 +33,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     ultimoPacote = pacote
     emitirParaJS(pacote)
     avaliarBloqueio(pacote)
+    avaliarIntercept(pacote)
   }
 
   /**
@@ -52,6 +55,64 @@ class RootoraAccessibilityService : AccessibilityService() {
         putExtra(MainActivity.EXTRA_BLOCKED_PACKAGE, pacote)
       }
     startActivity(intent)
+  }
+
+  /**
+   * Caminho PARALELO a avaliarBloqueio, não substitui nada (decisão da
+   * Etapa 4 da spec 09-ponte-fuga-tarefa) — enquanto nada grava
+   * `regrasBloqueio`, `BloqueioPrefs.deveInterceptar` é sempre false na
+   * prática, então isso fica inerte num device real. `appLabel` é
+   * resolvido aqui (não fica gravado no snapshot) porque só faz sentido no
+   * idioma/config atual do sistema no momento exato da detecção.
+   */
+  private fun avaliarIntercept(pacote: String) {
+    if (!BloqueioPrefs.deveInterceptar(applicationContext, pacote)) {
+      return
+    }
+
+    val appLabel = resolverAppLabel(pacote)
+    val snapshotJson = BloqueioPrefs.lerSnapshotDia(applicationContext) ?: "{\"tarefas\":[]}"
+    val sessaoAtivaJson = sessaoAtivaValidaPara(pacote)
+
+    val intent =
+      Intent(applicationContext, InterceptActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        putExtra(InterceptActivity.EXTRA_PACKAGE_NAME, pacote)
+        putExtra(InterceptActivity.EXTRA_APP_LABEL, appLabel)
+        putExtra(InterceptActivity.EXTRA_SNAPSHOT_JSON, snapshotJson)
+        if (sessaoAtivaJson != null) {
+          putExtra(InterceptActivity.EXTRA_SESSAO_ATIVA_JSON, sessaoAtivaJson)
+        }
+      }
+    startActivity(intent)
+  }
+
+  private fun resolverAppLabel(pacote: String): String {
+    return try {
+      val pm = applicationContext.packageManager
+      val info = pm.getApplicationInfo(pacote, PackageManager.GET_META_DATA)
+      pm.getApplicationLabel(info).toString()
+    } catch (erro: Exception) {
+      pacote
+    }
+  }
+
+  /**
+   * Devolve o JSON da sessão ativa só se ela for de fato desse `pacote` e
+   * ainda não tiver expirado — sem isso, a sessão de foco de um pacote
+   * ficaria "vazando" pra reabrir a interceptação de outro, ou um timer já
+   * encerrado reapareceria congelado em 0.
+   */
+  private fun sessaoAtivaValidaPara(pacote: String): String? {
+    val json = BloqueioPrefs.lerSessaoAtiva(applicationContext) ?: return null
+    return try {
+      val sessao = JSONObject(json)
+      val mesmoPacote = sessao.optString("packageName") == pacote
+      val aindaValida = sessao.optLong("fimEm", 0L) > System.currentTimeMillis()
+      if (mesmoPacote && aindaValida) json else null
+    } catch (erro: Exception) {
+      null
+    }
   }
 
   override fun onInterrupt() {

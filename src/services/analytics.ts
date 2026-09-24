@@ -1,5 +1,12 @@
 import { getAnalytics, logEvent } from '@react-native-firebase/analytics';
-import { TipoTarefa } from '../domain/types';
+import {
+  AcaoIntercept,
+  EstadoTela,
+  EstadoTravado,
+  OrigemSessaoFoco,
+  ResultadoSessaoFoco,
+  TipoTarefa,
+} from '../domain/types';
 
 function analytics() {
   return getAnalytics();
@@ -68,4 +75,36 @@ export function logPermissaoAccessibility(concedida: boolean): void {
 
 export function logPermissaoNotificacao(concedida: boolean): void {
   logEvent(analytics(), 'permissao_notificacao', { concedida });
+}
+
+export function logTravadoAberto(origem: OrigemSessaoFoco): void {
+  logEvent(analytics(), 'travado_opened', { origem });
+}
+
+/**
+ * Chip escolhido no Passo 1 do TravadoFlow. Não é dado sensível em si (só
+ * qual categoria, sem texto livre) — a spec (seção 7/10) trata isso junto
+ * de `estadoTravado`, então mantemos o evento sem nenhum identificador de
+ * usuário, mesmo padrão de todo o resto deste arquivo.
+ */
+export function logTravadoEstado(estado: EstadoTravado): void {
+  logEvent(analytics(), 'travado_state', { estado });
+}
+
+export function logInterceptShown(estadoTela: EstadoTela): void {
+  logEvent(analytics(), 'intercept_shown', { estado_tela: estadoTela });
+}
+
+export function logInterceptAction(acao: AcaoIntercept): void {
+  logEvent(analytics(), 'intercept_action', { acao });
+}
+
+export function logFocusSessionEnd(
+  duracaoPlanejadaSeg: number,
+  resultado: ResultadoSessaoFoco,
+): void {
+  logEvent(analytics(), 'focus_session_end', {
+    duracao_planejada: duracaoPlanejadaSeg,
+    resultado,
+  });
 }

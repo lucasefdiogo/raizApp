@@ -1,12 +1,18 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pencil, Trash } from 'lucide-react-native';
+import { LifeBuoy, Pencil, Trash } from 'lucide-react-native';
 import { theme } from '../../theme';
 
 interface TaskActionsSheetProps {
   visible: boolean;
   tituloTarefa: string;
+  /**
+   * Ausente = a linha "Estou travado" não aparece — hoje isso só acontece
+   * quando a tarefa já está concluída (ver TaskItem), já que o TravadoFlow
+   * não faz sentido pra algo que já foi feito.
+   */
+  onEstouTravado?: () => void;
   /** Ausente = a linha "Editar" não aparece. */
   onEditar?: () => void;
   /** Ausente = a linha "Excluir" não aparece. */
@@ -16,12 +22,16 @@ interface TaskActionsSheetProps {
 
 /**
  * Folha de ações que abre no long-press de uma tarefa. Componente burro: só
- * oferece Editar / Excluir / Cancelar. "Excluir" aqui já é a confirmação — o
- * long-press é deliberado o bastante, não precisa de um segundo diálogo.
+ * oferece Estou travado / Editar / Excluir / Cancelar. "Excluir" aqui já é a
+ * confirmação — o long-press é deliberado o bastante, não precisa de um
+ * segundo diálogo. "Estou travado" é uma das 3 entradas do TravadoFlow (ver
+ * spec 09-ponte-fuga-tarefa, seção 2) — vem primeiro porque é a ação mais
+ * "no calor da hora" das quatro.
  */
 export function TaskActionsSheet({
   visible,
   tituloTarefa,
+  onEstouTravado,
   onEditar,
   onExcluir,
   onCancelar,
@@ -47,6 +57,17 @@ export function TaskActionsSheet({
           <Text style={styles.titulo} numberOfLines={1}>
             {tituloTarefa}
           </Text>
+
+          {onEstouTravado && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onEstouTravado}
+              style={styles.acao}
+            >
+              <LifeBuoy size={18} color={theme.colors.textPrimary} />
+              <Text style={styles.acaoTexto}>Estou travado</Text>
+            </Pressable>
+          )}
 
           {onEditar && (
             <Pressable

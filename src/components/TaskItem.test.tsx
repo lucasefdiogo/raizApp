@@ -327,4 +327,69 @@ describe('TaskItem', () => {
     expect(onEditar).toHaveBeenCalledWith('1', 'Guardar o celular a tarde toda');
     expect(screen.queryByLabelText('Editar tarefa')).toBeNull();
   });
+
+  describe('onEstouTravado (TravadoFlow)', () => {
+    it('long-press numa tarefa pendente mostra "Estou travado" e chama com o id ao tocar', async () => {
+      const onEstouTravado = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={tarefaBase}
+          onAlternar={jest.fn()}
+          onEstouTravado={onEstouTravado}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+      await fireEvent.press(screen.getByText('Estou travado'));
+
+      expect(onEstouTravado).toHaveBeenCalledWith('1');
+      expect(screen.queryByText('Estou travado')).toBeNull();
+    });
+
+    it('tarefa já concluída: "Estou travado" não aparece no menu', async () => {
+      const onEstouTravado = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={{ ...tarefaBase, concluida: true }}
+          onAlternar={jest.fn()}
+          onEstouTravado={onEstouTravado}
+          onEditar={jest.fn()}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+      expect(screen.queryByText('Estou travado')).toBeNull();
+    });
+
+    it('tarefa recorrente pendente: "Estou travado" aparece no menu de recorrente', async () => {
+      const onEstouTravado = jest.fn();
+      await render(
+        <TaskItem
+          tarefa={{ ...tarefaBase, origemRecorrenteId: 'rec-1' }}
+          onAlternar={jest.fn()}
+          onEstouTravado={onEstouTravado}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+      await fireEvent.press(screen.getByText('Estou travado'));
+
+      expect(onEstouTravado).toHaveBeenCalledWith('1');
+    });
+
+    it('só onEstouTravado (sem onEditar/onRemover): o long-press ainda abre o menu', async () => {
+      await render(
+        <TaskItem
+          tarefa={tarefaBase}
+          onAlternar={jest.fn()}
+          onEstouTravado={jest.fn()}
+        />,
+      );
+
+      await fireEvent(screen.getByRole('checkbox'), 'longPress');
+
+      expect(screen.getByText('Estou travado')).toBeTruthy();
+    });
+  });
 });

@@ -2,14 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { StatusDia, Tarefa, TipoTarefa } from '../domain/types';
 import { calcularStatusDia } from '../domain/streak';
-import { hojeISOLocal } from '../domain/data';
+import { dataDeAmanhaLocal, hojeISOLocal } from '../domain/data';
 import {
   adicionarTarefa as adicionarTarefaNoDia,
   editarTarefa as editarTarefaNoDia,
   limiteEssenciaisAtingido as limiteEssenciaisAtingidoDominio,
   removerTarefa as removerTarefaNoDia,
+  tarefaDoDiaAPartirDeRecorrente,
 } from '../domain/dailyTasks';
 import {
+  adicionarTarefaAoDailyLog,
   buscarDailyLog,
   buscarTarefasRecorrentesAtivas,
   criarTarefaRecorrente,
@@ -18,6 +20,7 @@ import {
   garantirDailyLogDoDia,
   salvarDailyLog,
 } from '../services/firestore';
+import { salvarSnapshotDoDia } from '../native/AccessibilityDetection';
 import { logTarefaConcluida, logTarefaCriada } from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
@@ -55,6 +58,8 @@ const MENSAGEM_FALHA_RECARREGAR =
   'Não conseguimos atualizar agora. Tente de novo.';
 const MENSAGEM_FALHA_PARAR_DE_REPETIR =
   'Não conseguimos salvar agora. Tente de novo.';
+const MENSAGEM_FALHA_MOVER_AMANHA =
+  'Não conseguimos mover a tarefa agora. Tente de novo.';
 
 interface UseDailyTasksResultado {
   tarefas: Tarefa[];
@@ -91,6 +96,26 @@ interface UseDailyTasksResultado {
    * a chamada simétrica com removerTarefaHoje no call site do menu.
    */
   pararDeRepetir: (tarefaId: string, origemRecorrenteId: string) => void;
+  /**
+   * Passo `confusao` do TravadoFlow (ver domain/intercept.ts): cria uma
+   * subtarefa a partir do primeiro passo físico que a pessoa escreveu.
+   * `tarefaPaiId` presente → subtarefa comum (essencial:false), some da
+   * lista principal só quando concluída como qualquer outra; ausente
+   * (sem tarefa de contexto) → vira a própria essencial do dia, sujeita
+   * ao teto de 3. Devolve o id gerado (pra virar o tarefaId da sessão de
+   * foco) ou null se a validação de domínio recusou (título vazio/teto).
+   */
+  criarSubtarefa: (titulo: string, tarefaPaiId?: string) => string | null;
+  /**
+   * Passo `energia` → "Passar para amanhã": remove `tarefa` de hoje e
+   * recria em dailyLogs/{amanhã} (com `quando`, se informado). Pré-popula
+   * as recorrentes ativas de amanhã ANTES de acrescentar a tarefa movida
+   * (garantirDailyLogDoDia é idempotente) — sem isso, criar o documento de
+   * amanhã só com a tarefa movida faria useDailyTasks.carregar() de amanhã
+   * pular a pré-população de recorrentes (só roda quando o dailyLog ainda
+   * não existe), e elas sumiriam.
+   */
+  moverTarefaParaAmanha: (tarefa: Tarefa, quando?: string) => Promise<void>;
   statusDia: StatusDia;
   carregando: boolean;
   limiteEssenciaisAtingido: boolean;
@@ -166,25 +191,12 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       return;
     }
 
-    const tarefasRecorrentes: Tarefa[] = recorrentes.map(recorrente => {
-      // Instância nova pra hoje: nasce sempre concluida:false, com um
-      // id novo (embute a data de hoje, nunca reaproveita o de outro
-      // dia) — nenhum campo de estado de conclusão vem de dia anterior.
-      const tarefa: Tarefa = {
-        id: `recorrente-${recorrente.id}-${hojeISO}`,
-        titulo: recorrente.titulo,
-        essencial: recorrente.essencial,
-        concluida: false,
-        origemRecorrenteId: recorrente.id,
-      };
-      if (recorrente.tipo === 'exercicio') {
-        tarefa.tipo = recorrente.tipo;
-        if (recorrente.duracaoMinutos !== undefined) {
-          tarefa.duracaoMinutos = recorrente.duracaoMinutos;
-        }
-      }
-      return tarefa;
-    });
+    // Instância nova pra hoje: nasce sempre concluida:false, com um id novo
+    // (embute a data de hoje, nunca reaproveita o de outro dia) — nenhum
+    // campo de estado de conclusão vem de dia anterior.
+    const tarefasRecorrentes: Tarefa[] = recorrentes.map(recorrente =>
+      tarefaDoDiaAPartirDeRecorrente(recorrente, hojeISO),
+    );
 
     setTarefas(
       tarefasRecorrentes.length > 0
@@ -246,6 +258,11 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
           statusDia: calcularStatusDia(novasTarefas),
           escudoUsado,
         });
+        // Espelha em SharedPreferences pro lado nativo (Etapa 4) — "sempre
+        // que tarefas mudarem" (seção 8 da spec 09-ponte-fuga-tarefa).
+        // Fire-and-forget: nunca deve atrasar nem falhar a gravação real no
+        // Firestore, que já terminou nesse ponto.
+        salvarSnapshotDoDia({ tarefas: novasTarefas });
       } catch (erro) {
         registrarErro(erro as Error, 'useDailyTasks.persistir');
         setTarefas(anterior);
@@ -381,6 +398,59 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     [uid, showToast],
   );
 
+  const criarSubtarefa = useCallback(
+    (titulo: string, tarefaPaiId?: string): string | null => {
+      const nova: Tarefa = {
+        id: `nova-${Date.now()}-${contadorId.current++}`,
+        titulo,
+        essencial: tarefaPaiId === undefined,
+        concluida: false,
+        ...(tarefaPaiId !== undefined ? { tarefaPaiId } : {}),
+      };
+
+      const resultado = adicionarTarefaNoDia(tarefas, nova);
+      if (!resultado.ok) {
+        showToast(resultado.erro);
+        return null;
+      }
+
+      persistir(resultado.tarefas, MENSAGEM_FALHA_ADICIONAR);
+      return nova.id;
+    },
+    [tarefas, persistir, showToast],
+  );
+
+  const moverTarefaParaAmanha = useCallback(
+    async (tarefa: Tarefa, quando?: string) => {
+      // Só remove de hoje DEPOIS de confirmar a gravação de amanhã — se a
+      // rede falhar no meio do caminho, a tarefa fica onde estava (nunca
+      // desaparece de hoje sem aparecer em lugar nenhum amanhã).
+      try {
+        const amanhaISO = dataDeAmanhaLocal(hojeISOLocal());
+        const recorrentes = await buscarTarefasRecorrentesAtivas(uid);
+        const tarefasRecorrentesDeAmanha = recorrentes.map(recorrente =>
+          tarefaDoDiaAPartirDeRecorrente(recorrente, amanhaISO),
+        );
+        await garantirDailyLogDoDia(uid, amanhaISO, tarefasRecorrentesDeAmanha);
+
+        const tarefaAmanha: Tarefa = {
+          id: `movida-${Date.now()}`,
+          titulo: tarefa.titulo,
+          essencial: tarefa.essencial,
+          concluida: false,
+          ...(quando ? { quando } : {}),
+        };
+        await adicionarTarefaAoDailyLog(uid, amanhaISO, tarefaAmanha);
+
+        persistir(removerTarefaNoDia(tarefas, tarefa.id), MENSAGEM_FALHA_ALTERACAO);
+      } catch (erro) {
+        registrarErro(erro as Error, 'useDailyTasks.moverTarefaParaAmanha');
+        showToast(MENSAGEM_FALHA_MOVER_AMANHA);
+      }
+    },
+    [tarefas, uid, persistir, showToast],
+  );
+
   const statusDia = calcularStatusDia(tarefas);
 
   return {
@@ -391,6 +461,8 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
     removerTarefa,
     removerTarefaHoje,
     pararDeRepetir,
+    criarSubtarefa,
+    moverTarefaParaAmanha,
     statusDia,
     carregando,
     limiteEssenciaisAtingido: limiteEssenciaisAtingidoDominio(tarefas),

@@ -19,6 +19,10 @@ import {
   Desafio,
   EstadoStreak,
   FocoProcrastinacao,
+  Interceptacao,
+  RegrasBloqueio,
+  RegrasBloqueioPendentes,
+  SessaoFoco,
   StatusDesafio,
   StatusStreak,
   Tarefa,
@@ -44,6 +48,18 @@ export interface UsuarioDocumento {
   horarioLembreteDiario: string | null;
   /** Ausente = usuário nunca configurou (ver BloqueioAppsConfig). */
   bloqueioApps?: BloqueioAppsConfig;
+  /**
+   * Regras de bloqueio da ponte fuga→tarefa (spec 09) — ainda não é a fonte
+   * de verdade em produção, que continua sendo `bloqueioApps` até a
+   * migração acontecer. Ausente = usuário nunca configurou pelo fluxo novo.
+   */
+  regrasBloqueio?: RegrasBloqueio;
+  /**
+   * Alteração de `regrasBloqueio` que afrouxa e ainda não venceu — ver
+   * aplicarRegrasBloqueioPendentesSeVencidas em domain/appBlock.ts. `null`
+   * explícito (não ausente) representa "sem pendência no momento".
+   */
+  regrasBloqueioPendentes?: RegrasBloqueioPendentes | null;
   /**
    * Gate real de conclusão do onboarding (ver RootNavigator, via
    * useOnboardingStatus) — não `porqueTexto`. Só vira true ao final do
@@ -225,6 +241,12 @@ export async function buscarDailyLog(
     ...(bruto.desbloqueiosApps !== undefined
       ? { desbloqueiosApps: bruto.desbloqueiosApps }
       : {}),
+    ...(bruto.sessoesFoco !== undefined
+      ? { sessoesFoco: bruto.sessoesFoco }
+      : {}),
+    ...(bruto.interceptacoes !== undefined
+      ? { interceptacoes: bruto.interceptacoes }
+      : {}),
   };
 }
 
@@ -275,10 +297,17 @@ export async function buscarSystemMessage(
 }
 
 /**
- * Grava dailyLogs/{data} por inteiro, criando o documento se ainda não
- * existir. Sobrescreve o que já estava lá — quem chama é responsável por
- * montar o objeto completo (ver buscarDailyLog para ler o estado atual
- * antes de decidir o que muda).
+ * Grava dailyLogs/{data}, criando o documento se ainda não existir.
+ * `merge: true` — sobrescreve só os campos presentes em `log` (quem chama
+ * continua responsável por montar o valor completo de CADA campo que está
+ * mudando, ex: o array `tarefas` inteiro, não um item isolado; ver
+ * buscarDailyLog pra ler o estado atual antes de decidir o que muda), mas
+ * preserva campos gravados por outra via (desbloqueiosApps, sessoesFoco,
+ * interceptacoes) que não fazem parte do shape de `DailyLog` que este
+ * caller conhece. Sem o merge, useDailyTasks.persistir (que só manda
+ * data/tarefas/statusDia/escudoUsado) apagava esses campos a cada toque
+ * numa tarefa — bug real, não só teórico: desbloqueiosApps sumia assim que
+ * a pessoa tocava em qualquer tarefa depois de desbloquear um app bloqueado.
  */
 export async function salvarDailyLog(
   uid: string,
@@ -286,7 +315,7 @@ export async function salvarDailyLog(
   log: DailyLog,
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  await setDoc(referencia, log);
+  await setDoc(referencia, log, { merge: true });
 }
 
 /**
@@ -486,6 +515,34 @@ export async function atualizarStatusStreak(
   statusStreak: StatusStreak,
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), { statusStreak }, { merge: true });
+}
+
+/**
+ * Grava o array `sessoesFoco` inteiro de dailyLogs/{data}, criando o
+ * documento se ainda não existir — quem chama monta o array completo (ver
+ * domain/intercept.ts, registrarSessaoFoco). Merge write: não toca em
+ * tarefas/statusDia/escudoUsado/interceptacoes já gravados.
+ */
+export async function registrarSessaoFocoNoDia(
+  uid: string,
+  data: string,
+  sessoesFoco: SessaoFoco[],
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { sessoesFoco }, { merge: true });
+}
+
+/**
+ * Grava o array `interceptacoes` inteiro de dailyLogs/{data} — mesmo
+ * racional de registrarSessaoFocoNoDia.
+ */
+export async function registrarInterceptacaoNoDia(
+  uid: string,
+  data: string,
+  interceptacoes: Interceptacao[],
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { interceptacoes }, { merge: true });
 }
 
 export async function atualizarPerfilUsuario(
