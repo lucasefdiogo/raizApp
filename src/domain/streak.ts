@@ -60,6 +60,21 @@ function diferencaEmDias(dataAnterior: string, dataAtual: string): number {
   return Math.round((atual - anterior) / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Estado inicial de streak pro primeiro dia de uso — ultimoDiaAtivo ainda
+ * vazio (usuário novo) ou nunca inicializado (conta legada de antes desta
+ * correção). Sem dia anterior, não há o que avaliar: não penaliza, não
+ * consome proteção, não incrementa nada — só marca hoje como o ponto de
+ * partida, pra que aplicarResultadoDia passe a rodar normalmente a partir
+ * de amanhã (ver useStreak.processar(), que decide quando chamar cada uma).
+ */
+export function inicializarPrimeiroDia(
+  estadoAtual: EstadoStreak,
+  hoje: string,
+): EstadoStreak {
+  return { ...estadoAtual, ultimoDiaAtivo: hoje };
+}
+
 export interface ResultadoAplicacaoDia {
   streakAtual: number;
   diasTotaisAtivos: number;
