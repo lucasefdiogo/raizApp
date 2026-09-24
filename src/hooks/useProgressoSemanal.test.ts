@@ -8,6 +8,20 @@ const { buscarUltimosDailyLogs, buscarEstadoStreak } = require('../services/fire
 const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
+// Mesmo padrão de useRecarregarAoReganharFoco.test.ts: montar = ganhar foco
+// pela 1ª vez. Guarda o callback registrado pra o teste simular um SEGUNDO
+// foco chamando-o de novo manualmente, sem precisar de um NavigationContainer.
+let callbackDeFoco: (() => void) | null = null;
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (callback: () => undefined | (() => void)) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      callbackDeFoco = callback;
+      return callback();
+    }, [callback]);
+  },
+}));
+
 const showToast = jest.fn();
 
 const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
@@ -15,6 +29,7 @@ const MSG_FALHA_RECARREGAR = 'Não conseguimos atualizar agora. Tente de novo.';
 describe('useProgressoSemanal', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    callbackDeFoco = null;
     jest.useFakeTimers().setSystemTime(new Date('2026-09-14T12:00:00Z'));
     useToast.mockReturnValue({ showToast });
   });
@@ -112,6 +127,31 @@ describe('useProgressoSemanal', () => {
     expect(result.current.streakAtual).toBe(9);
     expect(result.current.diasTotaisAtivos).toBe(30);
     expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('reganhar foco (depois do mount) recarrega o histórico', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue([]);
+    buscarEstadoStreak.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useProgressoSemanal('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(buscarUltimosDailyLogs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      callbackDeFoco?.();
+    });
+
+    expect(buscarUltimosDailyLogs).toHaveBeenCalledTimes(2);
+  });
+
+  it('não recarrega em duplicidade no mount inicial (1ª leitura só do useEffect, não do foco)', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue([]);
+    buscarEstadoStreak.mockResolvedValue(null);
+
+    const { result } = await renderHook(() => useProgressoSemanal('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(buscarUltimosDailyLogs).toHaveBeenCalledTimes(1);
   });
 
   it('recarregar() com falha de rede dispara o toast de atualização', async () => {

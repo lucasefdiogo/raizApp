@@ -16,6 +16,7 @@ import { DailyLog, Desafio, PeriodoDesafio } from '../domain/types';
 import { logDesafioConcluido } from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
+import { useRecarregarAoReganharFoco } from './useRecarregarAoReganharFoco';
 
 const MENSAGEM_FALHA_RECARREGAR =
   'Não conseguimos atualizar agora. Tente de novo.';
@@ -45,8 +46,9 @@ function hojeISO(): string {
 }
 
 /**
- * Mantém 1 desafio semanal + 1 mensal do período corrente. No mount (e no
- * recarregar): fecha desafios ativos de períodos já encerrados, gera os do
+ * Mantém 1 desafio semanal + 1 mensal do período corrente. No mount, ao
+ * reganhar foco da aba (ver useRecarregarAoReganharFoco) e no recarregar()
+ * manual: fecha desafios ativos de períodos já encerrados, gera os do
  * período atual se ainda não existem, e recalcula progresso a partir dos
  * dailyLogs reais — persistindo só quando muda. Não incrementa contador à
  * mão.
@@ -176,6 +178,11 @@ export function useDesafios(uid: string): UseDesafiosResultado {
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [carregar, showToast]);
+
+  // Reganhar foco (ex: voltar da aba Hoje depois de concluir uma tarefa) —
+  // sem isso, só o pull-to-refresh manual atualizava. Não conta o mount
+  // inicial (o carregar() acima já cobre sozinho).
+  useRecarregarAoReganharFoco(recarregar);
 
   return { desafioSemanal, desafioMensal, carregando, recarregar };
 }

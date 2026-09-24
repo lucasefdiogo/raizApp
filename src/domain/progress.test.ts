@@ -20,7 +20,7 @@ describe('construirHistoricoSemana', () => {
     expect(historico[6].data).toBe('2026-09-14');
   });
 
-  it('todos os dias cumpridos (exceto hoje, sempre pendente)', () => {
+  it('todos os dias cumpridos (exceto hoje, sem dailyLog ainda — continua pendente)', () => {
     const dailyLogs = [
       { data: '2026-09-08', tarefas: [tarefaEssencialConcluida()], escudoUsado: false },
       { data: '2026-09-09', tarefas: [tarefaEssencialConcluida()], escudoUsado: false },
@@ -70,9 +70,19 @@ describe('construirHistoricoSemana', () => {
     expect(porData.get('2026-09-13')).toBe('sem_registro');
   });
 
-  it('hoje é sempre pendente, mesmo com um dailyLog já cumprido registrado pra hoje', () => {
+  it('hoje com dailyLog já cumprido: pastilha reflete ao vivo, sem esperar a virada do dia', () => {
     const dailyLogs = [
       { data: '2026-09-14', tarefas: [tarefaEssencialConcluida()], escudoUsado: false },
+    ];
+
+    const historico = construirHistoricoSemana(dailyLogs, HOJE);
+
+    expect(historico[6]).toEqual({ data: '2026-09-14', status: 'cumprido' });
+  });
+
+  it('hoje com dailyLog existente mas ainda sem cumprir: pendente, nunca perdido antes da virada', () => {
+    const dailyLogs = [
+      { data: '2026-09-14', tarefas: [tarefaNaoConcluida()], escudoUsado: false },
     ];
 
     const historico = construirHistoricoSemana(dailyLogs, HOJE);
@@ -141,6 +151,32 @@ describe('avaliarStatusHistoricoDia', () => {
         avaliarHojeAoVivo: true,
       }),
     ).toBe('cumprido');
+  });
+
+  it('hoje com avaliarHojeAoVivo e log NÃO cumprido: continua pendente, nunca perdido antes da virada', () => {
+    const log = {
+      data: '2026-09-14',
+      tarefas: [tarefaNaoConcluida()],
+      escudoUsado: false,
+    };
+    expect(
+      avaliarStatusHistoricoDia(log, '2026-09-14', HOJE, {
+        avaliarHojeAoVivo: true,
+      }),
+    ).toBe('pendente');
+  });
+
+  it('hoje com avaliarHojeAoVivo, escudoUsado mas ainda não cumprido: continua pendente, nunca protegido_escudo antes da virada', () => {
+    const log = {
+      data: '2026-09-14',
+      tarefas: [tarefaNaoConcluida()],
+      escudoUsado: true,
+    };
+    expect(
+      avaliarStatusHistoricoDia(log, '2026-09-14', HOJE, {
+        avaliarHojeAoVivo: true,
+      }),
+    ).toBe('pendente');
   });
 
   it('hoje com avaliarHojeAoVivo mas sem log: continua pendente (o dia não acabou)', () => {

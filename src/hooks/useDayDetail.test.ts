@@ -93,6 +93,48 @@ describe('useDayDetail', () => {
     expect(result.current.statusDoDia).toBe('sem_registro');
   });
 
+  it('buscarDia de hoje com tarefa essencial já concluída: status cumprido ao vivo (bate com a pastilha)', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-23T12:00:00Z'));
+    buscarDailyLog.mockResolvedValue({
+      data: '2026-09-23',
+      tarefas: [
+        { id: '1', titulo: 'Ler 5 páginas', essencial: true, concluida: true },
+      ],
+      statusDia: 'cumprido',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useDayDetail('uid-1'));
+
+    await act(async () => {
+      await result.current.buscarDia('2026-09-23');
+    });
+
+    expect(result.current.statusDoDia).toBe('cumprido');
+    jest.useRealTimers();
+  });
+
+  it('buscarDia de hoje sem cumprimento ainda: pendente, nunca perdido antes da virada', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-23T12:00:00Z'));
+    buscarDailyLog.mockResolvedValue({
+      data: '2026-09-23',
+      tarefas: [
+        { id: '1', titulo: 'Ler 5 páginas', essencial: true, concluida: false },
+      ],
+      statusDia: 'pendente',
+      escudoUsado: false,
+    });
+
+    const { result } = await renderHook(() => useDayDetail('uid-1'));
+
+    await act(async () => {
+      await result.current.buscarDia('2026-09-23');
+    });
+
+    expect(result.current.statusDoDia).toBe('pendente');
+    jest.useRealTimers();
+  });
+
   it('tocar noutro dia troca a seleção (só um painel por vez)', async () => {
     buscarDailyLog
       .mockResolvedValueOnce({

@@ -3,6 +3,7 @@ import { construirHistoricoSemana, DiaHistorico } from '../domain/progress';
 import { buscarEstadoStreak, buscarUltimosDailyLogs } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
+import { useRecarregarAoReganharFoco } from './useRecarregarAoReganharFoco';
 
 const DIAS_HISTORICO = 7;
 
@@ -26,7 +27,9 @@ interface UseProgressoSemanalResultado {
  * Lê os últimos 7 dailyLogs e o estado de streak (mesma fonte que useStreak
  * usa — buscarEstadoStreak — pra não ter dois lugares lendo o mesmo campo
  * de forma diferente) e monta o histórico visual via domain/progress.ts.
- * Não escreve nada no Firestore.
+ * Recarrega no mount e ao reganhar foco da aba (ver
+ * useRecarregarAoReganharFoco), além do recarregar() manual. Não escreve
+ * nada no Firestore.
  */
 export function useProgressoSemanal(uid: string): UseProgressoSemanalResultado {
   const { showToast } = useToast();
@@ -68,6 +71,11 @@ export function useProgressoSemanal(uid: string): UseProgressoSemanalResultado {
       showToast(MENSAGEM_FALHA_RECARREGAR);
     }
   }, [carregar, showToast]);
+
+  // Reganhar foco (ex: voltar da aba Hoje depois de concluir uma tarefa) —
+  // sem isso, só o pull-to-refresh manual atualizava. Não conta o mount
+  // inicial (o carregar() acima já cobre sozinho).
+  useRecarregarAoReganharFoco(recarregar);
 
   return { historico, streakAtual, diasTotaisAtivos, carregando, recarregar };
 }
