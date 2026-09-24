@@ -30,4 +30,23 @@ describe('StreakCard', () => {
     );
     expect(screen.getByText('2 proteções disponíveis')).toBeTruthy();
   });
+
+  describe('indicador de dia corrente', () => {
+    it('hojeCumprido ausente: não mostra o indicador', async () => {
+      await render(<StreakCard streak={streakBase} />);
+      expect(screen.queryByTestId('streak-card-hoje-cumprido')).toBeNull();
+      expect(screen.queryByText('Já garantiu hoje.')).toBeNull();
+    });
+
+    it('hojeCumprido=false: não mostra o indicador', async () => {
+      await render(<StreakCard streak={streakBase} hojeCumprido={false} />);
+      expect(screen.queryByTestId('streak-card-hoje-cumprido')).toBeNull();
+    });
+
+    it('hojeCumprido=true: mostra "Já garantiu hoje." sem mudar o número do streak', async () => {
+      await render(<StreakCard streak={streakBase} hojeCumprido={true} />);
+      expect(screen.getByText('Já garantiu hoje.')).toBeTruthy();
+      expect(screen.getByText('4')).toBeTruthy();
+    });
+  });
 });

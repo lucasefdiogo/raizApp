@@ -46,7 +46,15 @@ export function useDayDetail(uid: string): UseDayDetailResultado {
         return;
       }
       setTarefasDoDia(log?.tarefas ?? []);
-      setStatusDoDia(avaliarStatusHistoricoDia(log, data, new Date()));
+      // avaliarHojeAoVivo pra bater com a pastilha (construirHistoricoSemana
+      // já avalia hoje ao vivo) — sem isso, tocar numa pastilha de hoje já
+      // 'cumprido' abriria o detalhe mostrando 'pendente', contradizendo o
+      // que acabou de ser tocado.
+      setStatusDoDia(
+        avaliarStatusHistoricoDia(log, data, new Date(), {
+          avaliarHojeAoVivo: true,
+        }),
+      );
       setCarregando(false);
     },
     [uid],

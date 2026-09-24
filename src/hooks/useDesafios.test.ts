@@ -6,6 +6,21 @@ jest.mock('../services/analytics');
 jest.mock('../services/crashlytics');
 jest.mock('./useToast');
 
+// Mesmo padrão de useRecarregarAoFocar.test.tsx/useRecarregarAoReganharFoco.test.ts:
+// montar = ganhar foco pela 1ª vez. Guarda o callback registrado pra o teste
+// simular um SEGUNDO foco chamando-o de novo manualmente, sem precisar de um
+// NavigationContainer de verdade.
+let callbackDeFoco: (() => void) | null = null;
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (callback: () => undefined | (() => void)) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      callbackDeFoco = callback;
+      return callback();
+    }, [callback]);
+  },
+}));
+
 const firestore = require('../services/firestore');
 const { logDesafioConcluido } = require('../services/analytics');
 const { registrarErro } = require('../services/crashlytics');
@@ -50,6 +65,7 @@ const MENSAL_ATUAL = {
 describe('useDesafios', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    callbackDeFoco = null;
     // 2026-09-16 é quarta -> semana 2026-09-14..20 (ímpar: essencial_todo_dia),
     // mês 2026-09-01..30.
     jest.useFakeTimers().setSystemTime(new Date('2026-09-16T12:00:00Z'));
@@ -229,6 +245,25 @@ describe('useDesafios', () => {
       'concluido',
     );
     expect(logDesafioConcluido).toHaveBeenCalledWith('exercicio_3x');
+  });
+
+  it('reganhar foco (depois do mount) recarrega os desafios', async () => {
+    const { result } = await renderHook(() => useDesafios('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(firestore.buscarDesafiosAtivos).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      callbackDeFoco?.();
+    });
+
+    expect(firestore.buscarDesafiosAtivos).toHaveBeenCalledTimes(2);
+  });
+
+  it('não recarrega em duplicidade no mount inicial (1ª leitura só do useEffect, não do foco)', async () => {
+    const { result } = await renderHook(() => useDesafios('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(firestore.buscarDesafiosAtivos).toHaveBeenCalledTimes(1);
   });
 
   it('recarregar com falha de rede dispara o toast', async () => {

@@ -388,7 +388,10 @@ export function HomeScreen({
       >
         <HomeHeader nome={nome} streakAtual={streakAtual} />
         <View ref={streakCardRef} collapsable={false}>
-          <StreakCard streak={{ streakAtual, escudosDisponiveis }} />
+          <StreakCard
+            streak={{ streakAtual, escudosDisponiveis }}
+            hojeCumprido={statusDia === 'cumprido'}
+          />
         </View>
         <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
         <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>

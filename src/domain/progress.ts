@@ -43,10 +43,13 @@ function statusDoLog(log: DailyLogResumo): StatusHistoricoDia {
 
 interface OpcoesIntervalo {
   /**
-   * Se true, o dia de hoje é avaliado com o dailyLog já existente (cumprido /
-   * protegido / perdido) em vez de virar sempre 'pendente'. Usado pelos
-   * desafios, que não dependem do recálculo do streak do dia seguinte. Um
-   * hoje sem dailyLog continua 'pendente' (o dia não acabou).
+   * Se true, o dia de hoje pode virar 'cumprido' ao vivo assim que o
+   * dailyLog já existente mostra a essencial concluída (ou 60% das
+   * tarefas) — mas NUNCA 'perdido' ou 'protegido_escudo' antes da virada:
+   * um dia sem a essencial concluída às 10h da manhã ainda pode ser
+   * cumprido às 22h, e só useStreak.processar() (no boot do dia seguinte,
+   * avaliando o dia anterior) pode julgar um dia como perdido. Sem
+   * cumprimento ainda, ou sem dailyLog, hoje continua 'pendente'.
    */
   avaliarHojeAoVivo?: boolean;
 }
@@ -69,7 +72,10 @@ export function avaliarStatusHistoricoDia(
     return 'sem_registro';
   }
   if (dataISO === hojeISO) {
-    return opcoes.avaliarHojeAoVivo && log ? statusDoLog(log) : 'pendente';
+    if (opcoes.avaliarHojeAoVivo && log && avaliarDiaCumprido(log.tarefas)) {
+      return 'cumprido';
+    }
+    return 'pendente';
   }
   if (!log) {
     return 'sem_registro';
@@ -111,9 +117,11 @@ export function construirHistoricoIntervalo(
 }
 
 /**
- * Últimos 7 dias (mais antigo -> mais recente). O dia de hoje é sempre
- * 'pendente' — o dia corrente só vira 'cumprido' quando useStreak recalcular,
- * no dia seguinte.
+ * Últimos 7 dias (mais antigo -> mais recente). O dia de hoje reflete o
+ * dailyLog ao vivo: vira 'cumprido' assim que a essencial (ou 60% das
+ * tarefas) é concluída, mas nunca 'perdido' antes da virada — sem
+ * cumprimento ainda, continua 'pendente' até o boot do dia seguinte julgar
+ * o dia (ver avaliarStatusHistoricoDia / useStreak.processar()).
  */
 export function construirHistoricoSemana(
   dailyLogs: DailyLogResumo[],
@@ -121,5 +129,7 @@ export function construirHistoricoSemana(
 ): DiaHistorico[] {
   const inicio = dataUTC(hoje);
   inicio.setUTCDate(inicio.getUTCDate() - (DIAS_HISTORICO - 1));
-  return construirHistoricoIntervalo(dailyLogs, inicio, hoje, hoje);
+  return construirHistoricoIntervalo(dailyLogs, inicio, hoje, hoje, {
+    avaliarHojeAoVivo: true,
+  });
 }

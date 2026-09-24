@@ -229,6 +229,19 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Dia cumprido. Isso já conta.')).toBeTruthy();
   });
 
+  it('StreakCard: sem indicador de dia corrente antes de cumprir a essencial, aparece ao concluir', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    expect(screen.queryByText('Já garantiu hoje.')).toBeNull();
+
+    await fireEvent.press(
+      screen.getByText('Abrir o material de estudo por 5 minutos'),
+    );
+
+    expect(screen.getByText('Já garantiu hoje.')).toBeTruthy();
+    // O número do streak em si não muda — só o aviso aparece.
+    expect(screen.getByText('4')).toBeTruthy();
+  });
+
   it('mostra o streak e as proteções recebidas via prop', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
