@@ -164,9 +164,12 @@ export interface RegrasBloqueio {
 }
 
 /**
- * Alteração que AFROUXA as regras vigentes (remover app, encurtar janela) —
- * só passa a valer em `efetivaEm` (YYYY-MM-DD). Alterações que endurecem
- * gravam direto em `regrasBloqueio`, sem passar por aqui. Ver
+ * Alteração às regras vigentes feita DEPOIS da primeira configuração — só
+ * passa a valer em `efetivaEm` (YYYY-MM-DD). Regra única (seção 6 da spec
+ * 09-ponte-fuga-tarefa): toda alteração após a primeira configuração vale
+ * amanhã, sem distinguir se ela afrouxa ou endurece o bloqueio — só a
+ * PRIMEIRA configuração (quando `regrasBloqueio` ainda não existe) é
+ * imediata. Ver decidirGravacaoRegrasBloqueio e
  * aplicarRegrasBloqueioPendentesSeVencidas em domain/appBlock.ts.
  */
 export interface RegrasBloqueioPendentes extends RegrasBloqueio {

@@ -4,6 +4,7 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { PerfilScreen } from '../screens/perfil/PerfilScreen';
+import { BloqueioAppsScreen } from '../screens/perfil/BloqueioAppsScreen';
 import { AccessibilityDebugScreen } from '../screens/debug/AccessibilityDebugScreen';
 import { InterceptDebugScreen } from '../screens/debug/InterceptDebugScreen';
 import { MOSTRAR_DEBUG_ACESSIBILIDADE } from '../config/debugFlags';
@@ -18,6 +19,7 @@ const EXPOR_DEBUG_INTERCEPT = __DEV__ || MOSTRAR_DEBUG_ACESSIBILIDADE;
 
 export type PerfilStackParamList = {
   Perfil: undefined;
+  BloqueioApps: undefined;
   // Rota temporária de debug (Fase 3, parte 1) — só em dev, some numa tarefa futura.
   AccessibilityDebug: undefined;
   // Rota temporária de debug (Etapa 3 da spec 09) — só em dev.
@@ -41,6 +43,7 @@ export function PerfilStack({ uid }: PerfilStackProps) {
         {({ navigation }) => (
           <PerfilScreen
             uid={uid}
+            aoAbrirBloqueioApps={() => navigation.navigate('BloqueioApps')}
             aoAbrirDebugAcessibilidade={
               EXPOR_DEBUG_ACESSIBILIDADE
                 ? () => navigation.navigate('AccessibilityDebug')
@@ -53,6 +56,9 @@ export function PerfilStack({ uid }: PerfilStackProps) {
             }
           />
         )}
+      </Stack.Screen>
+      <Stack.Screen name="BloqueioApps">
+        {() => <BloqueioAppsScreen uid={uid} />}
       </Stack.Screen>
       {EXPOR_DEBUG_ACESSIBILIDADE && (
         <Stack.Screen

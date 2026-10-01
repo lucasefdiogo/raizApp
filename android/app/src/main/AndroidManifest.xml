@@ -2,6 +2,22 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--
+      Visibilidade de pacotes (Android 11+) pra listar apps com Launcher
+      Intent na tela de bloqueio (Etapa 2 da preparação pro teste fechado) —
+      sem isso, queryIntentActivities só enxerga o próprio app a partir da
+      API 30. Deliberadamente SEM QUERY_ALL_PACKAGES (rejeitada/revisão
+      manual da Play Store pro nosso caso de uso): esta declaração só
+      enxerga apps que respondem a MAIN/LAUNCHER, suficiente pra montar a
+      lista de seleção.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"

@@ -1,6 +1,18 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
-import { EstadoTravado, RegrasBloqueio } from '../domain/types';
+import { EstadoTravado, RegrasBloqueio, RegrasBloqueioPendentes } from '../domain/types';
 import { SnapshotDia } from '../domain/intercept';
+
+/**
+ * App instalado com Launcher Intent — resolvido via `<queries>` (manifest,
+ * MAIN/LAUNCHER) em vez de QUERY_ALL_PACKAGES, pra não precisar da
+ * permissão "ver todos os apps" só pra montar a lista de seleção da tela de
+ * bloqueio. `iconeBase64` já vem PNG pronto pra `data:image/png;base64,`.
+ */
+export interface AppInstalado {
+  packageName: string;
+  nome: string;
+  iconeBase64: string;
+}
 
 /** Mesmo nome do evento emitido pelo RootoraAccessibilityService.kt. */
 const EVENTO_APP_PRIMEIRO_PLANO = 'app-foreground-changed';
@@ -27,8 +39,10 @@ interface RootoraAccessibilityNative {
   abrirApp(packageName: string): Promise<boolean>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
+  salvarRegrasBloqueioPendentes(pendenteJson: string | null): void;
   salvarSessaoAtiva(sessaoJson: string): void;
   limparSessaoAtiva(): void;
+  listarAppsInstalados(): Promise<AppInstalado[]>;
 }
 
 interface EventoAppPrimeiroPlano {
@@ -133,6 +147,33 @@ export function salvarSnapshotDoDia(snapshot: SnapshotDia): void {
  */
 export function salvarRegrasBloqueio(regras: RegrasBloqueio): void {
   moduloNativo()?.salvarRegrasBloqueio(JSON.stringify(regras));
+}
+
+/**
+ * Espelha `regrasBloqueioPendentes` em SharedPreferences — `null` apaga a
+ * pendência do lado nativo. É o que permite o AccessibilityService promover
+ * pendente→vigente sozinho (ver BloqueioPrefs.deveInterceptar) mesmo com o
+ * app fechado.
+ */
+export function salvarRegrasBloqueioPendentes(
+  pendente: RegrasBloqueioPendentes | null,
+): void {
+  moduloNativo()?.salvarRegrasBloqueioPendentes(
+    pendente ? JSON.stringify(pendente) : null,
+  );
+}
+
+/**
+ * Apps com Launcher Intent (ver AppInstalado) — pra popular a lista de
+ * seleção da tela de bloqueio. Sem o módulo nativo, resolve lista vazia em
+ * vez de rejeitar.
+ */
+export async function listarAppsInstalados(): Promise<AppInstalado[]> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return [];
+  }
+  return modulo.listarAppsInstalados();
 }
 
 /**

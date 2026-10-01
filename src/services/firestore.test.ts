@@ -12,6 +12,10 @@ import {
   garantirDailyLogDoDia,
   registrarSessaoFocoNoDia,
   registrarInterceptacaoNoDia,
+  salvarRegrasBloqueioImediatas,
+  salvarRegrasBloqueioPendentes,
+  cancelarRegrasBloqueioPendentes,
+  promoverRegrasBloqueioPendentes,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
   preencherNomeSeVazio,
@@ -682,6 +686,73 @@ describe('services/firestore', () => {
       const usuario = await buscarUsuario('uid-1');
       expect(usuario?.statusStreak).toBe('ativo');
       expect(usuario?.email).toBe('a@a.com');
+    });
+  });
+
+  describe('salvarRegrasBloqueioImediatas / salvarRegrasBloqueioPendentes / cancelarRegrasBloqueioPendentes / promoverRegrasBloqueioPendentes', () => {
+    const regras = {
+      apps: ['com.instagram.android'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+    const pendente = { ...regras, efetivaEm: '2026-09-25' };
+
+    it('salvarRegrasBloqueioImediatas grava regrasBloqueio sem mexer em outros campos', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await salvarRegrasBloqueioImediatas('uid-1', regras);
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({ email: 'a@a.com', regrasBloqueio: regras });
+    });
+
+    it('salvarRegrasBloqueioPendentes grava regrasBloqueioPendentes sem tocar em regrasBloqueio', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await salvarRegrasBloqueioImediatas('uid-1', regras);
+
+      await salvarRegrasBloqueioPendentes('uid-1', pendente);
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        regrasBloqueio: regras,
+        regrasBloqueioPendentes: pendente,
+      });
+    });
+
+    it('salvarRegrasBloqueioPendentes substitui uma pendência anterior', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await salvarRegrasBloqueioPendentes('uid-1', pendente);
+
+      const novaPendente = { apps: [], janelas: [], efetivaEm: '2026-09-26' };
+      await salvarRegrasBloqueioPendentes('uid-1', novaPendente);
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.regrasBloqueioPendentes).toEqual(novaPendente);
+    });
+
+    it('cancelarRegrasBloqueioPendentes apaga a pendência na hora', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await salvarRegrasBloqueioPendentes('uid-1', pendente);
+
+      await cancelarRegrasBloqueioPendentes('uid-1');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.regrasBloqueioPendentes).toBeNull();
+    });
+
+    it('promoverRegrasBloqueioPendentes grava a nova vigente e limpa a pendência', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await salvarRegrasBloqueioImediatas('uid-1', regras);
+      await salvarRegrasBloqueioPendentes('uid-1', pendente);
+
+      await promoverRegrasBloqueioPendentes('uid-1', {
+        apps: pendente.apps,
+        janelas: pendente.janelas,
+      });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        regrasBloqueio: { apps: pendente.apps, janelas: pendente.janelas },
+        regrasBloqueioPendentes: null,
+      });
     });
   });
 

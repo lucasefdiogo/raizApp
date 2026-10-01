@@ -3,9 +3,11 @@ import {
   abrirApp,
   isAccessibilityServiceEnabled,
   limparSessaoAtiva,
+  listarAppsInstalados,
   openAccessibilitySettings,
   registrarDesbloqueioTemporario,
   salvarRegrasBloqueio,
+  salvarRegrasBloqueioPendentes,
   salvarSessaoAtiva,
   salvarSnapshotDoDia,
   subscribeToForegroundApp,
@@ -18,8 +20,10 @@ const moduloMock = {
   abrirApp: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
+  salvarRegrasBloqueioPendentes: jest.fn(),
   salvarSessaoAtiva: jest.fn(),
   limparSessaoAtiva: jest.fn(),
+  listarAppsInstalados: jest.fn(),
 };
 
 describe('AccessibilityDetection', () => {
@@ -130,6 +134,48 @@ describe('AccessibilityDetection', () => {
       expect(() =>
         salvarRegrasBloqueio({ apps: [], janelas: [] }),
       ).not.toThrow();
+    });
+  });
+
+  describe('salvarRegrasBloqueioPendentes', () => {
+    it('serializa a pendência e chama o módulo nativo', () => {
+      const pendente = {
+        apps: ['com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3] }],
+        efetivaEm: '2026-09-25',
+      };
+      salvarRegrasBloqueioPendentes(pendente);
+
+      expect(moduloMock.salvarRegrasBloqueioPendentes).toHaveBeenCalledWith(
+        JSON.stringify(pendente),
+      );
+    });
+
+    it('null limpa a pendência do lado nativo', () => {
+      salvarRegrasBloqueioPendentes(null);
+
+      expect(moduloMock.salvarRegrasBloqueioPendentes).toHaveBeenCalledWith(null);
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() => salvarRegrasBloqueioPendentes(null)).not.toThrow();
+    });
+  });
+
+  describe('listarAppsInstalados', () => {
+    it('repassa a lista do módulo nativo', async () => {
+      const apps = [
+        { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'abc' },
+      ];
+      moduloMock.listarAppsInstalados.mockResolvedValueOnce(apps);
+
+      await expect(listarAppsInstalados()).resolves.toEqual(apps);
+    });
+
+    it('resolve lista vazia quando o módulo nativo não está linkado', async () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(listarAppsInstalados()).resolves.toEqual([]);
     });
   });
 

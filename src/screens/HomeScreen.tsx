@@ -17,6 +17,7 @@ import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
 import { useFeatureTour } from '../hooks/useFeatureTour';
+import { useSincronizarRegrasBloqueio } from '../hooks/useSincronizarRegrasBloqueio';
 import { HomeHeader } from '../components/home/HomeHeader';
 import { StreakCard } from '../components/StreakCard';
 import { TaskList } from '../components/TaskList';
@@ -110,6 +111,10 @@ export function HomeScreen({
   aoAtualizarTour,
 }: HomeScreenProps) {
   const nome = useNomeUsuario(uid);
+  // Home é a aba padrão — "abertura do app" pra fins de
+  // useSincronizarRegrasBloqueio (promove regrasBloqueioPendentes vencida e
+  // espelha o estado atual em SharedPreferences pro AccessibilityService).
+  useSincronizarRegrasBloqueio(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {
