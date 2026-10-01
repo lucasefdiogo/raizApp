@@ -30,7 +30,6 @@ function configurarAcessibilidadePadrao(sobrescritas = {}) {
     ativo: false,
     carregando: false,
     verificarNovamente: jest.fn(),
-    abrirConfiguracoes: jest.fn(),
     ...sobrescritas,
   });
 }
@@ -44,20 +43,20 @@ describe('BloqueioAppsScreen', () => {
 
   it('mostra o indicador de carregamento enquanto useRegrasBloqueio carrega', async () => {
     configurarRegrasPadrao({ carregando: true });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
   });
 
   it('lista os apps instalados', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(screen.getByText('Instagram')).toBeTruthy();
     expect(screen.getByText('WhatsApp')).toBeTruthy();
   });
 
   it('busca filtra a lista por nome', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     await fireEvent.changeText(screen.getByLabelText('Buscar'), 'insta');
 
@@ -65,27 +64,27 @@ describe('BloqueioAppsScreen', () => {
     expect(screen.queryByText('WhatsApp')).toBeNull();
   });
 
-  it('status "Desativado" mostra o botão Ativar, que chama abrirConfiguracoes', async () => {
-    const abrirConfiguracoes = jest.fn();
-    configurarAcessibilidadePadrao({ ativo: false, abrirConfiguracoes });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+  it('status "Desativado" mostra o botão Ativar, que chama aoTocarAtivar (leva à divulgação em destaque)', async () => {
+    const aoTocarAtivar = jest.fn();
+    configurarAcessibilidadePadrao({ ativo: false });
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={aoTocarAtivar} />);
 
     expect(screen.getByText('Desativado')).toBeTruthy();
     await fireEvent.press(screen.getByText('Ativar'));
 
-    expect(abrirConfiguracoes).toHaveBeenCalledTimes(1);
+    expect(aoTocarAtivar).toHaveBeenCalledTimes(1);
   });
 
   it('status "Ativo" não mostra o botão Ativar', async () => {
     configurarAcessibilidadePadrao({ ativo: true });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(screen.getByText('Ativo')).toBeTruthy();
     expect(screen.queryByText('Ativar')).toBeNull();
   });
 
   it('sem pendência: não mostra o aviso de alteração pendente', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(screen.queryByText('Cancelar alteração')).toBeNull();
   });
@@ -101,7 +100,7 @@ describe('BloqueioAppsScreen', () => {
       },
       cancelarAlteracaoPendente,
     });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(
       screen.getByText(
@@ -122,7 +121,7 @@ describe('BloqueioAppsScreen', () => {
         efetivaEm: '2026-09-25',
       },
     });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
       checked: true,
@@ -133,7 +132,7 @@ describe('BloqueioAppsScreen', () => {
   });
 
   it('toggle de um app marca/desmarca a seleção', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText('Instagram'));
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
@@ -149,7 +148,7 @@ describe('BloqueioAppsScreen', () => {
   it('com app selecionado mas sem nenhum dia da semana: mostra o aviso e Salvar não faz nada', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText('Instagram'));
 
@@ -164,7 +163,7 @@ describe('BloqueioAppsScreen', () => {
   it('selecionar um app + um dia da semana permite Salvar, chamado com apps e janela', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText('Instagram'));
     await fireEvent.press(screen.getByLabelText('segunda'));
@@ -181,7 +180,7 @@ describe('BloqueioAppsScreen', () => {
   it('Salvar com a seleção vazia chama salvar(apps vazio, null)', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} />);
 
     await fireEvent.press(screen.getByText('Salvar'));
 

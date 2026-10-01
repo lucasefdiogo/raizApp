@@ -57,6 +57,14 @@ export interface UsuarioDocumento {
    */
   regrasBloqueioPendentes?: RegrasBloqueioPendentes | null;
   /**
+   * Data (YYYY-MM-DD, fuso do aparelho) em que o usuário tocou "Concordo e
+   * quero ativar" na divulgação em destaque do Accessibility Service (ver
+   * DivulgacaoAcessibilidadeScreen) — exigência de política da Play Store:
+   * divulgação explícita, fora de qualquer menu, antes de abrir as
+   * configurações do sistema. Ausente = nunca concordou.
+   */
+  consentimentoAcessibilidade?: string | null;
+  /**
    * Gate real de conclusão do onboarding (ver RootNavigator, via
    * useOnboardingStatus) — não `porqueTexto`. Só vira true ao final do
    * passo de primeira tarefa (Começar ou Pular por hoje), depois de
@@ -565,6 +573,22 @@ export async function promoverRegrasBloqueioPendentes(
   await setDoc(
     documentoUsuario(uid),
     { regrasBloqueio: regras, regrasBloqueioPendentes: null },
+    { merge: true },
+  );
+}
+
+/**
+ * Grava a data de consentimento da divulgação em destaque do Accessibility
+ * Service — chamado só ao tocar "Concordo e quero ativar", nunca antes de
+ * abrir as configurações do sistema.
+ */
+export async function registrarConsentimentoAcessibilidade(
+  uid: string,
+  dataISO: string,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { consentimentoAcessibilidade: dataISO },
     { merge: true },
   );
 }
