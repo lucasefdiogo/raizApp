@@ -167,6 +167,45 @@ export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenPro
               </View>
             )}
 
+            <Text style={styles.secaoTitulo}>Horário</Text>
+            <View style={styles.blocoJanela}>
+              <View style={styles.linhaHorario}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSeletorAberto('inicio')}
+                  style={styles.campoHorario}
+                >
+                  <Text style={styles.rotulo}>Início</Text>
+                  <Text style={styles.valorHorario}>{janela.inicio}</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSeletorAberto('fim')}
+                  style={styles.campoHorario}
+                >
+                  <Text style={styles.rotulo}>Fim</Text>
+                  <Text style={styles.valorHorario}>{janela.fim}</Text>
+                </Pressable>
+              </View>
+              {seletorAberto && (
+                <DateTimePicker
+                  value={horarioParaDate(janela[seletorAberto])}
+                  mode="time"
+                  is24Hour
+                  onChange={handleAlterarHorario(seletorAberto)}
+                />
+              )}
+
+              <Text style={styles.rotuloDias}>Dias da semana</Text>
+              <SeletorDiasSemana diasSelecionados={janela.diasSemana} onToggleDia={toggleDia} />
+            </View>
+
+            {!janelaValida && (
+              <Text style={styles.erroValidacao}>
+                Escolha um horário de fim depois do início e pelo menos um dia da semana.
+              </Text>
+            )}
+
             <Text style={styles.secaoTitulo}>Apps</Text>
             <TextField
               label="Buscar"
@@ -186,42 +225,6 @@ export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenPro
         ListEmptyComponent={<Text style={styles.listaVazia}>Nenhum app encontrado.</Text>}
         ListFooterComponent={
           <>
-            <Text style={styles.secaoTitulo}>Horário</Text>
-            <View style={styles.linhaHorario}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSeletorAberto('inicio')}
-                style={styles.campoHorario}
-              >
-                <Text style={styles.rotulo}>Início</Text>
-                <Text style={styles.valorHorario}>{janela.inicio}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setSeletorAberto('fim')}
-                style={styles.campoHorario}
-              >
-                <Text style={styles.rotulo}>Fim</Text>
-                <Text style={styles.valorHorario}>{janela.fim}</Text>
-              </Pressable>
-            </View>
-            {seletorAberto && (
-              <DateTimePicker
-                value={horarioParaDate(janela[seletorAberto])}
-                mode="time"
-                is24Hour
-                onChange={handleAlterarHorario(seletorAberto)}
-              />
-            )}
-
-            <SeletorDiasSemana diasSelecionados={janela.diasSemana} onToggleDia={toggleDia} />
-
-            {!janelaValida && (
-              <Text style={styles.erroValidacao}>
-                Escolha um horário de fim depois do início e pelo menos um dia da semana.
-              </Text>
-            )}
-
             <Text style={styles.resumo}>{resumo}</Text>
             <PrimaryButton titulo="Salvar" onPress={handleSalvar} desabilitado={!janelaValida} />
           </>
@@ -238,22 +241,24 @@ const styles = StyleSheet.create({
   },
   conteudo: {
     padding: theme.spacing.lg,
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
   },
   titulo: {
     fontSize: theme.typography.fontSize.xl,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.xs,
   },
   secaoTitulo: {
     fontSize: theme.typography.fontSize.lg,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   linhaStatus: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: theme.spacing.xs,
   },
   status: {
     fontSize: theme.typography.fontSize.md,
@@ -282,6 +287,13 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     paddingVertical: theme.spacing.md,
   },
+  // Agrupa horário + dias com um gap mais apertado que o ritmo entre seções
+  // (theme.spacing.sm, não md) — as duas coisas formam uma única janela de
+  // bloqueio, então precisam parecer mais coladas entre si do que em
+  // relação ao resto da tela.
+  blocoJanela: {
+    gap: theme.spacing.sm,
+  },
   linhaHorario: {
     flexDirection: 'row',
     gap: theme.spacing.md,
@@ -299,6 +311,12 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.textSecondary,
   },
+  rotuloDias: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
+  },
   valorHorario: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.body,
@@ -313,6 +331,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.md,
   },
 });
