@@ -7,7 +7,7 @@
 > confirmado vs. o que foi implementado mas ainda não confirmado em uso real.
 
 **Legenda:** ✅ Pronto e confirmado · 🚧 Implementado, aguardando confirmação/teste ·
-📋 Planejado, não iniciado
+📋 Planejado, não iniciado · ❌ Removido (existiu, foi tirado do produto)
 
 ---
 
@@ -77,18 +77,25 @@
 
 ## 8. Bloqueio de apps (diferencial do produto)
 
+Sistema antigo (custo crescente por nível, `bloqueioApps`, `AppBlockedScreen`, banner/
+status card na Home) foi **removido por completo** — sem migração de dado (não havia
+usuário real). Schema `regrasBloqueio`/`regrasBloqueioPendentes` é hoje o único
+caminho, com tela de configuração própria.
+
 | Item | Status |
 |---|---|
-| Detecção via Accessibility Service | ✅ validado em device físico |
-| Tela de configuração (apps + horário) | ✅ validado em device físico |
-| Overlay de bloqueio + desbloqueio (tarefas essenciais / respiração) | ✅ |
-| Custo crescente entre desbloqueios (exigência sobe, teto no 3º) | ✅ confirmado em auditoria (11/set), com testes cobrindo os 3 níveis |
-| Visibilidade na Home (banner / status card) | ✅ |
-| Tela de priming — Accessibility Service | ✅ (card de aviso confirmado em auditoria) |
-| Tela de priming — Notificações | ✅ implementada (11/set) |
+| Detecção via Accessibility Service (único caminho: `regrasBloqueio` → `InterceptActivity`) | ✅ |
+| Tela de configuração (`BloqueioAppsScreen`: status, apps, janela única, resumo) | ✅ |
+| Lista de apps via `<queries>` (MAIN/LAUNCHER), sem `QUERY_ALL_PACKAGES` | ✅ |
+| Regra de pré-compromisso única (1ª config imediata, qualquer alteração depois vale amanhã, sem distinguir afrouxar/endurecer) | ✅ domain testado; promoção pendente→vigente roda no nativo (app fechado) e sincroniza no Firestore na próxima abertura |
+| Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/B) | ✅ (spec 09) |
+| Divulgação em destaque do Accessibility Service, antes de abrir as configurações do Android | ✅ `DivulgacaoAcessibilidadeScreen`, consentimento gravado em `consentimentoAcessibilidade` |
+| Custo crescente entre desbloqueios | ❌ removido — substituído pela regra de pré-compromisso acima |
+| Visibilidade na Home (banner / status card) | ❌ removido — configuração vive só em Perfil agora |
 | Desbloqueio por calorias (Health Connect) | 📋 |
 | Widget de tela inicial (Android) | 📋 |
-| Justificativa de uso do Accessibility Service pra ficha da Play Store | 📋 (`procedimento-loja.md`) |
+| Justificativa de uso do Accessibility Service pra ficha da Play Store | 📋 ver `procedimento-loja.md` — texto-base já definido (divulgação em destaque), falta só preencher o formulário na submissão |
+| Visualização de `interceptacoes`/`sessoesFoco` no Progresso | 📋 hoje só gravado, nenhuma tela lê de volta pro usuário |
 
 ## 9. Notificações
 
@@ -138,19 +145,21 @@
 
 ## 14. Ponte fuga→tarefa (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 
-Caminho **paralelo** ao bloqueio de apps do item 8 — não substitui nada de lá.
+**Único caminho de bloqueio/interceptação** — não convive mais em paralelo com nada
+(o sistema antigo foi removido, ver item 8).
 
 | Item | Status |
 |---|---|
-| Dados: `tarefaPaiId`/`quando` em tarefas, `sessoesFoco`/`interceptacoes` em `dailyLogs`, `regrasBloqueio`/`regrasBloqueioPendentes` em `users` | ✅ |
+| Dados: `tarefaPaiId`/`quando` em tarefas, `sessoesFoco`/`interceptacoes` em `dailyLogs`, `regrasBloqueio`/`regrasBloqueioPendentes`/`consentimentoAcessibilidade` em `users` | ✅ |
 | TravadoFlow (4 estados: confusão/medo/tédio/energia) — mesmo componente nas 3 entradas (Home, toque longo, InterceptScreen) | ✅ |
 | SessaoFocoScreen (timer + FimSessao) — sessões de foco não alteram `streakAtual` | ✅ |
 | InterceptScreen (estados A/B/C) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
 | Tela de debug da InterceptScreen (Perfil → dev) | ✅ |
-| AccessibilityService: gatilho paralelo pra `InterceptActivity` (`regrasBloqueio` → `deveInterceptar`) + "sessão ativa" (reabrir com o timer em andamento) | 🚧 implementado, não confirmado em device físico |
-| Tela de configuração de `regrasBloqueio` | 📋 sem ela, o gatilho novo do Service nunca dispara de verdade — `bloqueioApps`/`AppBlockedScreen` (item 8) continuam sendo o único caminho real |
-| "Desbloquear com desafio" (ação secundária do estado A) | 📋 mecanismo de desbloqueio-por-desafio não existe no produto — omitido por enquanto |
-| Migração/remoção do bloqueio antigo (`bloqueioApps`/custo crescente/`AppBlockedScreen`) | 📋 decisão explicitamente adiada — os dois sistemas convivem em paralelo |
+| AccessibilityService: único gatilho de interceptação (`regrasBloqueio` → `deveInterceptar` → `InterceptActivity`) + "sessão ativa" (reabrir com o timer em andamento) + promoção de `regrasBloqueioPendentes` vencida (roda com o app fechado) | 🚧 implementado, não confirmado em device físico |
+| Tela de configuração de `regrasBloqueio` (`BloqueioAppsScreen`, Perfil) | ✅ |
+| "Desbloquear com desafio" (ação secundária do estado A) | ❌ removido do fluxo — mecanismo de desbloqueio-por-desafio não existe no produto |
+| Remoção do bloqueio antigo (`bloqueioApps`/custo crescente/`AppBlockedScreen`) | ✅ removido por completo, sem migração de dado (não havia usuário real) |
+| Divulgação em destaque do Accessibility Service (`DivulgacaoAcessibilidadeScreen`) | ✅ |
 
 ## 15. Pendente de decisão (não atacar sem definir escopo antes)
 

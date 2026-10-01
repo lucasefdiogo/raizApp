@@ -88,36 +88,47 @@ expira (`status: 'expirado'`) sem afetar streak ou qualquer outra métrica.
 
 ## 4. Bloqueio de apps
 
-### Configuração
-Uma única janela de horário aplicada a todos os apps selecionados (não por app
-individual). Detecção via **Accessibility Service** (não `UsageStatsManager`+overlay —
-decisão tomada priorizando precisão sobre menor escrutínio de loja).
+Sistema antigo (custo crescente por nível, campo `bloqueioApps`, `AppBlockedScreen`)
+foi **removido por completo** — nenhuma migração de dado (não havia usuário real).
+Hoje existe um único caminho, descrito aqui (configuração) e na seção 5 (interceptação
+e ponte fuga→tarefa).
 
-### Mecanismos de desbloqueio
-1. **Tarefas essenciais concluídas** — desbloqueio imediato se já cumpridas no dia
-2. **Pausa de respiração** — timer que não pode ser pulado nem acelerado
+### Detecção
+**Accessibility Service** (não `UsageStatsManager`+overlay — decisão tomada
+priorizando precisão sobre menor escrutínio de loja). Lê só o nome do pacote do app em
+primeiro plano (`typeWindowStateChanged`); `canRetrieveWindowContent="false"` — nunca
+lê conteúdo de tela.
 
-Nenhum dos dois envolve Health Connect/calorias ainda (📋 planejado, ver
+### Configuração (Perfil → "Bloqueio de apps")
+- **Status do serviço** — "Ativo"/"Desativado" + botão "Ativar" quando desativado,
+  que leva à divulgação em destaque (ver abaixo) antes de abrir as configurações do
+  Android.
+- **Lista de apps** — ícone + nome + busca + seleção múltipla. Resolvida via
+  `<queries>` no manifest (MAIN/LAUNCHER) — **nunca `QUERY_ALL_PACKAGES`**, que exigiria
+  justificativa extra de revisão manual na Play Store para este caso de uso.
+- **Uma única janela de horário** aplicada a todos os apps selecionados (não por app
+  individual): início, fim (precisa ser depois do início — esta versão não cobre
+  janela que atravessa a meia-noite) e dias da semana.
+- **Resumo em texto** + botão "Salvar" — ver seção 5 pra regra de quando a mudança
+  vale imediatamente vs. no dia seguinte.
+
+### Divulgação em destaque do Accessibility Service
+Exigência de política da Play Store: tela própria, fora de qualquer menu, mostrada
+antes de abrir as configurações de acessibilidade do Android (nunca depois).
+
+> **Como o bloqueio funciona**
+> Para interceptar um app, o Rootora usa o serviço de acessibilidade do Android.
+> Ele identifica apenas qual app foi aberto, para mostrar sua tarefa do dia no lugar dele.
+> Não lê o que você digita e não vê o conteúdo das telas.
+> O Rootora registra quais apps foram interceptados e quando.
+>
+> Botões: "Concordo e quero ativar" (abre as configurações) · "Agora não"
+
+Consentimento gravado em `users/{uid}.consentimentoAcessibilidade` (data), só ao
+tocar "Concordo e quero ativar" — nunca antes.
+
+Nenhum desbloqueio envolve Health Connect/calorias ainda (📋 planejado, ver
 `roadmap-e-status.md`).
-
-### Custo crescente (desestimular abuso, sem virar punitivo)
-Contagem: **total do dia**, somando todos os apps bloqueados juntos (não por app —
-evita que o usuário alterne de app pra manter cada um "barato"). O que escala é a
-**exigência**, nunca a duração da liberação (sempre 15 minutos por desbloqueio bem-
-sucedido, em qualquer nível).
-
-| Nível | Quando | Respiração | Tarefas essenciais |
-|---|---|---|---|
-| 1 | 1º desbloqueio do dia | 60s | Desbloqueio imediato se já concluídas |
-| 2 | 2º desbloqueio do dia | 90s | Exige reflexão escrita adicional ("O que você vai fazer agora no {app}?") |
-| 3 (teto) | 3º desbloqueio em diante | 120s | Mesma reflexão do nível 2 — não escala mais |
-
-Reset diário (natural, por já usar `dailyLogs/{data}.desbloqueiosApps`).
-
-### Permissões — o que dizer ao usuário
-Ver `AccessibilityPrimingScreen`/`NotificationPrimingScreen` — texto fixo, honesto
-sobre o que a Accessibility Service vê (só o nome do app aberto) e não vê (conteúdo de
-tela, dados pessoais).
 
 ---
 
@@ -125,10 +136,9 @@ tela, dados pessoais).
 
 Extensão do bloqueio de apps (spec `09-ponte-fuga-tarefa-e-estou-travado.md`): o app de
 fuga passa a levar de volta à tarefa evitada, reduzida a um passo mínimo, em vez de só
-bloquear. **Caminho paralelo ao bloqueio da seção 4** — `bloqueioApps`/custo crescente/
-`AppBlockedScreen` continuam sendo o único caminho que roda de verdade hoje; o que segue
-aqui usa um schema novo (`regrasBloqueio`) sem nenhuma tela que o grave ainda, então fica
-inerte num device real (ver seções 8 e 14 de `roadmap-e-status.md`).
+bloquear. **Único caminho de interceptação** — `regrasBloqueio` → `InterceptActivity`
+(schema e tela de configuração da seção 4). Liberar o app acontece por um de dois
+jeitos, nunca por desafio nem por respiração cronometrada:
 
 ### InterceptScreen — 3 estados
 | Estado | Condição | Ação primária |
@@ -160,13 +170,16 @@ Sessões de foco (2/5/10 minutos, qualquer origem) **nunca alteram `streakAtual`
 conclusão da tarefa essencial em si conta (regra "dia cumprido" da seção 1, inalterada).
 Evita que o timer vire atalho e esvazie o significado do streak.
 
-### Regra de pré-compromisso (schema `regrasBloqueio`, não `bloqueioApps`)
-Pensada para substituir o custo crescente da seção 4 quando `regrasBloqueio` passar a ter
-uma tela que o edite: qualquer alteração que **afrouxa** as regras (remover app, encurtar
-janela) só valeria a partir do dia seguinte (`regrasBloqueioPendentes.efetivaEm`);
-alterações que endurecem valeriam na hora. Lógica pura já existe e é testada
-(`aplicarRegrasBloqueioPendentesSeVencidas`), mas **sem nenhuma tela que grave
-`regrasBloqueioPendentes`**, essa regra não roda em nenhum fluxo real ainda.
+### Regra de pré-compromisso (regra única — ver spec 09, seção 6)
+A primeira configuração de `regrasBloqueio` vale na hora. **Qualquer alteração depois
+disso** — inclusive desativar o bloqueio — só vale a partir do dia seguinte
+(`regrasBloqueioPendentes.efetivaEm`), sem distinguir se a mudança afrouxa ou endurece.
+Uma nova alteração enquanto já existe uma pendente substitui a pendente. A promoção
+pendente→vigente acontece no lado nativo (Kotlin, `BloqueioPrefs`), não no JS — roda
+mesmo com o app fechado; na próxima abertura, o RN sincroniza o resultado de volta no
+Firestore (`useSincronizarRegrasBloqueio`). Lógica pura testada em
+`aplicarRegrasBloqueioPendentesSeVencidas`/`decidirGravacaoRegrasBloqueio`
+(`domain/appBlock.ts`).
 
 ---
 
@@ -180,5 +193,7 @@ depois), checar contra os 5 princípios do produto (`CLAUDE.md`):
 4. Autoeficácia por acúmulo de pequenas vitórias
 5. O "porquê" pessoal reaparece nos momentos certos
 
-O sistema de escalação do bloqueio de apps é o exemplo mais claro de "fricção sem
-punição" — exigência sobe, mas tem teto; nunca vira impossível.
+A regra de pré-compromisso do bloqueio de apps (seção 4/5) é o exemplo mais claro de
+"fricção sem punição" — a mudança não é impedida, só adiada pro dia seguinte; o usuário
+sempre pode desativar o Accessibility Service nas configurações do Android, e o app não
+tenta impedir isso.
