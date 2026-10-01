@@ -12,8 +12,8 @@ import org.json.JSONObject
 /**
  * Detecta qual app está em primeiro plano via TYPE_WINDOW_STATE_CHANGED.
  * Primeiro incremento (Fase 3, parte 1) só repassava isso pro lado JS pra
- * debug; terceiro incremento (parte 3) usa a mesma detecção pra avaliar o
- * bloqueio — ver avaliarBloqueio. Não lê conteúdo de tela
+ * debug; a mesma detecção hoje também avalia a interceptação — ver
+ * avaliarIntercept. Não lê conteúdo de tela
  * (canRetrieveWindowContent="false" no config) — só o nome do pacote.
  */
 class RootoraAccessibilityService : AccessibilityService() {
@@ -32,38 +32,16 @@ class RootoraAccessibilityService : AccessibilityService() {
 
     ultimoPacote = pacote
     emitirParaJS(pacote)
-    avaliarBloqueio(pacote)
     avaliarIntercept(pacote)
   }
 
   /**
-   * Lê a config espelhada em SharedPreferences (não do Firestore — o
-   * serviço roda fora do ciclo de vida do React, ver BloqueioPrefs) e, se
-   * as 4 condições de bloqueio baterem, traz a MainActivity pra frente por
-   * cima do app. CLEAR_TOP + launchMode="singleTask" (ver AndroidManifest)
-   * fazem isso reaproveitar a Activity existente via onNewIntent em vez de
-   * criar uma nova, se o Rootora já estiver de pé.
-   */
-  private fun avaliarBloqueio(pacote: String) {
-    if (!BloqueioPrefs.deveBloquear(applicationContext, pacote)) {
-      return
-    }
-
-    val intent =
-      Intent(applicationContext, MainActivity::class.java).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        putExtra(MainActivity.EXTRA_BLOCKED_PACKAGE, pacote)
-      }
-    startActivity(intent)
-  }
-
-  /**
-   * Caminho PARALELO a avaliarBloqueio, não substitui nada (decisão da
-   * Etapa 4 da spec 09-ponte-fuga-tarefa) — enquanto nada grava
-   * `regrasBloqueio`, `BloqueioPrefs.deveInterceptar` é sempre false na
-   * prática, então isso fica inerte num device real. `appLabel` é
-   * resolvido aqui (não fica gravado no snapshot) porque só faz sentido no
-   * idioma/config atual do sistema no momento exato da detecção.
+   * Único caminho de interceptação — lê `regrasBloqueio` espelhado em
+   * SharedPreferences (não do Firestore — o serviço roda fora do ciclo de
+   * vida do React, ver BloqueioPrefs) e, se as condições baterem, abre a
+   * InterceptActivity por cima do app. `appLabel` é resolvido aqui (não
+   * fica gravado no snapshot) porque só faz sentido no idioma/config atual
+   * do sistema no momento exato da detecção.
    */
   private fun avaliarIntercept(pacote: String) {
     if (!BloqueioPrefs.deveInterceptar(applicationContext, pacote)) {

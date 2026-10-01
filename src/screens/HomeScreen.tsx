@@ -15,10 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
-import { useAppBlockConfig } from '../hooks/useAppBlockConfig';
-import { useAccessibilityPermission } from '../hooks/useAccessibilityPermission';
-import { useAppBlockBannerDismissido } from '../hooks/useAppBlockBannerDismissido';
-import { useRecarregarAoFocar } from '../hooks/useRecarregarAoFocar';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
 import { useFeatureTour } from '../hooks/useFeatureTour';
 import { HomeHeader } from '../components/home/HomeHeader';
@@ -30,8 +26,6 @@ import { AddTaskForm } from '../components/home/AddTaskForm';
 import { TaskCompletedOverlay } from '../components/home/TaskCompletedOverlay';
 import { RootWateringOverlay } from '../components/home/RootWateringOverlay';
 import { StreakMilestoneModal } from '../components/home/StreakMilestoneModal';
-import { AppBlockBanner } from '../components/home/AppBlockBanner';
-import { AppBlockStatusCard } from '../components/home/AppBlockStatusCard';
 import {
   FeatureTourOverlayProps,
   MedidaAlvoTour,
@@ -58,11 +52,7 @@ const ATRASO_SCROLL_TECLADO_MS = 50;
 // Passos do tour de funcionalidades cujo alvo vive dentro do ScrollView (os
 // outros dois apontam pra tab bar, que nunca rola). Mesma ideia do atraso
 // acima: dá tempo do scroll assentar antes de remedir a posição final.
-const ALVOS_ROLAVEIS_TOUR: TourAlvoId[] = [
-  'streak',
-  'adicionarTarefa',
-  'bloqueioApps',
-];
+const ALVOS_ROLAVEIS_TOUR: TourAlvoId[] = ['streak', 'adicionarTarefa'];
 const ATRASO_MEDICAO_TOUR_MS = 80;
 // Maior que ALTURA_MINIMA_TOOLTIP_TOUR de propósito: aqui a checagem é
 // grosseira — alturaJanela (useWindowDimensions) é a altura CHEIA da
@@ -93,9 +83,6 @@ interface HomeScreenProps {
    * streak no mesmo gesto que atualiza as tarefas.
    */
   recarregarStreak: () => Promise<void>;
-  /** Abre a tela de configuração do bloqueio de apps, já existente (Perfil
-   * também linka pra ela — não é uma tela duplicada). */
-  aoAbrirBloqueioApps: () => void;
   /** Refs dos botões reais das abas Progresso/Perfil (criados no
    * MainTabNavigator) — usados só pra medir a posição nos passos 4-5 do
    * tour de funcionalidades, ver useFeatureTour/FeatureTourOverlay. */
@@ -118,7 +105,6 @@ export function HomeScreen({
   marcoAtingido,
   avaliarAlertaRisco,
   recarregarStreak,
-  aoAbrirBloqueioApps,
   progressoTabRef,
   perfilTabRef,
   aoAtualizarTour,
@@ -145,23 +131,6 @@ export function HomeScreen({
   const [travadoAberturaId, setTravadoAberturaId] = useState(0);
   const [travadoTarefaContexto, setTravadoTarefaContexto] =
     useState<Tarefa | null>(null);
-  const {
-    appsInstalados,
-    configAtual: bloqueioApps,
-    ativoAgora: bloqueioAtivoAgora,
-    carregando: bloqueioCarregando,
-    recarregar: recarregarBloqueioApps,
-  } = useAppBlockConfig(uid);
-  const {
-    ativo: acessibilidadeAtiva,
-    carregando: acessibilidadeCarregando,
-    abrirConfiguracoes: abrirConfiguracoesAcessibilidade,
-  } = useAccessibilityPermission();
-  const banner = useAppBlockBannerDismissido();
-  // A Home não desmonta quando empurra a AppBlockConfigScreen na mesma
-  // stack (HojeStack) — só perde o foco. Sem isso, editar a config lá e
-  // voltar mostrava o banner/status card com dados obsoletos.
-  useRecarregarAoFocar(recarregarBloqueioApps);
   const [overlayVisivel, setOverlayVisivel] = useState(false);
   const [mensagemOverlay, setMensagemOverlay] = useState('');
   const [overlayRaizVisivel, setOverlayRaizVisivel] = useState(false);
@@ -178,7 +147,6 @@ export function HomeScreen({
   const tour = useFeatureTour();
   const streakCardRef = useRef<React.ComponentRef<typeof View>>(null);
   const addTaskButtonRef = useRef<React.ComponentRef<typeof View>>(null);
-  const appBlockRef = useRef<React.ComponentRef<typeof View>>(null);
   const scrollYRef = useRef(0);
   const [medidaAlvoTour, setMedidaAlvoTour] = useState<MedidaAlvoTour | null>(
     null,
@@ -247,9 +215,8 @@ export function HomeScreen({
   // As 3 entradas do TravadoFlow (seção 2 da spec 09-ponte-fuga-tarefa)
   // compartilham a mesma origem='travado' — o que muda é só a tarefa de
   // contexto, resolvida na hora de abrir. `travadoAberturaId` força um
-  // remount real do componente a cada abertura (mesmo racional de
-  // deteccaoId em useAppBlocking), pra nunca reaparecer no passo/estado da
-  // vez anterior.
+  // remount real do componente a cada abertura, pra nunca reaparecer no
+  // passo/estado da vez anterior.
   const abrirTravado = useCallback((tarefaContexto: Tarefa | null) => {
     setTravadoTarefaContexto(tarefaContexto);
     setTravadoAberturaId(atual => atual + 1);
@@ -269,26 +236,6 @@ export function HomeScreen({
   }, [tarefas, abrirTravado]);
 
   const fecharTravado = useCallback(() => setTravadoAberto(false), []);
-
-  // Mutuamente exclusivos por construção: length === 0 e length > 0 nunca
-  // são verdadeiros ao mesmo tempo. Os dois só aparecem depois que
-  // useAppBlockConfig resolve, pra não piscar o banner antes de saber se
-  // já existe config salva.
-  const mostrarBannerBloqueio =
-    !bloqueioCarregando &&
-    !banner.carregando &&
-    bloqueioApps.appsSelecionados.length === 0 &&
-    !banner.dispensadoHoje;
-  const mostrarStatusBloqueio =
-    !bloqueioCarregando && bloqueioApps.appsSelecionados.length > 0;
-  // Só vale a pena avisar quando o bloqueio está de fato configurado como
-  // ativo — accessibility desligada com o bloqueio já desligado no toggle
-  // geral não é uma surpresa ruim pra ninguém.
-  const mostrarAvisoAcessibilidadeDesativada =
-    mostrarStatusBloqueio &&
-    bloqueioApps.ativo &&
-    !acessibilidadeCarregando &&
-    !acessibilidadeAtiva;
 
   const handleScroll = useCallback(
     (evento: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -315,7 +262,6 @@ export function HomeScreen({
     const refsPorAlvo: Record<TourAlvoId, RefAlvoTour> = {
       streak: streakCardRef,
       adicionarTarefa: addTaskButtonRef,
-      bloqueioApps: appBlockRef,
       abaProgresso: progressoTabRef,
       abaPerfil: perfilTabRef,
     };
@@ -370,9 +316,6 @@ export function HomeScreen({
     tour.tourAtivo,
     tour.passoAtual,
     carregando,
-    bloqueioCarregando,
-    mostrarBannerBloqueio,
-    mostrarStatusBloqueio,
     alturaJanela,
     progressoTabRef,
     perfilTabRef,
@@ -402,11 +345,6 @@ export function HomeScreen({
     medidaAlvoTour,
     aoAtualizarTour,
   ]);
-
-  const appsBloqueadosResolvidos = bloqueioApps.appsSelecionados
-    .map(pacote => appsInstalados.find(app => app.packageName === pacote))
-    .filter((app): app is (typeof appsInstalados)[number] => app !== undefined)
-    .map(app => ({ nome: app.nome, icone: app.icone }));
 
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
@@ -488,26 +426,6 @@ export function HomeScreen({
             />
           </>
         )}
-
-        <View ref={appBlockRef} collapsable={false}>
-          {mostrarBannerBloqueio && (
-            <AppBlockBanner
-              onConfigurar={aoAbrirBloqueioApps}
-              onDispensar={banner.dispensarHoje}
-            />
-          )}
-          {mostrarStatusBloqueio && (
-            <AppBlockStatusCard
-              apps={appsBloqueadosResolvidos}
-              ativo={bloqueioApps.ativo}
-              ativoAgora={bloqueioAtivoAgora}
-              horarioInicio={bloqueioApps.horarioInicio ?? '--:--'}
-              horarioFim={bloqueioApps.horarioFim ?? '--:--'}
-              acessibilidadeDesativada={mostrarAvisoAcessibilidadeDesativada}
-              onReativarAcessibilidade={abrirConfiguracoesAcessibilidade}
-            />
-          )}
-        </View>
       </ScrollView>
       <TaskCompletedOverlay
         visible={overlayVisivel}
@@ -518,7 +436,6 @@ export function HomeScreen({
         visible={overlayRaizVisivel}
         diasSequencia={dadosOverlayRaiz.diasSequencia}
         submensagem={dadosOverlayRaiz.submensagem}
-        appsDesbloqueados={appsBloqueadosResolvidos.map(app => app.nome)}
         onHide={esconderOverlayRaiz}
       />
       {marcoParaExibir !== null && (

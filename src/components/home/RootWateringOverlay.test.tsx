@@ -20,7 +20,6 @@ describe('RootWateringOverlay', () => {
         visible={false}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );
@@ -33,7 +32,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );
@@ -48,7 +46,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5} // próximo marco: 7 -> faltam 2
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );
@@ -63,7 +60,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={1}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );
@@ -77,45 +73,11 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={95}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );
 
     expect(screen.queryByText(/próximo ramo em/)).toBeNull();
-  });
-
-  describe('linha de desbloqueio', () => {
-    it('sem apps configurados no bloqueio: NÃO renderiza a linha (nem placeholder)', async () => {
-      await render(
-        <RootWateringOverlay
-          visible={true}
-          diasSequencia={5}
-          submensagem="Mais um passo real."
-          appsDesbloqueados={[]}
-          onHide={jest.fn()}
-        />,
-      );
-
-      expect(screen.queryByTestId('root-watering-desbloqueio')).toBeNull();
-      expect(screen.queryByText(/acesso liberado/)).toBeNull();
-    });
-
-    it('com apps configurados: mostra "✓ acesso liberado · {nomes}"', async () => {
-      await render(
-        <RootWateringOverlay
-          visible={true}
-          diasSequencia={5}
-          submensagem="Mais um passo real."
-          appsDesbloqueados={['Instagram', 'TikTok']}
-          onHide={jest.fn()}
-        />,
-      );
-
-      expect(
-        screen.getByText('✓ acesso liberado · Instagram, TikTok'),
-      ).toBeTruthy();
-    });
   });
 
   it('auto-dismiss: chama onHide uma única vez depois de 3s, não antes', async () => {
@@ -125,7 +87,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={onHide}
       />,
     );
@@ -148,7 +109,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={onHide}
       />,
     );
@@ -165,7 +125,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={onHide}
       />,
     );
@@ -188,7 +147,6 @@ describe('RootWateringOverlay', () => {
         visible={true}
         diasSequencia={5}
         submensagem="Mais um passo real."
-        appsDesbloqueados={[]}
         onHide={jest.fn()}
       />,
     );

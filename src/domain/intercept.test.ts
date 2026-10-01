@@ -1,9 +1,5 @@
-import {
-  registrarInterceptacao,
-  registrarSessaoFoco,
-  selecionarTarefaIntercept,
-} from './intercept';
-import { Interceptacao, SessaoFoco, Tarefa } from './types';
+import { selecionarTarefaIntercept } from './intercept';
+import { Tarefa } from './types';
 
 function tarefa(overrides: Partial<Tarefa> = {}): Tarefa {
   return {
@@ -90,55 +86,5 @@ describe('selecionarTarefaIntercept', () => {
       horas(12, 0),
     );
     expect(resultado).toEqual({ estado: 'A', tarefa: invalida });
-  });
-});
-
-describe('registrarSessaoFoco', () => {
-  function sessao(overrides: Partial<SessaoFoco> = {}): SessaoFoco {
-    return {
-      id: overrides.id ?? 's1',
-      tarefaId: overrides.tarefaId ?? null,
-      origem: overrides.origem ?? 'home',
-      estadoTravado: overrides.estadoTravado ?? null,
-      duracaoPlanejadaSeg: overrides.duracaoPlanejadaSeg ?? 120,
-      duracaoRealSeg: overrides.duracaoRealSeg ?? 120,
-      resultado: overrides.resultado ?? 'parou',
-      criadoEm: overrides.criadoEm ?? '2026-09-24T12:00:00.000',
-    };
-  }
-
-  it('acrescenta a sessão à lista existente', () => {
-    const existente = [sessao({ id: 's1' })];
-    const nova = sessao({ id: 's2' });
-    expect(registrarSessaoFoco(existente, nova)).toEqual([
-      existente[0],
-      nova,
-    ]);
-  });
-
-  it('não muta o array recebido', () => {
-    const existente = [sessao({ id: 's1' })];
-    registrarSessaoFoco(existente, sessao({ id: 's2' }));
-    expect(existente).toHaveLength(1);
-  });
-});
-
-describe('registrarInterceptacao', () => {
-  function interceptacao(overrides: Partial<Interceptacao> = {}): Interceptacao {
-    return {
-      app: overrides.app ?? 'com.instagram.android',
-      hora: overrides.hora ?? '2026-09-24T12:00:00.000',
-      estadoTela: overrides.estadoTela ?? 'A',
-      acao: overrides.acao ?? 'sessao',
-    };
-  }
-
-  it('acrescenta a interceptação à lista existente', () => {
-    const existente = [interceptacao()];
-    const nova = interceptacao({ acao: 'saiu' });
-    expect(registrarInterceptacao(existente, nova)).toEqual([
-      existente[0],
-      nova,
-    ]);
   });
 });

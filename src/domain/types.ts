@@ -61,13 +61,6 @@ export interface DailyLog {
   statusDia: StatusDia;
   escudoUsado: boolean;
   /**
-   * Quantos desbloqueios de apps bloqueados já aconteceram hoje (total,
-   * somando todos os apps — ver domain/appBlockEscalation.ts). Ausente =
-   * nenhum ainda (trata como 0); reseta sozinho todo dia por já ser um
-   * documento por data.
-   */
-  desbloqueiosApps?: number;
-  /**
    * Sessões de foco do dia (2/5/10 min, ver domain/intercept.ts). Ausente =
    * nenhuma ainda. NÃO contam para streakAtual — só a conclusão de tarefa
    * essencial conta (regra 1.1 inalterada).
@@ -151,22 +144,6 @@ export interface Desafio {
 }
 
 /**
- * Configuração do bloqueio de apps (Fase 3, parte 2 — só a configuração,
- * sem overlay nem desbloqueio ainda). Uma única janela de horário aplicada a
- * todos os apps selecionados — não um horário por app. Ausente em
- * users/{uid} = usuário nunca configurou; tratar como CONFIG_PADRAO
- * (ver useAppBlockConfig), nunca assumir que o campo existe.
- */
-export interface BloqueioAppsConfig {
-  ativo: boolean;
-  /** Package names, ex: "com.instagram.android". */
-  appsSelecionados: string[];
-  /** "HH:mm", ou null se o usuário nunca salvou um horário. */
-  horarioInicio: string | null;
-  horarioFim: string | null;
-}
-
-/**
  * Uma janela de bloqueio dentro de `RegrasBloqueio` — "HH:mm" + dias da
  * semana em que se aplica (0 = domingo, segue Date.getDay()).
  */
@@ -177,11 +154,9 @@ export interface JanelaBloqueio {
 }
 
 /**
- * Regras de bloqueio vigentes (ponte fuga→tarefa, seção 6/7 da spec 09) —
- * ainda NÃO é o schema usado pelo bloqueio de apps em produção
- * (ver BloqueioAppsConfig/useAppBlockConfig, que segue sendo a fonte de
- * verdade até a migração acontecer). ausente em users/{uid} = usuário nunca
- * configurou pelo fluxo novo.
+ * Regras de bloqueio vigentes — ÚNICO schema de bloqueio de apps (substituiu
+ * `BloqueioAppsConfig`/`bloqueioApps`, removido junto da spec
+ * 09-ponte-fuga-tarefa). Ausente em users/{uid} = usuário nunca configurou.
  */
 export interface RegrasBloqueio {
   apps: string[];

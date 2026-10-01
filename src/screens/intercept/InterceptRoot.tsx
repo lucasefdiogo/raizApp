@@ -82,15 +82,15 @@ function parseSessaoAtiva(
 
 /**
  * Root separado registrado em index.js como 'Intercept' (ver AppRegistry) —
- * abre por cima do app bloqueado sem carregar RootNavigator/MainTabNavigator
+ * abre por cima do app interceptado sem carregar RootNavigator/MainTabNavigator
  * inteiros. Não reaproveita nenhum provider do App.tsx (é uma árvore React
  * própria, montada por uma Activity diferente da MainActivity): monta os
  * mínimos necessários aqui mesmo — SafeAreaProvider (layout) e ToastProvider
- * (useDailyTasks/useAppBlockConfig-style hooks usam useToast em erro de
- * gravação). `useAuth` já lê o currentUser síncrono do SDK nativo do
- * Firebase (mesmo motivo documentado lá, usado pelo AppBlockedScreen) — não
- * deveria haver estado de auth "carregando" de verdade aqui, já que o
- * bloqueio de apps só é configurável com o usuário logado.
+ * (hooks como useDailyTasks usam useToast em erro de gravação). `useAuth` já
+ * lê o currentUser síncrono do SDK nativo do Firebase (mesmo motivo
+ * documentado lá, usado por este root) — não deveria haver estado de auth
+ * "carregando" de verdade aqui, já que a interceptação só é configurável com
+ * o usuário logado.
  */
 export function InterceptRoot({
   packageName,

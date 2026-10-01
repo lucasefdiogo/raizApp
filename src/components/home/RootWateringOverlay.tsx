@@ -34,13 +34,6 @@ interface RootWateringOverlayProps {
    * — sorteada por quem chama, mesmo padrão já usado pro TaskCompletedOverlay
    * simples (não sorteia de novo aqui, pra não re-sortear a cada render). */
   submensagem: string;
-  /**
-   * Nomes já resolvidos dos apps selecionados no bloqueio — [] quando
-   * users/{uid}.bloqueioApps.appsSelecionados está vazio. A linha de
-   * desbloqueio só renderiza quando este array não está vazio; sem
-   * placeholder nem texto alternativo pro caso vazio.
-   */
-  appsDesbloqueados: string[];
   onHide: () => void;
 }
 
@@ -56,7 +49,6 @@ export function RootWateringOverlay({
   visible,
   diasSequencia,
   submensagem,
-  appsDesbloqueados,
   onHide,
 }: RootWateringOverlayProps) {
   const pontoProgresso = useRef(new Animated.Value(0)).current;
@@ -195,12 +187,6 @@ export function RootWateringOverlay({
               </View>
             </>
           )}
-
-          {appsDesbloqueados.length > 0 && (
-            <Text style={styles.desbloqueio} testID="root-watering-desbloqueio">
-              ✓ acesso liberado · {appsDesbloqueados.join(', ')}
-            </Text>
-          )}
         </Animated.View>
       </View>
     </Pressable>
@@ -268,12 +254,5 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: theme.radius.full,
     backgroundColor: theme.colors.musgo,
-  },
-  desbloqueio: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.musgoClaro,
-    textAlign: 'center',
-    marginTop: theme.spacing.md,
   },
 });

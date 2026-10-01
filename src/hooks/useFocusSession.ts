@@ -5,9 +5,8 @@ import {
   ResultadoSessaoFoco,
   SessaoFoco,
 } from '../domain/types';
-import { registrarSessaoFoco } from '../domain/intercept';
 import { hojeISOLocal } from '../domain/data';
-import { buscarDailyLog, registrarSessaoFocoNoDia } from '../services/firestore';
+import { registrarSessaoFocoNoDia } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
 import { logFocusSessionEnd } from '../services/analytics';
 import { limparSessaoAtiva, salvarSessaoAtiva } from '../native/AccessibilityDetection';
@@ -55,10 +54,9 @@ const DURACAO_CONTINUAR_SEG = 10 * 60;
 /**
  * Timer da SessaoFocoScreen + ações de FimSessao (seção 5). Cada "perna" do
  * timer (os 2/5/10 min iniciais, depois cada +10 min de "Continuar") vira
- * um registro `SessaoFoco` próprio em dailyLogs/{hoje}.sessoesFoco — nunca
- * mexe em streakAtual (ver domain/intercept.ts e regra 1.1). "Liberar o app
- * por 15 minutos" (só quando origem = interceptacao) chega na Etapa 3, com
- * o resto da integração de bloqueio — não existe aqui ainda.
+ * um registro `SessaoFoco` próprio em dailyLogs/{hoje}.sessoesFoco (via
+ * arrayUnion — nunca lê o array antes) — nunca mexe em streakAtual (ver
+ * domain/intercept.ts e regra 1.1).
  */
 export function useFocusSession({
   uid,
@@ -123,24 +121,18 @@ export function useFocusSession({
       }
       registrandoRef.current = true;
       logFocusSessionEnd(duracaoPlanejadaSeg, resultado);
+      const sessao: SessaoFoco = {
+        id: `sessao-${Date.now()}`,
+        tarefaId,
+        origem,
+        estadoTravado,
+        duracaoPlanejadaSeg,
+        duracaoRealSeg: duracaoPlanejadaSeg,
+        resultado,
+        criadoEm: new Date().toISOString(),
+      };
       try {
-        const hoje = hojeISOLocal();
-        const log = await buscarDailyLog(uid, hoje);
-        const sessao: SessaoFoco = {
-          id: `sessao-${Date.now()}`,
-          tarefaId,
-          origem,
-          estadoTravado,
-          duracaoPlanejadaSeg,
-          duracaoRealSeg: duracaoPlanejadaSeg,
-          resultado,
-          criadoEm: new Date().toISOString(),
-        };
-        await registrarSessaoFocoNoDia(
-          uid,
-          hoje,
-          registrarSessaoFoco(log?.sessoesFoco ?? [], sessao),
-        );
+        await registrarSessaoFocoNoDia(uid, hojeISOLocal(), sessao);
       } catch (erro) {
         registrarErro(erro as Error, 'useFocusSession.registrar');
       }

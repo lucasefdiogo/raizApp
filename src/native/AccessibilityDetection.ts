@@ -1,26 +1,9 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
-import { BloqueioAppsConfig, EstadoTravado, RegrasBloqueio } from '../domain/types';
+import { EstadoTravado, RegrasBloqueio } from '../domain/types';
 import { SnapshotDia } from '../domain/intercept';
 
 /** Mesmo nome do evento emitido pelo RootoraAccessibilityService.kt. */
 const EVENTO_APP_PRIMEIRO_PLANO = 'app-foreground-changed';
-/** Mesmo nome do evento emitido pela MainActivity.kt (app já em primeiro
- * plano — cold start usa getInitialBlockedPackage em vez de evento). */
-const EVENTO_APP_BLOQUEADO = 'blocked-app-detected';
-
-/** Formato que o módulo nativo devolve — ícone em base64 puro, sem prefixo. */
-interface AppInstaladoNativo {
-  packageName: string;
-  nome: string;
-  icone: string | null;
-}
-
-export interface AppInstalado {
-  packageName: string;
-  nome: string;
-  /** Data URI pronta pra <Image source={{ uri: icone }} />, ou null. */
-  icone: string | null;
-}
 
 /**
  * Sessão de foco em andamento (só quando origem === 'interceptacao') — o
@@ -40,10 +23,7 @@ export interface SessaoAtivaNativa {
 interface RootoraAccessibilityNative {
   isAccessibilityServiceEnabled(): Promise<boolean>;
   openAccessibilitySettings(): void;
-  getInstalledApps(): Promise<AppInstaladoNativo[]>;
-  syncBloqueioConfig(configJson: string): void;
   registrarDesbloqueioTemporario(packageName: string, minutos: number): void;
-  getInitialBlockedPackage(): Promise<string | null>;
   abrirApp(packageName: string): Promise<boolean>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
@@ -52,10 +32,6 @@ interface RootoraAccessibilityNative {
 }
 
 interface EventoAppPrimeiroPlano {
-  packageName?: string;
-}
-
-interface EventoAppBloqueado {
   packageName?: string;
 }
 
@@ -92,25 +68,6 @@ export function openAccessibilitySettings(): void {
 }
 
 /**
- * Apps instalados pelo usuário (sem apps de sistema, sem o próprio Rootora
- * — filtrados do lado nativo). Sem o módulo nativo, resolve lista vazia.
- * Não cacheia aqui — quem chama decide se guarda em memória (useAppBlockConfig
- * só busca 1x por montagem da tela).
- */
-export async function getInstalledApps(): Promise<AppInstalado[]> {
-  const modulo = moduloNativo();
-  if (!modulo) {
-    return [];
-  }
-  const apps = await modulo.getInstalledApps();
-  return apps.map(app => ({
-    packageName: app.packageName,
-    nome: app.nome,
-    icone: app.icone ? `data:image/png;base64,${app.icone}` : null,
-  }));
-}
-
-/**
  * Registra um callback pra cada troca de app em primeiro plano detectada.
  * Retorna a função de unsubscribe.
  */
@@ -129,17 +86,6 @@ export function subscribeToForegroundApp(
 }
 
 /**
- * Espelha a config de bloqueio em SharedPreferences do lado nativo — o
- * AccessibilityService roda fora do ciclo de vida do React e precisa ler
- * essa config de forma síncrona a cada troca de app, sem depender de uma
- * ponte ao vivo com o JS. Sem o módulo nativo, não faz nada (mesma postura
- * de openAccessibilitySettings).
- */
-export function syncBloqueioConfig(config: BloqueioAppsConfig): void {
-  moduloNativo()?.syncBloqueioConfig(JSON.stringify(config));
-}
-
-/**
  * Libera packageName do bloqueio por `minutos` a partir de agora. Grava no
  * lado nativo (SharedPreferences) — é o que o AccessibilityService consulta
  * antes de reabrir o Rootora por cima do app.
@@ -152,26 +98,12 @@ export function registrarDesbloqueioTemporario(
 }
 
 /**
- * Consome (uma única vez) o packageName bloqueado que veio no intent de
- * cold start — quando o Rootora é aberto pela primeira vez já a partir do
- * bloqueio, não existe ReactContext ainda pra emitir EVENTO_APP_BLOQUEADO a
- * tempo de algum listener JS captar. Sem o módulo nativo, resolve null.
- */
-export async function getInitialBlockedPackage(): Promise<string | null> {
-  const modulo = moduloNativo();
-  if (!modulo) {
-    return null;
-  }
-  return modulo.getInitialBlockedPackage();
-}
-
-/**
- * Reabre packageName depois de um desbloqueio — chamado pela AppBlockedScreen
- * assim que qualquer um dos 2 métodos de desbloqueio confirma sucesso, pra o
- * usuário não precisar sair do Rootora manualmente. Resolve false (nunca
- * rejeita) se o app não puder ser reaberto (ex: desinstalado nesse meio
- * tempo) ou sem o módulo nativo — quem chama não deve travar nem mostrar
- * erro nesse caso, já que o desbloqueio em si já foi concedido.
+ * Reabre packageName depois de um desbloqueio (estado B ou "Liberar" em
+ * FimSessao) — pra o usuário não precisar sair do Rootora manualmente.
+ * Resolve false (nunca rejeita) se o app não puder ser reaberto (ex:
+ * desinstalado nesse meio tempo) ou sem o módulo nativo — quem chama não
+ * deve travar nem mostrar erro nesse caso, já que o desbloqueio em si já
+ * foi concedido.
  */
 export async function abrirApp(packageName: string): Promise<boolean> {
   const modulo = moduloNativo();
@@ -197,10 +129,7 @@ export function salvarSnapshotDoDia(snapshot: SnapshotDia): void {
 /**
  * Espelha `regrasBloqueio` em SharedPreferences — mesmo racional de
  * salvarSnapshotDoDia, pro Service consultar as regras vigentes sem
- * depender do JS estar rodando. Ainda sem nenhum chamador real: só existe
- * tela pra editar `bloqueioApps` (o schema antigo) — chamar isso a partir
- * de uma tela de configuração de `regrasBloqueio` fica pra quando ela for
- * construída.
+ * depender do JS estar rodando.
  */
 export function salvarRegrasBloqueio(regras: RegrasBloqueio): void {
   moduloNativo()?.salvarRegrasBloqueio(JSON.stringify(regras));
@@ -221,23 +150,4 @@ export function salvarSessaoAtiva(sessao: SessaoAtivaNativa): void {
  */
 export function limparSessaoAtiva(): void {
   moduloNativo()?.limparSessaoAtiva();
-}
-
-/**
- * Registra um callback pra cada vez que o AccessibilityService detecta um
- * app bloqueado em primeiro plano com o app já aberto (ReactContext vivo).
- * Retorna a função de unsubscribe.
- */
-export function subscribeToBlockedApp(
-  callback: (packageName: string) => void,
-): () => void {
-  const subscription = DeviceEventEmitter.addListener(
-    EVENTO_APP_BLOQUEADO,
-    (evento: EventoAppBloqueado) => {
-      if (evento && typeof evento.packageName === 'string') {
-        callback(evento.packageName);
-      }
-    },
-  );
-  return () => subscription.remove();
 }

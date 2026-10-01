@@ -6,7 +6,7 @@ jest.mock('../services/crashlytics');
 jest.mock('../services/analytics');
 jest.mock('../native/AccessibilityDetection');
 
-const { buscarDailyLog, registrarSessaoFocoNoDia } = require('../services/firestore');
+const { registrarSessaoFocoNoDia } = require('../services/firestore');
 const { registrarErro } = require('../services/crashlytics');
 const { logFocusSessionEnd } = require('../services/analytics');
 const {
@@ -15,9 +15,9 @@ const {
 } = require('../native/AccessibilityDetection');
 
 /**
- * Mesmo racional do timer recursivo de AppBlockedScreen.test.tsx: cada
- * próximo setTimeout só é agendado depois que o efeito do tick anterior
- * roda, então avança 1s por vez, cada um no seu próprio act().
+ * O timer usa setTimeout recursivo — cada próximo só é agendado depois que
+ * o efeito do tick anterior roda — então avança 1s por vez, cada um no seu
+ * próprio act().
  */
 async function avancarSegundos(segundos: number) {
   for (let i = 0; i < segundos; i++) {
@@ -31,7 +31,6 @@ describe('useFocusSession', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useFakeTimers();
-    buscarDailyLog.mockResolvedValue(null);
     registrarSessaoFocoNoDia.mockResolvedValue(undefined);
   });
 
@@ -101,60 +100,18 @@ describe('useFocusSession', () => {
 
     expect(logFocusSessionEnd).toHaveBeenCalledWith(300, 'parou');
     await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [uidChamado, dataChamada, sessoes] =
+    const [uidChamado, dataChamada, sessao] =
       registrarSessaoFocoNoDia.mock.calls[0];
     expect(uidChamado).toBe('uid-1');
     expect(dataChamada).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(sessoes).toEqual([
-      expect.objectContaining({
-        tarefaId: 'tarefa-1',
-        origem: 'travado',
-        estadoTravado: 'medo',
-        duracaoPlanejadaSeg: 300,
-        duracaoRealSeg: 300,
-        resultado: 'parou',
-      }),
-    ]);
-  });
-
-  it('acrescenta à lista de sessões já existente no dia, sem sobrescrever', async () => {
-    buscarDailyLog.mockResolvedValue({
-      data: '2026-09-24',
-      tarefas: [],
-      statusDia: 'pendente',
-      escudoUsado: false,
-      sessoesFoco: [
-        {
-          id: 'anterior',
-          tarefaId: null,
-          origem: 'home',
-          estadoTravado: null,
-          duracaoPlanejadaSeg: 60,
-          duracaoRealSeg: 60,
-          resultado: 'parou',
-          criadoEm: '2026-09-24T08:00:00.000Z',
-        },
-      ],
+    expect(sessao).toMatchObject({
+      tarefaId: 'tarefa-1',
+      origem: 'travado',
+      estadoTravado: 'medo',
+      duracaoPlanejadaSeg: 300,
+      duracaoRealSeg: 300,
+      resultado: 'parou',
     });
-
-    const { result } = await renderHook(() =>
-      useFocusSession({
-        uid: 'uid-1',
-        duracaoInicialSeg: 120,
-        tarefaId: null,
-        origem: 'travado',
-        estadoTravado: 'confusao',
-      }),
-    );
-
-    await act(async () => {
-      result.current.pararAqui();
-    });
-
-    await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [, , sessoes] = registrarSessaoFocoNoDia.mock.calls[0];
-    expect(sessoes).toHaveLength(2);
-    expect(sessoes[0].id).toBe('anterior');
   });
 
   it('marcarTarefaComoFeita registra "concluiu_tarefa" e chama onTarefaConcluida', async () => {
@@ -176,8 +133,8 @@ describe('useFocusSession', () => {
 
     expect(onTarefaConcluida).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [, , sessoes] = registrarSessaoFocoNoDia.mock.calls[0];
-    expect(sessoes[0].resultado).toBe('concluiu_tarefa');
+    const [, , sessao] = registrarSessaoFocoNoDia.mock.calls[0];
+    expect(sessao.resultado).toBe('concluiu_tarefa');
   });
 
   it('continuarMais10Minutos registra "continuou", reseta pra 10 minutos e volta a contar', async () => {
@@ -199,8 +156,8 @@ describe('useFocusSession', () => {
     expect(result.current.duracaoPlanejadaSeg).toBe(600);
     expect(result.current.segundosRestantes).toBe(600);
     await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [, , sessoes] = registrarSessaoFocoNoDia.mock.calls[0];
-    expect(sessoes[0]).toMatchObject({
+    const [, , sessao] = registrarSessaoFocoNoDia.mock.calls[0];
+    expect(sessao).toMatchObject({
       duracaoPlanejadaSeg: 120,
       resultado: 'continuou',
     });
@@ -223,8 +180,8 @@ describe('useFocusSession', () => {
 
     expect(logFocusSessionEnd).toHaveBeenCalledWith(120, 'liberou_app');
     await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [, , sessoes] = registrarSessaoFocoNoDia.mock.calls[0];
-    expect(sessoes[0]).toMatchObject({
+    const [, , sessao] = registrarSessaoFocoNoDia.mock.calls[0];
+    expect(sessao).toMatchObject({
       origem: 'interceptacao',
       resultado: 'liberou_app',
     });

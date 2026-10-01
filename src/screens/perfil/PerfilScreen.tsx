@@ -29,8 +29,6 @@ const HORARIO_PADRAO = '08:00';
 
 interface PerfilScreenProps {
   uid: string;
-  /** Abre a tela de configuração do bloqueio de apps (Fase 3, parte 2). */
-  aoAbrirBloqueioApps: () => void;
   /**
    * Só em dev: abre a tela temporária de debug da detecção de apps (Fase 3,
    * parte 1). Ausente = o botão não aparece.
@@ -58,7 +56,6 @@ function dateParaHorario(data: Date): string {
 
 export function PerfilScreen({
   uid,
-  aoAbrirBloqueioApps,
   aoAbrirDebugAcessibilidade,
   aoAbrirDebugIntercept,
 }: PerfilScreenProps) {
@@ -180,16 +177,6 @@ export function PerfilScreen({
             onChange={handleAlterarHorario}
           />
         )}
-
-        <Text style={styles.secaoTitulo}>Bloqueio de apps</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={aoAbrirBloqueioApps}
-          hitSlop={8}
-          style={styles.linkToque}
-        >
-          <Text style={styles.link}>Configurar bloqueio de apps</Text>
-        </Pressable>
 
         <Text style={styles.secaoTitulo}>Sobre</Text>
         <Pressable

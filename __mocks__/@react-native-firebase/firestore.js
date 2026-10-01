@@ -58,13 +58,24 @@ const getDocs = jest.fn(async ref => {
 });
 
 const increment = jest.fn(valor => ({ __increment: valor }));
+const arrayUnion = jest.fn((...valores) => ({ __arrayUnion: valores }));
 
-function resolverIncrementos(dadosAnteriores, dadosNovos) {
+function resolverArrayUnion(arrayAnterior, novosValores) {
+  const atual = arrayAnterior || [];
+  const semDuplicata = novosValores.filter(
+    novo => !atual.some(existente => JSON.stringify(existente) === JSON.stringify(novo)),
+  );
+  return [...atual, ...semDuplicata];
+}
+
+function resolverOperacoesEspeciais(dadosAnteriores, dadosNovos) {
   const resolvidos = {};
   for (const chave of Object.keys(dadosNovos)) {
     const valor = dadosNovos[chave];
     if (valor && typeof valor === 'object' && '__increment' in valor) {
       resolvidos[chave] = (dadosAnteriores[chave] || 0) + valor.__increment;
+    } else if (valor && typeof valor === 'object' && '__arrayUnion' in valor) {
+      resolvidos[chave] = resolverArrayUnion(dadosAnteriores[chave], valor.__arrayUnion);
     } else {
       resolvidos[chave] = valor;
     }
@@ -74,7 +85,7 @@ function resolverIncrementos(dadosAnteriores, dadosNovos) {
 
 const setDoc = jest.fn(async (ref, dados, options) => {
   const anterior = armazenamento[ref.__caminho] || {};
-  const resolvidos = resolverIncrementos(anterior, dados);
+  const resolvidos = resolverOperacoesEspeciais(anterior, dados);
   if (options && options.merge) {
     armazenamento[ref.__caminho] = { ...anterior, ...resolvidos };
   } else {
@@ -120,6 +131,7 @@ function __reset() {
   deleteDoc.mockClear();
   serverTimestamp.mockClear();
   increment.mockClear();
+  arrayUnion.mockClear();
 }
 
 function __dados(caminho) {
@@ -139,6 +151,7 @@ module.exports = {
   writeBatch,
   serverTimestamp,
   increment,
+  arrayUnion,
   __reset,
   __dados,
 };

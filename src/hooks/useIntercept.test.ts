@@ -5,14 +5,13 @@ jest.mock('../services/firestore');
 jest.mock('../services/crashlytics');
 jest.mock('../services/analytics');
 
-const { buscarDailyLog, registrarInterceptacaoNoDia } = require('../services/firestore');
+const { registrarInterceptacaoNoDia } = require('../services/firestore');
 const { registrarErro } = require('../services/crashlytics');
 const { logInterceptAction } = require('../services/analytics');
 
 describe('useIntercept', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    buscarDailyLog.mockResolvedValue(null);
     registrarInterceptacaoNoDia.mockResolvedValue(undefined);
   });
 
@@ -27,47 +26,15 @@ describe('useIntercept', () => {
 
     expect(logInterceptAction).toHaveBeenCalledWith('sessao');
     await waitFor(() => expect(registrarInterceptacaoNoDia).toHaveBeenCalled());
-    const [uidChamado, dataChamada, interceptacoes] =
+    const [uidChamado, dataChamada, interceptacao] =
       registrarInterceptacaoNoDia.mock.calls[0];
     expect(uidChamado).toBe('uid-1');
     expect(dataChamada).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(interceptacoes).toEqual([
-      expect.objectContaining({
-        app: 'com.instagram.android',
-        estadoTela: 'A',
-        acao: 'sessao',
-      }),
-    ]);
-  });
-
-  it('acrescenta à lista de interceptações já existente no dia', async () => {
-    buscarDailyLog.mockResolvedValue({
-      data: '2026-09-24',
-      tarefas: [],
-      statusDia: 'pendente',
-      escudoUsado: false,
-      interceptacoes: [
-        {
-          app: 'com.whatsapp',
-          hora: '2026-09-24T08:00:00.000Z',
-          estadoTela: 'B',
-          acao: 'liberou',
-        },
-      ],
+    expect(interceptacao).toMatchObject({
+      app: 'com.instagram.android',
+      estadoTela: 'A',
+      acao: 'sessao',
     });
-
-    const { result } = await renderHook(() =>
-      useIntercept('uid-1', 'com.instagram.android'),
-    );
-
-    await act(async () => {
-      result.current.registrarAcao('C', 'saiu');
-    });
-
-    await waitFor(() => expect(registrarInterceptacaoNoDia).toHaveBeenCalled());
-    const [, , interceptacoes] = registrarInterceptacaoNoDia.mock.calls[0];
-    expect(interceptacoes).toHaveLength(2);
-    expect(interceptacoes[0].app).toBe('com.whatsapp');
   });
 
   it('falha ao gravar: não quebra, só registra o erro', async () => {

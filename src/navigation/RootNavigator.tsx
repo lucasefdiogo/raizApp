@@ -9,12 +9,10 @@ import { theme } from '../theme';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
-import { useAppBlocking } from '../hooks/useAppBlocking';
 import { useLocalNotifications } from '../hooks/useLocalNotifications';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { SplashScreen } from '../screens/splash/SplashScreen';
-import { AppBlockedScreen } from '../screens/appblock/AppBlockedScreen';
 import { NotificationPrimingScreen } from '../screens/permissions/NotificationPrimingScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { SignInScreen } from '../screens/auth/SignInScreen';
@@ -43,7 +41,6 @@ export function RootNavigator() {
   const tutorial = useTutorialStatus();
   const auth = useAuth();
   const onboarding = useOnboardingStatus(auth.user?.uid ?? null);
-  const appBlocking = useAppBlocking(auth.user?.uid ?? null);
   // pronto pra notificações é o mesmo requisito que Main já teria (usuário
   // autenticado + onboarding completo) — useLocalNotifications só age a
   // partir daqui, nunca antes.
@@ -177,26 +174,6 @@ export function RootNavigator() {
         >
           <SplashScreen onAnimationEnd={encerrarAnimacaoSplash} />
         </Animated.View>
-      )}
-
-      {/* Prioridade sobre qualquer outra rota, incluindo a splash — o
-          AccessibilityService já trouxe a MainActivity pra frente por cima
-          do app bloqueado, então o usuário precisa ver isso na hora, sem
-          esperar a splash ou o roteamento normal terminarem. Só precisa do
-          uid (pra checar as tarefas essenciais do dia), não de
-          checagensResolvidas. */}
-      {auth.user && appBlocking.appBloqueadoAtual && (
-        <View style={StyleSheet.absoluteFill}>
-          <AppBlockedScreen
-            key={appBlocking.deteccaoId}
-            uid={auth.user.uid}
-            appBloqueado={appBlocking.appBloqueadoAtual}
-            duracaoRespiracaoSegundos={appBlocking.duracaoRespiracaoSegundos}
-            precisaReflexao={appBlocking.precisaReflexao}
-            onDesbloquear={appBlocking.desbloquear}
-            onFechar={appBlocking.dispensar}
-          />
-        </View>
       )}
     </View>
   );

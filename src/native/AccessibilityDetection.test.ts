@@ -1,8 +1,6 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
 import {
   abrirApp,
-  getInitialBlockedPackage,
-  getInstalledApps,
   isAccessibilityServiceEnabled,
   limparSessaoAtiva,
   openAccessibilitySettings,
@@ -10,18 +8,13 @@ import {
   salvarRegrasBloqueio,
   salvarSessaoAtiva,
   salvarSnapshotDoDia,
-  subscribeToBlockedApp,
   subscribeToForegroundApp,
-  syncBloqueioConfig,
 } from './AccessibilityDetection';
 
 const moduloMock = {
   isAccessibilityServiceEnabled: jest.fn(),
   openAccessibilitySettings: jest.fn(),
-  getInstalledApps: jest.fn(),
-  syncBloqueioConfig: jest.fn(),
   registrarDesbloqueioTemporario: jest.fn(),
-  getInitialBlockedPackage: jest.fn(),
   abrirApp: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
@@ -64,36 +57,6 @@ describe('AccessibilityDetection', () => {
     });
   });
 
-  describe('getInstalledApps', () => {
-    it('formata o ícone em base64 como data URI de PNG', async () => {
-      moduloMock.getInstalledApps.mockResolvedValueOnce([
-        { packageName: 'com.instagram.android', nome: 'Instagram', icone: 'QQ==' },
-      ]);
-
-      await expect(getInstalledApps()).resolves.toEqual([
-        {
-          packageName: 'com.instagram.android',
-          nome: 'Instagram',
-          icone: 'data:image/png;base64,QQ==',
-        },
-      ]);
-    });
-
-    it('mantém icone null quando o nativo não conseguiu converter', async () => {
-      moduloMock.getInstalledApps.mockResolvedValueOnce([
-        { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
-      ]);
-
-      const [app] = await getInstalledApps();
-      expect(app.icone).toBeNull();
-    });
-
-    it('resolve lista vazia quando o módulo nativo não está linkado', async () => {
-      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
-      await expect(getInstalledApps()).resolves.toEqual([]);
-    });
-  });
-
   describe('subscribeToForegroundApp', () => {
     it('registra o listener no evento certo e chama o callback com o packageName', () => {
       const callback = jest.fn();
@@ -126,38 +89,6 @@ describe('AccessibilityDetection', () => {
       });
 
       expect(callback).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('syncBloqueioConfig', () => {
-    it('serializa a config e chama o módulo nativo', () => {
-      syncBloqueioConfig({
-        ativo: true,
-        appsSelecionados: ['com.instagram.android'],
-        horarioInicio: '09:00',
-        horarioFim: '18:00',
-      });
-
-      expect(moduloMock.syncBloqueioConfig).toHaveBeenCalledWith(
-        JSON.stringify({
-          ativo: true,
-          appsSelecionados: ['com.instagram.android'],
-          horarioInicio: '09:00',
-          horarioFim: '18:00',
-        }),
-      );
-    });
-
-    it('não quebra quando o módulo nativo não está linkado', () => {
-      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
-      expect(() =>
-        syncBloqueioConfig({
-          ativo: false,
-          appsSelecionados: [],
-          horarioInicio: null,
-          horarioFim: null,
-        }),
-      ).not.toThrow();
     });
   });
 
@@ -260,22 +191,6 @@ describe('AccessibilityDetection', () => {
     });
   });
 
-  describe('getInitialBlockedPackage', () => {
-    it('repassa o resultado do módulo nativo', async () => {
-      moduloMock.getInitialBlockedPackage.mockResolvedValueOnce(
-        'com.instagram.android',
-      );
-      await expect(getInitialBlockedPackage()).resolves.toBe(
-        'com.instagram.android',
-      );
-    });
-
-    it('resolve null quando o módulo nativo não está linkado', async () => {
-      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
-      await expect(getInitialBlockedPackage()).resolves.toBeNull();
-    });
-  });
-
   describe('abrirApp', () => {
     it('repassa o resultado do módulo nativo (sucesso)', async () => {
       moduloMock.abrirApp.mockResolvedValueOnce(true);
@@ -293,40 +208,6 @@ describe('AccessibilityDetection', () => {
     it('resolve false quando o módulo nativo não está linkado', async () => {
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
       await expect(abrirApp('com.instagram.android')).resolves.toBe(false);
-    });
-  });
-
-  describe('subscribeToBlockedApp', () => {
-    it('registra o listener no evento certo e chama o callback com o packageName', () => {
-      const callback = jest.fn();
-      subscribeToBlockedApp(callback);
-
-      DeviceEventEmitter.emit('blocked-app-detected', {
-        packageName: 'com.instagram.android',
-      });
-
-      expect(callback).toHaveBeenCalledWith('com.instagram.android');
-    });
-
-    it('ignora evento sem packageName', () => {
-      const callback = jest.fn();
-      subscribeToBlockedApp(callback);
-
-      DeviceEventEmitter.emit('blocked-app-detected', {});
-
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it('a função retornada remove o listener', () => {
-      const callback = jest.fn();
-      const unsubscribe = subscribeToBlockedApp(callback);
-
-      unsubscribe();
-      DeviceEventEmitter.emit('blocked-app-detected', {
-        packageName: 'com.whatsapp',
-      });
-
-      expect(callback).not.toHaveBeenCalled();
     });
   });
 });

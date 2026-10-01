@@ -1,11 +1,11 @@
 import {
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
   getFirestore,
-  increment,
   limit,
   query,
   serverTimestamp,
@@ -14,7 +14,6 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 import {
-  BloqueioAppsConfig,
   DailyLog,
   Desafio,
   EstadoStreak,
@@ -46,16 +45,13 @@ export interface UsuarioDocumento {
   marcosAtingidos: number[];
   notificacoesAtivas: boolean;
   horarioLembreteDiario: string | null;
-  /** Ausente = usuário nunca configurou (ver BloqueioAppsConfig). */
-  bloqueioApps?: BloqueioAppsConfig;
   /**
-   * Regras de bloqueio da ponte fuga→tarefa (spec 09) — ainda não é a fonte
-   * de verdade em produção, que continua sendo `bloqueioApps` até a
-   * migração acontecer. Ausente = usuário nunca configurou pelo fluxo novo.
+   * Regras de bloqueio de apps — ÚNICO schema (bloqueioApps/AppBlockedScreen
+   * removidos). Ausente = usuário nunca configurou.
    */
   regrasBloqueio?: RegrasBloqueio;
   /**
-   * Alteração de `regrasBloqueio` que afrouxa e ainda não venceu — ver
+   * Alteração de `regrasBloqueio` ainda não vigente — ver
    * aplicarRegrasBloqueioPendentesSeVencidas em domain/appBlock.ts. `null`
    * explícito (não ausente) representa "sem pendência no momento".
    */
@@ -213,14 +209,14 @@ export async function atualizarEstadoStreak(
 
 /**
  * `tarefas`/`statusDia`/`escudoUsado` podem estar ausentes num documento
- * que EXISTE: `incrementarDesbloqueiosHoje` grava `dailyLogs/{data}` com
- * `setDoc({ desbloqueiosApps }, { merge: true })`, que cria o documento na
- * primeira vez sem nenhum desses três campos (ex: usuário desbloqueia um
- * app bloqueado antes de mexer em qualquer tarefa no dia). Sem normalizar
- * aqui, todo consumidor de buscarDailyLog (useDailyTasks em primeiro
- * lugar) recebia `tarefas: undefined` e quebrava em
- * `calcularStatusDia(tarefas)` → `tarefas.length` (crash real visto em
- * device físico ao reabrir um app já desbloqueado por respiração).
+ * que EXISTE: `registrarSessaoFocoNoDia`/`registrarInterceptacaoNoDia`
+ * gravam `dailyLogs/{data}` com `setDoc({ campo: arrayUnion(...) },
+ * { merge: true })`, que cria o documento na primeira vez sem nenhum
+ * desses três campos (ex: uma sessão de foco é registrada antes de
+ * qualquer tarefa ser tocada no dia). Sem normalizar aqui, todo consumidor
+ * de buscarDailyLog (useDailyTasks em primeiro lugar) recebia
+ * `tarefas: undefined` e quebrava em `calcularStatusDia(tarefas)` →
+ * `tarefas.length` (crash real visto em device físico).
  */
 export async function buscarDailyLog(
   uid: string,
@@ -238,9 +234,6 @@ export async function buscarDailyLog(
     tarefas: bruto.tarefas ?? [],
     statusDia: bruto.statusDia ?? 'pendente',
     escudoUsado: bruto.escudoUsado ?? false,
-    ...(bruto.desbloqueiosApps !== undefined
-      ? { desbloqueiosApps: bruto.desbloqueiosApps }
-      : {}),
     ...(bruto.sessoesFoco !== undefined
       ? { sessoesFoco: bruto.sessoesFoco }
       : {}),
@@ -302,12 +295,11 @@ export async function buscarSystemMessage(
  * continua responsável por montar o valor completo de CADA campo que está
  * mudando, ex: o array `tarefas` inteiro, não um item isolado; ver
  * buscarDailyLog pra ler o estado atual antes de decidir o que muda), mas
- * preserva campos gravados por outra via (desbloqueiosApps, sessoesFoco,
- * interceptacoes) que não fazem parte do shape de `DailyLog` que este
- * caller conhece. Sem o merge, useDailyTasks.persistir (que só manda
+ * preserva campos gravados por outra via (sessoesFoco, interceptacoes, via
+ * arrayUnion) que não fazem parte do shape de `DailyLog` que este caller
+ * conhece. Sem o merge, useDailyTasks.persistir (que só manda
  * data/tarefas/statusDia/escudoUsado) apagava esses campos a cada toque
- * numa tarefa — bug real, não só teórico: desbloqueiosApps sumia assim que
- * a pessoa tocava em qualquer tarefa depois de desbloquear um app bloqueado.
+ * numa tarefa.
  */
 export async function salvarDailyLog(
   uid: string,
@@ -484,32 +476,6 @@ export async function desativarTarefaRecorrente(
   );
 }
 
-/**
- * Quantos desbloqueios de apps bloqueados já aconteceram hoje (ver
- * domain/appBlockEscalation.ts). Ausente no dailyLog = 0 — ainda nenhum.
- */
-export async function buscarDesbloqueiosHojeDoApp(
-  uid: string,
-  data: string,
-): Promise<number> {
-  const log = await buscarDailyLog(uid, data);
-  return log?.desbloqueiosApps ?? 0;
-}
-
-/**
- * Incrementa desbloqueiosApps em dailyLogs/{data} em +1, criando o documento
- * se ainda não existir. Usa o incremento atômico do Firestore (increment),
- * não ler-modificar-escrever manualmente — evita perder incrementos se o
- * usuário desbloquear rápido em sequência (race condition).
- */
-export async function incrementarDesbloqueiosHoje(
-  uid: string,
-  data: string,
-): Promise<void> {
-  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  await setDoc(referencia, { desbloqueiosApps: increment(1) }, { merge: true });
-}
-
 export async function atualizarStatusStreak(
   uid: string,
   statusStreak: StatusStreak,
@@ -518,31 +484,34 @@ export async function atualizarStatusStreak(
 }
 
 /**
- * Grava o array `sessoesFoco` inteiro de dailyLogs/{data}, criando o
- * documento se ainda não existir — quem chama monta o array completo (ver
- * domain/intercept.ts, registrarSessaoFoco). Merge write: não toca em
- * tarefas/statusDia/escudoUsado/interceptacoes já gravados.
+ * Acrescenta UM item a `sessoesFoco` em dailyLogs/{data} via `arrayUnion`
+ * — atômico no servidor, não ler-modificar-regravar o array inteiro (a
+ * versão anterior lia com buscarDailyLog e regravava o array completo;
+ * duas gravações concorrentes podiam se pisar, a segunda sobrescrevendo o
+ * array sem o item que a primeira acabara de acrescentar). Cria o
+ * documento se ainda não existir.
  */
 export async function registrarSessaoFocoNoDia(
   uid: string,
   data: string,
-  sessoesFoco: SessaoFoco[],
+  sessaoFoco: SessaoFoco,
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  await setDoc(referencia, { sessoesFoco }, { merge: true });
+  await setDoc(referencia, { sessoesFoco: arrayUnion(sessaoFoco) }, { merge: true });
 }
 
-/**
- * Grava o array `interceptacoes` inteiro de dailyLogs/{data} — mesmo
- * racional de registrarSessaoFocoNoDia.
- */
+/** Acrescenta UMA interceptação via `arrayUnion` — mesmo racional de registrarSessaoFocoNoDia. */
 export async function registrarInterceptacaoNoDia(
   uid: string,
   data: string,
-  interceptacoes: Interceptacao[],
+  interceptacao: Interceptacao,
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  await setDoc(referencia, { interceptacoes }, { merge: true });
+  await setDoc(
+    referencia,
+    { interceptacoes: arrayUnion(interceptacao) },
+    { merge: true },
+  );
 }
 
 export async function atualizarPerfilUsuario(
@@ -554,20 +523,6 @@ export async function atualizarPerfilUsuario(
   }>,
 ): Promise<void> {
   await setDoc(documentoUsuario(uid), campos, { merge: true });
-}
-
-/**
- * Atualiza bloqueioApps em users/{uid}. Quem chama deve passar o objeto
- * COMPLETO (não só o campo que mudou) — o merge do Firestore é recursivo em
- * mapas aninhados no dispositivo real, mas o mock usado nos testes faz merge
- * raso; mandar sempre o objeto inteiro funciona nos dois casos (é o que
- * useAppBlockConfig faz).
- */
-export async function atualizarConfigBloqueioApps(
-  uid: string,
-  config: Partial<BloqueioAppsConfig>,
-): Promise<void> {
-  await setDoc(documentoUsuario(uid), { bloqueioApps: config }, { merge: true });
 }
 
 // Firestore aceita até 500 operações por batch. Ficamos abaixo pra ter
