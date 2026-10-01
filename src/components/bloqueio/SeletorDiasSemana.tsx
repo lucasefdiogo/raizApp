@@ -45,7 +45,8 @@ export function SeletorDiasSemana({ diasSelecionados, onToggleDia }: SeletorDias
 const styles = StyleSheet.create({
   linha: {
     flexDirection: 'row',
-    gap: theme.spacing.xs,
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   },
   dia: {
     width: 36,
