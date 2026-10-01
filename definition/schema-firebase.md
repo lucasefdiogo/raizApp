@@ -50,11 +50,10 @@ arrays que crescem indefinidamente no documento do usuário.
 | **Preferências** | | |
 | `notificacoesAtivas` | boolean | |
 | `horarioLembreteDiario` | string (`HH:mm`) | |
-| **Bloqueio de apps** *(campo novo — Fase 3)* | | |
-| `bloqueioApps` | map | `{ ativo: boolean, appsSelecionados: string[] (package names), horarioInicio: string (HH:mm), horarioFim: string (HH:mm) }`. Default de quem nunca configurou: `{ ativo: false, appsSelecionados: [], horarioInicio: null, horarioFim: null }`. **Ainda é o único schema de bloqueio com dado real** — ver abaixo |
-| **Ponte fuga→tarefa** *(campos novos — spec `09-ponte-fuga-tarefa-e-estou-travado.md`)* | | |
-| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Schema paralelo a `bloqueioApps` (múltiplas janelas + dia da semana) — **sem nenhuma tela que o grave ainda**, fica sempre ausente num usuário real |
-| `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: string (YYYY-MM-DD)` — alteração que afrouxa `regrasBloqueio`, só promovida a partir de `efetivaEm` (`aplicarRegrasBloqueioPendentesSeVencidas`, domain/appBlock.ts). Mesma situação: lógica pronta, sem produtor real |
+| **Bloqueio de apps** *(ÚNICO schema — `bloqueioApps`/custo crescente removidos, sem migração de dado)* | | |
+| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Gravado pela tela "Bloqueio de apps" (Perfil). Ausente = usuário nunca configurou |
+| `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: string (YYYY-MM-DD)` — qualquer alteração feita depois da primeira configuração (regra única, sem distinguir afrouxar/endurecer), só promovida a partir de `efetivaEm` (`aplicarRegrasBloqueioPendentesSeVencidas`/`decidirGravacaoRegrasBloqueio`, domain/appBlock.ts). `null` explícito = sem pendência no momento |
+| `consentimentoAcessibilidade` | string (`YYYY-MM-DD`) \| ausente | Data em que o usuário concordou com a divulgação em destaque do Accessibility Service (`DivulgacaoAcessibilidadeScreen`). Ausente = nunca concordou |
 
 > Nota de segurança já registrada: `streakAtual`/`escudosDisponiveis` continuam
 > graváveis diretamente pelo client (dívida técnica original, ainda não endurecida).
@@ -69,9 +68,8 @@ arrays que crescem indefinidamente no documento do usuário.
 | `tarefas` | array\<map\> | ver estrutura abaixo |
 | `statusDia` | string | `pendente` \| `cumprido` \| `protegido_escudo` \| `perdido` |
 | `escudoUsado` | boolean | |
-| `desbloqueiosApps` | number | **Campo novo.** Contador de desbloqueios de apps bloqueados nesse dia — usado pela lógica de custo crescente (Fase 3). Default 0, incrementado atomicamente (`FieldValue.increment`) |
-| `sessoesFoco` | array\<map\> \| ausente | **Campo novo** (spec `09-ponte-fuga-tarefa`). Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Ausente = nenhuma ainda |
-| `interceptacoes` | array\<map\> \| ausente | **Campo novo** (idem). Decisões tomadas na InterceptScreen — ver estrutura abaixo. Ausente = nenhuma ainda |
+| `sessoesFoco` | array\<map\> \| ausente | Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Gravado via `arrayUnion` (atômico, não lê+regrava o array inteiro). Ausente = nenhuma ainda |
+| `interceptacoes` | array\<map\> \| ausente | Decisões tomadas na InterceptScreen — ver estrutura abaixo. Gravado via `arrayUnion`, mesmo racional. Ausente = nenhuma ainda |
 | `criadoEm` / `atualizadoEm` | timestamp | |
 
 **Estrutura de cada item em `tarefas[]`:**
@@ -120,8 +118,10 @@ Ao CRIAR um `dailyLog` novo (primeira leitura do dia, `garantirDailyLogDoDia`), 
 
 > Nota técnica: `salvarDailyLog` grava com `merge: true` (corrigido junto da spec
 > `09-ponte-fuga-tarefa`) — antes disso, qualquer toque numa tarefa sobrescrevia o
-> documento inteiro e apagava `desbloqueiosApps`/`sessoesFoco`/`interceptacoes` gravados
-> por outra via.
+> documento inteiro e apagava `sessoesFoco`/`interceptacoes` gravados por outra via.
+> `registrarSessaoFocoNoDia`/`registrarInterceptacaoNoDia` usam `arrayUnion` (não
+> ler+regravar o array inteiro) — corrige uma condição de corrida real em gravações
+> concorrentes.
 
 ---
 
@@ -250,11 +250,11 @@ excluir o Auth) — ver dívida técnica equivalente já registrada no `CLAUDE.m
 | Tutorial (4 slides) | — | AsyncStorage `tutorial_visto` (não é Firestore) |
 | SignIn / SignUp / ForgotPassword | — | `users/{uid}` (criação, no primeiro signup por e-mail ou Google) |
 | Onboarding (4 passos internos) | — | `users/{uid}` (foco, tempoTela, porquê, e a tarefa final grava também em `dailyLogs/{hoje}`), finaliza setando `onboardingConcluido = true` |
-| Home | `users/{uid}`, `dailyLogs/{hoje}`, `essentialTasks` (ativas), `phrases`, `users/{uid}.bloqueioApps` | `dailyLogs/{hoje}.tarefas[]`, `essentialTasks` (ao criar/parar recorrente) |
+| Home | `users/{uid}`, `dailyLogs/{hoje}`, `essentialTasks` (ativas), `phrases` | `dailyLogs/{hoje}.tarefas[]`, `essentialTasks` (ao criar/parar recorrente) |
 | RecoveryStateScreen / ReturnAfterPauseScreen | `systemMessages`, `dailyLogs/{ontem}` | `users/{uid}.statusStreak` (retorno após pausa) |
 | ProgressoScreen | `dailyLogs` (últimos 7 dias), `users/{uid}` (streak/dias ativos), `challenges` | — |
-| AppBlockConfigScreen | `users/{uid}.bloqueioApps` | `users/{uid}.bloqueioApps` |
-| AppBlockedScreen | `dailyLogs/{hoje}` (checar tarefas essenciais) | `dailyLogs/{hoje}.desbloqueiosApps` (increment) |
+| BloqueioAppsScreen | `users/{uid}.regrasBloqueio`/`.regrasBloqueioPendentes` | `users/{uid}.regrasBloqueio` (1ª configuração) ou `.regrasBloqueioPendentes` (qualquer alteração depois) |
+| DivulgacaoAcessibilidadeScreen | — | `users/{uid}.consentimentoAcessibilidade` (só ao tocar "Concordo e quero ativar") |
 | TravadoFlowScreen / SessaoFocoScreen | `dailyLogs/{hoje}` (tarefas, via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (subtarefa/edição/move pra amanhã), `dailyLogs/{hoje}.sessoesFoco[]` |
 | InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (estado C), `dailyLogs/{hoje}.interceptacoes[]` |
 | PerfilScreen | `users/{uid}` | `users/{uid}` (porquê, notificações, horário), exclusão completa via `apagarTodosOsDadosDoUsuario` |
@@ -263,7 +263,8 @@ excluir o Auth) — ver dívida técnica equivalente já registrada no `CLAUDE.m
 
 ## 11. Próximo passo sugerido
 
-Com o schema agora refletindo o estado real, o próximo documento mais urgente pra
-atualizar é `navegacao-componentes-mvp.md` — a estrutura de navegação real (stack
-único, onboarding reestruturado) já diverge da descrita lá, e o `design-system-rootora.md`
-seção 8 hoje é mais confiável que este documento nesse tópico.
+Schema, regras de negócio e navegação (`regras-de-negocio.md`, `navegacao-componentes.md`)
+estão alinhados com o código real após a remoção do bloqueio antigo e a chegada da
+configuração mínima de `regrasBloqueio`. Próximo ponto de atenção: nenhuma tela de
+Progresso ainda lê `interceptacoes`/`sessoesFoco` de volta — os dados são gravados mas
+não aparecem em nenhuma visualização pro usuário.

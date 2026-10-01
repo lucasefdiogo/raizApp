@@ -1,8 +1,10 @@
 # Ponte Fuga → Tarefa + "Estou travado"
 
-> Extensão da funcionalidade de bloqueio de apps (05-fase3.md, item 2.1).
+> Extensão da funcionalidade de bloqueio de apps (`regras-de-negocio.md`, seção 4).
 > Base teórica: Fundamentação Teórica, seções 2.2 (reparo de humor), 3 (ciclo), 7 (perfeccionismo), 10.2 (se-então) e 10.3 (fatiamento).
-> Status: **validado** — decisões da seção 9 fechadas.
+> Status: **validado e implementado** — único caminho de bloqueio/interceptação em
+> produção (o sistema antigo de custo crescente foi removido, não convive mais em
+> paralelo). Decisões da seção 9 fechadas.
 
 ---
 
@@ -24,7 +26,6 @@ Accessibility detecta app bloqueado
         │
         ├─► Fazer 2 minutos ──────► SessaoFocoScreen ─► FimSessao
         ├─► Estou travado ────────► TravadoFlow ─► SessaoFocoScreen ─► FimSessao
-        ├─► Desbloquear com desafio (fluxo de desafios da Fase 3)
         └─► Sair (volta à tela inicial do Android)
 
 Home ─► botão "Estou travado" (abaixo da lista) ─► TravadoFlow
@@ -37,7 +38,7 @@ TaskCard ─► toque longo ─► TravadoFlow (com a tarefa pré-selecionada)
 
 | Estado | Condição | Texto | Ações |
 |---|---|---|---|
-| **A** | Existe tarefa essencial pendente | "Você ia abrir o [App]. A tarefa de hoje é *[tarefa]*. Topa só 2 minutos dela?" | Primária: **Fazer 2 minutos** · Secundárias: Estou travado · Desbloquear com desafio · Sair |
+| **A** | Existe tarefa essencial pendente | "Você ia abrir o [App]. A tarefa de hoje é *[tarefa]*. Topa só 2 minutos dela?" | Primária: **Fazer 2 minutos** · Secundárias: Estou travado · Sair |
 | **B** | Todas as essenciais concluídas | "Você já cumpriu o essencial de hoje. Liberar o [App] por 15 minutos?" | Primária: **Liberar** · Secundária: Agora não |
 | **C** | Nenhuma tarefa cadastrada hoje | "Você ia abrir o [App]. Antes: qual é uma coisa pequena para hoje?" | Campo de texto → cria tarefa essencial → transita para estado A |
 
@@ -89,16 +90,39 @@ Sessões de foco **não contam para o streak**. Só a conclusão de tarefa essen
 
 ---
 
-## 6. Regra de alteração do bloqueio (substitui o custo crescente)
+## 6. Regra de alteração do bloqueio (substitui o custo crescente) — regra única
 
-O "custo crescente de desbloqueio" previsto em 05-fase3.md é **substituído** pela regra de pré-compromisso:
+O "custo crescente de desbloqueio" (antigo sistema `bloqueioApps`/`AppBlockedScreen`,
+removido) é **substituído** pela regra de pré-compromisso, numa versão mais simples do
+que o desenho original: **uma regra só, sem distinguir se a mudança afrouxa ou
+endurece.**
 
-- O usuário define apps bloqueados e janelas de horário num momento calmo.
-- Qualquer alteração que **afrouxe** as regras (remover app, encurtar janela) só entra em vigor no dia seguinte.
-- Alterações que **endurecem** as regras valem imediatamente.
-- Texto ao salvar alteração que afrouxa: "Anotado. A nova regra começa amanhã."
+- O usuário define apps bloqueados e uma janela de horário (início/fim + dias da
+  semana) na tela "Bloqueio de apps" (Perfil).
+- A **primeira configuração** (quando `regrasBloqueio` ainda não existe) vale
+  imediatamente.
+- **Qualquer alteração depois disso** — inclusive desativar o bloqueio por completo —
+  só entra em vigor no dia seguinte. Não importa se a mudança deixa o bloqueio mais
+  solto ou mais apertado: o código não classifica o tipo de mudança, só se já existe
+  uma configuração anterior.
+- Uma nova alteração enquanto já existe uma pendente **substitui** a pendente (não
+  acumula).
+- Texto ao salvar quando vira pendente: "Anotado. A nova regra começa amanhã." A tela
+  mostra "Nova regra começa amanhã: [resumo]" com a opção "Cancelar alteração"
+  (apaga a pendência na hora, sem esperar o dia seguinte).
+- A promoção pendente→vigente acontece no lado nativo (Kotlin), não no JS — o
+  `AccessibilityService` promove sozinho quando a data vence, mesmo com o app
+  fechado; na próxima abertura do app, o lado RN sincroniza esse novo estado de volta
+  no Firestore.
 
-Racional: impede renegociação no pico da vontade sem mecânica punitiva (princípio 3). Saída de emergência sempre disponível: o usuário pode desativar o Accessibility Service nas configurações do Android — o app não tenta impedir isso.
+Racional: impede renegociação no pico da vontade sem mecânica punitiva (princípio 3).
+Não distinguir afrouxar de endurecer simplifica a regra sem abrir brecha — não há
+ganho real em deixar o endurecimento imediato, e a regra única é mais fácil de
+explicar e de implementar corretamente dos dois lados (RN e nativo). Saída de
+emergência sempre disponível: o usuário pode desativar o Accessibility Service nas
+configurações do Android — o app não tenta impedir isso, e mostra uma divulgação em
+destaque (honesta sobre o que o serviço vê e não vê) antes de abrir essa tela de
+configurações pela primeira vez.
 
 ---
 
@@ -135,8 +159,9 @@ interceptacoes: [{
 ### `users/{uid}` — campos novos
 | Campo | Tipo | Uso |
 |---|---|---|
-| `regrasBloqueio` | map `{ apps: string[], janelas: [{inicio, fim, diasSemana[]}] }` | Regras vigentes |
-| `regrasBloqueioPendentes` | map `{ apps, janelas, efetivaEm: 'YYYY-MM-DD' }` \| null | Alteração que afrouxa, aplicada na primeira abertura a partir de `efetivaEm` |
+| `regrasBloqueio` | map `{ apps: string[], janelas: [{inicio, fim, diasSemana[]}] }` | Regras vigentes — ÚNICO schema de bloqueio de apps |
+| `regrasBloqueioPendentes` | map `{ apps, janelas, efetivaEm: 'YYYY-MM-DD' }` \| null | Qualquer alteração feita depois da primeira configuração (regra única, seção 6), aplicada na primeira abertura a partir de `efetivaEm` |
+| `consentimentoAcessibilidade` | string (`YYYY-MM-DD`) \| ausente | Data em que o usuário concordou com a divulgação em destaque do Accessibility Service. Ausente = nunca concordou |
 
 ### Privacidade
 `estadoTravado` é dado emocional: fica somente no documento do próprio usuário. Não é enviado ao Analytics vinculado a identificador.
@@ -160,7 +185,7 @@ interceptacoes: [{
 | # | Decisão | Escolha |
 |---|---|---|
 | 1 | Liberar app após sessão de foco | Sim, como opção secundária, só quando a sessão veio da interceptação |
-| 2 | Custo crescente vs. pré-compromisso | Pré-compromisso: afrouxar regras só vale amanhã (seção 6) |
+| 2 | Custo crescente vs. pré-compromisso | Pré-compromisso: qualquer alteração depois da primeira configuração só vale amanhã, regra única sem distinguir afrouxar de endurecer (seção 6) |
 | 3 | Posição do "Estou travado" | Botão discreto abaixo da lista na Home + toque longo no TaskCard |
 | 4 | "Sem energia" recorrente | 5 de 7 dias → exibir uma vez linha gentil apontando para "Precisa de mais apoio?" no Perfil. **Texto exige revisão de psicólogo antes da publicação** |
 
@@ -195,6 +220,8 @@ Texto proposto para o item 4 (sujeito a revisão):
 - [ ] TravadoFlow acessível pela Home, pelo toque longo e pela interceptação, com o mesmo componente
 - [ ] Sair do timer para app bloqueado reabre a interceptação com o timer ativo
 - [ ] Sessões de foco não alteram `streakAtual`
-- [ ] Alteração que afrouxa regras grava em `regrasBloqueioPendentes` e só vigora em `efetivaEm`
+- [ ] Qualquer alteração às regras feita depois da primeira configuração grava em `regrasBloqueioPendentes` e só vigora em `efetivaEm` (sem distinguir se afrouxa ou endurece)
+- [ ] Lista de apps da tela de configuração usa `<queries>` (MAIN/LAUNCHER), nunca `QUERY_ALL_PACKAGES`
+- [ ] Divulgação em destaque aparece antes de abrir as configurações de acessibilidade do Android, e `consentimentoAcessibilidade` só é gravado ao tocar "Concordo e quero ativar"
 - [ ] Nenhum texto com ponto de exclamação, pedido de desculpas ou culpa
 - [ ] `estadoTravado` ausente dos eventos de Analytics com identificador

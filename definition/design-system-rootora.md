@@ -72,7 +72,7 @@ nesse link, não de código quebrado.
 | `SecondaryButton` | `src/components/SecondaryButton.tsx` | Tratamento único e neutro — borda `terraSuave`, texto `terraSuave`. Reutilizado pelo botão do TutorialSlide e pelo "Continuar com Google" (nenhum dos dois duplica estilo inline) |
 | `TextField` | `src/components/TextField.tsx` | Campo de texto padrão |
 | Toggle | inline (theme) | Trilho `terraSuave`/border (off) / `cobre` (on), círculo `casca` |
-| Badge de streak | `src/components/StreakCard.tsx` | Fundo `areia`, texto `textPrimary`, Space Mono — deliberadamente neutro, não Cobre, pra não conflitar com outro CTA Cobre na mesma tela (ex: AppBlockBanner) |
+| Badge de streak | `src/components/StreakCard.tsx` | Fundo `areia`, texto `textPrimary`, Space Mono — deliberadamente neutro, não Cobre, pra não conflitar com outro CTA Cobre na mesma tela (ex: botão "Salvar" de `BloqueioAppsScreen`) |
 | `DayStatusPill` | `src/components/progress/DayStatusPill.tsx` | Indicador de 1 dia no histórico semanal — cor por status (seção 7) |
 | `StepDots` | `src/components/tutorial/StepDots.tsx` | Indicador de progresso em fluxo de passos |
 | `LoadingIndicator` | `src/components/common/LoadingIndicator.tsx` | Variants `fullscreen`/`inline`, RootProgressIcon `broto` + pulso via `Animated` (core do RN, não Reanimated) |
@@ -85,8 +85,6 @@ nesse link, não de código quebrado.
 |---|---|---|
 | `HomeHeader` | `src/components/home/HomeHeader.tsx` | Saudação por horário + nome à esquerda, badge de streak à direita |
 | `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + escudos disponíveis, logo abaixo do HomeHeader |
-| `AppBlockBanner` | `src/components/home/AppBlockBanner.tsx` | Fundo `musgo`, eyebrow + corpo + botão Cobre + ✕ dispensar — só quando nenhum app configurado. Renderizado no fim da rolagem da Home, não logo após o header |
-| `AppBlockStatusCard` | `src/components/home/AppBlockStatusCard.tsx` | Status ativo/agendado + chips de apps — mutuamente exclusivo com o banner acima |
 | `TaskItem` | `src/components/home/TaskItem.tsx` | Checkbox + título + selo de essencial (estrela) + ícone ↻ se recorrente + ícone de exercício se `tipo === 'exercicio'` |
 | `AddTaskForm` | `src/components/home/AddTaskForm.tsx` | Campo de título + toggle essencial + `TaskTypeToggle` (tipo exercício + duração) + toggle "Repetir todos os dias" |
 | `TaskTypeToggle` | `src/components/home/TaskTypeToggle.tsx` | Sub-componente do AddTaskForm — alterna tipo padrão/exercício e campo de duração |
@@ -96,7 +94,8 @@ nesse link, não de código quebrado.
 | `ReturnAfterPauseCard` | `src/components/return/ReturnAfterPauseCard.tsx` | Corpo do sistema + blockquote do "porquê" + campo de texto + botão |
 | `ChallengeCard` | `src/components/challenges/ChallengeCard.tsx` | Título + barra de progresso (`musgo`) + "X de Y" |
 | `DayDetailSheet` | `src/components/progress/DayDetailSheet.tsx` | Label do dia + status + lista de tarefas somente-leitura |
-| `AppSelectorItem` | `src/components/appblock/AppSelectorItem.tsx` | Ícone (base64) + nome + **checkbox** customizado (não Switch nativo — evita competir com o toque na linha inteira) |
+| `AppListItem` | `src/components/bloqueio/AppListItem.tsx` | Ícone (base64, resolvido via `<queries>`) + nome + **checkbox** customizado (não Switch nativo — evita competir com o toque na linha inteira) |
+| `SeletorDiasSemana` | `src/components/bloqueio/SeletorDiasSemana.tsx` | 7 chips de toque único (dias da semana), preenchido Cobre quando selecionado |
 | `ConfirmDeleteAccountModal` | `src/components/perfil/ConfirmDeleteAccountModal.tsx` | Modal de confirmação sóbrio — botão "Excluir conta" agora com o mesmo tratamento neutro do SecondaryButton (sem vermelho) |
 | `RecurringTaskActionSheet` | `src/components/home/RecurringTaskActionSheet.tsx` | Menu de 3 opções — mesmo padrão VISUAL do modal de exclusão de conta (arquivo próprio, não reaproveita o componente em si) |
 
@@ -118,9 +117,10 @@ Diferente de módulos separados por stack — é **um único `Stack.Navigator`**
 "AuthStack", "OnboardingStack" são nomes usados neste documento só como agrupamento
 lógico da explicação, não arquivos separados no código.
 
-`AppBlockedScreen` é renderizada pelo próprio `RootNavigator` como overlay
-`position: absolute` por cima de tudo — não é filha de nenhuma tab/stack, aparece
-independente de qual aba está ativa.
+Não existe overlay global de bloqueio no `RootNavigator` — o sistema antigo
+(`AppBlockedScreen`) foi removido por completo. A interceptação hoje acontece fora
+desta árvore, por um root RN separado (`InterceptRoot`/`InterceptScreen`, montado por
+uma Activity Android diferente da `MainActivity` — ver `navegacao-componentes.md`).
 
 ```
 RootNavigator (Stack.Navigator único)
@@ -132,27 +132,27 @@ RootNavigator (Stack.Navigator único)
 │              OnboardingStepPorque → OnboardingStepPrimeiraTarefa
 │     gate de saída: users/{uid}.onboardingConcluido === true
 │              (não mais porqueTexto — mudou em feature/onboarding-primeira-tarefa)
-├── Main → MainTabNavigator (abas: Hoje / Progresso / Perfil)
-│     tabBarActiveTintColor: cobre · tabBarInactiveTintColor: terraSuave
-│     ├── HojeStack
-│     │     ├── HomeScreen — HomeHeader → StreakCard → headline → lista de TaskItem +
-│     │     │     AddTaskForm → AppBlockBanner/AppBlockStatusCard (fim da rolagem) →
-│     │     │     TaskCompletedOverlay/StreakMilestoneModal (overlays condicionais)
-│     │     ├── RecoveryStateScreen    (condicional, back bloqueado)
-│     │     ├── ReturnAfterPauseScreen (condicional, back bloqueado)
-│     │     └── AppBlockConfig         (2ª entrada pra mesma tela do PerfilStack)
-│     ├── ProgressoStack
-│     │     └── ProgressoScreen — 2 statbox, 7 DayStatusPill (abre DayDetailSheet),
-│     │           ChallengeCard semanal + mensal
-│     └── PerfilStack
-│           ├── PerfilScreen — porquê, notificações+horário, entrada "Bloqueio de
-│           │     apps", links legais, "Excluir conta" (neutro), "Sair", link de
-│           │     debug (condicional, baixa prioridade)
-│           ├── AppBlockConfigScreen — se Accessibility Service desativado, mostra
-│           │     AccessibilityPrimingScreen no lugar do conteúdo; se ativado, lista
-│           │     de AppSelectorItem + 2 seletores de horário + checkbox geral
-│           └── AccessibilityDebug     (condicional a __DEV__, temporária por design)
-└── AppBlockedScreen (overlay do RootNavigator, fora de qualquer stack/tab)
+└── Main → MainTabNavigator (abas: Hoje / Progresso / Perfil)
+      tabBarActiveTintColor: cobre · tabBarInactiveTintColor: terraSuave
+      ├── HojeStack
+      │     ├── HomeScreen — HomeHeader → StreakCard → headline → lista de TaskItem +
+      │     │     AddTaskForm → TaskCompletedOverlay/StreakMilestoneModal (overlays
+      │     │     condicionais)
+      │     ├── RecoveryStateScreen    (condicional, back bloqueado)
+      │     └── ReturnAfterPauseScreen (condicional, back bloqueado)
+      ├── ProgressoStack
+      │     └── ProgressoScreen — 2 statbox, 7 DayStatusPill (abre DayDetailSheet),
+      │           ChallengeCard semanal + mensal
+      └── PerfilStack
+            ├── PerfilScreen — porquê, notificações+horário, entrada "Bloqueio de
+            │     apps", links legais, "Excluir conta" (neutro), "Sair", link de
+            │     debug (condicional, baixa prioridade)
+            ├── BloqueioAppsScreen — status do serviço + botão "Ativar", lista de
+            │     AppListItem (busca + seleção), SeletorDiasSemana + 2 seletores de
+            │     horário, resumo + Salvar
+            ├── DivulgacaoAcessibilidadeScreen — aberta a partir do botão "Ativar",
+            │     antes das configurações de acessibilidade do Android
+            └── AccessibilityDebug     (condicional a __DEV__, temporária por design)
 ```
 
 `SignUpScreen` tem 4 campos (Nome, E-mail, Senha, Confirmar senha), não 3.
@@ -167,6 +167,6 @@ RootNavigator (Stack.Navigator único)
 
 - Ícone do app (launcher) é genérico, paleta própria (seção 1), não muda com seleção de
   tema (Fase 2, não implementada)
-- Telas de priming de permissão (`AccessibilityPrimingScreen`,
+- Telas de priming de permissão (`DivulgacaoAcessibilidadeScreen`,
   `NotificationPrimingScreen`) seguem a mesma paleta/tipografia deste documento — não
   têm identidade própria, só conteúdo específico de explicação de permissão

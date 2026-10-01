@@ -62,9 +62,12 @@ TypeScript, `strict: true`.
 
 | Permissão | Tipo | Onde é pedida |
 |---|---|---|
-| Accessibility Service | Manual, via Configurações do sistema (sem diálogo nativo) | `AccessibilityPrimingScreen`, dentro do fluxo de configuração de bloqueio de apps |
+| Accessibility Service | Manual, via Configurações do sistema (sem diálogo nativo) | `DivulgacaoAcessibilidadeScreen` (divulgação em destaque), dentro do fluxo de configuração de bloqueio de apps — mostrada ANTES de abrir as configurações |
 | Notificações (`POST_NOTIFICATIONS`, Android 13+) | Runtime, diálogo nativo | `NotificationPrimingScreen`, uma vez no primeiro boot pós-onboarding |
-| `QUERY_ALL_PACKAGES` | Declarada no manifesto, sem diálogo pro usuário | N/A — revisada pela Play Store na submissão (`procedimento-loja.md`, exige formulário de justificativa) |
+
+Não usamos `QUERY_ALL_PACKAGES` — a lista de apps da tela de bloqueio é resolvida via
+`<queries>` no manifesto (`MAIN`/`LAUNCHER`), que não exige o formulário de
+justificativa de revisão manual da Play Store.
 
 ## 7. Próximo passo sugerido
 

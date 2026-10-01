@@ -13,9 +13,10 @@ Criar a conta de desenvolvedor (taxa única) antes de qualquer submissão.
   Hosting já é parte do stack, não exige serviço novo)
 - Justificativa de uso do **Accessibility Service** — obrigatória no formulário de
   submissão, é a permissão mais escrutinada pela revisão da loja. Usar como base o
-  texto já validado na `AccessibilityPrimingScreen` (o que o app vê e o que não vê)
-- Declaração de uso do `QUERY_ALL_PACKAGES` (necessário pra listar apps instaláveis no
-  bloqueio de apps) — formulário próprio de justificativa, separado do anterior
+  texto já validado na `DivulgacaoAcessibilidadeScreen` (divulgação em destaque — o
+  que o app vê e o que não vê), mostrada antes de abrir as configurações do sistema
+- A lista de apps do bloqueio usa `<queries>` (MAIN/LAUNCHER) no manifesto, não
+  `QUERY_ALL_PACKAGES` — sem formulário extra de justificativa pra essa permissão
 
 ## 3. Assinatura com 7 dias grátis
 

@@ -44,31 +44,30 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │     │     ├── RecoveryStateScreen      (condicional — statusDia de ontem
 │     │     │     protegido_escudo/perdido, ainda não exibido hoje; back físico
 │     │     │     bloqueado enquanto em foco)
-│     │     ├── ReturnAfterPauseScreen   (condicional — statusStreak === 'pausado';
-│     │     │     back físico bloqueado enquanto em foco)
-│     │     └── AppBlockConfig           (2ª entrada de navegação pra mesma tela que
-│     │           também vive em PerfilStack — acessível pelo banner/status card
-│     │           de bloqueio de apps na Home)
+│     │     └── ReturnAfterPauseScreen   (condicional — statusStreak === 'pausado';
+│     │           back físico bloqueado enquanto em foco)
 │     │
 │     ├── ProgressoStack
 │     │     └── ProgressoScreen
 │     │
 │     └── PerfilStack
 │           ├── PerfilScreen
-│           ├── AppBlockConfigScreen     (mesma tela referenciada acima)
-│           ├── AccessibilityDebug       (condicional a __DEV__, temporária por
+│           ├── BloqueioApps                  (BloqueioAppsScreen — configuração de
+│           │     regrasBloqueio: status do serviço, apps, janela, resumo)
+│           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
+│           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
+│           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
+│           ├── AccessibilityDebug            (condicional a __DEV__, temporária por
 │           │     design — não remover sem avisar, ainda é usada pra validar a
 │           │     detecção em dispositivo físico)
-│           └── InterceptDebug           (idem, mesma flag — abre a InterceptScreen
+│           └── InterceptDebug                (idem, mesma flag — abre a InterceptScreen
 │                 de verdade com props mockadas, spec 09-ponte-fuga-tarefa)
-│
-└── AppBlockedScreen
-      NÃO é filha de nenhum stack/tab acima — é renderizada pelo próprio
-      RootNavigator como overlay position: absolute por cima de TUDO, disparada por
-      evento nativo (Accessibility Service detectando um app bloqueado em primeiro
-      plano). Aparece independente de qual aba/tela estava ativa no momento.
-      Ainda é o ÚNICO caminho de bloqueio com dado real — ver nota abaixo.
 ```
+
+Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
+(`AppBlockedScreen`, disparado por evento nativo por cima de tudo) foi removido por
+completo. Hoje a interceptação acontece inteiramente fora da árvore acima, pelo root
+`Intercept` descrito a seguir.
 
 ### Root separado — `Intercept` (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 
@@ -76,10 +75,8 @@ Fora da árvore acima por completo — não é uma rota do `RootNavigator`, é u
 componente registrado no `AppRegistry`** (`index.js`), montado por uma Activity Android
 diferente da `MainActivity` (`InterceptRoot.tsx`: `SafeAreaProvider` + `ToastProvider`
 próprios, sem `RootNavigator`/`MainTabNavigator`). Pensado pra abrir em <300ms sem
-carregar a navegação inteira. Caminho **paralelo** ao `AppBlockedScreen` acima — o
-`AccessibilityService` hoje só dispara de verdade `bloqueioApps`→`AppBlockedScreen`; o
-gatilho novo (`regrasBloqueio`→`Intercept`) existe mas fica inerte sem uma tela que grave
-`regrasBloqueio` (ver `roadmap-e-status.md`).
+carregar a navegação inteira. **Único caminho de interceptação** —
+`regrasBloqueio` → `AccessibilityService.deveInterceptar` → `InterceptActivity`.
 
 ```
 InterceptRoot (packageName, appLabel, snapshotJson, sessaoAtivaJson? via initialProps)
@@ -113,13 +110,18 @@ Ordem real de renderização, de cima pra baixo:
 4. Lista de `TaskItem` + botão discreto "Estou travado" (abre `TravadoFlowScreen`,
    spec `09-ponte-fuga-tarefa`) + `AddTaskForm` (`forwardRef` — o `ref` aponta só pro
    botão "Adicionar tarefa", não pro formulário inteiro)
-5. `AppBlockBanner` OU `AppBlockStatusCard` (mutuamente exclusivos, no fim da rolagem;
-   o wrapper dos dois também carrega um `ref`)
-6. Overlays condicionais por cima de tudo, nesta ordem: `TaskCompletedOverlay`,
+5. Overlays condicionais por cima de tudo, nesta ordem: `TaskCompletedOverlay`,
    `StreakMilestoneModal`, `FeatureTourOverlay` (por último — fica por cima dos outros
    dois se coincidirem), e `TravadoFlowScreen` quando aberto (botão da Home ou toque
    longo numa tarefa — remonta com uma `key` nova a cada abertura, sempre começa do
    passo "escolha")
+
+Não existe mais nenhum banner/status card de bloqueio de apps na Home — a visibilidade
+do bloqueio hoje vive só em Perfil → "Configurar bloqueio de apps" (`BloqueioAppsScreen`).
+Montada também na Home: `useSincronizarRegrasBloqueio(uid)`, sem UI própria — roda a
+cada abertura do app pra promover uma `regrasBloqueioPendentes` já vencida de volta
+pro Firestore, caso o lado nativo já tenha promovido localmente enquanto o app estava
+fechado (ver `regras-de-negocio.md` seção 4/5).
 
 ### `TaskItem`
 | Prop | Tipo | Descrição |
@@ -181,28 +183,42 @@ importa o componente).
 
 ### PerfilScreen
 Seções, em ordem: "Seu porquê" (campo + botão Salvar explícito) → Notificações
-(toggle + `DateTimePicker`) → entrada "Bloqueio de apps" → "Sobre" ("Ver tutorial
-novamente", reinicia o tour de funcionalidades — ver seção própria abaixo — + links
-legais: Política de Privacidade / Termos) → "Excluir conta" (`SecondaryButton` neutro,
-sem vermelho, abre `ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
+(toggle + `DateTimePicker`) → "Bloqueio de apps" (link "Configurar bloqueio de apps",
+abre `BloqueioAppsScreen`) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
+funcionalidades — ver seção própria abaixo — + links legais: Política de Privacidade /
+Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
+`ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
 
-### AppBlockConfigScreen
-Se `isAccessibilityServiceEnabled() === false`: renderiza `AccessibilityPrimingScreen`
-no lugar do conteúdo normal. Se `true`: lista de `AppSelectorItem` (checkbox
-customizado, não Switch) + 2 seletores de horário + checkbox geral de ativação.
+### BloqueioAppsScreen
+Status do `isAccessibilityServiceEnabled()` (via `useAccessibilityPermission`) +
+botão "Ativar" (só quando desativado) que navega pra `DivulgacaoAcessibilidadeScreen`
+— nunca abre as configurações do Android direto. Lista de `AppListItem` (checkbox
+customizado, não Switch nativo — quebra em testes Jest no mesmo arquivo de um
+`LoadingIndicator`) com busca por nome, `SeletorDiasSemana` (7 chips de toque único)
+e os dois seletores de horário início/fim (`DateTimePicker`). Resumo em texto
+(`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a partir da regra
+PENDENTE quando existe uma (o que vai valer amanhã), senão da vigente. Com uma
+pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar alteração".
 
-### `AppSelectorItem`
+### `AppListItem`
 | Prop | Tipo |
 |---|---|
-| `nome` / `icone` (base64) | string |
+| `app` | `{ packageName, nome, iconeBase64 }` — vem de `listarAppsInstalados()`, resolvido via `<queries>` (MAIN/LAUNCHER), não `QUERY_ALL_PACKAGES` |
 | `selecionado` | boolean |
 | `onToggle` | function |
 
-### AppBlockedScreen
-Disparada por evento nativo (`blocked-app-detected`), não por navegação normal.
-Mostra nome/ícone do app bloqueado + 2 caminhos de desbloqueio (tarefas essenciais /
-pausa de respiração), com exigência crescente conforme `desbloqueiosApps` do dia
-(ver `regras-de-negocio.md` seção 4 pra regra de escalação).
+### `SeletorDiasSemana`
+| Prop | Tipo |
+|---|---|
+| `diasSelecionados` | `number[]` (0 = domingo) |
+| `onToggleDia` | function |
+
+### DivulgacaoAcessibilidadeScreen
+Divulgação em destaque exigida pela Play Store, aberta a partir do botão "Ativar" de
+`BloqueioAppsScreen`, antes de qualquer tela de configurações do sistema. Texto exato
+e botões em `regras-de-negocio.md` seção 4. "Concordo e quero ativar" grava
+`consentimentoAcessibilidade` (via `useConsentimentoAcessibilidade`) e só depois abre
+as configurações de acessibilidade do Android; "Agora não" só volta, sem gravar nada.
 
 ### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 Componente único, reutilizado sem diferença nas 3 entradas (botão da Home, toque longo
@@ -236,23 +252,26 @@ Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScre
 botões que abrem o `InterceptRoot` de verdade com snapshot mockado pra cada estado.
 
 ### Telas de permissão
-`AccessibilityPrimingScreen` (dentro do fluxo de AppBlockConfigScreen) e
-`NotificationPrimingScreen` (antes do primeiro pedido de permissão de notificação, pós-
-onboarding) — conteúdo fixo de explicação, sem lógica de negócio própria.
+`DivulgacaoAcessibilidadeScreen` (ver acima — Perfil, antes de abrir as configurações
+de acessibilidade do Android) e `NotificationPrimingScreen` (antes do primeiro pedido
+de permissão de notificação, pós-onboarding) — conteúdo fixo de explicação, sem
+lógica de negócio própria além de gravar o consentimento/decisão do usuário.
 
 ### Tour de funcionalidades (pós-onboarding)
 Diferente do Tutorial Inicial (conceitual, pré-login, carrossel de 4 slides) — este
 aponta pra elementos REAIS da UI já logada, na primeira vez que a `HomeScreen` renderiza
 depois do onboarding. Controlado por `useFeatureTour` (AsyncStorage
-`tour_funcionalidades_visto`, mesmo padrão de `tutorial_visto`); conteúdo dos 5 passos
+`tour_funcionalidades_visto`, mesmo padrão de `tutorial_visto`); conteúdo dos 4 passos
 em `src/components/tour/tourSteps.ts`; renderização em `FeatureTourOverlay.tsx`
 (componente burro — recebe posição e texto já resolvidos, não decide nenhum dos dois).
 
-5 alvos, nesta ordem: `StreakCard` → botão "Adicionar tarefa" → banner/status card de
-bloqueio de apps (os 3 dentro da `HomeScreen`) → aba Progresso → aba Perfil (os 2
-últimos na tab bar do `MainTabNavigator`, sem navegar de verdade — só recorte visual).
+4 alvos, nesta ordem: `StreakCard` → botão "Adicionar tarefa" (os 2 dentro da
+`HomeScreen`) → aba Progresso → aba Perfil (os 2 últimos na tab bar do
+`MainTabNavigator`, sem navegar de verdade — só recorte visual). O alvo de bloqueio de
+apps foi removido do tour junto da remoção do banner/status card da Home (seção
+"HomeScreen" acima).
 
-Posição vem de `measureInWindow` nos refs reais dos 5 elementos, nunca coordenada fixa.
+Posição vem de `measureInWindow` nos refs reais dos 4 elementos, nunca coordenada fixa.
 Os refs das abas Progresso/Perfil só podem ser criados no `MainTabNavigator` (onde os
 nós nativos existem — via `tabBarButton` customizado nessas 2 abas, preservando o toque
 normal) e são repassados como prop simples até a `HomeScreen`, atravessando o
@@ -286,7 +305,6 @@ chama `useFeatureTour().reiniciar()` — reseta a flag e navega de volta pra aba
 
 ## 4. Próximo passo sugerido
 
-Este documento e o `schema-firebase-mvp.md` agora refletem o estado real. Os próximos
-mais desatualizados, em ordem de risco: `05-fase3.md` (implementação de bloqueio de
-apps já avançou bem além do que está escrito lá) e `06-stack-desenvolvimento.md`
-(faltam as libs novas e a dívida técnica cresceu).
+Este documento e o `schema-firebase.md` agora refletem o estado real, incluindo a
+remoção do bloqueio antigo e a chegada de `BloqueioAppsScreen`/
+`DivulgacaoAcessibilidadeScreen`. Ver `stack-tecnico.md` pra dívida técnica e libs.
