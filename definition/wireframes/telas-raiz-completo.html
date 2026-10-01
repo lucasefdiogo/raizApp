@@ -18,6 +18,7 @@
     --areia:#E3DACB;
     --white:#F8F4EC;
     --line:#C2B39A;
+    --erro:#B5473A;
   }
   *{box-sizing:border-box;}
   body{
@@ -27,9 +28,15 @@
   }
   .header{ max-width:1200px; margin:0 auto 40px; text-align:center; }
   .header .kick{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--terra-suave); margin-bottom:8px; }
-  .header h1{ font-family:'Zilla Slab', serif; font-size:26px; margin:0; }
+  .header h1{ font-family:'Zilla Slab', serif; font-size:26px; margin:0 0 10px; }
+  .header .note{ font-size:12.5px; color:var(--terra-suave); max-width:640px; margin:0 auto; line-height:1.6; }
 
   .board{ max-width:1200px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:44px 32px; }
+  .group-title{ grid-column:1/-1; margin:18px 0 -6px; padding-top:22px; border-top:1px dashed var(--line); }
+  .board > .group-title:first-child{ border-top:none; padding-top:0; margin-top:0; }
+  .group-title .gk{ font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--cobre); }
+  .group-title h2{ font-family:'Zilla Slab', serif; font-size:19px; margin:4px 0 0; }
+
   .card-head{ display:flex; align-items:baseline; gap:8px; margin-bottom:12px; }
   .card-head .no{ font-family:'Zilla Slab', serif; font-size:19px; color:var(--cobre); }
   .card-head .title{ font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.03em; text-transform:uppercase; color:var(--terra-suave); }
@@ -39,6 +46,7 @@
     border:1px solid var(--line); border-radius:26px; padding:16px 16px 20px;
     position:relative; box-shadow:5px 5px 0 #D9CFBC; overflow:hidden;
   }
+  .phone.tall{ min-height:580px; }
   .stepdots{ display:flex; gap:6px; margin-bottom:18px; }
   .dot{ width:20px; height:4px; border-radius:2px; background:#D9CFBC; }
   .dot.on{ background:var(--cobre); }
@@ -59,12 +67,13 @@
 
   .btn{ background:var(--terra); color:var(--casca); text-align:center; font-size:12px; font-weight:600; border-radius:10px; padding:12px; margin-top:12px; }
   .btn.ghost{ background:transparent; border:1.3px solid var(--line); color:var(--terra-suave); }
+  .btn.disabled{ background:var(--line); color:var(--white); }
 
   .topbar{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
   .greet{ font-size:11px; color:var(--terra-suave); } .greet b{ color:var(--terra); font-weight:600; }
   .badge{ display:flex; align-items:center; gap:5px; font-family:'Space Mono', monospace; font-size:11px; font-weight:500; color:var(--cobre); background:var(--cobre-soft); border-radius:16px; padding:5px 10px; }
 
-  .tasklist{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  .tasklist{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
   .task{ display:flex; align-items:center; gap:10px; background:var(--white); border:1px solid var(--areia); border-radius:11px; padding:11px 11px; }
   .box{ width:16px; height:16px; border-radius:5px; border:1.5px solid var(--line); flex:none; position:relative; }
   .box.done{ background:var(--musgo); border-color:var(--musgo); }
@@ -73,8 +82,7 @@
   .task.done .txt{ color:var(--terra-suave); text-decoration:line-through; }
   .task .essential{ width:5px; height:5px; border-radius:50%; background:var(--cobre); flex:none; }
   .addtask{ border:1.3px dashed var(--line); border-radius:11px; padding:10px; text-align:center; font-size:10.5px; color:var(--terra-suave); }
-
-  .phrase{ margin-top:16px; padding:11px 13px; background:var(--areia); border-radius:11px; font-family:'Zilla Slab', serif; font-size:12px; line-height:1.5; color:var(--terra); }
+  .discreet-link{ text-align:center; font-size:10px; color:var(--terra-suave); padding:6px 0 10px; text-decoration:underline; text-decoration-color:var(--line); }
 
   .navbar{ position:absolute; bottom:0; left:0; right:0; background:var(--casca); border-top:1px solid #DCD0BA; display:flex; justify-content:space-around; padding:12px 0 15px; }
   .navitem{ font-family:'Space Mono', monospace; font-size:9px; color:var(--terra-suave); text-align:center; }
@@ -98,62 +106,220 @@
 
   .annot{ margin-top:12px; font-size:10px; line-height:1.6; color:var(--terra-suave); border-top:1px dashed var(--line); padding-top:9px; text-align:left; }
   .annot b{ color:var(--terra); }
+
+  /* --- classes novas (telas adicionadas nesta atualização) --- */
+  .inputf{ margin:10px 0; text-align:left; }
+  .inputf .lbl{ font-size:9.5px; font-weight:600; color:var(--terra-suave); margin-bottom:4px; display:block; }
+  .inputf .box{ all:unset; display:block; border:1.3px solid var(--line); border-radius:9px; padding:10px 11px; font-size:11px; color:var(--terra-suave); background:var(--white); }
+  .linkrow{ text-align:center; font-size:10.5px; color:var(--terra-suave); margin-top:10px; text-decoration:underline; text-decoration-color:var(--line); }
+  .divider{ display:flex; align-items:center; gap:8px; margin:14px 0; font-size:9.5px; color:var(--terra-suave); }
+  .divider::before, .divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; margin:10px 0; }
+  .toggle{ width:30px; height:17px; border-radius:10px; background:var(--cobre); position:relative; flex:none; }
+  .toggle::after{ content:''; position:absolute; top:2px; right:2px; width:13px; height:13px; border-radius:50%; background:var(--white); }
+  .toggle.off{ background:#D9CFBC; }
+  .toggle.off::after{ right:auto; left:2px; }
+
+  .timepair{ display:flex; gap:8px; margin:10px 0; }
+  .timebox{ flex:1; border:1.3px solid var(--line); border-radius:10px; padding:9px 10px; background:var(--white); }
+  .timebox .lbl{ font-size:9px; color:var(--terra-suave); display:block; margin-bottom:2px; }
+  .timebox .val{ font-size:12.5px; color:var(--terra); font-weight:500; }
+
+  .daydots{ display:flex; justify-content:space-between; margin:10px 0 4px; }
+  .daydots .d{ width:22px; height:22px; border-radius:50%; border:1.3px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--terra-suave); }
+  .daydots .d.sel{ background:var(--cobre); border-color:var(--cobre); color:var(--white); font-weight:700; }
+
+  .applist{ display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+  .appitem{ display:flex; align-items:center; gap:8px; }
+  .appicon{ width:24px; height:24px; border-radius:7px; background:var(--areia); flex:none; }
+  .appitem .txt{ font-size:11px; color:var(--terra); flex:1; }
+  .appcheck{ width:15px; height:15px; border-radius:4px; border:1.3px solid var(--line); flex:none; position:relative; }
+  .appcheck.on{ background:var(--cobre); border-color:var(--cobre); }
+  .appcheck.on::after{ content:''; position:absolute; left:4px; top:1px; width:5px; height:8px; border-right:1.6px solid var(--white); border-bottom:1.6px solid var(--white); transform:rotate(40deg); }
+
+  .statuschip{ font-family:'Space Mono', monospace; font-size:10.5px; font-weight:700; }
+  .statuschip.ativo{ color:var(--musgo); }
+  .statuschip.inativo{ color:var(--terra-suave); }
+
+  .statbox2{ display:flex; gap:10px; margin:10px 0 16px; }
+  .sb{ flex:1; border:1.3px solid var(--line); border-radius:11px; padding:12px; text-align:center; background:var(--white); }
+  .sb .n{ font-family:'Space Mono', monospace; font-size:20px; color:var(--cobre); font-weight:700; }
+  .sb .l{ font-size:9px; color:var(--terra-suave); margin-top:2px; }
+
+  .pillrow{ display:flex; justify-content:space-between; margin:8px 0 16px; }
+  .pill{ width:24px; height:34px; border-radius:7px; background:var(--musgo); position:relative; }
+  .pill .lb{ position:absolute; bottom:-14px; left:0; right:0; text-align:center; font-size:8px; color:var(--terra-suave); }
+  .pill.half{ background:var(--musgo-soft); }
+  .pill.empty{ background:transparent; border:1.3px dashed var(--line); }
+  .pill.today{ background:var(--cobre); }
+
+  .challenge{ border:1.3px solid var(--line); border-radius:11px; padding:11px; background:var(--white); margin-bottom:8px; text-align:left; }
+  .challenge .t{ font-size:11px; font-weight:600; color:var(--terra); margin-bottom:7px; }
+  .challenge .bar{ height:6px; background:#EADFC9; border-radius:4px; overflow:hidden; }
+  .challenge .bar .f{ height:100%; background:var(--musgo); }
+  .challenge .x{ font-size:9px; color:var(--terra-suave); margin-top:5px; }
+
+  .vchip{ width:100%; border:1.3px solid var(--line); border-radius:10px; padding:11px; font-size:11px; color:var(--terra); background:var(--white); margin-bottom:7px; text-align:left; }
+
+  .countdown{ font-family:'Space Mono', monospace; font-size:38px; font-weight:700; color:var(--terra); text-align:center; margin:18px 0 6px; }
+
+  .checklist{ width:100%; display:flex; flex-direction:column; gap:7px; margin:10px 0; }
+  .checklist .row{ display:flex; align-items:center; gap:8px; }
+  .cyclelist{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:10px 0; }
+  .cyclelist .step{ font-size:10.5px; color:var(--terra); text-align:center; padding:4px 0; }
+  .cyclelist .arrow{ font-size:12px; color:var(--musgo); }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="kick">Identidade final — Raiz</div>
-  <h1>As 8 telas do MVP em alta fidelidade</h1>
+  <h1>Todas as telas do Rootora, em alta fidelidade</h1>
+  <p class="note">Inventário completo do app real — substitui a versão anterior, que cobria só 8 telas do núcleo MVP mais antigo (fluxo diário/recaída/retorno). Telas de debug (<code>AccessibilityDebugScreen</code>, <code>InterceptDebugScreen</code>) ficam de fora de propósito: são atalhos de validação manual, não telas do produto. Textos reproduzidos literalmente do código — qualquer mudança de copy no app precisa ser replicada aqui pra este arquivo não voltar a divergir.</p>
 </div>
 
 <div class="board">
 
-  <!-- 01 -->
+  <!-- GRUPO: ABERTURA -->
+  <div class="group-title"><div class="gk">Abertura</div><h2>Antes do login</h2></div>
+
   <div>
-    <div class="card-head"><span class="no">01</span><span class="title">Onboarding · diagnóstico</span></div>
+    <div class="card-head"><span class="no">01</span><span class="title">Splash</span></div>
     <div class="phone">
-      <div class="stepdots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+      <div class="celeb-body">
+        <svg width="90" height="90" viewBox="0 0 200 130">
+          <line x1="100" y1="6" x2="100" y2="46" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100,46 C80,58 68,58 50,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <path d="M100,46 C120,58 132,58 150,80" fill="none" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="100" cy="6" r="6" fill="#B5772E"/>
+        </svg>
+        <p class="muted" style="margin-top:14px;">Rootora</p>
+      </div>
+      <div class="annot">Fica até o maior entre 1200ms e as checagens de <b>tutorial_visto</b> + auth + <b>onboardingConcluido</b> resolverem — nenhuma tela pisca durante o carregamento.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">02</span><span class="title">Tutorial · carrossel (1 de 4)</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <p class="h">Isso te parece familiar?</p>
+      <div class="cyclelist">
+        <div class="step">Uma tarefa parece pesada</div><div class="arrow">↓</div>
+        <div class="step">O celular promete alívio</div><div class="arrow">↓</div>
+        <div class="step">O tempo passa, a culpa chega</div><div class="arrow">↓</div>
+        <div class="step">A tarefa parece ainda mais pesada</div>
+      </div>
+      <p class="muted" style="margin-top:10px;">Isso não é falta de força de vontade. É um ciclo — e ciclos se quebram com o passo certo, não com mais cobrança.</p>
+      <div class="btn">Continuar</div>
+      <div class="linkrow">Pular</div>
+      <div class="annot">
+        <b>Passo 2</b> — "Tarefas pequenas. Sem cobrança." (exemplo de checklist de 3 tarefas)<br>
+        <b>Passo 3</b> — "Um ramo fica mais fino. A raiz continua firme." (ícone reduzido + proteção semanal)<br>
+        <b>Passo 4</b> — "Vamos começar pequeno." → "Começar" / "Já tenho conta"
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUPO: AUTENTICAÇÃO -->
+  <div class="group-title"><div class="gk">Autenticação</div><h2>E-mail/senha e Google</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">03</span><span class="title">Entrar</span></div>
+    <div class="phone">
+      <p class="h" style="font-size:19px;">Entrar</p>
+      <div class="inputf"><span class="lbl">E-MAIL</span><div class="box">ana@email.com</div></div>
+      <div class="inputf"><span class="lbl">SENHA</span><div class="box">••••••••</div></div>
+      <div class="btn">Entrar</div>
+      <div class="linkrow">Ainda não tem conta? Criar conta</div>
+      <div class="linkrow">Esqueci minha senha</div>
+      <div class="divider">ou</div>
+      <div class="btn ghost">Continuar com Google</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">04</span><span class="title">Criar conta</span></div>
+    <div class="phone tall">
+      <p class="h" style="font-size:19px;">Criar conta</p>
+      <div class="inputf"><span class="lbl">NOME</span><div class="box">Ana</div></div>
+      <div class="inputf"><span class="lbl">E-MAIL</span><div class="box">ana@email.com</div></div>
+      <div class="inputf"><span class="lbl">SENHA</span><div class="box">••••••••</div></div>
+      <div class="inputf"><span class="lbl">CONFIRMAR SENHA</span><div class="box">••••••••</div></div>
+      <div class="btn">Criar conta</div>
+      <div class="linkrow">Já tem conta? Entrar</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">05</span><span class="title">Recuperar senha</span></div>
+    <div class="phone">
+      <p class="h" style="font-size:19px;">Recuperar senha</p>
+      <div class="inputf"><span class="lbl">E-MAIL</span><div class="box">ana@email.com</div></div>
+      <div class="btn">Enviar link de recuperação</div>
+      <div class="linkrow">Voltar para o login</div>
+      <div class="annot">Estado "enviado": "Se esse e-mail tiver uma conta, você vai receber um link em alguns minutos." — nunca revela se o e-mail existe ou não.</div>
+    </div>
+  </div>
+
+  <!-- GRUPO: ONBOARDING -->
+  <div class="group-title"><div class="gk">Onboarding</div><h2>4 passos internos de uma tela só (não 4 rotas)</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">06</span><span class="title">Onboarding 1/4 · foco</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       <p class="h">O que você mais procrastina?</p>
       <div class="chip-row">
         <div class="chip sel">Estudos</div><div class="chip">Trabalho</div>
-        <div class="chip">Exercício</div><div class="chip">Casa</div><div class="chip">Outro</div>
+        <div class="chip">Organização pessoal</div><div class="chip">Outro</div>
       </div>
-      <p class="muted" style="margin-top:16px;">Quanto tempo de tela, hoje, sem contar trabalho?</p>
+      <div class="btn">Continuar</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">07</span><span class="title">Onboarding 2/4 · tempo de tela</span></div>
+    <div class="phone">
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div></div>
+      <p class="h">Quanto tempo de tela, hoje, sem contar trabalho?</p>
       <div class="slider"><div class="fill"></div><div class="knob"></div></div>
       <p class="muted">≈ 3h40 por dia</p>
       <div class="btn">Continuar</div>
     </div>
   </div>
 
-  <!-- 02 -->
   <div>
-    <div class="card-head"><span class="no">02</span><span class="title">Onboarding · o porquê</span></div>
+    <div class="card-head"><span class="no">08</span><span class="title">Onboarding 3/4 · o porquê</span></div>
     <div class="phone">
-      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
       <p class="h">Antes de começar: por que você quer sair desse ciclo?</p>
       <div class="field">Escreva com suas palavras...</div>
       <p class="muted">Isso vai aparecer de novo nos dias difíceis.</p>
       <div class="btn">Continuar</div>
+      <div class="annot">Campo de texto livre — NÃO é mais o gate de saída do onboarding (só a tela 4 é).</div>
     </div>
   </div>
 
-  <!-- 03 -->
   <div>
-    <div class="card-head"><span class="no">03</span><span class="title">Onboarding · primeira tarefa</span></div>
+    <div class="card-head"><span class="no">09</span><span class="title">Onboarding 4/4 · primeira tarefa</span></div>
     <div class="phone">
-      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+      <div class="stepdots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
       <p class="h">Vamos começar pequeno de propósito.</p>
       <p class="muted">Escolha 1 coisa simples que você consegue terminar hoje em menos de 10 minutos.</p>
       <div class="field oneline">ex: separar a roupa de treino</div>
       <div class="btn">Começar</div>
       <div class="btn ghost">Pular por hoje</div>
+      <div class="annot">Único passo que seta <b>onboardingConcluido = true</b> — seja criando a tarefa ou pulando.</div>
     </div>
   </div>
 
-  <!-- 04 -->
+  <!-- GRUPO: FLUXO DIÁRIO -->
+  <div class="group-title"><div class="gk">Fluxo diário</div><h2>Aba Hoje</h2></div>
+
   <div>
-    <div class="card-head"><span class="no">04</span><span class="title">Home · check-in diário</span></div>
+    <div class="card-head"><span class="no">10</span><span class="title">Home · check-in diário</span></div>
     <div class="phone">
       <div class="topbar"><div class="greet">Bom dia, <b>Ana</b></div><div class="badge">🌱 12 dias</div></div>
       <p class="h" style="font-size:18px;">O que vai contar como vitória hoje?</p>
@@ -162,19 +328,19 @@
         <div class="task"><div class="box"></div><div class="txt">Estudar 25 min</div><div class="essential"></div></div>
         <div class="task"><div class="box"></div><div class="txt">Arrumar a mesa de trabalho</div></div>
       </div>
+      <div class="discreet-link">Estou travado</div>
       <div class="addtask">+ adicionar tarefa</div>
-      <div class="phrase">"Consistência é mais poderosa que intensidade."</div>
       <div class="navbar">
         <div class="navitem on"><div class="navdot"></div>Hoje</div>
         <div class="navitem"><div class="navdot"></div>Progresso</div>
         <div class="navitem"><div class="navdot"></div>Perfil</div>
       </div>
+      <div class="annot">O card de "frase do dia" da versão anterior deste arquivo foi removido — a coleção <b>phrases</b> existe no Firestore, mas nenhuma tela lê dela hoje (achado da auditoria mais recente).</div>
     </div>
   </div>
 
-  <!-- 05 -->
   <div>
-    <div class="card-head"><span class="no">05</span><span class="title">Feedback · tarefa concluída</span></div>
+    <div class="card-head"><span class="no">11</span><span class="title">Feedback · tarefa concluída</span></div>
     <div class="phone">
       <div class="topbar" style="opacity:.35;"><div class="greet">Bom dia, <b>Ana</b></div><div class="badge">🌱 12 dias</div></div>
       <div class="overlay">
@@ -184,9 +350,8 @@
     </div>
   </div>
 
-  <!-- 06 -->
   <div>
-    <div class="card-head"><span class="no">06</span><span class="title">Celebração · marco de streak</span></div>
+    <div class="card-head"><span class="no">12</span><span class="title">Celebração · marco de streak</span></div>
     <div class="phone">
       <div class="celeb-body">
         <div class="eyebrow">Marco atingido</div>
@@ -206,26 +371,36 @@
     </div>
   </div>
 
-  <!-- 07 -->
+  <!-- GRUPO: RECAÍDA E RETORNO -->
+  <div class="group-title"><div class="gk">Recaída e retorno</div><h2>Um estado por vez — nunca os dois juntos</h2></div>
+
   <div>
-    <div class="card-head"><span class="no">07</span><span class="title">Estados de recaída</span></div>
+    <div class="card-head"><span class="no">13</span><span class="title">Recaída · proteção usada</span></div>
     <div class="phone">
       <p class="h" style="font-size:14px;">Seu dia de ontem</p>
       <div class="statecard">
-        <div class="label">Ramo em pausa (escudo)</div>
+        <div class="label">Proteção usada</div>
         <div class="txt">Ontem não saiu como planejado — e tudo bem. Seu progresso continua de pé. Hoje é um novo dia para agir.</div>
       </div>
+      <div class="btn">Ver tarefas de hoje</div>
+      <div class="annot">Botão voltar físico bloqueado enquanto essa tela está em foco (recaída sem vergonha — não dá pra "escapar" sem reconhecer o estado).</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">14</span><span class="title">Recaída · streak reduzido</span></div>
+    <div class="phone">
+      <p class="h" style="font-size:14px;">Seu dia de ontem</p>
       <div class="statecard">
-        <div class="label">Ramo mais fino</div>
-        <div class="txt">Você perdeu um dia e isso teve um custo — seu streak caiu para 7. Mas 14 dias reais continuam contando.</div>
+        <div class="label">Sequência reduzida</div>
+        <div class="txt">Você perdeu um dia e isso teve um custo — sua sequência caiu para 7. Mas 14 dias reais continuam contando. Vamos seguir a partir daqui, não do zero.</div>
       </div>
       <div class="btn">Ver tarefas de hoje</div>
     </div>
   </div>
 
-  <!-- 08 -->
   <div>
-    <div class="card-head"><span class="no">08</span><span class="title">Retorno após pausa longa</span></div>
+    <div class="card-head"><span class="no">15</span><span class="title">Retorno após pausa longa</span></div>
     <div class="phone">
       <p class="h">Você esteve fora por alguns dias.</p>
       <p class="muted">Isso acontece — não precisa explicar, só decidir o próximo passo. Lembra por que você começou?</p>
@@ -233,6 +408,211 @@
       <p class="muted" style="margin-top:8px;">Vamos escolher 1 coisa pequena para hoje.</p>
       <div class="field oneline">ex: guardar o celular na gaveta às 20h</div>
       <div class="btn">Voltar a começar</div>
+    </div>
+  </div>
+
+  <!-- GRUPO: PROGRESSO -->
+  <div class="group-title"><div class="gk">Progresso</div><h2>Aba Progresso</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">16</span><span class="title">Progresso · histórico e desafios</span></div>
+    <div class="phone tall">
+      <p class="h" style="font-size:18px;">Seu progresso</p>
+      <div class="statbox2">
+        <div class="sb"><div class="n">12</div><div class="l">dias seguidos</div></div>
+        <div class="sb"><div class="n">34</div><div class="l">dias ativos no total</div></div>
+      </div>
+      <p class="muted" style="font-weight:600; color:var(--terra); margin-bottom:4px;">Últimos 7 dias</p>
+      <div class="pillrow">
+        <div class="pill"><div class="lb">seg</div></div>
+        <div class="pill"><div class="lb">ter</div></div>
+        <div class="pill half"><div class="lb">qua</div></div>
+        <div class="pill"><div class="lb">qui</div></div>
+        <div class="pill empty"><div class="lb">sex</div></div>
+        <div class="pill"><div class="lb">sáb</div></div>
+        <div class="pill today"><div class="lb">dom</div></div>
+      </div>
+      <p class="muted" style="font-weight:600; color:var(--terra); margin:20px 0 6px;">Desafios</p>
+      <div class="challenge">
+        <div class="t">Exercite-se 3x essa semana</div>
+        <div class="bar"><div class="f" style="width:66%;"></div></div>
+        <div class="x">2 de 3</div>
+      </div>
+      <div class="challenge">
+        <div class="t">20 dias ativos esse mês</div>
+        <div class="bar"><div class="f" style="width:40%;"></div></div>
+        <div class="x">8 de 20</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUPO: PERFIL -->
+  <div class="group-title"><div class="gk">Perfil</div><h2>Aba Perfil</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">17</span><span class="title">Perfil</span></div>
+    <div class="phone tall">
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:12px;">Seu porquê</p>
+      <div class="field" style="min-height:44px;">Terminar meus estudos</div>
+      <div class="btn ghost" style="margin-top:6px; padding:8px;">Salvar</div>
+
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:12px; margin-top:16px;">Notificações</p>
+      <div class="toggle-row"><span class="muted">Lembrete diário</span><div class="toggle"></div></div>
+      <div class="toggle-row" style="margin-top:0;"><span class="muted">Horário: 08:00</span><span class="linkrow" style="margin:0;">Alterar horário</span></div>
+
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:12px; margin-top:16px;">Bloqueio de apps</p>
+      <div class="linkrow" style="margin-top:4px;">Configurar bloqueio de apps</div>
+
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:12px; margin-top:16px;">Sobre</p>
+      <div class="linkrow" style="margin-top:4px;">Ver tutorial novamente</div>
+      <div class="linkrow">Política de Privacidade</div>
+      <div class="linkrow">Termos de Uso</div>
+
+      <div class="btn" style="margin-top:18px;">Sair</div>
+      <div class="btn ghost" style="margin-top:8px; border-color:var(--terra-suave); color:var(--terra-suave);">Excluir conta</div>
+      <p class="muted" style="font-size:9.5px; margin-top:4px;">Apaga sua conta e todo o progresso. Não dá pra desfazer.</p>
+    </div>
+  </div>
+
+  <!-- GRUPO: BLOQUEIO DE APPS -->
+  <div class="group-title"><div class="gk">Bloqueio de apps</div><h2>Divulgação, permissão e configuração</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">18</span><span class="title">Divulgação em destaque</span></div>
+    <div class="phone tall">
+      <p class="h">Como o bloqueio funciona</p>
+      <p class="muted" style="margin:10px 0;">Para interceptar um app, o Rootora usa o serviço de acessibilidade do Android.</p>
+      <p class="muted" style="margin:10px 0;">Ele identifica apenas qual app foi aberto, para mostrar sua tarefa do dia no lugar dele.</p>
+      <p class="muted" style="margin:10px 0;">Não lê o que você digita e não vê o conteúdo das telas.</p>
+      <p class="muted" style="margin:10px 0;">O Rootora registra quais apps foram interceptados e quando.</p>
+      <div class="btn">Concordo e quero ativar</div>
+      <div class="btn ghost">Agora não</div>
+      <div class="annot">Mostrada ANTES de abrir as configurações de acessibilidade do Android — exigência de política da Play Store, tela própria, fora de qualquer menu. "Concordo" grava <b>consentimentoAcessibilidade</b> e só então abre as configurações.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">19</span><span class="title">Permissão de notificações</span></div>
+    <div class="phone">
+      <p class="h">Só 2 tipos de aviso, nada além disso</p>
+      <p class="muted">Se você permitir, o Rootora manda no máximo:</p>
+      <div class="checklist">
+        <div class="row"><span style="color:var(--musgo); font-weight:700;">✓</span><span class="muted">Um lembrete, 1x ao dia, no horário que você escolher</span></div>
+        <div class="row"><span style="color:var(--musgo); font-weight:700;">✓</span><span class="muted">Um aviso perto do fim do dia, só se sua tarefa essencial ainda não foi feita</span></div>
+        <div class="row"><span style="color:var(--erro); font-weight:700;">✕</span><span class="muted">Sem notificação de marketing ou novidade</span></div>
+      </div>
+      <div class="btn">Permitir notificações</div>
+      <div class="btn ghost">Agora não</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">20</span><span class="title">Bloqueio de apps · configuração</span></div>
+    <div class="phone tall">
+      <p class="h" style="font-size:18px;">Bloqueio de apps</p>
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:11.5px; margin-top:10px;">Serviço de acessibilidade</p>
+      <span class="statuschip inativo">Desativado</span>
+      <div class="btn ghost" style="padding:9px;">Ativar</div>
+
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:11.5px; margin-top:14px;">Horário</p>
+      <div class="timepair">
+        <div class="timebox"><span class="lbl">Início</span><span class="val">09:00</span></div>
+        <div class="timebox"><span class="lbl">Fim</span><span class="val">18:00</span></div>
+      </div>
+      <p class="muted" style="font-size:9.5px; margin:6px 0 2px;">Dias da semana</p>
+      <div class="daydots">
+        <div class="d">D</div><div class="d sel">S</div><div class="d sel">T</div><div class="d sel">Q</div><div class="d sel">Q</div><div class="d sel">S</div><div class="d">S</div>
+      </div>
+
+      <p class="muted" style="font-weight:600; color:var(--terra); font-size:11.5px; margin-top:14px;">Apps</p>
+      <div class="inputf" style="margin-top:4px;"><div class="box" style="color:var(--line); font-size:10.5px;">Buscar</div></div>
+      <div class="applist">
+        <div class="appitem"><div class="appicon"></div><div class="txt">Instagram</div><div class="appcheck on"></div></div>
+        <div class="appitem"><div class="appicon"></div><div class="txt">TikTok</div><div class="appcheck on"></div></div>
+        <div class="appitem"><div class="appicon"></div><div class="txt">YouTube</div><div class="appcheck"></div></div>
+      </div>
+      <p class="muted" style="font-size:10px; margin-top:8px;">2 apps selecionados, seg, ter, qua, qui, sex das 09:00 às 18:00.</p>
+      <div class="btn">Salvar</div>
+      <div class="annot">Lista de apps via <b>&lt;queries&gt;</b> (MAIN/LAUNCHER) — nunca <b>QUERY_ALL_PACKAGES</b>. 1ª configuração vale na hora; qualquer alteração depois vira pendente pro dia seguinte ("Anotado. A nova regra começa amanhã.").</div>
+    </div>
+  </div>
+
+  <!-- GRUPO: PONTE FUGA→TAREFA -->
+  <div class="group-title"><div class="gk">Ponte fuga→tarefa</div><h2>Interceptação (root RN separado, &lt;300ms)</h2></div>
+
+  <div>
+    <div class="card-head"><span class="no">21</span><span class="title">Interceptação · estado A</span></div>
+    <div class="phone">
+      <p class="h">Você ia abrir o Instagram. A tarefa de hoje é <i>Estudar 25 min</i>. Topa só 2 minutos dela?</p>
+      <div class="btn">Fazer 2 minutos</div>
+      <div class="btn ghost">Estou travado</div>
+      <div class="btn ghost">Sair</div>
+      <div class="annot">Existe essencial pendente. Tarefa escolhida: a primeira pendente, ou a de <b>quando</b> (HH:mm) mais próximo do horário atual.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">22</span><span class="title">Interceptação · estado B</span></div>
+    <div class="phone">
+      <p class="h">Você já cumpriu o essencial de hoje. Liberar o Instagram por 15 minutos?</p>
+      <div class="btn">Liberar</div>
+      <div class="btn ghost">Agora não</div>
+      <div class="annot">Todas as essenciais já concluídas hoje.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">23</span><span class="title">Interceptação · estado C</span></div>
+    <div class="phone">
+      <p class="h">Você ia abrir o Instagram. Antes: qual é uma coisa pequena para hoje?</p>
+      <div class="inputf"><span class="lbl">UMA COISA PEQUENA PARA HOJE</span><div class="box">ex: separar a roupa de treino</div></div>
+      <div class="btn">Continuar</div>
+      <div class="annot">Nenhuma tarefa cadastrada hoje. Criar aqui transita direto pro estado A, sem fechar/reabrir a tela.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">24</span><span class="title">Estou travado · passo 1</span></div>
+    <div class="phone">
+      <p class="h">O que está pegando agora?</p>
+      <div class="vchip">Não sei por onde começar</div>
+      <div class="vchip">Tenho medo de ficar ruim</div>
+      <div class="vchip">Está chato demais</div>
+      <div class="vchip">Estou sem energia</div>
+      <div class="annot">Mesmo componente nas 3 entradas: botão discreto da Home, toque longo numa tarefa, e a partir do estado A da interceptação.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">25</span><span class="title">Estou travado · passo 2 (confusão)</span></div>
+    <div class="phone">
+      <p class="h">Qual é o primeiro passo físico? Algo que dá para fazer em 2 minutos.</p>
+      <div class="field oneline" style="color:var(--line);">abrir o arquivo, separar o material</div>
+      <div class="btn">Fazer agora</div>
+      <div class="annot">Cria uma subtarefa (<b>tarefaPaiId</b>) e abre a sessão de foco de 2 min. Os outros 3 estados (medo/tédio/energia) têm sua própria resposta — ver <code>09-ponte-fuga-tarefa-e-estou-travado.md</code> seção 4.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">26</span><span class="title">Sessão de foco · timer</span></div>
+    <div class="phone">
+      <div class="celeb-body">
+        <div class="countdown">01:47</div>
+        <p class="muted">Só 2 minutos. Pode parar depois.</p>
+      </div>
+      <div class="annot">Se o usuário sair pro app bloqueado durante o timer, a interceptação reaparece mostrando esse mesmo timer em andamento (não a decisão A/B/C de novo).</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">27</span><span class="title">Sessão de foco · fim</span></div>
+    <div class="phone">
+      <p class="h">2 minutos feitos. O começo era a parte difícil.</p>
+      <div class="btn">Continuar mais 10 minutos</div>
+      <div class="btn ghost">Marcar a tarefa como feita</div>
+      <div class="btn ghost">Parar aqui</div>
+      <div class="btn ghost">Liberar o Instagram por 15 minutos</div>
+      <div class="annot">O último botão só aparece quando a sessão veio de uma interceptação (<b>origem === 'interceptacao'</b>).</div>
     </div>
   </div>
 
