@@ -6,7 +6,6 @@
 export type TourAlvoId =
   | 'streak'
   | 'adicionarTarefa'
-  | 'bloqueioApps'
   | 'abaProgresso'
   | 'abaPerfil';
 
@@ -25,11 +24,6 @@ export const TOUR_PASSOS: TourPasso[] = [
     alvo: 'adicionarTarefa',
     texto:
       'Toque aqui pra adicionar uma tarefa. Marque até 3 como essenciais — só elas contam pra sua sequência.',
-  },
-  {
-    alvo: 'bloqueioApps',
-    texto:
-      'Esse é o nosso maior diferencial: escolha apps pra limitar, e use suas tarefas do dia pra desbloquear.',
   },
   {
     alvo: 'abaProgresso',

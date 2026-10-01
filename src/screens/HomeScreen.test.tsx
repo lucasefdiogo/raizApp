@@ -36,22 +36,6 @@ const {
 jest.mock('../services/firestore');
 const { buscarSystemMessage } = require('../services/firestore');
 
-jest.mock('../hooks/useAppBlockConfig');
-const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
-
-jest.mock('../hooks/useAccessibilityPermission');
-const {
-  useAccessibilityPermission,
-} = require('../hooks/useAccessibilityPermission');
-
-jest.mock('../hooks/useAppBlockBannerDismissido');
-const {
-  useAppBlockBannerDismissido,
-} = require('../hooks/useAppBlockBannerDismissido');
-
-jest.mock('../hooks/useRecarregarAoFocar');
-const { useRecarregarAoFocar } = require('../hooks/useRecarregarAoFocar');
-
 jest.mock('../hooks/useNomeUsuario');
 const { useNomeUsuario } = require('../hooks/useNomeUsuario');
 
@@ -165,26 +149,9 @@ const PROPS_PADRAO = {
   marcoAtingido: null,
   avaliarAlertaRisco: jest.fn(),
   recarregarStreak: jest.fn().mockResolvedValue(undefined),
-  aoAbrirBloqueioApps: jest.fn(),
   progressoTabRef: createRef<React.ComponentRef<typeof View>>(),
   perfilTabRef: createRef<React.ComponentRef<typeof View>>(),
   aoAtualizarTour: jest.fn(),
-};
-
-const CONFIG_BLOQUEIO_PADRAO = {
-  appsInstalados: [],
-  configAtual: {
-    ativo: false,
-    appsSelecionados: [],
-    horarioInicio: null,
-    horarioFim: null,
-  },
-  carregando: false,
-  ativoAgora: false,
-  alternarApp: jest.fn(),
-  salvarHorario: jest.fn(),
-  alternarAtivo: jest.fn(),
-  recarregar: jest.fn(),
 };
 
 beforeEach(() => {
@@ -195,21 +162,6 @@ beforeEach(() => {
   buscarSystemMessage.mockResolvedValue({
     titulo: 'Sete dias seguidos',
     corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
-  });
-  // Padrão: banner e status card ficam fora do caminho dos testes que não
-  // são sobre bloqueio de apps — 0 apps selecionados normalmente mostraria
-  // o banner, então o "dispensado hoje" cobre esse caso por padrão.
-  useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-  useAccessibilityPermission.mockReturnValue({
-    ativo: true,
-    carregando: false,
-    verificarNovamente: jest.fn(),
-    abrirConfiguracoes: jest.fn(),
-  });
-  useAppBlockBannerDismissido.mockReturnValue({
-    dispensadoHoje: true,
-    carregando: false,
-    dispensarHoje: jest.fn(),
   });
   useNomeUsuario.mockReturnValue('Ana');
   useFeatureTour.mockReturnValue({
@@ -541,240 +493,10 @@ describe('HomeScreen', () => {
     }
   });
 
-  describe('visibilidade do bloqueio de apps', () => {
-    it('nunca configurou (0 apps) e não dispensou hoje: mostra o banner, não o status card', async () => {
-      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: false,
-        carregando: false,
-        dispensarHoje: jest.fn(),
-      });
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      expect(screen.getByTestId('app-block-banner')).toBeTruthy();
-      expect(screen.queryByTestId('app-block-status-card')).toBeNull();
-    });
-
-    it('já configurou (apps > 0): mostra o status card, não o banner — mesmo sem dispensar', async () => {
-      useAppBlockConfig.mockReturnValue({
-        ...CONFIG_BLOQUEIO_PADRAO,
-        appsInstalados: [
-          { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
-        ],
-        configAtual: {
-          ativo: true,
-          appsSelecionados: ['com.whatsapp'],
-          horarioInicio: '09:00',
-          horarioFim: '18:00',
-        },
-        ativoAgora: true,
-      });
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: false,
-        carregando: false,
-        dispensarHoje: jest.fn(),
-      });
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      expect(screen.getByTestId('app-block-status-card')).toBeTruthy();
-      expect(screen.queryByTestId('app-block-banner')).toBeNull();
-    });
-
-    it('apps selecionados mas o toggle geral está desligado: mostra "Bloqueio desativado", não "Bloqueio começa às"', async () => {
-      useAppBlockConfig.mockReturnValue({
-        ...CONFIG_BLOQUEIO_PADRAO,
-        appsInstalados: [
-          { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
-        ],
-        configAtual: {
-          ativo: false,
-          appsSelecionados: ['com.whatsapp'],
-          horarioInicio: '09:00',
-          horarioFim: '18:00',
-        },
-        ativoAgora: false,
-      });
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: false,
-        carregando: false,
-        dispensarHoje: jest.fn(),
-      });
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      expect(screen.getByText('Bloqueio desativado')).toBeTruthy();
-      expect(screen.queryByText('Bloqueio começa às 09:00')).toBeNull();
-      expect(screen.queryByTestId('app-block-banner')).toBeNull();
-    });
-
-    it('recarrega a config de bloqueio sempre que a Home ganha foco (volta de editar em outra tela)', async () => {
-      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      expect(useRecarregarAoFocar).toHaveBeenCalledWith(
-        CONFIG_BLOQUEIO_PADRAO.recarregar,
-      );
-    });
-
-    it('nunca configurou, mas já dispensou o banner hoje: não mostra nenhum dos dois', async () => {
-      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: true,
-        carregando: false,
-        dispensarHoje: jest.fn(),
-      });
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      expect(screen.queryByTestId('app-block-banner')).toBeNull();
-      expect(screen.queryByTestId('app-block-status-card')).toBeNull();
-    });
-
-    it('"Configurar agora" chama aoAbrirBloqueioApps', async () => {
-      const aoAbrirBloqueioApps = jest.fn();
-      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: false,
-        carregando: false,
-        dispensarHoje: jest.fn(),
-      });
-
-      await render(
-        <HomeScreen
-          {...PROPS_PADRAO}
-          aoAbrirBloqueioApps={aoAbrirBloqueioApps}
-        />,
-      );
-
-      await fireEvent.press(screen.getByText('Configurar agora'));
-
-      expect(aoAbrirBloqueioApps).toHaveBeenCalledTimes(1);
-    });
-
-    it('dispensar o banner chama dispensarHoje', async () => {
-      const dispensarHoje = jest.fn();
-      useAppBlockConfig.mockReturnValue(CONFIG_BLOQUEIO_PADRAO);
-      useAppBlockBannerDismissido.mockReturnValue({
-        dispensadoHoje: false,
-        carregando: false,
-        dispensarHoje,
-      });
-
-      await render(<HomeScreen {...PROPS_PADRAO} />);
-
-      await fireEvent.press(screen.getByLabelText('Dispensar'));
-
-      expect(dispensarHoje).toHaveBeenCalledTimes(1);
-    });
-
-    describe('accessibility desativada por fora do app', () => {
-      const CONFIG_COM_APP_ATIVO = {
-        ...CONFIG_BLOQUEIO_PADRAO,
-        appsInstalados: [
-          { packageName: 'com.whatsapp', nome: 'WhatsApp', icone: null },
-        ],
-        configAtual: {
-          ativo: true,
-          appsSelecionados: ['com.whatsapp'],
-          horarioInicio: '09:00',
-          horarioFim: '18:00',
-        },
-        ativoAgora: true,
-      };
-
-      it('bloqueio ativo mas accessibility desligada: mostra o aviso com link "Reativar"', async () => {
-        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
-        useAccessibilityPermission.mockReturnValue({
-          ativo: false,
-          carregando: false,
-          verificarNovamente: jest.fn(),
-          abrirConfiguracoes: jest.fn(),
-        });
-
-        await render(<HomeScreen {...PROPS_PADRAO} />);
-
-        expect(
-          screen.getByTestId('app-block-aviso-acessibilidade-desativada'),
-        ).toBeTruthy();
-      });
-
-      it('"Reativar" chama abrirConfiguracoes do hook', async () => {
-        const abrirConfiguracoes = jest.fn();
-        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
-        useAccessibilityPermission.mockReturnValue({
-          ativo: false,
-          carregando: false,
-          verificarNovamente: jest.fn(),
-          abrirConfiguracoes,
-        });
-
-        await render(<HomeScreen {...PROPS_PADRAO} />);
-        await fireEvent.press(screen.getByText('Reativar'));
-
-        expect(abrirConfiguracoes).toHaveBeenCalledTimes(1);
-      });
-
-      it('accessibility ativa: não mostra o aviso', async () => {
-        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
-        useAccessibilityPermission.mockReturnValue({
-          ativo: true,
-          carregando: false,
-          verificarNovamente: jest.fn(),
-          abrirConfiguracoes: jest.fn(),
-        });
-
-        await render(<HomeScreen {...PROPS_PADRAO} />);
-
-        expect(
-          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
-        ).toBeNull();
-      });
-
-      it('bloqueio desligado no toggle geral: não mostra o aviso mesmo com accessibility desativada', async () => {
-        useAppBlockConfig.mockReturnValue({
-          ...CONFIG_COM_APP_ATIVO,
-          configAtual: { ...CONFIG_COM_APP_ATIVO.configAtual, ativo: false },
-          ativoAgora: false,
-        });
-        useAccessibilityPermission.mockReturnValue({
-          ativo: false,
-          carregando: false,
-          verificarNovamente: jest.fn(),
-          abrirConfiguracoes: jest.fn(),
-        });
-
-        await render(<HomeScreen {...PROPS_PADRAO} />);
-
-        expect(
-          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
-        ).toBeNull();
-      });
-
-      it('ainda carregando o status da accessibility: não mostra o aviso (evita piscar antes de saber)', async () => {
-        useAppBlockConfig.mockReturnValue(CONFIG_COM_APP_ATIVO);
-        useAccessibilityPermission.mockReturnValue({
-          ativo: false,
-          carregando: true,
-          verificarNovamente: jest.fn(),
-          abrirConfiguracoes: jest.fn(),
-        });
-
-        await render(<HomeScreen {...PROPS_PADRAO} />);
-
-        expect(
-          screen.queryByTestId('app-block-aviso-acessibilidade-desativada'),
-        ).toBeNull();
-      });
-    });
-  });
-
   describe('tour de funcionalidades', () => {
     // A HomeScreen não renderiza o FeatureTourOverlay ela mesma — só quem
-    // vive dentro dela (StreakCard, AddTaskForm, bloqueio de apps) consegue
-    // medir seus próprios elementos; quem desenha é o MainTabNavigator, que
+    // vive dentro dela (StreakCard, AddTaskForm) consegue medir seus
+    // próprios elementos; quem desenha é o MainTabNavigator, que
     // cobre a tab bar também (ver comentário em FeatureTourOverlay.tsx —
     // um overlay montado dentro da Home nunca conseguiria desenhar por
     // cima da tab bar, ela é uma árvore irmã). Por isso os testes aqui
@@ -804,7 +526,7 @@ describe('HomeScreen', () => {
       const chamada = ultimaChamada();
       expect(chamada).not.toBeNull();
       expect(chamada.passoAtual).toBe(0);
-      expect(chamada.totalPassos).toBe(5);
+      expect(chamada.totalPassos).toBe(4);
       expect(chamada.texto).toBe(TOUR_PASSOS[0].texto);
     });
 

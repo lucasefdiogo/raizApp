@@ -25,9 +25,6 @@ jest.mock('../hooks/useStreak');
 jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
 jest.mock('../hooks/useDailyTasks');
-jest.mock('../hooks/useAppBlockConfig');
-jest.mock('../hooks/useAccessibilityPermission');
-jest.mock('../hooks/useAppBlockBannerDismissido');
 // Não é o foco deste arquivo (tem teste próprio em useFeatureTour.test.ts) —
 // mantido inativo pra não interferir nas asserções de roteamento daqui.
 jest.mock('../hooks/useFeatureTour');
@@ -38,13 +35,6 @@ const { useStreak } = require('../hooks/useStreak');
 const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
 const { useDailyTasks } = require('../hooks/useDailyTasks');
-const { useAppBlockConfig } = require('../hooks/useAppBlockConfig');
-const {
-  useAccessibilityPermission,
-} = require('../hooks/useAccessibilityPermission');
-const {
-  useAppBlockBannerDismissido,
-} = require('../hooks/useAppBlockBannerDismissido');
 const { useFeatureTour } = require('../hooks/useFeatureTour');
 const { buscarSystemMessage, buscarUsuario } = require('../services/firestore');
 const {
@@ -85,32 +75,6 @@ function configurarHooksPadrao() {
     statusDia: 'pendente',
     carregando: false,
     limiteEssenciaisAtingido: false,
-  });
-  useAppBlockConfig.mockReturnValue({
-    appsInstalados: [],
-    configAtual: {
-      ativo: false,
-      appsSelecionados: [],
-      horarioInicio: null,
-      horarioFim: null,
-    },
-    carregando: false,
-    ativoAgora: false,
-    alternarApp: jest.fn(),
-    salvarHorario: jest.fn(),
-    alternarAtivo: jest.fn(),
-    recarregar: jest.fn(),
-  });
-  useAccessibilityPermission.mockReturnValue({
-    ativo: true,
-    carregando: false,
-    verificarNovamente: jest.fn(),
-    abrirConfiguracoes: jest.fn(),
-  });
-  useAppBlockBannerDismissido.mockReturnValue({
-    dispensadoHoje: true,
-    carregando: false,
-    dispensarHoje: jest.fn(),
   });
   useFeatureTour.mockReturnValue({
     tourAtivo: false,

@@ -10,10 +10,10 @@ import {
   existeAlgumDailyLog,
   salvarDailyLog,
   garantirDailyLogDoDia,
+  registrarSessaoFocoNoDia,
+  registrarInterceptacaoNoDia,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
-  buscarDesbloqueiosHojeDoApp,
-  incrementarDesbloqueiosHoje,
   preencherNomeSeVazio,
   removerTarefaDoDia,
   criarTarefaRecorrente,
@@ -257,6 +257,107 @@ describe('services/firestore', () => {
       const log = await buscarDailyLog('uid-1', '2026-09-15');
       expect(log?.statusDia).toBe('cumprido');
       expect(log?.tarefas[0].concluida).toBe(true);
+    });
+  });
+
+  describe('registrarSessaoFocoNoDia / registrarInterceptacaoNoDia (arrayUnion)', () => {
+    function sessao(id: string) {
+      return {
+        id,
+        tarefaId: null,
+        origem: 'travado' as const,
+        estadoTravado: 'tedio' as const,
+        duracaoPlanejadaSeg: 300,
+        duracaoRealSeg: 300,
+        resultado: 'parou' as const,
+        criadoEm: '2026-09-15T12:00:00.000',
+      };
+    }
+
+    function interceptacao(app: string) {
+      return {
+        app,
+        hora: '2026-09-15T12:00:00.000',
+        estadoTela: 'A' as const,
+        acao: 'saiu' as const,
+      };
+    }
+
+    it('registrarSessaoFocoNoDia cria o documento na primeira chamada', async () => {
+      await registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s1'));
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.sessoesFoco).toEqual([sessao('s1')]);
+    });
+
+    it('registrarSessaoFocoNoDia acrescenta sem apagar as sessões já gravadas', async () => {
+      await registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s1'));
+      await registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s2'));
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.sessoesFoco).toEqual([sessao('s1'), sessao('s2')]);
+    });
+
+    it('registrarSessaoFocoNoDia não apaga tarefas/statusDia/escudoUsado já gravados', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s1'));
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.tarefas).toHaveLength(1);
+    });
+
+    it('registrarSessaoFocoNoDia usa arrayUnion (atômico), não leitura+escrita manual', async () => {
+      await registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s1'));
+
+      expect(firestoreMock.arrayUnion).toHaveBeenCalledWith(sessao('s1'));
+      expect(firestoreMock.setDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          sessoesFoco: { __arrayUnion: [sessao('s1')] },
+        }),
+        { merge: true },
+      );
+    });
+
+    it('registrarInterceptacaoNoDia acrescenta sem apagar as interceptações já gravadas', async () => {
+      await registrarInterceptacaoNoDia(
+        'uid-1',
+        '2026-09-15',
+        interceptacao('com.instagram.android'),
+      );
+      await registrarInterceptacaoNoDia(
+        'uid-1',
+        '2026-09-15',
+        interceptacao('com.whatsapp'),
+      );
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.interceptacoes).toEqual([
+        interceptacao('com.instagram.android'),
+        interceptacao('com.whatsapp'),
+      ]);
+    });
+
+    it('duas gravações "concorrentes" (mesma leitura de base) não se pisam', async () => {
+      // Antes da correção, registrarSessaoFocoNoDia lia o array, acrescentava
+      // em memória e regravava o array inteiro — duas chamadas que leem o
+      // mesmo estado de base perderiam uma da outra. Com arrayUnion, as duas
+      // resolvem contra o documento do servidor, não contra uma leitura
+      // prévia — nunca se pisam mesmo "em paralelo".
+      await Promise.all([
+        registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s1')),
+        registrarSessaoFocoNoDia('uid-1', '2026-09-15', sessao('s2')),
+      ]);
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.sessoesFoco).toHaveLength(2);
     });
   });
 
@@ -619,102 +720,6 @@ describe('services/firestore', () => {
         notificacoesAtivas: true,
         horarioLembreteDiario: '20:00',
       });
-    });
-  });
-
-  describe('buscarDesbloqueiosHojeDoApp', () => {
-    it('0 quando o dailyLog ainda não existe', async () => {
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(0);
-    });
-
-    it('0 quando o dailyLog existe mas nunca teve desbloqueio', async () => {
-      await salvarDailyLog('uid-1', '2026-09-15', {
-        data: '2026-09-15',
-        tarefas: [],
-        statusDia: 'pendente',
-        escudoUsado: false,
-      });
-
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(0);
-    });
-
-    it('lê o valor já gravado', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(2);
-    });
-  });
-
-  describe('incrementarDesbloqueiosHoje', () => {
-    it('cria o dailyLogs/{data} com desbloqueiosApps: 1 na primeira chamada', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(1);
-    });
-
-    // Regressão: desbloquear um app bloqueado antes de mexer em qualquer
-    // tarefa no dia cria dailyLogs/{data} só com desbloqueiosApps (merge
-    // num documento que ainda não existia) — sem normalizar em
-    // buscarDailyLog, useDailyTasks recebia tarefas: undefined e quebrava
-    // em calcularStatusDia (crash real visto em device físico ao reabrir
-    // um app já desbloqueado por respiração).
-    it('buscarDailyLog normaliza tarefas/statusDia/escudoUsado quando o documento só tem desbloqueiosApps', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      const log = await buscarDailyLog('uid-1', '2026-09-15');
-
-      expect(log).toEqual({
-        data: '2026-09-15',
-        tarefas: [],
-        statusDia: 'pendente',
-        escudoUsado: false,
-        desbloqueiosApps: 1,
-      });
-    });
-
-    it('acumula ao longo de várias chamadas', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(3);
-    });
-
-    it('não apaga o restante do dailyLog (tarefas, statusDia)', async () => {
-      await salvarDailyLog('uid-1', '2026-09-15', {
-        data: '2026-09-15',
-        tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
-        statusDia: 'cumprido',
-        escudoUsado: false,
-      });
-
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      const log = await buscarDailyLog('uid-1', '2026-09-15');
-      expect(log?.statusDia).toBe('cumprido');
-      expect(log?.tarefas).toHaveLength(1);
-      expect(log?.desbloqueiosApps).toBe(1);
-    });
-
-    it('usa o incremento atômico do Firestore (increment), não leitura+escrita manual', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-
-      expect(firestoreMock.increment).toHaveBeenCalledWith(1);
-      expect(firestoreMock.setDoc).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ desbloqueiosApps: { __increment: 1 } }),
-        { merge: true },
-      );
-    });
-
-    it('não vaza entre datas diferentes', async () => {
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-15');
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-16');
-      await incrementarDesbloqueiosHoje('uid-1', '2026-09-16');
-
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-15')).toBe(1);
-      expect(await buscarDesbloqueiosHojeDoApp('uid-1', '2026-09-16')).toBe(2);
     });
   });
 

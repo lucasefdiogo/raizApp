@@ -17,10 +17,8 @@ export function useAuth() {
   // Lazy initializer: getCurrentUser() lê o currentUser síncrono do SDK
   // nativo do Firebase (já disponível antes até do onCreate da Activity,
   // ver services/auth.ts), sem esperar o primeiro callback assíncrono de
-  // onAuthStateChanged. Isso importa pro AppBlockedScreen (RootNavigator),
-  // cuja condição de exibição depende de auth.user — sem isso, um cold
-  // start disparado pelo bloqueio de apps atrasava a tela esperando esse
-  // round-trip à toa, mesmo com o pacote bloqueado já resolvido.
+  // onAuthStateChanged. Isso importa pro InterceptRoot, que precisa do uid
+  // na hora pra decidir o estado A/B/C sem esperar esse round-trip à toa.
   const [user, setUser] = useState<User | null>(() => authService.getCurrentUser());
   const [carregando, setCarregando] = useState(true);
 

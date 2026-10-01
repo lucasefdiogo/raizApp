@@ -46,9 +46,8 @@ interface TravadoFlowScreenProps {
  * TaskCard e — Etapa 3 — a ação secundária da InterceptScreen). Estado
  * interno tipo máquina de passos, mesmo espírito do Onboarding. Só existe
  * na árvore enquanto está aberto — quem chama monta/desmonta (com uma
- * `key` nova a cada abertura, mesmo padrão de deteccaoId em
- * useAppBlocking), então cada abertura começa sempre do passo `escolha`,
- * sem precisar resetar estado manualmente.
+ * `key` nova a cada abertura), então cada abertura começa sempre do passo
+ * `escolha`, sem precisar resetar estado manualmente.
  */
 export function TravadoFlowScreen({
   uid,

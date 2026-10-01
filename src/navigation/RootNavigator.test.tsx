@@ -5,7 +5,6 @@ import { RootNavigator } from './RootNavigator';
 jest.mock('../hooks/useTutorialStatus');
 jest.mock('../hooks/useAuth');
 jest.mock('../hooks/useOnboardingStatus');
-jest.mock('../hooks/useAppBlocking');
 jest.mock('../hooks/useLocalNotifications');
 jest.mock('./MainTabNavigator', () => ({
   MainTabNavigator: ({ uid }: { uid: string }) => {
@@ -47,21 +46,6 @@ jest.mock('../screens/OnboardingScreen', () => ({
   },
 }));
 
-// A AppBlockedScreen tem teste próprio (AppBlockedScreen.test.tsx) — aqui
-// só interessa que ela apareça (ou não) com a prioridade certa.
-jest.mock('../screens/appblock/AppBlockedScreen', () => ({
-  AppBlockedScreen: ({
-    uid,
-    appBloqueado,
-  }: {
-    uid: string;
-    appBloqueado: { nome: string };
-  }) => {
-    const { Text } = require('react-native');
-    return <Text>APP_BLOQUEADO uid={uid} nome={appBloqueado.nome}</Text>;
-  },
-}));
-
 // A SplashScreen tem teste próprio (src/screens/splash/SplashScreen.test.tsx).
 // Aqui ela é um stub que só respeita o contrato de tempo: chama
 // onAnimationEnd depois de DURACAO_SPLASH_MS.
@@ -86,7 +70,6 @@ const DURACAO_FADE_OUT_SPLASH_MS = 300;
 const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
 const { useOnboardingStatus } = require('../hooks/useOnboardingStatus');
-const { useAppBlocking } = require('../hooks/useAppBlocking');
 const { useLocalNotifications } = require('../hooks/useLocalNotifications');
 
 function authAutenticado() {
@@ -116,13 +99,6 @@ function configurarHooksPadrao() {
     avaliarAlertaRisco: jest.fn(),
     deveExibirPriming: false,
     concluirPriming: jest.fn(),
-  });
-  useAppBlocking.mockReturnValue({
-    appBloqueadoAtual: null,
-    duracaoRespiracaoSegundos: 60,
-    precisaReflexao: false,
-    desbloquear: jest.fn(),
-    dispensar: jest.fn(),
   });
 }
 
@@ -276,58 +252,6 @@ describe('RootNavigator', () => {
     });
     expect(screen.queryByText('SPLASH_ROOTORA')).toBeNull();
     expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
-  });
-
-  describe('bloqueio de apps', () => {
-    it('sem app bloqueado: não mostra a AppBlockedScreen', async () => {
-      await render(<RootNavigator />);
-      await passarSplash();
-
-      expect(screen.queryByText(/APP_BLOQUEADO/)).toBeNull();
-    });
-
-    it('com app bloqueado: aparece por cima de qualquer rota, mesmo antes da splash terminar', async () => {
-      useAppBlocking.mockReturnValue({
-        appBloqueadoAtual: {
-          packageName: 'com.instagram.android',
-          nome: 'Instagram',
-          icone: null,
-        },
-        duracaoRespiracaoSegundos: 60,
-        precisaReflexao: false,
-        desbloquear: jest.fn(),
-        dispensar: jest.fn(),
-      });
-
-      await render(<RootNavigator />);
-
-      // Nem a splash terminou ainda (passarSplash não foi chamado) — a
-      // tela de bloqueio tem prioridade sobre ela mesmo assim.
-      expect(screen.getByText('SPLASH_ROOTORA')).toBeTruthy();
-      expect(
-        screen.getByText('APP_BLOQUEADO uid=uid-teste nome=Instagram'),
-      ).toBeTruthy();
-    });
-
-    it('sem usuário autenticado: não mostra a AppBlockedScreen mesmo com um app bloqueado pendente', async () => {
-      useAuth.mockReturnValue({ ...authAutenticado(), user: null });
-      useAppBlocking.mockReturnValue({
-        appBloqueadoAtual: {
-          packageName: 'com.instagram.android',
-          nome: 'Instagram',
-          icone: null,
-        },
-        duracaoRespiracaoSegundos: 60,
-        precisaReflexao: false,
-        desbloquear: jest.fn(),
-        dispensar: jest.fn(),
-      });
-
-      await render(<RootNavigator />);
-      await passarSplash();
-
-      expect(screen.queryByText(/APP_BLOQUEADO/)).toBeNull();
-    });
   });
 
   describe('priming de notificação', () => {

@@ -1,4 +1,4 @@
-import { Interceptacao, SessaoFoco, Tarefa } from './types';
+import { Tarefa } from './types';
 import { paraMinutosDoDia } from './appBlock';
 
 // Durações fixas dos timers do TravadoFlow/SessaoFocoScreen (seção 4/5 da
@@ -86,20 +86,4 @@ export function selecionarTarefaIntercept(
   }
 
   return { estado: 'C' };
-}
-
-/** Acrescenta `sessao` ao histórico do dia. Não valida — quem monta o objeto é quem decide os valores (UI/hook, na Etapa 2). */
-export function registrarSessaoFoco(
-  sessoesFoco: SessaoFoco[],
-  sessao: SessaoFoco,
-): SessaoFoco[] {
-  return [...sessoesFoco, sessao];
-}
-
-/** Acrescenta `interceptacao` ao histórico do dia. */
-export function registrarInterceptacao(
-  interceptacoes: Interceptacao[],
-  interceptacao: Interceptacao,
-): Interceptacao[] {
-  return [...interceptacoes, interceptacao];
 }
