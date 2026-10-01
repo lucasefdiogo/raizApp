@@ -20,6 +20,8 @@ const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSeman
 
 interface BloqueioAppsScreenProps {
   uid: string;
+  /** "Ativar" leva à divulgação em destaque (Etapa 3) — só ela abre as configurações do sistema. */
+  aoTocarAtivar: () => void;
 }
 
 function horarioParaDate(horario: string): Date {
@@ -44,7 +46,7 @@ function dateParaHorario(data: Date): string {
  * passa por useRegrasBloqueio.salvar, que decide sozinho se é imediata ou
  * pendente (regra única, sem distinguir tipo de mudança).
  */
-export function BloqueioAppsScreen({ uid }: BloqueioAppsScreenProps) {
+export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenProps) {
   const {
     carregando,
     appsInstalados,
@@ -53,11 +55,7 @@ export function BloqueioAppsScreen({ uid }: BloqueioAppsScreenProps) {
     salvar,
     cancelarAlteracaoPendente,
   } = useRegrasBloqueio(uid);
-  const {
-    ativo: servicoAtivo,
-    carregando: statusCarregando,
-    abrirConfiguracoes,
-  } = useAccessibilityPermission();
+  const { ativo: servicoAtivo, carregando: statusCarregando } = useAccessibilityPermission();
 
   const [appsSelecionados, setAppsSelecionados] = useState<string[]>([]);
   const [janela, setJanela] = useState<JanelaBloqueio>(JANELA_PADRAO);
@@ -154,10 +152,7 @@ export function BloqueioAppsScreen({ uid }: BloqueioAppsScreenProps) {
               </Text>
             </View>
             {!statusCarregando && !servicoAtivo && (
-              // TODO(Etapa 3): abrir primeiro a tela de divulgação em
-              // destaque (spec 09) e só chamar abrirConfiguracoes depois de
-              // "Concordo e quero ativar".
-              <PrimaryButton titulo="Ativar" onPress={abrirConfiguracoes} />
+              <PrimaryButton titulo="Ativar" onPress={aoTocarAtivar} />
             )}
 
             {regrasPendentes && (

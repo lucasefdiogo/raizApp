@@ -16,6 +16,7 @@ import {
   salvarRegrasBloqueioPendentes,
   cancelarRegrasBloqueioPendentes,
   promoverRegrasBloqueioPendentes,
+  registrarConsentimentoAcessibilidade,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
   preencherNomeSeVazio,
@@ -752,6 +753,19 @@ describe('services/firestore', () => {
       expect(usuario).toMatchObject({
         regrasBloqueio: { apps: pendente.apps, janelas: pendente.janelas },
         regrasBloqueioPendentes: null,
+      });
+    });
+  });
+
+  describe('registrarConsentimentoAcessibilidade', () => {
+    it('grava a data de consentimento sem mexer em outros campos', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await registrarConsentimentoAcessibilidade('uid-1', '2026-09-24');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        email: 'a@a.com',
+        consentimentoAcessibilidade: '2026-09-24',
       });
     });
   });
