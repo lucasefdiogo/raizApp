@@ -514,6 +514,61 @@ export async function registrarInterceptacaoNoDia(
   );
 }
 
+/**
+ * Primeira configuração de bloqueio de apps — só chamada quando
+ * `regrasBloqueio` ainda não existe (ver decidirGravacaoRegrasBloqueio em
+ * domain/appBlock.ts), então vale imediatamente.
+ */
+export async function salvarRegrasBloqueioImediatas(
+  uid: string,
+  regras: RegrasBloqueio,
+): Promise<void> {
+  await setDoc(documentoUsuario(uid), { regrasBloqueio: regras }, { merge: true });
+}
+
+/**
+ * Qualquer alteração às regras depois da primeira configuração — grava só
+ * em `regrasBloqueioPendentes`, nunca em `regrasBloqueio` (ver
+ * decidirGravacaoRegrasBloqueio). Substitui uma pendência anterior, se
+ * houver.
+ */
+export async function salvarRegrasBloqueioPendentes(
+  uid: string,
+  pendente: RegrasBloqueioPendentes,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { regrasBloqueioPendentes: pendente },
+    { merge: true },
+  );
+}
+
+/** "Cancelar alteração" — apaga a pendência na hora, sem esperar efetivaEm. */
+export async function cancelarRegrasBloqueioPendentes(uid: string): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { regrasBloqueioPendentes: null },
+    { merge: true },
+  );
+}
+
+/**
+ * Grava o resultado de uma promoção pendente→vigente (ver
+ * aplicarRegrasBloqueioPendentesSeVencidas) — chamado pelo hook que
+ * sincroniza o Firestore a cada abertura do app, nunca pela tela de
+ * configuração em si.
+ */
+export async function promoverRegrasBloqueioPendentes(
+  uid: string,
+  regras: RegrasBloqueio,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { regrasBloqueio: regras, regrasBloqueioPendentes: null },
+    { merge: true },
+  );
+}
+
 export async function atualizarPerfilUsuario(
   uid: string,
   campos: Partial<{

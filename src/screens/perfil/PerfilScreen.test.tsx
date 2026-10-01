@@ -69,14 +69,25 @@ describe('PerfilScreen', () => {
     });
   });
 
+  it('"Configurar bloqueio de apps" chama aoAbrirBloqueioApps ao tocar', async () => {
+    const aoAbrirBloqueioApps = jest.fn();
+    await render(
+      <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={aoAbrirBloqueioApps} />,
+    );
+
+    await fireEvent.press(screen.getByText('Configurar bloqueio de apps'));
+
+    expect(aoAbrirBloqueioApps).toHaveBeenCalledTimes(1);
+  });
+
   it('mostra o porquê atual carregado de usePerfil', async () => {
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy();
   });
 
   it('o campo do porquê é multilinha e alto (mesmo padrão do onboarding)', async () => {
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     const campo = screen.getByLabelText('Por que você quer estar aqui');
     const estilo = StyleSheet.flatten(campo.props.style) ?? {};
@@ -85,7 +96,7 @@ describe('PerfilScreen', () => {
   });
 
   it('o botão Salvar não fica dentro de um container flex-row (que o encolheria)', async () => {
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     // sobe do texto até o conteúdo da tela conferindo que nenhum ancestral
     // próximo é flex-row — foi isso que colapsava o botão pra ~130px.
@@ -101,7 +112,7 @@ describe('PerfilScreen', () => {
     const salvarPorque = jest.fn().mockResolvedValue(undefined);
     configurarPerfilPadrao({ salvarPorque });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     await fireEvent.changeText(
       screen.getByDisplayValue('Terminar meus estudos'),
@@ -116,7 +127,7 @@ describe('PerfilScreen', () => {
   });
 
   it('mostra "Salvo" depois de salvar o porquê', async () => {
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     expect(screen.queryByText('Salvo')).toBeNull();
 
@@ -130,7 +141,7 @@ describe('PerfilScreen', () => {
       salvarPorque: jest.fn().mockResolvedValue(false),
     });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
     await fireEvent.press(screen.getByText('Salvar'));
 
     await waitFor(() => expect(screen.getByText('Salvar')).toBeTruthy());
@@ -138,7 +149,7 @@ describe('PerfilScreen', () => {
   });
 
   it('seletor de horário não aparece com notificações desativadas', async () => {
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     expect(screen.queryByText('Alterar horário')).toBeNull();
     expect(screen.queryByTestId('datetimepicker-mock')).toBeNull();
@@ -150,7 +161,7 @@ describe('PerfilScreen', () => {
       horarioLembreteDiario: '08:00',
     });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     expect(screen.getByText('Horário: 08:00')).toBeTruthy();
     expect(screen.queryByTestId('datetimepicker-mock')).toBeNull();
@@ -168,7 +179,7 @@ describe('PerfilScreen', () => {
       alterarHorario,
     });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
     await fireEvent.press(screen.getByText('Alterar horário'));
     await fireEvent.press(screen.getByTestId('datetimepicker-mock'));
 
@@ -180,7 +191,7 @@ describe('PerfilScreen', () => {
     const alternarNotificacoes = jest.fn().mockResolvedValue(undefined);
     configurarPerfilPadrao({ alternarNotificacoes });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
     await fireEvent(screen.getByRole('switch'), 'valueChange', true);
 
     expect(alternarNotificacoes).toHaveBeenCalledWith(true);
@@ -198,7 +209,7 @@ describe('PerfilScreen', () => {
       resetPassword: jest.fn(),
     });
 
-    await render(<PerfilScreen uid="uid-teste" />);
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Sair' }));
 
     expect(signOut).toHaveBeenCalledTimes(1);
@@ -210,7 +221,7 @@ describe('PerfilScreen', () => {
     });
 
     it('mostra a seção "Sobre" com os dois links legais', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       expect(screen.getByText('Sobre')).toBeTruthy();
       expect(screen.getByText('Política de Privacidade')).toBeTruthy();
@@ -218,7 +229,7 @@ describe('PerfilScreen', () => {
     });
 
     it('tocar em "Política de Privacidade" abre a URL da política', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('Política de Privacidade'));
 
@@ -226,7 +237,7 @@ describe('PerfilScreen', () => {
     });
 
     it('tocar em "Termos de Uso" abre a URL dos termos', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('Termos de Uso'));
 
@@ -243,7 +254,7 @@ describe('PerfilScreen', () => {
         reiniciar,
       });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('Ver tutorial novamente'));
 
@@ -254,14 +265,14 @@ describe('PerfilScreen', () => {
   it('mostra o LoadingIndicator enquanto usePerfil carrega e o formulário só depois', async () => {
     configurarPerfilPadrao({ carregando: true });
 
-    const { rerender } = await render(<PerfilScreen uid="uid-teste" />);
+    const { rerender } = await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
     expect(screen.queryByText('Seu porquê')).toBeNull();
     expect(screen.queryByDisplayValue('Terminar meus estudos')).toBeNull();
 
     configurarPerfilPadrao({ carregando: false });
-    rerender(<PerfilScreen uid="uid-teste" />);
+    rerender(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
     await waitFor(() =>
       expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy(),
@@ -271,7 +282,7 @@ describe('PerfilScreen', () => {
 
   describe('exclusão de conta', () => {
     it('mostra o botão "Excluir conta" e o modal só abre ao tocar nele', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       expect(screen.getByText('Excluir conta')).toBeTruthy();
       expect(screen.queryByText('Excluir sua conta')).toBeNull();
@@ -282,7 +293,7 @@ describe('PerfilScreen', () => {
     });
 
     it('o botão "Excluir conta" é sóbrio — nem Cobre nem cor de erro/alerta', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       const botao = screen.getByText('Excluir conta');
       const estiloTexto = StyleSheet.flatten(botao.props.style);
@@ -298,7 +309,7 @@ describe('PerfilScreen', () => {
       const excluirConta = jest.fn().mockResolvedValue(undefined);
       configurarExclusaoPadrao({ excluirConta });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
       await fireEvent.press(screen.getByText('Excluir conta'));
       // botão "Excluir conta" dentro do modal (2ª confirmação)
       await fireEvent.press(screen.getAllByText('Excluir conta')[1]);
@@ -310,7 +321,7 @@ describe('PerfilScreen', () => {
       const excluirConta = jest.fn().mockResolvedValue(undefined);
       configurarExclusaoPadrao({ excluirConta });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
       await fireEvent.press(screen.getByText('Excluir conta'));
       await fireEvent.press(screen.getByText('Cancelar'));
 
@@ -321,7 +332,7 @@ describe('PerfilScreen', () => {
     it('mostra o LoadingIndicator fullscreen durante a exclusão (fora do fluxo de reautenticação)', async () => {
       configurarExclusaoPadrao({ carregando: true, precisaReautenticar: false });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       expect(screen.getByTestId('loading-indicator')).toBeTruthy();
       expect(screen.queryByText('Seu porquê')).toBeNull();
@@ -334,7 +345,7 @@ describe('PerfilScreen', () => {
         carregando: false,
       });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       expect(screen.getByText('Confirme que é você')).toBeTruthy();
       expect(screen.getByText('Seu porquê')).toBeTruthy();
@@ -348,7 +359,7 @@ describe('PerfilScreen', () => {
         reautenticar,
       });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       await fireEvent.changeText(screen.getByLabelText('Senha'), 'minhaSenha');
       await fireEvent.press(screen.getByText('Confirmar e excluir'));
@@ -359,14 +370,14 @@ describe('PerfilScreen', () => {
 
   describe('botão de debug (dev)', () => {
     it('não aparece quando aoAbrirDebugAcessibilidade não é passado', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
       expect(screen.queryByText('🔧 Debug: detecção de apps')).toBeNull();
     });
 
     it('aparece e chama o handler ao tocar quando o prop é passado', async () => {
       const aoAbrir = jest.fn();
       await render(
-        <PerfilScreen uid="uid-teste" aoAbrirDebugAcessibilidade={aoAbrir} />,
+        <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} aoAbrirDebugAcessibilidade={aoAbrir} />,
       );
 
       await fireEvent.press(screen.getByText('🔧 Debug: detecção de apps'));
@@ -375,7 +386,7 @@ describe('PerfilScreen', () => {
     });
 
     it('"Debug: InterceptScreen" não aparece quando aoAbrirDebugIntercept não é passado', async () => {
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
       expect(screen.queryByText('🔧 Debug: InterceptScreen')).toBeNull();
     });
 
@@ -383,7 +394,7 @@ describe('PerfilScreen', () => {
       const aoAbrir = jest.fn();
       await render(
         <PerfilScreen
-          uid="uid-teste"
+          uid="uid-teste" aoAbrirBloqueioApps={jest.fn()}
          
           aoAbrirDebugIntercept={aoAbrir}
         />,
@@ -400,7 +411,7 @@ describe('PerfilScreen', () => {
       const testarCrash = jest.fn();
       configurarPerfilPadrao({ testarCrash });
 
-      await render(<PerfilScreen uid="uid-teste" />);
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('🔧 Testar Crashlytics'));
 
@@ -414,7 +425,7 @@ describe('PerfilScreen', () => {
 
       try {
         await render(
-          <PerfilScreen uid="uid-teste" />,
+          <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />,
         );
         expect(screen.queryByText('🔧 Testar Crashlytics')).toBeNull();
       } finally {

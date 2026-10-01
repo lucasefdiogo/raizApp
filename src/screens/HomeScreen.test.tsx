@@ -39,6 +39,11 @@ const { buscarSystemMessage } = require('../services/firestore');
 jest.mock('../hooks/useNomeUsuario');
 const { useNomeUsuario } = require('../hooks/useNomeUsuario');
 
+// Só interessa aqui que a Home chama o hook (ver racional no próprio
+// HomeScreen.tsx) — o comportamento dele tem teste próprio
+// (useSincronizarRegrasBloqueio.test.ts).
+jest.mock('../hooks/useSincronizarRegrasBloqueio');
+
 // useFeatureTour usa useNavigation/useFocusEffect (precisaria de um
 // NavigationContainer, que este arquivo não monta) — mockado e inativo por
 // padrão; o comportamento do hook em si tem teste próprio

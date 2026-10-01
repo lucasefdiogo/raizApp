@@ -2,11 +2,19 @@ package com.lucas.rootora
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.provider.Settings
+import android.util.Base64
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.io.ByteArrayOutputStream
 
 /**
  * Ponte nativa <-> JS pra parte de acessibilidade e bloqueio de apps. Módulo
@@ -122,6 +130,75 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
     } catch (erro: Exception) {
       // Não crítico — ver comentário da função.
     }
+  }
+
+  /**
+   * Espelha regrasBloqueioPendentes em SharedPreferences — `null` limpa a
+   * pendência do lado nativo (gravação direta ou "Cancelar alteração").
+   * Mesma postura de falha silenciosa das outras gravações deste módulo.
+   */
+  @ReactMethod
+  fun salvarRegrasBloqueioPendentes(pendenteJson: String?) {
+    try {
+      BloqueioPrefs.salvarRegrasBloqueioPendentes(reactApplicationContext, pendenteJson)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
+  /**
+   * Apps com Launcher Intent, resolvidos via `<queries>` (manifest,
+   * MAIN/LAUNCHER) — não QUERY_ALL_PACKAGES. Exclui o próprio Rootora da
+   * lista (não faz sentido bloquear a si mesmo) e deduplica por
+   * packageName (alguns apps expõem mais de uma activity MAIN/LAUNCHER).
+   */
+  @ReactMethod
+  fun listarAppsInstalados(promise: Promise) {
+    try {
+      val pm = reactApplicationContext.packageManager
+      val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+      val resolvidos = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+      val meuPacote = reactApplicationContext.packageName
+      val vistos = HashSet<String>()
+
+      val lista = Arguments.createArray()
+      for (resolvido in resolvidos) {
+        val pacote = resolvido.activityInfo.packageName
+        if (pacote == meuPacote || !vistos.add(pacote)) {
+          continue
+        }
+
+        val mapa = Arguments.createMap()
+        mapa.putString("packageName", pacote)
+        mapa.putString("nome", resolvido.loadLabel(pm).toString())
+        mapa.putString("iconeBase64", iconeParaBase64(resolvido.loadIcon(pm)))
+        lista.pushMap(mapa)
+      }
+
+      promise.resolve(lista)
+    } catch (erro: Exception) {
+      promise.reject("LISTAR_APPS_FAILED", erro)
+    }
+  }
+
+  private fun iconeParaBase64(drawable: Drawable): String {
+    val bitmap = drawableParaBitmap(drawable)
+    val stream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    return Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+  }
+
+  private fun drawableParaBitmap(drawable: Drawable): Bitmap {
+    if (drawable is BitmapDrawable) {
+      return drawable.bitmap
+    }
+    val largura = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 1
+    val altura = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 1
+    val bitmap = Bitmap.createBitmap(largura, altura, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, canvas.width, canvas.height)
+    drawable.draw(canvas)
+    return bitmap
   }
 
   /**
