@@ -169,6 +169,16 @@
   .cyclelist{ display:flex; flex-direction:column; align-items:center; gap:2px; margin:10px 0; }
   .cyclelist .step{ font-size:10.5px; color:var(--terra); text-align:center; padding:4px 0; }
   .cyclelist .arrow{ font-size:12px; color:var(--musgo); }
+
+  /* --- classes novas (feature "Saiba o que é") --- */
+  .card{ background:var(--areia); border-radius:12px; overflow:hidden; text-align:left; }
+  .bloco{ padding:11px 12px; }
+  .divisoria{ height:1px; background:var(--terra-suave); opacity:.25; }
+  .card-eyebrow{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:.05em; text-transform:uppercase; color:var(--terra-suave); }
+  .selo{ display:inline-flex; align-items:center; gap:5px; background:var(--areia); border-radius:999px; padding:4px 10px; font-family:'Space Mono', monospace; font-size:9.5px; font-weight:700; letter-spacing:.04em; color:var(--musgo); }
+  .selodot{ width:6px; height:6px; border-radius:50%; background:var(--musgo); }
+  .infolink{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--terra-suave); text-decoration:underline; text-decoration-color:var(--line); margin:6px 0; }
+  .infolink .i{ width:13px; height:13px; border-radius:50%; border:1.3px solid var(--terra-suave); display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-style:italic; font-weight:700; flex:none; }
 </style>
 </head>
 <body>
@@ -478,21 +488,45 @@
   <div class="group-title"><div class="gk">Bloqueio de apps</div><h2>Divulgação, permissão e configuração</h2></div>
 
   <div>
-    <div class="card-head"><span class="no">18</span><span class="title">Divulgação em destaque</span></div>
+    <div class="card-head"><span class="no">18</span><span class="title">Divulgação em destaque · desativado</span></div>
     <div class="phone tall">
       <p class="h">Como o bloqueio funciona</p>
       <p class="muted" style="margin:10px 0;">Para interceptar um app, o Rootora usa o serviço de acessibilidade do Android.</p>
-      <p class="muted" style="margin:10px 0;">Ele identifica apenas qual app foi aberto, para mostrar sua tarefa do dia no lugar dele.</p>
-      <p class="muted" style="margin:10px 0;">Não lê o que você digita e não vê o conteúdo das telas.</p>
-      <p class="muted" style="margin:10px 0;">O Rootora registra quais apps foram interceptados e quando.</p>
+      <div class="card" style="margin:12px 0;">
+        <div class="bloco"><span class="card-eyebrow">O QUE ELE VÊ</span><p class="muted" style="margin:4px 0 0;">Ele identifica apenas qual app foi aberto, para mostrar sua tarefa do dia no lugar dele.</p></div>
+        <div class="divisoria"></div>
+        <div class="bloco"><span class="card-eyebrow">O QUE ELE NÃO VÊ</span><p class="muted" style="margin:4px 0 0;">Não lê o que você digita e não vê o conteúdo das telas.</p></div>
+        <div class="divisoria"></div>
+        <div class="bloco"><span class="card-eyebrow">O QUE FICA REGISTRADO</span><p class="muted" style="margin:4px 0 0;">O Rootora registra quais apps foram interceptados e quando.</p></div>
+      </div>
       <div class="btn">Concordo e quero ativar</div>
       <div class="btn ghost">Agora não</div>
-      <div class="annot">Mostrada ANTES de abrir as configurações de acessibilidade do Android — exigência de política da Play Store, tela própria, fora de qualquer menu. "Concordo" grava <b>consentimentoAcessibilidade</b> e só então abre as configurações.</div>
+      <div class="annot">Mostrada ANTES de abrir as configurações de acessibilidade do Android — exigência de política da Play Store, tela própria, fora de qualquer menu. "Concordo" grava <b>consentimentoAcessibilidade</b> e só então abre as configurações. Chegada aqui por "Ativar" OU "Saiba o que é" (tela 21) — mesma rota, o layout é quem decide pelo status real do serviço.</div>
     </div>
   </div>
 
   <div>
-    <div class="card-head"><span class="no">19</span><span class="title">Permissão de notificações</span></div>
+    <div class="card-head"><span class="no">19</span><span class="title">Divulgação em destaque · ativo</span></div>
+    <div class="phone tall">
+      <div class="selo"><div class="selodot"></div><span>ATIVO</span></div>
+      <p class="h" style="margin-top:8px;">Como o bloqueio funciona</p>
+      <p class="muted" style="margin:10px 0;">Para interceptar um app, o Rootora usa o serviço de acessibilidade do Android.</p>
+      <div class="card" style="margin:12px 0;">
+        <div class="bloco"><span class="card-eyebrow">O QUE ELE VÊ</span><p class="muted" style="margin:4px 0 0;">Ele identifica apenas qual app foi aberto, para mostrar sua tarefa do dia no lugar dele.</p></div>
+        <div class="divisoria"></div>
+        <div class="bloco"><span class="card-eyebrow">O QUE ELE NÃO VÊ</span><p class="muted" style="margin:4px 0 0;">Não lê o que você digita e não vê o conteúdo das telas.</p></div>
+        <div class="divisoria"></div>
+        <div class="bloco"><span class="card-eyebrow">O QUE FICA REGISTRADO</span><p class="muted" style="margin:4px 0 0;">O Rootora registra quais apps foram interceptados e quando.</p></div>
+      </div>
+      <p class="muted">Você pode desativar quando quiser, nas configurações de acessibilidade do Android. Sem ele, os apps deixam de ser interceptados.</p>
+      <div class="btn">Entendi</div>
+      <div class="linkrow" style="text-decoration:underline; text-decoration-color:var(--line);">Abrir configurações do Android</div>
+      <div class="annot">Mesma tela/rota da 18, reaproveitada como modo informativo — layout decidido por <b>useAccessibilityPermission</b> (reavalia via AppState 'active'), não por parâmetro. "Entendi" só fecha (goBack); o link abre as configurações direto. <b>Nenhum caminho deste modo grava ou sobrescreve consentimentoAcessibilidade.</b> Se o usuário desativar o serviço pelo Android com essa tela aberta em background, o layout troca sozinho pro modo desativado (tela 18) ao voltar.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card-head"><span class="no">20</span><span class="title">Permissão de notificações</span></div>
     <div class="phone">
       <p class="h">Só 2 tipos de aviso, nada além disso</p>
       <p class="muted">Se você permitir, o Rootora manda no máximo:</p>
@@ -507,11 +541,13 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">20</span><span class="title">Bloqueio de apps · configuração</span></div>
+    <div class="card-head"><span class="no">21</span><span class="title">Bloqueio de apps · configuração</span></div>
     <div class="phone tall">
       <p class="h" style="font-size:18px;">Bloqueio de apps</p>
       <p class="muted" style="font-weight:600; color:var(--terra); font-size:11.5px; margin-top:10px;">Serviço de acessibilidade</p>
       <span class="statuschip inativo">Desativado</span>
+      <p class="muted" style="font-size:10px; margin:4px 0 6px;">Sem ele, o Rootora não consegue interceptar os apps abaixo.</p>
+      <div class="infolink"><span class="i">i</span>Saiba o que é</div>
       <div class="btn ghost" style="padding:9px;">Ativar</div>
 
       <p class="muted" style="font-weight:600; color:var(--terra); font-size:11.5px; margin-top:14px;">Horário</p>
@@ -533,7 +569,7 @@
       </div>
       <p class="muted" style="font-size:10px; margin-top:8px;">2 apps selecionados, seg, ter, qua, qui, sex das 09:00 às 18:00.</p>
       <div class="btn">Salvar</div>
-      <div class="annot">Lista de apps via <b>&lt;queries&gt;</b> (MAIN/LAUNCHER) — nunca <b>QUERY_ALL_PACKAGES</b>. 1ª configuração vale na hora; qualquer alteração depois vira pendente pro dia seguinte ("Anotado. A nova regra começa amanhã.").</div>
+      <div class="annot">Lista de apps via <b>&lt;queries&gt;</b> (MAIN/LAUNCHER) — nunca <b>QUERY_ALL_PACKAGES</b>. 1ª configuração vale na hora; qualquer alteração depois vira pendente pro dia seguinte ("Anotado. A nova regra começa amanhã."). "Saiba o que é" fica visível sempre (ativo ou desativado) — leva pra mesma tela de divulgação (18/19), que decide sozinha qual dos dois layouts mostrar. "Ativar" é <b>SecondaryButton</b>, nunca Cobre — o único Cobre da tela é "Salvar".</div>
     </div>
   </div>
 
@@ -541,7 +577,7 @@
   <div class="group-title"><div class="gk">Ponte fuga→tarefa</div><h2>Interceptação (root RN separado, &lt;300ms)</h2></div>
 
   <div>
-    <div class="card-head"><span class="no">21</span><span class="title">Interceptação · estado A</span></div>
+    <div class="card-head"><span class="no">22</span><span class="title">Interceptação · estado A</span></div>
     <div class="phone">
       <p class="h">Você ia abrir o Instagram. A tarefa de hoje é <i>Estudar 25 min</i>. Topa só 2 minutos dela?</p>
       <div class="btn">Fazer 2 minutos</div>
@@ -552,7 +588,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">22</span><span class="title">Interceptação · estado B</span></div>
+    <div class="card-head"><span class="no">23</span><span class="title">Interceptação · estado B</span></div>
     <div class="phone">
       <p class="h">Você já cumpriu o essencial de hoje. Liberar o Instagram por 15 minutos?</p>
       <div class="btn">Liberar</div>
@@ -562,7 +598,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">23</span><span class="title">Interceptação · estado C</span></div>
+    <div class="card-head"><span class="no">24</span><span class="title">Interceptação · estado C</span></div>
     <div class="phone">
       <p class="h">Você ia abrir o Instagram. Antes: qual é uma coisa pequena para hoje?</p>
       <div class="inputf"><span class="lbl">UMA COISA PEQUENA PARA HOJE</span><div class="box">ex: separar a roupa de treino</div></div>
@@ -572,7 +608,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">24</span><span class="title">Estou travado · passo 1</span></div>
+    <div class="card-head"><span class="no">25</span><span class="title">Estou travado · passo 1</span></div>
     <div class="phone">
       <p class="h">O que está pegando agora?</p>
       <div class="vchip">Não sei por onde começar</div>
@@ -584,7 +620,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">25</span><span class="title">Estou travado · passo 2 (confusão)</span></div>
+    <div class="card-head"><span class="no">26</span><span class="title">Estou travado · passo 2 (confusão)</span></div>
     <div class="phone">
       <p class="h">Qual é o primeiro passo físico? Algo que dá para fazer em 2 minutos.</p>
       <div class="field oneline" style="color:var(--line);">abrir o arquivo, separar o material</div>
@@ -594,7 +630,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">26</span><span class="title">Sessão de foco · timer</span></div>
+    <div class="card-head"><span class="no">27</span><span class="title">Sessão de foco · timer</span></div>
     <div class="phone">
       <div class="celeb-body">
         <div class="countdown">01:47</div>
@@ -605,7 +641,7 @@
   </div>
 
   <div>
-    <div class="card-head"><span class="no">27</span><span class="title">Sessão de foco · fim</span></div>
+    <div class="card-head"><span class="no">28</span><span class="title">Sessão de foco · fim</span></div>
     <div class="phone">
       <p class="h">2 minutos feitos. O começo era a parte difícil.</p>
       <div class="btn">Continuar mais 10 minutos</div>
