@@ -1,4 +1,5 @@
 import {
+  logAcessibilidadeSaibaMais,
   logAppBloqueadoDetectado,
   logAppDesbloqueado,
   logDesafioConcluido,
@@ -178,6 +179,16 @@ describe('services/analytics', () => {
       expect.anything(),
       'intercept_action',
       { acao: 'liberou' },
+    );
+  });
+
+  it('logAcessibilidadeSaibaMais envia origem e status', () => {
+    logAcessibilidadeSaibaMais('link', 'ativo');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'acessibilidade_saiba_mais',
+      { origem: 'link', status: 'ativo' },
     );
   });
 

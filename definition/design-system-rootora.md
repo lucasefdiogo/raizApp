@@ -147,11 +147,14 @@ RootNavigator (Stack.Navigator único)
             ├── PerfilScreen — porquê, notificações+horário, entrada "Bloqueio de
             │     apps", links legais, "Excluir conta" (neutro), "Sair", link de
             │     debug (condicional, baixa prioridade)
-            ├── BloqueioAppsScreen — status do serviço + botão "Ativar", lista de
-            │     AppListItem (busca + seleção), SeletorDiasSemana + 2 seletores de
-            │     horário, resumo + Salvar
-            ├── DivulgacaoAcessibilidadeScreen — aberta a partir do botão "Ativar",
-            │     antes das configurações de acessibilidade do Android
+            ├── BloqueioAppsScreen — status do serviço + link "Saiba o que é"
+            │     (sempre visível) + botão "Ativar" (SecondaryButton, só
+            │     desativado), lista de AppListItem (busca + seleção),
+            │     SeletorDiasSemana + 2 seletores de horário, resumo + Salvar
+            ├── DivulgacaoAcessibilidadeScreen — mesma rota pros dois gatilhos
+            │     acima; layout por status real do serviço (desativado = consentir
+            │     e abrir configurações; ativo = selo "ATIVO" + atalho pras
+            │     configurações, sem gravar nada de novo)
             └── AccessibilityDebug     (condicional a __DEV__, temporária por design)
 ```
 

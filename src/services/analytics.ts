@@ -99,6 +99,20 @@ export function logInterceptAction(acao: AcaoIntercept): void {
   logEvent(analytics(), 'intercept_action', { acao });
 }
 
+/**
+ * Toque em "Saiba o que é" (status sempre visível, BloqueioAppsScreen) ou no
+ * botão "Ativar" (status desativado) — os dois levam à mesma rota
+ * (DivulgacaoAcessibilidadeScreen), `origem` distingue qual gerou a
+ * navegação. `status` é o que a tela já sabia na hora do toque, não
+ * necessariamente o que a divulgação vai mostrar (ela reavalia sozinha).
+ */
+export function logAcessibilidadeSaibaMais(
+  origem: 'link' | 'ativar',
+  status: 'ativo' | 'desativado',
+): void {
+  logEvent(analytics(), 'acessibilidade_saiba_mais', { origem, status });
+}
+
 export function logFocusSessionEnd(
   duracaoPlanejadaSeg: number,
   resultado: ResultadoSessaoFoco,

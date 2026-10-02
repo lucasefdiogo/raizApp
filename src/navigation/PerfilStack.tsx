@@ -64,6 +64,7 @@ export function PerfilStack({ uid }: PerfilStackProps) {
           <BloqueioAppsScreen
             uid={uid}
             aoTocarAtivar={() => navigation.navigate('DivulgacaoAcessibilidade')}
+            aoTocarSaibaOQueE={() => navigation.navigate('DivulgacaoAcessibilidade')}
           />
         )}
       </Stack.Screen>

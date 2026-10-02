@@ -191,14 +191,23 @@ Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
 
 ### BloqueioAppsScreen
 Status do `isAccessibilityServiceEnabled()` (via `useAccessibilityPermission`) +
-botão "Ativar" (só quando desativado) que navega pra `DivulgacaoAcessibilidadeScreen`
-— nunca abre as configurações do Android direto. Lista de `AppListItem` (checkbox
-customizado, não Switch nativo — quebra em testes Jest no mesmo arquivo de um
-`LoadingIndicator`) com busca por nome, `SeletorDiasSemana` (7 chips de toque único)
-e os dois seletores de horário início/fim (`DateTimePicker`). Resumo em texto
-(`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a partir da regra
-PENDENTE quando existe uma (o que vai valer amanhã), senão da vigente. Com uma
-pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar alteração".
+**duas entradas pra `DivulgacaoAcessibilidadeScreen`**, sempre a mesma rota (quem
+decide o layout é o status real do serviço, não qual das duas foi tocada):
+- Link "Saiba o que é" (ícone `Info` da lucide + texto sublinhado terraSuave,
+  nunca Cobre) — **visível sempre**, ativo ou desativado, pra quem já ativou
+  conseguir reler o que o serviço faz.
+- Botão "Ativar" (`SecondaryButton`, não `PrimaryButton` — o único Cobre da tela é
+  o "Salvar" do rodapé) — só quando desativado. Acima dele, linha terraSuave "Sem
+  ele, o Rootora não consegue interceptar os apps abaixo."
+
+Nenhum dos dois abre as configurações do Android direto — isso só acontece de
+dentro da divulgação. Lista de `AppListItem` (checkbox customizado, não Switch
+nativo — quebra em testes Jest no mesmo arquivo de um `LoadingIndicator`) com
+busca por nome, `SeletorDiasSemana` (7 chips de toque único) e os dois seletores
+de horário início/fim (`DateTimePicker`). Resumo em texto (`resumoRegrasBloqueio`,
+`domain/appBlock.ts`) + "Salvar". Edita a partir da regra PENDENTE quando existe
+uma (o que vai valer amanhã), senão da vigente. Com uma pendência: banner "Nova
+regra começa amanhã: [resumo]" + "Cancelar alteração".
 
 ### `AppListItem`
 | Prop | Tipo |
@@ -214,11 +223,27 @@ pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar alteraçã
 | `onToggleDia` | function |
 
 ### DivulgacaoAcessibilidadeScreen
-Divulgação em destaque exigida pela Play Store, aberta a partir do botão "Ativar" de
-`BloqueioAppsScreen`, antes de qualquer tela de configurações do sistema. Texto exato
-e botões em `regras-de-negocio.md` seção 4. "Concordo e quero ativar" grava
-`consentimentoAcessibilidade` (via `useConsentimentoAcessibilidade`) e só depois abre
-as configurações de acessibilidade do Android; "Agora não" só volta, sem gravar nada.
+Divulgação em destaque exigida pela Play Store, aberta a partir de `BloqueioAppsScreen`
+(botão "Ativar" OU link "Saiba o que é" — mesma rota, sem parâmetro). O layout é
+decidido pelo status REAL do serviço (`useAccessibilityPermission`, reavaliado via
+`AppState 'active'` — não um parâmetro de rota, então o layout troca sozinho se o
+usuário desativar o serviço pelas Configurações do Android enquanto essa tela está
+aberta em background). Conteúdo comum aos dois estados — título + parágrafo de
+abertura + card (fundo `surface`) com 3 blocos separados por divisória 1px
+`terraSuave` a 25% de opacidade, eyebrow Space Mono: "O QUE ELE VÊ" / "O QUE ELE NÃO
+VÊ" / "O QUE FICA REGISTRADO". Texto exato em `regras-de-negocio.md` seção 4.
+
+- **Desativado:** `PrimaryButton` "Concordo e quero ativar" (grava
+  `consentimentoAcessibilidade` via `useConsentimentoAcessibilidade` e só depois abre
+  as configurações de acessibilidade do Android) + `SecondaryButton` "Agora não" (só
+  volta, sem gravar nada).
+- **Ativo:** selo "ATIVO" (ponto `musgo` + texto Space Mono, fundo `surface`, radius
+  full) acima do título + parágrafo extra explicando que dá pra desativar quando
+  quiser + `PrimaryButton` "Entendi" (`onVoltar`) + link de texto "Abrir
+  configurações do Android" (mesmo estilo do "Saiba o que é" — chama
+  `openAccessibilitySettings()` direto, nativo). **Nunca** grava nem sobrescreve
+  `consentimentoAcessibilidade` neste estado — só a primeira vez que o usuário
+  concorda é que isso é gravado.
 
 ### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 Componente único, reutilizado sem diferença nas 3 entradas (botão da Home, toque longo
