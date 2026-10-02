@@ -201,6 +201,23 @@ Firestore (`useSincronizarRegrasBloqueio`). Lógica pura testada em
 `aplicarRegrasBloqueioPendentesSeVencidas`/`decidirGravacaoRegrasBloqueio`
 (`domain/appBlock.ts`).
 
+**Efeito colateral importante, validado em teste de campo:** o `regrasBloqueio` vigente
+fica espelhado em SharedPreferences nativo, que sobrevive a fechar o app/forçar parada
+— só reseta ao desinstalar. Então tocar "Salvar" numa alteração (ex: desmarcar um app)
+não para a interceptação na hora, e fechar/reabrir o app também não ajuda; a única
+saída imediata é desativar o Accessibility Service nas Configurações do Android (ver
+seção acima). Pra ninguém ser pego de surpresa por isso — já aconteceu um usuário
+precisar desinstalar o app por não entender por que a interceptação continuava — a
+tela de bloqueio mostra `AvisoAlteracaoPendenteScreen` **antes** de gravar qualquer
+alteração que viraria pendente (nunca na primeira configuração, só muda ou não existe
+nada "sendo afrouxado" ainda). A tela:
+- Reconhece o momento sem culpa ("a vontade de soltar o bloqueio... é só o momento
+  falando") — princípio 3 (recaída sem vergonha)
+- Explica o mecanismo e mostra os dois resumos lado a lado: "Hoje continua" (regras
+  vigentes) e "A partir de amanhã" (o que o usuário acabou de configurar)
+- "Entendi, confirmar" grava de fato (vira pendente); "Voltar e revisar" só volta pra
+  edição, sem gravar nada
+
 ---
 
 ## 6. Princípios que regem qualquer regra nova

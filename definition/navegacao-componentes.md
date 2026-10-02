@@ -209,6 +209,27 @@ de horário início/fim (`DateTimePicker`). Resumo em texto (`resumoRegrasBloque
 uma (o que vai valer amanhã), senão da vigente. Com uma pendência: banner "Nova
 regra começa amanhã: [resumo]" + "Cancelar alteração".
 
+Tocar "Salvar" quando `regrasVigentes` já existe (qualquer alteração depois da
+primeira configuração) não grava nada na hora — renderiza
+`AvisoAlteracaoPendenteScreen` no lugar da lista primeiro (estado local
+`mostrarAvisoPendente`, não é uma rota nova). Só na primeira configuração
+(`regrasVigentes` ainda ausente) o "Salvar" grava direto, sem passar por esse aviso.
+
+### `AvisoAlteracaoPendenteScreen`
+Componente burro renderizado por `BloqueioAppsScreen` (não uma tela do
+`PerfilStack` — evita duplicar o carregamento de `appsInstalados`/`regrasVigentes`
+numa rota separada). Mostrada sempre que "Salvar" resultaria numa alteração
+pendente — nunca na primeira configuração. Reconhece o momento sem culpa (frase
+sobre a vontade de soltar o bloqueio "ser só o momento falando"), explica o
+mecanismo e mostra `resumoRegrasBloqueio` de antes ("Hoje continua") e depois
+("A partir de amanhã").
+
+| Prop | Tipo |
+|---|---|
+| `resumoVigente` / `resumoNovo` | string |
+| `onConfirmar` | function — grava de fato (chama `useRegrasBloqueio.salvar`) |
+| `onRevisar` | function — só volta pra edição, nada é gravado |
+
 ### `AppListItem`
 | Prop | Tipo |
 |---|---|

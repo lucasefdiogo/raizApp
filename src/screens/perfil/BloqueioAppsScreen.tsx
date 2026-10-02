@@ -8,15 +8,23 @@ import { Info } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
-import { janelaBloqueioValida, resumoRegrasBloqueio } from '../../domain/appBlock';
-import { JanelaBloqueio } from '../../domain/types';
+import {
+  decidirGravacaoRegrasBloqueio,
+  janelaBloqueioValida,
+  resumoRegrasBloqueio,
+} from '../../domain/appBlock';
+import { hojeISOLocal } from '../../domain/data';
+import { JanelaBloqueio, RegrasBloqueio } from '../../domain/types';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { AppListItem } from '../../components/bloqueio/AppListItem';
 import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
+import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
 import { logAcessibilidadeSaibaMais } from '../../services/analytics';
+
+const SEM_BLOQUEIO: RegrasBloqueio = { apps: [], janelas: [] };
 
 const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSemana: [] };
 
@@ -82,6 +90,7 @@ export function BloqueioAppsScreen({
   const [janela, setJanela] = useState<JanelaBloqueio>(JANELA_PADRAO);
   const [busca, setBusca] = useState('');
   const [seletorAberto, setSeletorAberto] = useState<'inicio' | 'fim' | null>(null);
+  const [mostrarAvisoPendente, setMostrarAvisoPendente] = useState(false);
   const inicializadoRef = useRef(false);
 
   useEffect(() => {
@@ -133,8 +142,25 @@ export function BloqueioAppsScreen({
   };
   const resumo = resumoRegrasBloqueio(regrasEmEdicao);
 
+  // Sempre que já existe regrasVigentes, QUALQUER salvar vira pendente
+  // (regra única — ver decidirGravacaoRegrasBloqueio). Esse é exatamente o
+  // momento de maior risco de renegociação por impulso (ex: desmarcar um
+  // app no calor da vontade), então interrompe com
+  // AvisoAlteracaoPendenteScreen antes de gravar qualquer coisa — a
+  // primeira configuração (regrasVigentes ainda ausente) não passa por
+  // esse aviso, não há nada "sendo afrouxado" ainda.
   const handleSalvar = () => {
-    salvar(appsSelecionados, appsSelecionados.length > 0 ? janela : null);
+    const decisao = decidirGravacaoRegrasBloqueio(regrasVigentes, regrasEmEdicao, hojeISOLocal());
+    if (decisao.tipo === 'imediata') {
+      salvar(appsSelecionados, appsSelecionados.length > 0 ? janela : null);
+    } else {
+      setMostrarAvisoPendente(true);
+    }
+  };
+
+  const handleConfirmarPendente = async () => {
+    await salvar(appsSelecionados, appsSelecionados.length > 0 ? janela : null);
+    setMostrarAvisoPendente(false);
   };
 
   const handleAlterarHorario =
@@ -147,6 +173,17 @@ export function BloqueioAppsScreen({
 
   if (carregando) {
     return <LoadingIndicator variant="fullscreen" />;
+  }
+
+  if (mostrarAvisoPendente) {
+    return (
+      <AvisoAlteracaoPendenteScreen
+        resumoVigente={resumoRegrasBloqueio(regrasVigentes ?? SEM_BLOQUEIO)}
+        resumoNovo={resumo}
+        onConfirmar={handleConfirmarPendente}
+        onRevisar={() => setMostrarAvisoPendente(false)}
+      />
+    );
   }
 
   return (
@@ -162,33 +199,35 @@ export function BloqueioAppsScreen({
             <Text style={styles.titulo}>Bloqueio de apps</Text>
 
             <Text style={styles.secaoTitulo}>Serviço de acessibilidade</Text>
-            <View style={styles.linhaStatus}>
-              <Text
-                style={[
-                  styles.status,
-                  servicoAtivo ? styles.statusAtivo : styles.statusInativo,
-                ]}
+            <View style={styles.blocoStatus}>
+              <View style={styles.linhaStatus}>
+                <Text
+                  style={[
+                    styles.status,
+                    servicoAtivo ? styles.statusAtivo : styles.statusInativo,
+                  ]}
+                >
+                  {statusCarregando ? 'Verificando…' : servicoAtivo ? 'Ativo' : 'Desativado'}
+                </Text>
+              </View>
+              {!statusCarregando && !servicoAtivo && (
+                <Text style={styles.avisoDesativado}>
+                  Sem ele, o Rootora não consegue interceptar os apps abaixo.
+                </Text>
+              )}
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleSaibaOQueE}
+                hitSlop={8}
+                style={styles.linkSaibaOQueE}
               >
-                {statusCarregando ? 'Verificando…' : servicoAtivo ? 'Ativo' : 'Desativado'}
-              </Text>
+                <Info size={14} color={theme.colors.textSecondary} />
+                <Text style={styles.linkSaibaOQueETexto}>Saiba o que é</Text>
+              </Pressable>
+              {!statusCarregando && !servicoAtivo && (
+                <SecondaryButton titulo="Ativar" onPress={handleAtivar} />
+              )}
             </View>
-            {!statusCarregando && !servicoAtivo && (
-              <Text style={styles.avisoDesativado}>
-                Sem ele, o Rootora não consegue interceptar os apps abaixo.
-              </Text>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleSaibaOQueE}
-              hitSlop={8}
-              style={styles.linkSaibaOQueE}
-            >
-              <Info size={14} color={theme.colors.textSecondary} />
-              <Text style={styles.linkSaibaOQueETexto}>Saiba o que é</Text>
-            </Pressable>
-            {!statusCarregando && !servicoAtivo && (
-              <SecondaryButton titulo="Ativar" onPress={handleAtivar} />
-            )}
 
             {regrasPendentes && (
               <View style={styles.avisoPendente}>
@@ -290,10 +329,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.lg,
   },
+  // Agrupa status + aviso + link + botão "Ativar" com gap mais apertado
+  // que o ritmo entre seções (sm, não md/lg) — mesmo racional de
+  // blocoJanela: formam um cluster só ("o que fazer com o serviço"),
+  // precisam parecer mais colados entre si do que em relação ao que vem
+  // depois (o aviso de pendência, que tem seu próprio respiro acima).
+  blocoStatus: {
+    gap: theme.spacing.sm,
+  },
   linhaStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.xs,
   },
   status: {
     fontSize: theme.typography.fontSize.md,
@@ -309,7 +355,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
   },
   // Área de toque >= 44px (hitSlop + minHeight) mesmo o conteúdo visual
   // sendo bem menor — ícone + texto sublinhado, sem fundo, nunca Cobre
@@ -327,11 +372,15 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textDecorationLine: 'underline',
   },
+  // marginTop próprio (não só o gap do container) — separa claramente do
+  // cluster de status/Ativar acima, que também pode terminar num
+  // SecondaryButton (os dois ficavam visualmente colados sem isso).
   avisoPendente: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.md,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+    marginTop: theme.spacing.lg,
   },
   avisoPendenteTexto: {
     fontSize: theme.typography.fontSize.sm,

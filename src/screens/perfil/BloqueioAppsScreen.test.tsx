@@ -244,4 +244,66 @@ describe('BloqueioAppsScreen', () => {
 
     expect(salvar).toHaveBeenCalledWith([], null);
   });
+
+  describe('aviso de alteração pendente (já existe regrasVigentes — qualquer salvar vira pendente)', () => {
+    const VIGENTE = {
+      apps: ['com.instagram.android'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+
+    it('Salvar mostra o aviso em vez de gravar na hora, com o "antes" e o "depois" (cenário do usuário: desmarcar um app)', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
+
+      await fireEvent.press(screen.getByLabelText('Instagram'));
+      await fireEvent.press(screen.getByText('Salvar'));
+
+      expect(salvar).not.toHaveBeenCalled();
+      expect(screen.getByText('A mudança vale a partir de amanhã')).toBeTruthy();
+      expect(
+        screen.getByText('1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00.'),
+      ).toBeTruthy();
+      expect(screen.getByText('Nenhum app bloqueado.')).toBeTruthy();
+    });
+
+    it('"Entendi, confirmar" grava de fato e volta pra edição', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('Salvar'));
+      await fireEvent.press(screen.getByText('Entendi, confirmar'));
+
+      expect(salvar).toHaveBeenCalledWith(VIGENTE.apps, expect.objectContaining(VIGENTE.janelas[0]));
+      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
+    });
+
+    it('"Voltar e revisar" volta pra edição sem chamar salvar', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('Salvar'));
+      await fireEvent.press(screen.getByText('Voltar e revisar'));
+
+      expect(salvar).not.toHaveBeenCalled();
+      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
+    });
+
+    it('primeira configuração (sem regrasVigentes ainda) não mostra o aviso', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: undefined });
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
+
+      await fireEvent.press(screen.getByLabelText('Instagram'));
+      await fireEvent.press(screen.getByLabelText('segunda'));
+      await fireEvent.press(screen.getByText('Salvar'));
+
+      await waitFor(() => expect(salvar).toHaveBeenCalled());
+      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+    });
+  });
 });

@@ -57,7 +57,12 @@ export function useRegrasBloqueio(uid: string): UseRegrasBloqueioResultado {
       }
       setRegrasVigentes(usuario?.regrasBloqueio);
       setRegrasPendentes(usuario?.regrasBloqueioPendentes ?? null);
-      setAppsInstalados(apps);
+      // Ordem alfabética por nome (não a ordem que o PackageManager devolve,
+      // que não segue critério nenhum visível pro usuário) — 'pt-BR' +
+      // sensitivity 'base' pra acento/maiúscula não desempatarem antes da letra.
+      setAppsInstalados(
+        [...apps].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })),
+      );
       setCarregando(false);
     }
 
