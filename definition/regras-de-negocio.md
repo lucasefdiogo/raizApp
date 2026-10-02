@@ -127,6 +127,26 @@ antes de abrir as configurações de acessibilidade do Android (nunca depois).
 Consentimento gravado em `users/{uid}.consentimentoAcessibilidade` (data), só ao
 tocar "Concordo e quero ativar" — nunca antes.
 
+### Modo informativo (serviço já ativo)
+A mesma tela de divulgação é reaproveitada como explicação pra quem já ativou o
+serviço — acessível pelo link "Saiba o que é", sempre visível no card de status em
+`BloqueioAppsScreen` (ativo ou desativado), não só pelo botão "Ativar". O conteúdo
+comum (os 3 blocos "o que vê" / "o que não vê" / "o que fica registrado") é sempre
+o mesmo; o que muda é a ação ao final:
+
+- Com o serviço **desativado**: os dois botões originais (acima).
+- Com o serviço **ativo**: um selo "ATIVO" acima do título, um parágrafo dizendo
+  que dá pra desativar quando quiser nas configurações do Android, um botão
+  "Entendi" (só fecha a tela) e um link "Abrir configurações do Android" (atalho
+  direto, sem passar pela divulgação de novo). **Neste modo a tela nunca grava
+  nem sobrescreve `consentimentoAcessibilidade`** — esse campo registra só a
+  primeira vez que o usuário concordou, não toda visita à tela.
+
+O layout é decidido pelo status real do serviço no momento (reavaliado ao app
+voltar pro primeiro plano), não por qual caminho levou até a tela — importante
+porque o usuário pode desativar o serviço nas configurações do Android enquanto
+a divulgação está aberta e voltar: a tela precisa refletir isso sozinha.
+
 Nenhum desbloqueio envolve Health Connect/calorias ainda (📋 planejado, ver
 `roadmap-e-status.md`).
 

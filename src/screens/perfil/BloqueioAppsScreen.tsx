@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { Info } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
@@ -15,13 +16,19 @@ import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { AppListItem } from '../../components/bloqueio/AppListItem';
 import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
+import { logAcessibilidadeSaibaMais } from '../../services/analytics';
 
 const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSemana: [] };
 
 interface BloqueioAppsScreenProps {
   uid: string;
-  /** "Ativar" leva à divulgação em destaque (Etapa 3) — só ela abre as configurações do sistema. */
+  /**
+   * "Ativar" e "Saiba o que é" levam pra mesma rota
+   * (DivulgacaoAcessibilidadeScreen) — ela decide sozinha o que mostrar a
+   * partir do status real do serviço, não de qual dos dois foi tocado.
+   */
   aoTocarAtivar: () => void;
+  aoTocarSaibaOQueE: () => void;
 }
 
 function horarioParaDate(horario: string): Date {
@@ -46,7 +53,11 @@ function dateParaHorario(data: Date): string {
  * passa por useRegrasBloqueio.salvar, que decide sozinho se é imediata ou
  * pendente (regra única, sem distinguir tipo de mudança).
  */
-export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenProps) {
+export function BloqueioAppsScreen({
+  uid,
+  aoTocarAtivar,
+  aoTocarSaibaOQueE,
+}: BloqueioAppsScreenProps) {
   const {
     carregando,
     appsInstalados,
@@ -56,6 +67,16 @@ export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenPro
     cancelarAlteracaoPendente,
   } = useRegrasBloqueio(uid);
   const { ativo: servicoAtivo, carregando: statusCarregando } = useAccessibilityPermission();
+
+  const handleAtivar = () => {
+    logAcessibilidadeSaibaMais('ativar', servicoAtivo ? 'ativo' : 'desativado');
+    aoTocarAtivar();
+  };
+
+  const handleSaibaOQueE = () => {
+    logAcessibilidadeSaibaMais('link', servicoAtivo ? 'ativo' : 'desativado');
+    aoTocarSaibaOQueE();
+  };
 
   const [appsSelecionados, setAppsSelecionados] = useState<string[]>([]);
   const [janela, setJanela] = useState<JanelaBloqueio>(JANELA_PADRAO);
@@ -152,7 +173,21 @@ export function BloqueioAppsScreen({ uid, aoTocarAtivar }: BloqueioAppsScreenPro
               </Text>
             </View>
             {!statusCarregando && !servicoAtivo && (
-              <PrimaryButton titulo="Ativar" onPress={aoTocarAtivar} />
+              <Text style={styles.avisoDesativado}>
+                Sem ele, o Rootora não consegue interceptar os apps abaixo.
+              </Text>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              onPress={handleSaibaOQueE}
+              hitSlop={8}
+              style={styles.linkSaibaOQueE}
+            >
+              <Info size={14} color={theme.colors.textSecondary} />
+              <Text style={styles.linkSaibaOQueETexto}>Saiba o que é</Text>
+            </Pressable>
+            {!statusCarregando && !servicoAtivo && (
+              <SecondaryButton titulo="Ativar" onPress={handleAtivar} />
             )}
 
             {regrasPendentes && (
@@ -269,6 +304,28 @@ const styles = StyleSheet.create({
   },
   statusInativo: {
     color: theme.colors.textSecondary,
+  },
+  avisoDesativado: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  // Área de toque >= 44px (hitSlop + minHeight) mesmo o conteúdo visual
+  // sendo bem menor — ícone + texto sublinhado, sem fundo, nunca Cobre
+  // (o "Salvar" no rodapé já é o único destaque Cobre da tela).
+  linkSaibaOQueE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    alignSelf: 'flex-start',
+    minHeight: 44,
+  },
+  linkSaibaOQueETexto: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textSecondary,
+    textDecorationLine: 'underline',
   },
   avisoPendente: {
     backgroundColor: theme.colors.surface,
