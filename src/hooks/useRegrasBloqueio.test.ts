@@ -56,6 +56,26 @@ describe('useRegrasBloqueio', () => {
     expect(result.current.appsInstalados).toEqual(APPS_INSTALADOS);
   });
 
+  it('ordena appsInstalados por nome, alfabético, ignorando acento/maiúscula', async () => {
+    buscarUsuario.mockResolvedValue({ regrasBloqueio: undefined, regrasBloqueioPendentes: null });
+    listarAppsInstalados.mockResolvedValue([
+      { packageName: 'com.whatsapp', nome: 'WhatsApp', iconeBase64: 'c' },
+      { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'a' },
+      { packageName: 'com.etsy', nome: 'Ética', iconeBase64: 'd' },
+      { packageName: 'com.tiktok', nome: 'TikTok', iconeBase64: 'b' },
+    ]);
+
+    const { result } = await renderHook(() => useRegrasBloqueio('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.appsInstalados.map(app => app.nome)).toEqual([
+      'Ética',
+      'Instagram',
+      'TikTok',
+      'WhatsApp',
+    ]);
+  });
+
   it('sem usuário configurado ainda: regrasVigentes fica undefined', async () => {
     buscarUsuario.mockResolvedValue(null);
 
