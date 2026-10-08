@@ -48,6 +48,10 @@ TypeScript, `strict: true`.
 - ADB: servidor roda do lado Windows; dispositivo físico conecta direto no Windows
   (USB ou depuração sem fio), sem passthrough pro WSL
 - Firebase project: `raiz-app-71d02` — nome de exibição público ajustado pra "Rootora"
+- Pacote Android (`applicationId`/`namespace`): `com.luxthorapps.rootora` (antes
+  `com.lucas.rootora`). O app Android no Firebase precisa estar registrado com esse
+  pacote, e o `android/app/google-services.json` (gitignored) baixado dele. Nome npm:
+  `rootora`; o componente registrado continua `raizApp` (`app.json`, `MainActivity`)
 
 ## 5. Dívida técnica registrada
 

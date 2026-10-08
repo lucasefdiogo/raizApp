@@ -1,4 +1,4 @@
-package com.lucas.rootora
+package com.luxthorapps.rootora
 
 import android.app.Application
 import com.facebook.react.PackageList

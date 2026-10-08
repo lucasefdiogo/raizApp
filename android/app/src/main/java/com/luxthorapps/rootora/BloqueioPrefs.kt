@@ -1,4 +1,4 @@
-package com.lucas.rootora
+package com.luxthorapps.rootora
 
 import android.content.Context
 import java.util.Calendar

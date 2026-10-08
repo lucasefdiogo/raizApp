@@ -1,4 +1,4 @@
-package com.lucas.rootora
+package com.luxthorapps.rootora
 
 import android.os.Bundle
 import com.facebook.react.ReactActivity

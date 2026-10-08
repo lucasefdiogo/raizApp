@@ -6,6 +6,9 @@
 ## 1. Conta de desenvolvedor Google Play
 Criar a conta de desenvolvedor (taxa única) antes de qualquer submissão.
 
+O app será publicado com o pacote `com.luxthorapps.rootora`. O `applicationId` é
+permanente depois da primeira publicação na Play Store.
+
 ## 2. Publicação do app na Play Store
 - Ficha da loja (descrição, screenshots, ícone — já pronto)
 - Política de Privacidade e Termos de Uso — conteúdo já redigido (minuta), mas

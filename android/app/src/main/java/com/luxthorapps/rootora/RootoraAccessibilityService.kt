@@ -1,4 +1,4 @@
-package com.lucas.rootora
+package com.luxthorapps.rootora
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent

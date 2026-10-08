@@ -1,4 +1,4 @@
-package com.lucas.rootora
+package com.luxthorapps.rootora
 
 import android.content.ComponentName
 import android.content.Intent
