@@ -16,7 +16,7 @@ if [ -z "${ANDROID_HOME:-}" ]; then
 fi
 
 ADB="$ANDROID_HOME/platform-tools/adb"
-PACKAGE="com.lucas.rootora"
+PACKAGE="com.luxthorapps.rootora"
 ACTIVITY=".MainActivity"
 METRO_PORT=8081
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
