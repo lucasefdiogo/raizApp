@@ -37,7 +37,8 @@ refletido em `roadmap-e-status.md`.
 1. Reduzir a ameaça percebida da tarefa — nunca aumentar cobrança/pressão
 2. Nunca prometer "resetar o cérebro" ou "esvaziar dopamina" em copy ou nomes de feature
 3. Recaída sem vergonha — nenhuma mensagem de erro/estado vazio pode soar punitiva;
-   fricção crescente é aceitável (ex: escalação do bloqueio de apps), punição não
+   fricção é aceitável (ex: regra de pré-compromisso do bloqueio de apps — alteração só vale
+   amanhã), punição não
 4. Autoeficácia por acúmulo de pequenas vitórias — desconfiar de gamificação vazia
 5. O "porquê" pessoal do usuário deve poder ser reexibido em telas de recaída/retorno
 
@@ -51,7 +52,8 @@ RootNavigator (Stack.Navigator ÚNICO, não stacks separados por arquivo)
 ├── Onboarding é 1 tela com máquina de passos interna (Foco→TempoTela→Porque→PrimeiraTarefa)
 │     gate de saída: users/{uid}.onboardingConcluido (não porqueTexto)
 ├── Main → MainTabNavigator (Hoje / Progresso / Perfil)
-└── AppBlockedScreen — overlay do RootNavigator, fora de qualquer stack/tab
+└── Interceptação de apps bloqueados: root RN separado ('Intercept', InterceptActivity nativa),
+    fora do RootNavigator — o AppBlockedScreen antigo foi removido
 ```
 Detalhe completo em `navegacao-componentes.md`.
 
@@ -61,8 +63,8 @@ Detalhe completo em `navegacao-componentes.md`.
 src/
 ├── screens/       # Orquestram hooks + componentes, quase zero lógica própria
 ├── components/    # "Burros" — só recebem props, nunca chamam Firebase direto
-├── hooks/         # Lógica de negócio (useStreak, useDailyTasks, useAppBlocking...)
-├── domain/        # Funções puras (streak.ts, progress.ts, appBlockEscalation.ts...)
+├── hooks/         # Lógica de negócio (useStreak, useDailyTasks, useRegrasBloqueio...)
+├── domain/        # Funções puras (streak.ts, progress.ts, appBlock.ts, intercept.ts...)
 │                  # sem import de React/Firebase — as mais fáceis e importantes de testar
 ├── services/      # Única camada que fala com Firebase (firestore.ts, auth.ts...)
 ├── native/        # Wrappers TS sobre módulos nativos Android (AccessibilityDetection.ts)

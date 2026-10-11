@@ -111,7 +111,7 @@ caminho, com tela de configuração própria.
 | Item | Status |
 |---|---|
 | Exclusão de conta (client-side, ordem correta de limpeza) | ✅ |
-| Política de Privacidade + Termos — conteúdo (minuta) e links no app | 🚧 conteúdo pronto, hospedagem e **revisão jurídica ainda pendentes** — não publicar sem isso |
+| Política de Privacidade + Termos — conteúdo (minuta) e links no app | 🚧 conteúdo pronto; Firebase Hosting configurado (`firebase.json`, `docs/legal/`, URLs em `legalLinks.ts`) — deploy a confirmar. **Revisão jurídica ainda pendente** — não publicar sem isso (checklist em `docs/legal/README.md`) |
 
 ## 11. Identidade visual e design system
 

@@ -6,7 +6,7 @@
 ## 1. Mobile — React Native CLI (bare workflow), TypeScript
 
 Decisão original mantida: bare workflow (não Expo), por causa das integrações nativas
-de Fase 3 (bloqueio de apps via Accessibility Service, já em uso). Projeto 100%
+do bloqueio de apps via Accessibility Service (já em uso). Projeto 100%
 TypeScript, `strict: true`.
 
 ## 2. Backend — Firebase
@@ -15,7 +15,7 @@ TypeScript, `strict: true`.
 |---|---|
 | Firebase Auth | E-mail/senha + Google Sign-In |
 | Firestore | Banco de dados principal (ver `schema-firebase.md`) |
-| Cloud Messaging (FCM) | Reservado pra Fase 2 (reengajamento) — **não usado no MVP**, que usa notificação local |
+| Cloud Messaging (FCM) | Reservado pra reengajamento futuro (ver `roadmap-e-status.md`) — **não usado hoje**, o app usa notificação local |
 | Cloud Functions | **Ainda não usado.** Único uso planejado: verificação de assinatura via Google Play Developer API (`procedimento-loja.md`) — exige migração pro plano Blaze quando chegar lá |
 | Analytics | Eventos custom de produto (tarefas, streak, bloqueio de apps, onboarding/tutorial/tour, permissões) — wrapper em `src/services/analytics.ts`, uma função por evento |
 | Crashlytics | Relato de crash + `registrarErro` manual nos catches existentes de `hooks/` — wrapper em `src/services/crashlytics.ts` |
@@ -28,7 +28,7 @@ TypeScript, `strict: true`.
 | Login Google | `@react-native-google-signin/google-signin` |
 | Navegação | `@react-navigation/native` + `/native-stack` + `/bottom-tabs` |
 | Armazenamento local leve | `@react-native-async-storage/async-storage` |
-| Animações | `react-native-reanimated` (Splash, Tutorial) + `Animated` do core (LoadingIndicator) |
+| Animações | `Animated` do core (Splash, Tutorial, LoadingIndicator) — `react-native-reanimated` não está instalado |
 | Notificações locais | `@notifee/react-native` |
 | Seletor de horário | `@react-native-community/datetimepicker` |
 | Ícones | `lucide-react-native` |
@@ -52,6 +52,10 @@ TypeScript, `strict: true`.
   `com.lucas.rootora`). O app Android no Firebase precisa estar registrado com esse
   pacote, e o `android/app/google-services.json` (gitignored) baixado dele. Nome npm:
   `rootora`; o componente registrado continua `raizApp` (`app.json`, `MainActivity`)
+- `MainActivity` ignora o `savedInstanceState` (`super.onCreate(null)`): o
+  `react-native-screens` não suporta restauração de Fragments pelo Android, e o
+  Android matando o processo em background derrubava o app com "Screen fragments
+  should never be restored" (visto via Crashlytics em ColorOS). Não remover.
 
 ## 5. Dívida técnica registrada
 
@@ -72,12 +76,3 @@ TypeScript, `strict: true`.
 Não usamos `QUERY_ALL_PACKAGES` — a lista de apps da tela de bloqueio é resolvida via
 `<queries>` no manifesto (`MAIN`/`LAUNCHER`), que não exige o formulário de
 justificativa de revisão manual da Play Store.
-
-## 7. Próximo passo sugerido
-
-Com este documento e os demais (`schema-firebase.md`, `navegacao-componentes.md`,
-`regras-de-negocio.md`, `design-system-rootora.md`, `roadmap-e-status.md`) todos
-atualizados, a pasta `/definition` está pronta pra ser criada. Falta só mover os
-arquivos que não mudam de conteúdo (`00-instrucoes-do-projeto.md`,
-`02-identidade-visual.md`, banco de frases e versículos) e aposentar oficialmente
-`03-mvp.md`, `04-fase2.md`, `05-fase3.md` e `regras-streak-e-textos-mvp.md`.
