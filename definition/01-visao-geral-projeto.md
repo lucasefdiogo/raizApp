@@ -2,7 +2,7 @@
 
 ## 1. O que é
 
-Aplicativo mobile para ajudar pessoas presas no ciclo **celular → distração → culpa → procrastinação** a recuperarem foco e constância — através de planejamento de tarefas, streak com sistema de perdão, e reforço motivacional, sem apelar para culpa ou pressão.
+Rootora é um aplicativo mobile para ajudar pessoas presas no ciclo **celular → distração → culpa → procrastinação** a recuperarem foco e constância — através de planejamento de tarefas fatiadas, streak com sistema de proteção (perdão), recaída sem culpa e bloqueio de apps, sem apelar para culpa ou pressão.
 
 ## 2. O problema que resolve
 
@@ -28,34 +28,39 @@ Toda decisão de produto (mecânica, copy, gamificação) deve respeitar estes c
 
 | Decisão | Escolha | Motivo |
 |---|---|---|
-| Conteúdo bíblico | Fora do MVP (toggle na Fase 2) | Simplifica o público-alvo inicial e evita viés religioso não solicitado |
-| Plataforma inicial | Android primeiro, iOS depois | Foco de recursos; iOS exige macOS/Xcode e aprovação mais rígida para funcionalidades de Fase 3 |
-| Stack mobile | React Native CLI (bare workflow), não Expo | Integrações nativas profundas previstas para Fase 3 (bloqueio de apps, widget) |
-| Backend | Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging) | Velocidade de desenvolvimento, integração nativa madura com RN |
+| Conteúdo bíblico | Fora do produto por ora; possível toggle opcional no futuro (pendente de decisão) | Simplifica o público-alvo inicial e evita viés religioso não solicitado |
+| Plataforma inicial | Android primeiro, iOS depois | Foco de recursos; iOS exige macOS/Xcode e a aprovação de loja é mais rígida para o bloqueio de apps |
+| Stack mobile | React Native CLI (bare workflow), não Expo | Integrações nativas profundas (Accessibility Service para o bloqueio de apps, widget planejado) |
+| Backend | Firebase (Auth, Firestore). Cloud Functions só para verificação de assinatura, no futuro | Velocidade de desenvolvimento, integração nativa madura com RN |
+| Notificações | Locais (`@notifee/react-native`), não FCM | Lembrete diário e alerta de risco dependem de horário/estado local |
+| Bloqueio de apps | Accessibility Service + regra de pré-compromisso (alteração só vale amanhã) | Fricção sem punição; o sistema antigo de custo crescente foi removido |
 | Identidade visual | Raiz (ver documento de Identidade Visual) | Metáfora de fundação/consistência ao invés de urgência/chama |
+| Monetização | Assinatura do app inteiro, 7 dias grátis | Verificação via Cloud Function, ver `procedimento-loja.md` |
 | Ambiente de desenvolvimento | WSL2 (Ubuntu) + Android Studio no Windows | Configuração do desenvolvedor já existente |
 
-## 6. Estrutura de fases
+## 6. Organização do escopo
 
-| Fase | Foco | Complexidade técnica |
-|---|---|---|
-| **MVP** | Validar a hipótese central: streak + recaída sem culpa reduz procrastinação melhor que um to-do list comum | Baixa-média — client + Firestore |
-| **Fase 2** | Ampliar profundidade do produto já validado (exercício, desafios de médio prazo, conteúdo bíblico opcional) | Baixa — ainda sem APIs nativas sensíveis |
-| **Fase 3** | Diferenciação forte via integração profunda com o SO (bloqueio de apps com desafio, widget nativo) | Alta — módulos nativos, permissões sensíveis, aprovação de loja |
+O projeto não é mais dividido em MVP / Fase 2 / Fase 3. O escopo é organizado por **domínio funcional** (autenticação, onboarding, tarefas, streak e proteção, progresso, desafios, bloqueio de apps, notificações, conta e conformidade, monetização), cada um com status próprio (pronto, aguardando confirmação, planejado, removido) em `roadmap-e-status.md`. Esse documento é a fonte de verdade do que existe e do que falta.
 
-## 7. Métrica de sucesso do MVP
+O diferencial técnico do produto é a integração com o SO: o bloqueio de apps via Accessibility Service e a interceptação que leva da fuga para a tarefa (spec `09-ponte-fuga-tarefa-e-estou-travado.md`).
+
+## 7. Métrica de sucesso
 
 **Retenção em 7 dias** — a pessoa volta a usar o app depois de uma semana. Métrica mais honesta que número de downloads para validar se a mecânica de streak sem culpa realmente sustenta o hábito.
 
 ## 8. Documentos relacionados
 
-- Fundamentação Teórica do Projeto (base científica/conceitual, com fontes)
-- Identidade Visual
-- MVP
-- Fase 2
-- Fase 3
-- Stack de Desenvolvimento
-- Regras de Streak/Escudo e Textos do Produto (detalhamento de copy)
-- Schema Firebase (detalhamento técnico de dados)
-- Navegação e Componentes React Native (detalhamento técnico de telas)
-- Wireframes e mockups de tela (arquivos HTML)
+Todos em `/definition`:
+
+- `fundamentacaoteoricaprojeto.pdf` — base científica/conceitual, com fontes
+- `02-identidade-visual.md` — conceito de marca
+- `design-system-rootora.md` — tokens e componentes
+- `roadmap-e-status.md` — o que existe, o que está em andamento, o que é planejado
+- `regras-de-negocio.md` — streak/proteção, desafios, bloqueio de apps, textos exatos
+- `schema-firebase.md` — dados do Firestore
+- `navegacao-componentes.md` — telas e navegação
+- `stack-tecnico.md` — bibliotecas, ambiente, dívida técnica
+- `procedimento-loja.md` — publicação e assinatura
+- `09-ponte-fuga-tarefa-e-estou-travado.md` — spec da interceptação de apps
+- `banco-de-frases.md`, `banco-de-versiculos.md` — conteúdo motivacional
+- `wireframes/` — wireframes e mockups de tela (HTML)
