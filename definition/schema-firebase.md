@@ -5,7 +5,7 @@
 > apps, desafios e tarefas recorrentes.
 
 Stack confirmada: **React Native CLI (bare workflow), TypeScript** no front, **Firebase**
-no backend (Auth + Firestore + Cloud Messaging para notificações de Fase 2; sem Cloud
+no backend (Auth + Firestore + Cloud Messaging reservado para reengajamento futuro; sem Cloud
 Functions ainda — ver seção 8).
 
 ---
@@ -16,7 +16,7 @@ Functions ainda — ver seção 8).
 users/{userId}
   └── dailyLogs/{YYYY-MM-DD}
   └── essentialTasks/{taskId}        (tarefas recorrentes — em uso, não mais opcional)
-  └── challenges/{challengeId}       (desafios semanais/mensais — Fase 2)
+  └── challenges/{challengeId}       (desafios semanais/mensais)
 
 phrases/{phraseId}                    (coleção global, banco de frases motivacionais)
 systemMessages/{messageKey}           (coleção global, textos versionáveis sem update de app)
@@ -45,7 +45,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `escudosDisponiveis` | number (0 ou 1) | |
 | `dataUltimaRenovacaoEscudo` | timestamp | |
 | `ultimoDiaAtivo` | string (`YYYY-MM-DD`) | |
-| `statusStreak` | string | `ativo` \| `pausado` |
+| `statusStreak` | string | `ativo` \| `pausado` gravados hoje. O tipo `StatusStreak` também prevê `em_risco` e `perdido` (`src/domain/types.ts`), usados no cálculo em memória |
 | `marcosAtingidos` | array\<number\> | ex: `[3, 7]` |
 | **Preferências** | | |
 | `notificacoesAtivas` | boolean | |
@@ -111,6 +111,8 @@ arrays que crescem indefinidamente no documento do usuário.
   acao: 'sessao' | 'travado' | 'desafio' | 'liberou' | 'saiu'
 }
 ```
+> `'desafio'` continua no tipo `AcaoIntercept`, mas nenhum fluxo o grava mais: o
+> "Desbloquear com desafio" foi removido do produto (ver `roadmap-e-status.md`).
 
 Ao CRIAR um `dailyLog` novo (primeira leitura do dia, `garantirDailyLogDoDia`), o array
 `tarefas[]` já nasce pré-populado com as `essentialTasks` ativas do usuário (ver seção 4)
@@ -144,12 +146,12 @@ Gerenciamento: criar uma tarefa marcando "Repetir todos os dias" cria um doc aqu
 
 ## 5. `users/{userId}/challenges/{challengeId}`
 
-**Coleção nova** (Fase 2 — desafios semanais/mensais).
+Desafios semanais/mensais, em uso.
 
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `id` | string | |
-| `titulo` | string | Um dos 3 do catálogo fixo (ver `04-fase2.md`) |
+| `titulo` | string | Um dos 3 do catálogo fixo (`src/domain/challenges.ts`, `regras-de-negocio.md`) |
 | `tipo` | string | identifica qual regra de cálculo de progresso aplicar |
 | `periodo` | string | `semanal` \| `mensal` |
 | `dataInicio` / `dataFim` | string (`YYYY-MM-DD`) | Limites do período (semana = segunda a domingo, mês = dia 1 ao último dia) |
@@ -237,9 +239,16 @@ service cloud.firestore {
 }
 ```
 
+> As regras acima **não estão versionadas no repositório** (não existe `firestore.rules`; o
+> `firebase.json` só configura Hosting). O texto é uma cópia do que foi publicado no
+> console e pode divergir dele. Em especial, `allow delete: if false` em `users/{userId}`
+> não bate com a exclusão de conta, que chama `deleteDoc` nesse documento — conferir a
+> regra real no console.
+
 Nota: exclusão de conta (`apagarTodosOsDadosDoUsuario`) apaga `dailyLogs`,
 `essentialTasks` e o documento do usuário via client, nessa ordem específica (antes de
-excluir o Auth) — ver dívida técnica equivalente já registrada no `CLAUDE.md`.
+excluir o Auth). **A subcoleção `challenges` não está na lista** (`SUBCOLECOES_DO_USUARIO`
+em `src/services/firestore.ts`), então fica órfã após a exclusão. A exclusão client-side em si já é dívida técnica (`stack-tecnico.md`).
 
 ---
 
