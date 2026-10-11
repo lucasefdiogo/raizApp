@@ -246,9 +246,10 @@ service cloud.firestore {
 > regra real no console.
 
 Nota: exclusão de conta (`apagarTodosOsDadosDoUsuario`) apaga `dailyLogs`,
-`essentialTasks` e o documento do usuário via client, nessa ordem específica (antes de
-excluir o Auth). **A subcoleção `challenges` não está na lista** (`SUBCOLECOES_DO_USUARIO`
-em `src/services/firestore.ts`), então fica órfã após a exclusão. A exclusão client-side em si já é dívida técnica (`stack-tecnico.md`).
+`essentialTasks`, `challenges` e o documento do usuário via client, nessa ordem específica (antes de
+excluir o Auth). A lista de subcoleções é `SUBCOLECOES_DO_USUARIO` em
+`src/services/firestore.ts` — **ao criar uma subcoleção nova em `users/{uid}`, incluí-la lá**.
+A exclusão client-side em si é dívida técnica (`stack-tecnico.md`).
 
 ---
 
