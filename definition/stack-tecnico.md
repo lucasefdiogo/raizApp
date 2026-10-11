@@ -63,7 +63,7 @@ TypeScript, `strict: true`.
 |---|---|---|
 | Cálculo de streak/escudo | Roda no client, ao abrir o app | Cloud Function agendada, quando a base crescer |
 | `streakAtual`/`escudosDisponiveis` | Graváveis diretamente pelo client | Endurecer regras (só Cloud Function admin escreve) antes de escalar |
-| Exclusão de conta | Client-side, sem exclusão recursiva via Admin SDK. Hoje não apaga a subcoleção `challenges` (ver `schema-firebase.md` seção 9) | Cloud Function, mesmo racional do item acima |
+| Exclusão de conta | Client-side, sem exclusão recursiva via Admin SDK: a lista de subcoleções é manual (`SUBCOLECOES_DO_USUARIO`), subcoleção nova esquecida fica órfã (ver `schema-firebase.md` seção 9) | Cloud Function, mesmo racional do item acima |
 | Verificação de assinatura | N/A ainda (feature não implementada) | Será Cloud Function desde o início, não dívida — ver `procedimento-loja.md` |
 
 ## 6. Permissões Android relevantes

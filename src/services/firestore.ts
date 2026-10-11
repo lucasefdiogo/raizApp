@@ -609,7 +609,11 @@ export async function atualizarPerfilUsuario(
 // pequena.
 const TAMANHO_PAGINA_EXCLUSAO = 400;
 
-const SUBCOLECOES_DO_USUARIO = ['dailyLogs', 'essentialTasks'] as const;
+const SUBCOLECOES_DO_USUARIO = [
+  'dailyLogs',
+  'essentialTasks',
+  'challenges',
+] as const;
 
 /**
  * Apaga todos os documentos de uma subcoleção de users/{uid}, em páginas.
@@ -646,7 +650,7 @@ async function apagarSubcolecaoDoUsuario(
 
 /**
  * Apaga TODOS os dados do usuário no Firestore, na ordem: subcoleções
- * primeiro (dailyLogs, essentialTasks), depois o documento users/{uid}.
+ * primeiro (dailyLogs, essentialTasks, challenges), depois o documento users/{uid}.
  * Feito client-side (dívida técnica registrada no CLAUDE.md) — exige que o
  * Auth do usuário ainda esteja válido, então deve rodar ANTES de apagar a
  * conta no Firebase Auth.

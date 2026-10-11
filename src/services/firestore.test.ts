@@ -831,9 +831,17 @@ describe('services/firestore', () => {
         'et-1',
       );
       await firestoreMock.setDoc(essencialRef, { titulo: 'antiga essencial' });
+      const desafioRef = firestoreMock.doc(
+        firestoreMock.getFirestore(),
+        'users',
+        uid,
+        'challenges',
+        'ch-1',
+      );
+      await firestoreMock.setDoc(desafioRef, { titulo: 'desafio antigo' });
     }
 
-    it('apaga dailyLogs, essentialTasks e o documento do usuário', async () => {
+    it('apaga dailyLogs, essentialTasks, challenges e o documento do usuário', async () => {
       await semearUsuarioComDados('uid-1');
 
       await apagarTodosOsDadosDoUsuario('uid-1');
@@ -847,6 +855,9 @@ describe('services/firestore', () => {
       ).toBeUndefined();
       expect(
         firestoreMock.__dados('users/uid-1/essentialTasks/et-1'),
+      ).toBeUndefined();
+      expect(
+        firestoreMock.__dados('users/uid-1/challenges/ch-1'),
       ).toBeUndefined();
       expect(await buscarUsuario('uid-1')).toBeNull();
       expect(await existeAlgumDailyLog('uid-1')).toBe(false);
@@ -862,6 +873,9 @@ describe('services/firestore', () => {
       expect(await existeAlgumDailyLog('uid-2')).toBe(true);
       expect(
         firestoreMock.__dados('users/uid-2/essentialTasks/et-1'),
+      ).toBeDefined();
+      expect(
+        firestoreMock.__dados('users/uid-2/challenges/ch-1'),
       ).toBeDefined();
     });
 
