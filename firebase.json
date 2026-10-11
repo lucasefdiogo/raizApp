@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "docs/legal",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README.md"],
