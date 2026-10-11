@@ -239,11 +239,15 @@ service cloud.firestore {
 }
 ```
 
-> As regras acima **não estão versionadas no repositório** (não existe `firestore.rules`; o
-> `firebase.json` só configura Hosting). O texto é uma cópia do que foi publicado no
-> console e pode divergir dele. Em especial, `allow delete: if false` em `users/{userId}`
-> não bate com a exclusão de conta, que chama `deleteDoc` nesse documento — conferir a
-> regra real no console.
+> As regras estão versionadas em `firestore.rules` (raiz), referenciado em `firebase.json`.
+> O conteúdo foi copiado do console do Firebase em 11/out/2026 e o bloco acima é igual a
+> ele. Ao mudar as regras, editar o arquivo e publicar com
+> `firebase deploy --only firestore:rules`.
+>
+> **Atenção:** `allow delete: if false` em `users/{userId}` contradiz a exclusão de conta,
+> que chama `deleteDoc` nesse documento (`apagarTodosOsDadosDoUsuario`). Com a regra
+> publicada, esse último passo deveria ser negado — ver dívida técnica em
+> `stack-tecnico.md`.
 
 Nota: exclusão de conta (`apagarTodosOsDadosDoUsuario`) apaga `dailyLogs`,
 `essentialTasks`, `challenges` e o documento do usuário via client, nessa ordem específica (antes de
