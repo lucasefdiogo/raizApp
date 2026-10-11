@@ -85,7 +85,7 @@ nesse link, não de código quebrado.
 |---|---|---|
 | `HomeHeader` | `src/components/home/HomeHeader.tsx` | Saudação por horário + nome à esquerda, badge de streak à direita |
 | `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + escudos disponíveis, logo abaixo do HomeHeader |
-| `TaskItem` | `src/components/home/TaskItem.tsx` | Checkbox + título + selo de essencial (estrela) + ícone ↻ se recorrente + ícone de exercício se `tipo === 'exercicio'` |
+| `TaskItem` | `src/components/TaskItem.tsx` | Checkbox + título + selo de essencial (estrela) + ícone ↻ se recorrente + ícone de exercício se `tipo === 'exercicio'` |
 | `AddTaskForm` | `src/components/home/AddTaskForm.tsx` | Campo de título + toggle essencial + `TaskTypeToggle` (tipo exercício + duração) + toggle "Repetir todos os dias" |
 | `TaskTypeToggle` | `src/components/home/TaskTypeToggle.tsx` | Sub-componente do AddTaskForm — alterna tipo padrão/exercício e campo de duração |
 | `TaskCompletedOverlay` | `src/components/home/TaskCompletedOverlay.tsx` | Auto-dismiss ~1.5s, 1 de 3 frases fixas |
@@ -169,7 +169,7 @@ RootNavigator (Stack.Navigator único)
 ## 10. O que NÃO segue este tema
 
 - Ícone do app (launcher) é genérico, paleta própria (seção 1), não muda com seleção de
-  tema (Fase 2, não implementada)
+  tema (futuro, não implementada — ver `roadmap-e-status.md`)
 - Telas de priming de permissão (`DivulgacaoAcessibilidadeScreen`,
   `NotificationPrimingScreen`) seguem a mesma paleta/tipografia deste documento — não
   têm identidade própria, só conteúdo específico de explicação de permissão

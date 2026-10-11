@@ -341,8 +341,8 @@ chama `useFeatureTour().reiniciar()` — reseta a flag e navega de volta pra aba
 | Firebase | `@react-native-firebase/app`, `/auth`, `/firestore`, `/messaging` (nativo, não SDK web) |
 | Login Google | `@react-native-google-signin/google-signin` |
 | Armazenamento local leve | `@react-native-async-storage/async-storage` |
-| Animações | `react-native-reanimated` (usado em Splash/Tutorial; `LoadingIndicator` usa `Animated` do core, não Reanimated) |
-| Notificações locais | `@notifee/react-native` (MVP usa local, não FCM — ver `CLAUDE.md`) |
+| Animações | `Animated` do core (Splash, Tutorial, `LoadingIndicator`) — `react-native-reanimated` não está instalado |
+| Notificações locais | `@notifee/react-native` (o app usa notificação local, não FCM — ver `CLAUDE.md`) |
 | Seletor de horário | `@react-native-community/datetimepicker` |
 | Ícones | `lucide-react-native` |
 | Testes | Jest + `@testing-library/react-native` |

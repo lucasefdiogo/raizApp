@@ -1,6 +1,6 @@
 # Procedimento da Loja — Rootora
 
-> Passos adiados deliberadamente para depois do MVP/polimento — não bloqueiam
+> Passos adiados deliberadamente para depois do polimento do produto — não bloqueiam
 > desenvolvimento ou teste, mas são obrigatórios antes de publicar.
 
 ## 1. Conta de desenvolvedor Google Play

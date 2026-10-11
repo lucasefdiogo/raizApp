@@ -1,6 +1,6 @@
-# Banco de Versículos e Frases Bíblicas — Toggle Opcional (Fase 2)
+# Banco de Versículos e Frases Bíblicas — Toggle Opcional (futuro)
 
-> **Escopo:** este conteúdo NÃO entra no MVP. Fica disponível apenas com o toggle de conteúdo religioso ativado pelo usuário no onboarding, conforme decisão registrada nos documentos de Visão Geral e Fase 2.
+> **Escopo:** este conteúdo NÃO está no app hoje. O conteúdo bíblico (toggle opcional) está em "pendente de decisão" no `roadmap-e-status.md`. Se entrar, fica disponível apenas com o toggle de conteúdo religioso ativado pelo usuário, conforme decisão registrada na Visão Geral (`01-visao-geral-projeto.md`).
 >
 > **Princípio inegociável:** os mesmos cinco princípios do produto valem aqui. Versículo que gere culpa, vergonha ou comparação está proibido, por mais conhecido que seja — ver seção 8 deste documento.
 
@@ -18,7 +18,7 @@ Traduções modernas (NVI, NTLH, NAA, A21, entre outras) são **obras protegidas
 | Licenciar tradução moderna | Contato com a sociedade bíblica; pode haver custo e limite de versículos por tela |
 | Usar apenas paráfrase autoral | Sem problema de licença, mas deixa de ser "versículo" — mudar o rótulo na UI |
 
-Recomendação: para o toggle da Fase 2, começar com Almeida domínio público e avaliar licenciamento só se houver demanda real de usuários.
+Recomendação: para o toggle, se for implementado, começar com Almeida domínio público e avaliar licenciamento só se houver demanda real de usuários.
 
 ---
 

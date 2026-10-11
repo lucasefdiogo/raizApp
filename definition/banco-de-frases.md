@@ -1,4 +1,4 @@
-# Banco de Frases Motivacionais — Neutras (MVP)
+# Banco de Frases Motivacionais — Neutras
 
 > Todas de autoria própria para o produto, sem atribuição a terceiros e sem viés religioso.
 > Tom de voz obrigatório: frases curtas, verbo no início quando possível, **sem ponto de exclamação**, sem culpa, sem cobrança.
