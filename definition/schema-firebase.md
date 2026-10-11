@@ -214,7 +214,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, update: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false;
+      allow delete: if request.auth != null && request.auth.uid == userId;
 
       match /dailyLogs/{date} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -240,14 +240,13 @@ service cloud.firestore {
 ```
 
 > As regras estão versionadas em `firestore.rules` (raiz), referenciado em `firebase.json`.
-> O conteúdo foi copiado do console do Firebase em 11/out/2026 e o bloco acima é igual a
-> ele. Ao mudar as regras, editar o arquivo e publicar com
-> `firebase deploy --only firestore:rules`.
+> O bloco acima é igual ao arquivo. Ao mudar as regras, editar o arquivo e publicar com
+> `firebase deploy --only firestore:rules` (passo manual, fora do Claude Code).
 >
-> **Atenção:** `allow delete: if false` em `users/{userId}` contradiz a exclusão de conta,
-> que chama `deleteDoc` nesse documento (`apagarTodosOsDadosDoUsuario`). Com a regra
-> publicada, esse último passo deveria ser negado — ver dívida técnica em
-> `stack-tecnico.md`.
+> **Histórico:** até out/2026 a regra publicada tinha `allow delete: if false` em
+> `users/{userId}`, o que contradizia a exclusão de conta (`deleteDoc` em
+> `apagarTodosOsDadosDoUsuario`). O arquivo agora libera `delete` só para o dono; a
+> mudança só vale em produção depois do deploy das regras.
 
 Nota: exclusão de conta (`apagarTodosOsDadosDoUsuario`) apaga `dailyLogs`,
 `essentialTasks`, `challenges` e o documento do usuário via client, nessa ordem específica (antes de
