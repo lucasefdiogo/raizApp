@@ -1,0 +1,11 @@
+Fontes usadas nas páginas de Política de Privacidade e Termos de Uso do Rootora:
+
+  - IBM Plex Sans   (400, 500, 600)
+  - Space Mono      (400)
+  - Zilla Slab      (500, 600)
+
+Todas são distribuídas sob a SIL Open Font License, Versão 1.1
+(https://openfontlicense.org). Os arquivos aqui são os mesmos usados no app
+(android/app/src/main/assets/fonts), reduzidos ao subconjunto latino
+necessário para estas páginas e convertidos para WOFF. Os direitos autorais
+de cada fonte pertencem aos seus respectivos autores.
