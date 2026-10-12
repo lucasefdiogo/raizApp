@@ -15,7 +15,6 @@ import org.json.JSONObject
  */
 object BloqueioPrefs {
   private const val PREFS_NOME = "rootora_bloqueio_apps"
-  private const val PREFIXO_DESBLOQUEIO = "unlock_"
   private const val CHAVE_SNAPSHOT_DIA = "snapshot_dia"
   private const val CHAVE_REGRAS_BLOQUEIO = "regras_bloqueio"
   private const val CHAVE_REGRAS_BLOQUEIO_PENDENTES = "regras_bloqueio_pendentes"
@@ -23,11 +22,6 @@ object BloqueioPrefs {
 
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS_NOME, Context.MODE_PRIVATE)
-
-  fun registrarDesbloqueioTemporario(context: Context, packageName: String, minutos: Int) {
-    val expiraEm = System.currentTimeMillis() + minutos * 60_000L
-    prefs(context).edit().putLong(PREFIXO_DESBLOQUEIO + packageName, expiraEm).apply()
-  }
 
   /**
    * Snapshot do dia (JSON bruto, formato de domain/intercept.ts SnapshotDia)
@@ -88,19 +82,8 @@ object BloqueioPrefs {
 
   fun lerSessaoAtiva(context: Context): String? = prefs(context).getString(CHAVE_SESSAO_ATIVA, null)
 
-  /**
-   * Único caminho de interceptação (o sistema antigo baseado em
-   * `bloqueioApps`/custo crescente foi removido) — lê `regrasBloqueio`
-   * (apps[] + janelas[] com diasSemana). Compartilha o mesmo
-   * PREFIXO_DESBLOQUEIO usado por `registrarDesbloqueioTemporario`: uma
-   * liberação concedida (estado B ou "Liberar" em FimSessao) vale até
-   * expirar, não importa qual ação concedeu.
-   *
-   * Simplificação aceita: uma janela que atravessa a meia-noite só "conta"
-   * pro dia em que ELA COMEÇA — não tenta herdar o dia anterior pra cobrir
-   * a madrugada.
-   */
-  fun deveInterceptar(context: Context, packageName: String): Boolean {
+  /** `packageName` está em `regrasBloqueio.apps` (vigente, já com pendência promovida se vencida). */
+  fun ehAppBloqueado(context: Context, packageName: String): Boolean {
     promoverPendentesSeVencidas(context)
 
     val json = lerRegrasBloqueio(context) ?: return false
@@ -112,18 +95,39 @@ object BloqueioPrefs {
       }
 
     val apps = regras.optJSONArray("apps") ?: JSONArray()
-    val appsList = (0 until apps.length()).map { apps.optString(it) }
-    if (packageName !in appsList) {
+    return (0 until apps.length()).any { apps.optString(it) == packageName }
+  }
+
+  private fun dentroDaJanelaVigente(context: Context): Boolean {
+    val json = lerRegrasBloqueio(context) ?: return false
+    val regras =
+      try {
+        JSONObject(json)
+      } catch (erro: Exception) {
+        return false
+      }
+    return dentroDeAlgumaJanela(regras.optJSONArray("janelas") ?: JSONArray())
+  }
+
+  /**
+   * Único caminho de interceptação — lê `regrasBloqueio` (apps[] + janelas[]
+   * com diasSemana) e o estado do saldo diário (SaldoBloqueioPrefs): app
+   * bloqueado, dentro da janela e SEM bloco/tolerância em andamento. Quem
+   * libera o uso é a máquina de estados (liberarBloco/usarTolerancia), não
+   * mais um desbloqueio temporário por pacote.
+   *
+   * Simplificação aceita: uma janela que atravessa a meia-noite só "conta"
+   * pro dia em que ELA COMEÇA — não tenta herdar o dia anterior pra cobrir
+   * a madrugada.
+   */
+  fun deveInterceptar(context: Context, packageName: String): Boolean {
+    if (!ehAppBloqueado(context, packageName)) {
       return false
     }
-
-    val janelas = regras.optJSONArray("janelas") ?: JSONArray()
-    if (!dentroDeAlgumaJanela(janelas)) {
+    if (!dentroDaJanelaVigente(context)) {
       return false
     }
-
-    val expiraEm = prefs(context).getLong(PREFIXO_DESBLOQUEIO + packageName, 0L)
-    return System.currentTimeMillis() >= expiraEm
+    return !SaldoBloqueioMaquina.permiteUso(SaldoBloqueioPrefs.estadoAtual(context))
   }
 
   /**
@@ -136,7 +140,7 @@ object BloqueioPrefs {
    * regras vigentes — idempotente: sem pendência, ou com pendência ainda
    * não vencida, não faz nada.
    */
-  private fun promoverPendentesSeVencidas(context: Context) {
+  fun promoverPendentesSeVencidas(context: Context) {
     val pendenteJson = lerRegrasBloqueioPendentes(context) ?: return
     val pendente =
       try {
@@ -150,11 +154,15 @@ object BloqueioPrefs {
       return
     }
 
-    val novaVigente =
-      JSONObject().apply {
-        put("apps", pendente.optJSONArray("apps") ?: JSONArray())
-        put("janelas", pendente.optJSONArray("janelas") ?: JSONArray())
+    // Tudo menos `efetivaEm` (apps, janelas e a config de blocos, se houver).
+    val novaVigente = JSONObject()
+    pendente.keys().forEach { chave ->
+      if (chave != "efetivaEm") {
+        novaVigente.put(chave, pendente.get(chave))
       }
+    }
+    if (!novaVigente.has("apps")) novaVigente.put("apps", JSONArray())
+    if (!novaVigente.has("janelas")) novaVigente.put("janelas", JSONArray())
     salvarRegrasBloqueio(context, novaVigente.toString())
     salvarRegrasBloqueioPendentes(context, null)
   }

@@ -139,4 +139,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Só testes unitários locais (SaldoBloqueioMaquinaTest). org.json real
+    // porque o do android.jar é stub nos testes da JVM.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

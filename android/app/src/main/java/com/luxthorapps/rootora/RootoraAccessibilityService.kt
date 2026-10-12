@@ -1,8 +1,14 @@
 package com.luxthorapps.rootora
 
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
+import android.view.inputmethod.InputMethodManager
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
@@ -15,10 +21,48 @@ import org.json.JSONObject
  * debug; a mesma detecção hoje também avalia a interceptação — ver
  * avaliarIntercept. Não lê conteúdo de tela
  * (canRetrieveWindowContent="false" no config) — só o nome do pacote.
+ *
+ * Também é o cronômetro do saldo diário de blocos (SaldoBloqueioMaquina): o
+ * bloco só corre com um app bloqueado em PRIMEIRO PLANO — soma o trecho ao
+ * trocar de janela ou apagar a tela, e agenda um aviso (Handler) pro momento
+ * em que o bloco esgota com o app ainda aberto.
  */
 class RootoraAccessibilityService : AccessibilityService() {
 
   private var ultimoPacote: String? = null
+
+  /** App bloqueado cujo tempo está correndo agora (null = relógio do bloco parado). */
+  private var pacoteBloqueadoEmFoco: String? = null
+
+  private val handler = Handler(Looper.getMainLooper())
+  private val aoEstourarBloco = Runnable { aoBlocoEstourar() }
+
+  private val receiverTela =
+    object : BroadcastReceiver() {
+      override fun onReceive(context: Context?, intent: Intent?) {
+        // Tela apagou: pausa o relógio. Ao acender, a primeira janela nova
+        // reinicia a contagem (ultimoPacote zerado pra não ser deduplicada).
+        pausarRelogio()
+        ultimoPacote = null
+      }
+    }
+
+  override fun onServiceConnected() {
+    super.onServiceConnected()
+    // Processo/serviço reiniciou: um trecho em aberto não tem fim conhecido.
+    SaldoBloqueioPrefs.descartarTrechoEmAberto(applicationContext)
+    registerReceiver(receiverTela, IntentFilter(Intent.ACTION_SCREEN_OFF))
+  }
+
+  override fun onDestroy() {
+    handler.removeCallbacks(aoEstourarBloco)
+    try {
+      unregisterReceiver(receiverTela)
+    } catch (erro: Exception) {
+      // Nunca registrado (serviço destruído antes de conectar).
+    }
+    super.onDestroy()
+  }
 
   override fun onAccessibilityEvent(event: AccessibilityEvent?) {
     if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -29,9 +73,62 @@ class RootoraAccessibilityService : AccessibilityService() {
     if (pacote.isNullOrEmpty() || pacote == ultimoPacote) {
       return
     }
+    // Teclado e barra de notificações abrem janela por cima do app sem o
+    // usuário ter saído dele — contar como "saiu" pausaria o bloco enquanto
+    // ele digita.
+    if (ehJanelaDeSistema(pacote)) {
+      return
+    }
 
     ultimoPacote = pacote
     emitirParaJS(pacote)
+    atualizarRelogio(pacote)
+    avaliarIntercept(pacote)
+  }
+
+  private fun ehJanelaDeSistema(pacote: String): Boolean {
+    if (pacote == "com.android.systemui") {
+      return true
+    }
+    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+    return imm?.enabledInputMethodList?.any { it.packageName == pacote } == true
+  }
+
+  /** Soma o trecho do app que saiu de foco e, se o novo for bloqueado, retoma o relógio. */
+  private fun atualizarRelogio(pacote: String) {
+    pausarRelogio()
+    if (BloqueioPrefs.ehAppBloqueado(applicationContext, pacote)) {
+      SaldoBloqueioPrefs.transicionar(applicationContext) { s, cfg, agora, dia ->
+        SaldoBloqueioMaquina.entrouEmPrimeiroPlano(s, cfg, agora, dia)
+      }
+      pacoteBloqueadoEmFoco = pacote
+      agendarEstouro()
+    }
+  }
+
+  private fun pausarRelogio() {
+    handler.removeCallbacks(aoEstourarBloco)
+    if (pacoteBloqueadoEmFoco != null) {
+      SaldoBloqueioPrefs.transicionar(applicationContext) { s, cfg, agora, dia ->
+        SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
+      }
+      pacoteBloqueadoEmFoco = null
+    }
+  }
+
+  private fun agendarEstouro() {
+    handler.removeCallbacks(aoEstourarBloco)
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    val cfg = SaldoBloqueioPrefs.configAtual(applicationContext)
+    val faltam = SaldoBloqueioMaquina.msAteEsgotar(estado, cfg, System.currentTimeMillis()) ?: return
+    handler.postDelayed(aoEstourarBloco, faltam + 50L)
+  }
+
+  /** Bloco (ou tolerância) esgotou com o app ainda em primeiro plano: reabre a interceptação por cima dele. */
+  private fun aoBlocoEstourar() {
+    val pacote = pacoteBloqueadoEmFoco ?: return
+    // reconciliar (dentro de estadoAtual) move pra TOLERANCIA/COOLDOWN e zera o trecho em aberto.
+    SaldoBloqueioPrefs.estadoAtual(applicationContext)
     avaliarIntercept(pacote)
   }
 
@@ -58,6 +155,10 @@ class RootoraAccessibilityService : AccessibilityService() {
         putExtra(InterceptActivity.EXTRA_PACKAGE_NAME, pacote)
         putExtra(InterceptActivity.EXTRA_APP_LABEL, appLabel)
         putExtra(InterceptActivity.EXTRA_SNAPSHOT_JSON, snapshotJson)
+        putExtra(
+          InterceptActivity.EXTRA_ESTADO_BLOQUEIO_JSON,
+          SaldoBloqueioPrefs.visaoJson(applicationContext),
+        )
         if (sessaoAtivaJson != null) {
           putExtra(InterceptActivity.EXTRA_SESSAO_ATIVA_JSON, sessaoAtivaJson)
         }

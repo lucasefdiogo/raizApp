@@ -37,6 +37,10 @@ class InterceptActivity : ReactActivity() {
             "snapshotJson",
             extras?.getString(EXTRA_SNAPSHOT_JSON) ?: "{\"tarefas\":[]}",
           )
+          putString(
+            "estadoBloqueioJson",
+            extras?.getString(EXTRA_ESTADO_BLOQUEIO_JSON) ?: SaldoBloqueioPrefs.visaoJson(applicationContext),
+          )
           val sessaoAtivaJson = extras?.getString(EXTRA_SESSAO_ATIVA_JSON)
           if (sessaoAtivaJson != null) {
             putString("sessaoAtivaJson", sessaoAtivaJson)
@@ -49,6 +53,7 @@ class InterceptActivity : ReactActivity() {
     const val EXTRA_PACKAGE_NAME = "packageName"
     const val EXTRA_APP_LABEL = "appLabel"
     const val EXTRA_SNAPSHOT_JSON = "snapshotJson"
+    const val EXTRA_ESTADO_BLOQUEIO_JSON = "estadoBloqueioJson"
     const val EXTRA_SESSAO_ATIVA_JSON = "sessaoAtivaJson"
   }
 }
