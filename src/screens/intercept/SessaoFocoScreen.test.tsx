@@ -135,7 +135,7 @@ describe('SessaoFocoScreen', () => {
         />,
       );
 
-      expect(screen.queryByText(/Liberar o/)).toBeNull();
+      expect(screen.queryByText(/Seguir para o/)).toBeNull();
     });
 
     it('não aparece com origem "interceptacao" sem onLiberarApp', async () => {
@@ -148,7 +148,7 @@ describe('SessaoFocoScreen', () => {
         />,
       );
 
-      expect(screen.queryByText(/Liberar o/)).toBeNull();
+      expect(screen.queryByText(/Seguir para o/)).toBeNull();
     });
 
     it('com origem "interceptacao" e onLiberarApp: aparece com o nome do app e chama liberarApp + onLiberarApp ao tocar', async () => {
@@ -164,7 +164,7 @@ describe('SessaoFocoScreen', () => {
         />,
       );
 
-      const botao = screen.getByText('Liberar o Instagram por 15 minutos');
+      const botao = screen.getByText('Seguir para o Instagram');
       await fireEvent.press(botao);
 
       expect(liberarApp).toHaveBeenCalledTimes(1);

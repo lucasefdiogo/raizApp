@@ -62,6 +62,7 @@ describe('InterceptRoot', () => {
         appLabel: 'Instagram',
         snapshot: { tarefas: [] },
         sessaoAtivaResumida: null,
+        visaoInicial: null,
       }),
     );
   });
@@ -108,6 +109,26 @@ describe('InterceptRoot', () => {
 
     expect(mockCapturarProps).toHaveBeenCalledWith(
       expect.objectContaining({ sessaoAtivaResumida: null }),
+    );
+  });
+
+  it('estadoBloqueioJson válido vira visaoInicial; inválido ou ausente vira null', async () => {
+    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    const visao = {
+      estado: { dia: '2026-10-11', fase: 'AGUARDANDO_LIBERACAO', saldo: 4 },
+      config: { duracaoBlocoMin: 15 },
+      agora: 1_700_000_000_000,
+    };
+    await render(
+      <InterceptRoot {...props} estadoBloqueioJson={JSON.stringify(visao)} />,
+    );
+    expect(mockCapturarProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ visaoInicial: visao }),
+    );
+
+    await render(<InterceptRoot {...props} estadoBloqueioJson="{quebrado" />);
+    expect(mockCapturarProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ visaoInicial: null }),
     );
   });
 
