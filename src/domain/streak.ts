@@ -7,27 +7,18 @@ import {
 } from './types';
 import { diferencaEmDiasLocal, paraISOLocal } from './data';
 
-const PROPORCAO_MINIMA_CUMPRIMENTO = 0.6;
-
 export function existeEssencialConcluida(tarefas: Tarefa[]): boolean {
   return tarefas.some(tarefa => tarefa.essencial && tarefa.concluida);
 }
 
 /**
- * Dia cumprido = pelo menos 1 tarefa essencial concluída, ou 60% das tarefas
- * do dia concluídas (regra de negócio definida na fundamentação do produto).
+ * Dia cumprido = pelo menos 1 tarefa essencial concluída. Tarefas comuns
+ * não bastam: o teto de 3 essenciais (dailyTasks.ts) existe justamente pra
+ * manter o foco em poucas vitórias reais, e deixar a lista de comuns
+ * cumprir o dia esvaziaria o streak (princípio 4).
  */
 export function avaliarDiaCumprido(tarefas: Tarefa[]): boolean {
-  if (tarefas.length === 0) {
-    return false;
-  }
-
-  if (existeEssencialConcluida(tarefas)) {
-    return true;
-  }
-
-  const concluidas = tarefas.filter(tarefa => tarefa.concluida).length;
-  return concluidas / tarefas.length >= PROPORCAO_MINIMA_CUMPRIMENTO;
+  return existeEssencialConcluida(tarefas);
 }
 
 export function calcularStatusDia(tarefas: Tarefa[]): StatusDia {
@@ -185,8 +176,16 @@ export function aplicarResultadoDia(
     };
   }
 
+  // Queda pra 50% (arredondada pra baixo), mas nunca zera um streak que
+  // existia: um dia perdido isolado não pode apagar tudo (princípio 3). Só
+  // 2+ dias de sumiço zeram (ramo acima).
+  const streakReduzido =
+    estadoAtual.streakAtual > 0
+      ? Math.max(1, Math.floor(estadoAtual.streakAtual * 0.5))
+      : 0;
+
   return {
-    streakAtual: Math.floor(estadoAtual.streakAtual * 0.5),
+    streakAtual: streakReduzido,
     diasTotaisAtivos: estadoAtual.diasTotaisAtivos,
     escudosDisponiveis: estadoAtual.escudosDisponiveis,
     marcosAtingidos: estadoAtual.marcosAtingidos,
