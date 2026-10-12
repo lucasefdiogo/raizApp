@@ -34,6 +34,17 @@ Os dois arquivos precisam continuar coerentes entre si: idade mínima (18+),
 
 Mudança relevante na Política exige aviso prévio ao usuário (seção 15 dela).
 
+## Fontes
+
+As páginas usam fontes locais em `docs/legal/fonts/` (WOFF, subconjunto latino,
+as mesmas do app), sem Google Fonts — assim o acesso à página não envia o IP do
+visitante a terceiros, o que sustenta a seção 14 da Política ("não usam cookies,
+ferramentas de análise ou rastreadores"). **Não reintroduza `<link>` para
+`fonts.googleapis.com`** nem outro recurso externo nas páginas. Se um texto novo
+usar caractere fora do subconjunto (latim básico, Latin-1, travessões, aspas
+curvas, `•`, `…`, `←`, `→`, `≤`, `≥`), o navegador usa uma fonte do sistema para
+esse caractere; para cobrir, refaça o subconjunto a partir dos `.ttf` do app.
+
 ## Hospedagem (Firebase Hosting)
 
 A config está em `firebase.json` (raiz do repo):
@@ -68,8 +79,7 @@ site do Hosting for renomeado, atualizar `src/config/legalLinks.ts` junto.
 
 - [x] Revisão dos dois textos (LGPD, CDC, políticas da Google Play)
 - [x] Definir data de vigência em cada documento (11/10/2026)
-- [ ] Confirmar o e-mail de contato (`lucasdiogo.s.i@gmail.com`) ou trocar em
-      todas as ocorrências dos dois arquivos
+- [x] E-mail de contato definido como `ludigoapps@gmail.com` (nos dois arquivos)
 - [ ] Confirmar a retenção do Analytics no console do Firebase — a Política diz
       "até 14 meses" (o padrão do Firebase é 2 meses)
 - [ ] `@react-native-firebase/messaging` está instalado mas sem uso: desativar o
