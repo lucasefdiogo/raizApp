@@ -1,396 +1,329 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>Política de Privacidade — Rootora</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        line-height: 1.6;
-        color: #1c1a17;
-        background: #f8f3e9;
-        margin: 0;
-        padding: 24px 16px 64px;
-      }
-      main {
-        max-width: 720px;
-        margin: 0 auto;
-      }
-      h1 {
-        font-size: 1.6rem;
-        margin: 0 0 4px;
-      }
-      h2 {
-        font-size: 1.15rem;
-        margin: 32px 0 8px;
-      }
-      h3 {
-        font-size: 1rem;
-        margin: 20px 0 4px;
-      }
-      .aviso-minuta {
-        border: 2px solid #b23b1e;
-        background: #fbe9e4;
-        color: #7a2512;
-        padding: 14px 16px;
-        border-radius: 8px;
-        font-weight: 700;
-        margin-bottom: 20px;
-      }
-      .disclaimer {
-        background: #efe7d6;
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-size: 0.95rem;
-        margin-bottom: 28px;
-      }
-      .meta {
-        font-size: 0.9rem;
-        color: #5c554c;
-      }
-      ul {
-        padding-left: 22px;
-      }
-      li {
-        margin-bottom: 6px;
-      }
-      code {
-        background: #efe7d6;
-        padding: 1px 5px;
-        border-radius: 4px;
-        font-size: 0.9em;
-      }
-      a {
-        color: #6a7b3b;
-      }
-      @media (prefers-color-scheme: dark) {
-        body {
-          color: #ece5d8;
-          background: #1c1a17;
-        }
-        .disclaimer,
-        code {
-          background: #2a2620;
-        }
-        .aviso-minuta {
-          background: #3a1f16;
-          color: #f0c4b6;
-          border-color: #b23b1e;
-        }
-        .meta {
-          color: #a89f92;
-        }
-        a {
-          color: #b8c98a;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <p class="aviso-minuta">
-        MINUTA GERADA AUTOMATICAMENTE — REVISAR COM ADVOGADO ANTES DE PUBLICAR.
-        Não usar em produção sem validação jurídica.
-      </p>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade — Rootora</title>
+<meta name="description" content="Como o Rootora coleta, usa, armazena e protege seus dados pessoais, em conformidade com a LGPD.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F1E8;
+    --surface: #FFFFFF;
+    --text: #2B2318;
+    --muted: #5C5246;
+    --accent: #8A5A20;
+    --accent-soft: #F0E3CF;
+    --moss: #3E4A34;
+    --border: #E3DACB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #2B2318;
+      --surface: #352C20;
+      --text: #E3DACB;
+      --muted: #B9AD9B;
+      --accent: #D9A160;
+      --accent-soft: #3D3122;
+      --moss: #A8B896;
+      --border: #4A3E2E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #2B2318;
+    --surface: #352C20;
+    --text: #E3DACB;
+    --muted: #B9AD9B;
+    --accent: #D9A160;
+    --accent-soft: #3D3122;
+    --moss: #A8B896;
+    --border: #4A3E2E;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  header.top { margin-bottom: 32px; }
+  .brand {
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  h1, h2, h3 { font-family: "Zilla Slab", Georgia, serif; line-height: 1.25; }
+  h1 { font-size: 34px; margin: 0 0 12px; }
+  h2 {
+    font-size: 24px;
+    margin: 48px 0 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 16px;
+  }
+  h3 { font-size: 19px; margin: 28px 0 8px; scroll-margin-top: 16px; }
+  .meta { font-family: "Space Mono", monospace; font-size: 13px; color: var(--muted); margin: 0; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  p, li { overflow-wrap: anywhere; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .summary {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 24px 0;
+  }
+  .summary h2 { border: 0; margin: 0 0 8px; padding: 0; font-size: 20px; }
+  .summary ul { margin: 0; }
+  .note {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  nav.toc p { margin: 0 0 8px; font-weight: 600; }
+  nav.toc ol { margin: 0; columns: 2; column-gap: 24px; }
+  nav.toc li { break-inside: avoid; }
+  @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 28px; } }
+  .table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; background: var(--surface); font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; background: var(--accent-soft); }
+  tr:last-child td { border-bottom: 0; }
+  code { font-family: "Space Mono", monospace; font-size: 13px; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
 
-      <p class="disclaimer">
-        Nem o titular do projeto nem a ferramenta de geração de código utilizada
-        são advogados. Este texto é uma <strong>minuta</strong> construída
-        estritamente a partir do que o aplicativo Rootora tecnicamente coleta,
-        levantado por inspeção do código-fonte e da estrutura de dados. Não
-        constitui aconselhamento jurídico nem documento pronto para publicação.
-        A revisão jurídica é uma etapa obrigatória e separada, ainda não
-        realizada.
-      </p>
+<header class="top">
+  <p class="brand">Rootora</p>
+  <h1>Política de Privacidade</h1>
+  <p class="meta">Última atualização: 11 de outubro de 2026 · Vigente a partir desta data</p>
+</header>
 
-      <h1>Política de Privacidade — Rootora</h1>
-      <p class="meta">
-        Aplicativo Rootora (Android). Versão desta minuta: rascunho inicial, sem
-        data de vigência. Substituir por data real na publicação.
-      </p>
+<p>Esta Política explica como o aplicativo <strong>Rootora</strong> trata seus dados pessoais: o que coletamos, por que, com quem compartilhamos, por quanto tempo guardamos e como você exerce seus direitos. Ela segue a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — <strong>LGPD</strong>) e as políticas da Google Play.</p>
 
-      <h2>1. Quem é o responsável pelos seus dados</h2>
-      <p>
-        O Rootora é um aplicativo de apoio a hábitos e produtividade mantido de
-        forma independente. O responsável pelo tratamento dos dados pessoais
-        (controlador, nos termos da Lei nº 13.709/2018 — LGPD) pode ser
-        contatado pelo e-mail informado na seção
-        <a href="#contato">12. Contato</a>.
-      </p>
+<section class="summary" aria-labelledby="resumo">
+  <h2 id="resumo">Em poucas palavras</h2>
+  <ul>
+    <li>Coletamos apenas o necessário para o app funcionar: sua conta, suas tarefas e sua sequência de dias.</li>
+    <li>O bloqueio de apps é <strong>opcional</strong>. Quando ativado, o serviço de acessibilidade do Android identifica só <strong>qual app foi aberto</strong>. Ele não lê o que você digita nem o conteúdo das telas.</li>
+    <li><strong>Não vendemos</strong> seus dados, <strong>não exibimos anúncios</strong> e <strong>não usamos ID de publicidade</strong>.</li>
+    <li>Você pode excluir sua conta e seus dados a qualquer momento, pelo app ou por e-mail.</li>
+  </ul>
+</section>
 
-      <h2>2. Quais dados coletamos</h2>
-      <p>
-        Coletamos apenas o necessário para o aplicativo funcionar. Não há
-        formulários ocultos, rastreadores de terceiros nem SDKs de publicidade.
-      </p>
+<nav class="toc" aria-label="Sumário">
+  <p>Sumário</p>
+  <ol>
+    <li><a href="#controlador">Quem é o responsável</a></li>
+    <li><a href="#dados">Dados que tratamos</a></li>
+    <li><a href="#acessibilidade">Serviço de acessibilidade</a></li>
+    <li><a href="#finalidades">Finalidades e bases legais</a></li>
+    <li><a href="#compartilhamento">Compartilhamento</a></li>
+    <li><a href="#transferencia">Transferência internacional</a></li>
+    <li><a href="#retencao">Por quanto tempo guardamos</a></li>
+    <li><a href="#excluir-conta">Como excluir sua conta</a></li>
+    <li><a href="#direitos">Seus direitos</a></li>
+    <li><a href="#seguranca">Segurança</a></li>
+    <li><a href="#idade">Idade mínima</a></li>
+    <li><a href="#saude">O Rootora não é serviço de saúde</a></li>
+    <li><a href="#assinatura">Assinaturas</a></li>
+    <li><a href="#site">Este site</a></li>
+    <li><a href="#alteracoes">Alterações desta Política</a></li>
+    <li><a href="#lei">Lei aplicável e contato</a></li>
+  </ol>
+</nav>
 
-      <h3>2.1. Dados de cadastro e autenticação</h3>
-      <ul>
-        <li>
-          <strong>E-mail</strong> — informado no cadastro por e-mail e senha, ou
-          obtido da sua conta Google quando você escolhe entrar com o Google.
-        </li>
-        <li>
-          <strong>Senha</strong> — quando você se cadastra por e-mail e senha, a
-          senha é processada e armazenada exclusivamente pelo Firebase
-          Authentication (Google), de forma criptografada. O aplicativo nunca
-          armazena nem tem acesso à sua senha em texto.
-        </li>
-        <li>
-          <strong>Identificador de conta</strong> — um código de usuário (UID)
-          gerado pelo Firebase para identificar sua conta internamente.
-        </li>
-        <li>
-          <strong>Data de criação da conta</strong>.
-        </li>
-      </ul>
+<h2 id="controlador">1. Quem é o responsável pelos seus dados</h2>
+<p>O controlador dos dados pessoais tratados pelo Rootora é <strong>Lucas Esteves Fernandes Diogo</strong>, pessoa física, desenvolvedor e responsável pelo aplicativo.</p>
+<p><strong>Canal de atendimento ao titular:</strong> <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a></p>
+<p>Por se enquadrar como agente de tratamento de pequeno porte, nos termos da Resolução CD/ANPD nº 2/2022, o Rootora não indicou um encarregado (DPO) separado. As solicitações enviadas ao canal acima são recebidas e respondidas diretamente pelo controlador.</p>
 
-      <h3>2.2. Dados que você fornece ao usar o aplicativo</h3>
-      <ul>
-        <li>
-          <strong>Nome</strong> — apenas se você optar por preenchê-lo. O campo
-          começa vazio e não é obrigatório.
-        </li>
-        <li>
-          <strong>Seu "porquê" pessoal</strong> — um texto livre escrito por
-          você na introdução do aplicativo, descrevendo sua motivação. Como é um
-          campo aberto, ele pode conter informações que você considere
-          sensíveis (por exemplo, menções a saúde mental, estudos, trabalho ou
-          relações pessoais). Só é coletado o que você digitar; o aplicativo não
-          sugere nem exige conteúdo específico.
-        </li>
-        <li>
-          <strong>Foco de procrastinação</strong> — uma escolha entre opções
-          pré-definidas (redes sociais, estudos, trabalho, organização pessoal
-          ou outro).
-        </li>
-        <li>
-          <strong>Tempo de tela estimado</strong> — um número informado por você
-          na introdução, representando quanto tempo por dia você estima usar o
-          celular.
-        </li>
-        <li>
-          <strong>Tarefas</strong> — o título de cada tarefa que você cria (texto
-          livre), se ela é marcada como essencial e se foi concluída.
-        </li>
-      </ul>
+<h2 id="dados">2. Dados que tratamos</h2>
 
-      <h3>2.3. Dados gerados pelo uso</h3>
-      <ul>
-        <li>
-          Progresso do seu "streak": sequência atual de dias, total de dias
-          ativos, proteções disponíveis e utilizadas, marcos alcançados, data do
-          último dia ativo e situação da sequência.
-        </li>
-        <li>
-          Histórico diário: para cada dia, a lista de tarefas daquele dia e se o
-          dia foi cumprido.
-        </li>
-      </ul>
+<h3>2.1 Conta</h3>
+<ul>
+  <li><strong>E-mail</strong> e <strong>nome</strong> (o nome é opcional).</li>
+  <li><strong>Identificador da conta</strong>, gerado pelo Firebase Authentication.</li>
+  <li><strong>Senha</strong>, se você criar conta com e-mail: ela é armazenada pelo Firebase Authentication de forma criptografada (hash). Nós não temos acesso à sua senha.</li>
+  <li><strong>Login com Google</strong>: recebemos do Google apenas seu nome, e-mail e identificador da conta Google. Não acessamos seus contatos, arquivos, agenda ou qualquer outro dado da sua conta Google.</li>
+</ul>
 
-      <h3>2.4. Preferências</h3>
-      <ul>
-        <li>
-          Se os lembretes por notificação estão ativados ou desativados e, se
-          ativados, o horário escolhido para o lembrete diário.
-        </li>
-      </ul>
+<h3>2.2 Informações que você fornece no app</h3>
+<ul>
+  <li><strong>Configuração inicial:</strong> área em que mais procrastina (ex.: estudos, trabalho), estimativa de tempo de tela por dia e o seu “porquê” (texto livre que o app mostra de volta em momentos de retomada).</li>
+  <li><strong>Tarefas:</strong> título, marcação como essencial, se e quando foi concluída, recorrência, tipo “exercício” com duração, horário planejado e subtarefas.</li>
+  <li><strong>Progresso:</strong> sequência de dias, proteções disponíveis, total de dias ativos, marcos atingidos e desafios semanais e mensais.</li>
+  <li><strong>Sessões de foco e “Estou travado”:</strong> duração planejada e real, resultado da sessão, tarefa vinculada e a opção que você tocou em “O que está pegando agora?” (por exemplo, “estou sem energia”). Essa informação é uma escolha pontual sua, usada apenas para conduzir e registrar a sessão. <strong>Não a usamos para traçar perfil psicológico nem para inferir qualquer condição de saúde.</strong></li>
+  <li><strong>Preferências:</strong> se as notificações estão ativas e o horário do lembrete diário.</li>
+</ul>
 
-      <h3>2.5. Dados armazenados apenas no seu dispositivo</h3>
-      <ul>
-        <li>
-          Notificações locais (lembrete diário e alerta de fim de dia) são
-          agendadas e mantidas somente no aparelho, pelo próprio sistema
-          Android. Elas não são enviadas a nenhum servidor.
-        </li>
-        <li>
-          Um cache local dos seus dados (funcionamento offline) e pequenos
-          indicadores de estado do aplicativo (por exemplo, se você já concluiu
-          a introdução ou o tutorial).
-        </li>
-      </ul>
+<h3>2.3 Bloqueio de apps (opcional)</h3>
+<p>Só tratamos estes dados se você configurar o bloqueio de apps:</p>
+<ul>
+  <li><strong>Lista de apps do aparelho:</strong> para você escolher quais bloquear, o Rootora lê no próprio aparelho a lista de apps que podem ser abertos pela tela inicial. <strong>Essa lista completa não é enviada aos nossos servidores.</strong></li>
+  <li><strong>Apps que você escolheu</strong> (identificados pelo nome do pacote, ex.: <code>com.exemplo.app</code>), a janela de horário, os dias da semana e as alterações agendadas.</li>
+  <li><strong>Data do seu consentimento</strong> com o uso do serviço de acessibilidade.</li>
+  <li><strong>Registro das interceptações:</strong> qual dos apps escolhidos foi aberto, quando, qual tela o Rootora mostrou e o que você decidiu (iniciar sessão de foco, liberar o app ou sair).</li>
+</ul>
 
-      <h3>2.6. O que NÃO coletamos</h3>
-      <ul>
-        <li>
-          <strong>Estatísticas de uso / analytics:</strong> o Google Analytics
-          para Firebase não está habilitado neste projeto. Não há coleta
-          automática de eventos de uso, modelo de aparelho, versão de sistema
-          para fins analíticos, nem identificador de publicidade.
-        </li>
-        <li>
-          <strong>Relatórios de falha e desempenho:</strong> Crashlytics e
-          Performance Monitoring não estão em uso.
-        </li>
-        <li>
-          <strong>Notificações push remotas:</strong> o aplicativo não registra
-          token de push nem envia notificações a partir de servidor. Todas as
-          notificações são locais.
-        </li>
-        <li>
-          Localização, contatos, câmera, microfone, fotos, agenda ou qualquer
-          outro dado do dispositivo além do descrito acima.
-        </li>
-        <li>
-          Não há venda de dados pessoais e não há compartilhamento de dados para
-          fins de publicidade ou marketing de terceiros.
-        </li>
-      </ul>
+<h3>2.4 Dados técnicos e de uso</h3>
+<ul>
+  <li><strong>Firebase Analytics:</strong> eventos de uso do app (por exemplo, “tarefa concluída” ou “interceptação exibida”), identificador de instância do app, modelo do aparelho, versão do Android e do app, idioma e país ou região aproximada. Esses dados não são associados ao seu nome ou e-mail e são analisados de forma agregada.</li>
+  <li><strong>Firebase Crashlytics:</strong> quando o app falha, recebemos um relatório técnico com o ponto do código onde ocorreu o erro, modelo do aparelho, versão do sistema, estado do aparelho no momento (memória, orientação da tela) e um identificador de instalação.</li>
+</ul>
 
-      <h2>3. Para que usamos seus dados</h2>
-      <ul>
-        <li>
-          <strong>Autenticação:</strong> o e-mail e a senha (ou a conta Google)
-          servem para criar e acessar sua conta.
-        </li>
-        <li>
-          <strong>Funcionamento do aplicativo:</strong> as tarefas, o histórico
-          diário e os campos de progresso são usados para calcular sua sequência
-          de dias, aplicar o sistema de proteção e mostrar seu histórico.
-        </li>
-        <li>
-          <strong>Personalização:</strong> o "porquê", o foco de procrastinação
-          e o tempo de tela são usados para adaptar mensagens e telas do
-          aplicativo à sua motivação, e para reexibir seu "porquê" em momentos de
-          recaída ou retorno.
-        </li>
-        <li>
-          <strong>Lembretes:</strong> as preferências de notificação definem se e
-          quando o aplicativo agenda o lembrete diário no seu aparelho.
-        </li>
-      </ul>
+<h3>2.5 Dados que ficam só no seu aparelho</h3>
+<p>Uma cópia das regras de bloqueio (para que funcionem mesmo com o app fechado), a indicação de que você já viu o tutorial e o agendamento das notificações locais. Esses dados são apagados quando você desinstala o app.</p>
 
-      <h2>4. Base legal (LGPD)</h2>
-      <ul>
-        <li>
-          <strong>Execução de contrato</strong> (art. 7º, V): tratar os dados de
-          conta, tarefas e progresso é necessário para fornecer o serviço que
-          você solicitou ao criar a conta.
-        </li>
-        <li>
-          <strong>Consentimento</strong> (art. 7º, I; e art. 11, I, para
-          eventuais dados sensíveis): o texto do "porquê" é fornecido livremente
-          por você. Você pode editá-lo ou removê-lo a qualquer momento na tela de
-          perfil.
-        </li>
-        <li>
-          <strong>Legítimo interesse</strong> (art. 7º, IX): para segurança da
-          conta e prevenção de fraude no acesso.
-        </li>
-      </ul>
+<h3>2.6 O que <em>não</em> coletamos</h3>
+<p>Localização precisa, contatos, fotos, câmera, microfone, ID de publicidade, histórico de navegação, conteúdo de outros apps, mensagens, o que você digita fora do Rootora e dados de cartão de pagamento.</p>
 
-      <h2>5. Onde seus dados ficam armazenados</h2>
-      <p>
-        Os dados são armazenados na infraestrutura do Firebase / Google Cloud
-        Platform, no projeto <code>raiz-app-71d02</code>. O banco de dados
-        (Cloud Firestore) está configurado na região
-        <code>southamerica-east1</code> (São Paulo, Brasil). A autenticação é
-        operada pelo Firebase Authentication do Google, que pode processar dados
-        de credenciais em servidores em outros países, conforme a política do
-        Google.
-      </p>
+<h2 id="acessibilidade">3. Serviço de acessibilidade do Android</h2>
+<p>O bloqueio de apps usa a API de Serviço de Acessibilidade (AccessibilityService) do Android. Por ser um recurso sensível, explicamos em detalhe:</p>
+<ul>
+  <li><strong>Para que serve:</strong> identificar quando um app que <em>você escolheu bloquear</em> é aberto, para mostrar no lugar dele a sua tarefa do dia.</li>
+  <li><strong>O que ele percebe:</strong> apenas o nome do pacote do app que passa a ocupar a tela, no momento em que a janela muda.</li>
+  <li><strong>O que ele não faz:</strong> não lê o conteúdo das telas (o serviço é configurado sem permissão para isso), não registra o que você digita, não vê senhas, mensagens ou notificações e não controla outros apps em seu nome.</li>
+  <li><strong>O que fica registrado:</strong> somente as interceptações dos apps que você escolheu (item 2.3). A abertura de qualquer outro app não é guardada nem enviada.</li>
+  <li><strong>Quando funciona:</strong> só depois que você lê a explicação no app, concorda e ativa o serviço manualmente nas configurações do Android.</li>
+  <li><strong>Como desligar:</strong> a qualquer momento, em <em>Configurações do Android → Acessibilidade → Rootora</em>. Isso interrompe a interceptação na hora. Alterações nas regras feitas dentro do app passam a valer no dia seguinte — esse é um recurso de pré-compromisso do produto e não impede você de desligar o serviço no Android.</li>
+</ul>
+<p>Os dados obtidos pelo serviço de acessibilidade são usados exclusivamente para o bloqueio de apps. Não são usados para publicidade, não são vendidos e não são compartilhados com terceiros além do provedor de infraestrutura descrito no item 5.</p>
 
-      <h2>6. Com quem compartilhamos</h2>
-      <ul>
-        <li>
-          <strong>Google / Firebase</strong>, como operador de infraestrutura
-          (hospedagem do banco de dados e serviço de autenticação). O Google atua
-          seguindo as próprias condições de tratamento de dados para o Firebase.
-        </li>
-        <li>
-          <strong>Google Sign-In</strong>, apenas quando você escolhe entrar com
-          o Google: nesse caso o Google fornece ao aplicativo um token de
-          identificação e o e-mail associado à conta Google.
-        </li>
-        <li>
-          Autoridades públicas, quando houver obrigação legal ou ordem judicial.
-        </li>
-      </ul>
-      <p>
-        Não há transferência de dados para parceiros comerciais, anunciantes ou
-        corretores de dados.
-      </p>
+<h2 id="finalidades">4. Para que usamos seus dados e com que base legal</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Finalidade</th><th>Dados envolvidos</th><th>Base legal (LGPD)</th></tr></thead>
+  <tbody>
+    <tr><td>Criar e manter sua conta, autenticar seu acesso</td><td>Conta (2.1)</td><td>Execução de contrato (art. 7º, V)</td></tr>
+    <tr><td>Oferecer as funções do app: tarefas, sequência, proteções, desafios, progresso, sessões de foco e mensagens personalizadas</td><td>Itens 2.2 e 2.5</td><td>Execução de contrato (art. 7º, V)</td></tr>
+    <tr><td>Bloqueio de apps e interceptação</td><td>Item 2.3</td><td>Consentimento (art. 7º, I), que você pode revogar a qualquer momento</td></tr>
+    <tr><td>Lembretes e alertas por notificação</td><td>Preferências de notificação</td><td>Consentimento (art. 7º, I), dado pela permissão do Android e revogável nas configurações</td></tr>
+    <tr><td>Corrigir falhas e manter o app estável</td><td>Crashlytics (2.4)</td><td>Legítimo interesse (art. 7º, IX)</td></tr>
+    <tr><td>Entender, de forma agregada, como o app é usado para melhorá-lo</td><td>Analytics (2.4)</td><td>Legítimo interesse (art. 7º, IX)</td></tr>
+    <tr><td>Prevenir abusos e proteger a segurança do serviço</td><td>Conta e dados técnicos</td><td>Legítimo interesse (art. 7º, IX)</td></tr>
+    <tr><td>Cumprir obrigações legais e defender direitos</td><td>Os necessários em cada caso</td><td>Obrigação legal e exercício regular de direitos (art. 7º, II e VI)</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Quando usamos o legítimo interesse, tratamos apenas dados pseudonimizados e estritamente necessários, sem uso para publicidade. Você pode se opor a esse tratamento pelo canal do item 1.</p>
+<p>O cálculo da sequência e das proteções é feito automaticamente pelo app, mas não gera efeitos jurídicos nem decisões sobre você fora do próprio app.</p>
 
-      <h2>7. Por quanto tempo guardamos</h2>
-      <p>
-        Seus dados são mantidos enquanto sua conta existir. Se você solicitar a
-        exclusão da conta (ver seção 8), os dados associados são removidos do
-        banco de dados. Cópias em backup e logs de infraestrutura mantidos pelo
-        Google podem persistir por um período adicional limitado, conforme as
-        políticas do provedor.
-      </p>
+<h2 id="compartilhamento">5. Com quem compartilhamos</h2>
+<ul>
+  <li><strong>Google LLC e afiliadas</strong>, como operador de infraestrutura: Firebase Authentication, Cloud Firestore (banco de dados), Firebase Analytics, Firebase Crashlytics e Login com Google. O Google trata esses dados em nosso nome, conforme seus termos de processamento de dados.</li>
+  <li><strong>Google Play</strong>, para distribuição do app e, quando houver, processamento de pagamentos (item 13).</li>
+  <li><strong>Autoridades públicas</strong>, somente quando houver obrigação legal ou ordem judicial.</li>
+  <li><strong>Sucessor do serviço</strong>: se o Rootora passar a ser operado por uma empresa (por exemplo, pessoa jurídica constituída pelo atual responsável) ou for transferido, seus dados poderão ser transferidos junto, com aviso prévio a você e mantidas as garantias desta Política.</li>
+</ul>
+<p><strong>Não vendemos, alugamos nem compartilhamos seus dados para fins de publicidade ou com corretores de dados.</strong></p>
 
-      <h2>8. Seus direitos e como exercê-los</h2>
-      <p>Nos termos da LGPD, você tem direito a:</p>
-      <ul>
-        <li>confirmar se tratamos seus dados e acessar esses dados;</li>
-        <li>corrigir dados incompletos, inexatos ou desatualizados;</li>
-        <li>
-          solicitar a anonimização, o bloqueio ou a eliminação de dados
-          desnecessários ou tratados em desconformidade com a lei;
-        </li>
-        <li>solicitar a portabilidade dos dados;</li>
-        <li>solicitar a eliminação dos dados tratados com base no consentimento;</li>
-        <li>revogar o consentimento;</li>
-        <li>ser informado sobre com quem os dados foram compartilhados.</li>
-      </ul>
-      <p>
-        Parte desses direitos já pode ser exercida diretamente no aplicativo:
-      </p>
-      <ul>
-        <li>
-          <strong>Acesso e correção:</strong> o "porquê" e as preferências de
-          notificação podem ser vistos e alterados na tela de perfil; as tarefas
-          e o histórico ficam visíveis nas telas "Hoje" e "Progresso".
-        </li>
-        <li>
-          <strong>Exclusão da conta:</strong> a exclusão de conta pelo próprio
-          aplicativo ainda está em desenvolvimento. Até essa funcionalidade
-          existir, envie um pedido de exclusão para o e-mail da seção
-          <a href="#contato">12. Contato</a>, a partir do e-mail cadastrado na
-          conta. O pedido será atendido em prazo razoável e você receberá
-          confirmação quando a remoção for concluída.
-        </li>
-      </ul>
+<h2 id="transferencia">6. Transferência internacional</h2>
+<p>Os serviços do Google podem armazenar ou processar dados em servidores fora do Brasil, inclusive nos Estados Unidos. Essas transferências se apoiam nos mecanismos do art. 33 da LGPD, como cláusulas contratuais de proteção de dados adotadas pelo Google, que oferecem garantias compatíveis com a lei brasileira.</p>
 
-      <h2>9. Segurança</h2>
-      <p>
-        O acesso aos dados é protegido por autenticação e por regras de acesso no
-        banco de dados que restringem cada usuário aos próprios dados. Nenhum
-        sistema é totalmente imune a incidentes; em caso de incidente de
-        segurança relevante, os titulares e a Autoridade Nacional de Proteção de
-        Dados serão comunicados conforme a legislação.
-      </p>
+<h2 id="retencao">7. Por quanto tempo guardamos</h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Dados</th><th>Prazo</th></tr></thead>
+  <tbody>
+    <tr><td>Conta, tarefas, progresso, sessões de foco, regras e registros de bloqueio</td><td>Enquanto sua conta existir. Excluídos quando você exclui a conta.</td></tr>
+    <tr><td>Eventos do Analytics</td><td>Até 14 meses; depois disso permanecem apenas relatórios agregados, sem identificação.</td></tr>
+    <tr><td>Relatórios de falha do Crashlytics</td><td>Até 90 dias.</td></tr>
+    <tr><td>Dados guardados só no aparelho</td><td>Até você desinstalar o app.</td></tr>
+    <tr><td>Dados necessários para cumprir obrigação legal ou defender direitos</td><td>Pelo prazo exigido em lei ou pelo prazo prescricional aplicável.</td></tr>
+  </tbody>
+</table>
+</div>
 
-      <h2>10. Uso por menores de idade</h2>
-      <p>
-        O Rootora não é direcionado a menores de 13 anos. Menores de 18 anos
-        devem usar o aplicativo com consentimento e supervisão dos pais ou
-        responsáveis. Se identificarmos uma conta criada por menor sem esse
-        consentimento, poderemos removê-la.
-      </p>
+<h2 id="excluir-conta">8. Como excluir sua conta e seus dados</h2>
+<h3>Pelo app</h3>
+<p>Abra <strong>Perfil → Excluir conta</strong> e confirme. Seus dados no banco de dados (perfil, tarefas, histórico, desafios, regras e registros de bloqueio) e sua conta de acesso são apagados na hora. A exclusão é definitiva e não pode ser desfeita.</p>
+<h3>Sem o app</h3>
+<p>Se você já desinstalou o app ou não consegue acessá-lo, envie um e-mail para <a href="mailto:lucasdiogo.s.i@gmail.com?subject=Exclus%C3%A3o%20de%20conta%20Rootora">lucasdiogo.s.i@gmail.com</a> com o assunto <strong>“Exclusão de conta Rootora”</strong>, a partir do e-mail cadastrado. Confirmaremos que o pedido é seu e concluiremos a exclusão em até 15 dias, avisando você por e-mail.</p>
+<h3>O que pode permanecer</h3>
+<ul>
+  <li>Eventos do Analytics e relatórios do Crashlytics, que não estão ligados ao seu nome ou e-mail, até o fim dos prazos do item 7.</li>
+  <li>Dados guardados só no aparelho, até você desinstalar o app.</li>
+  <li>Dados que a lei nos obrigue a manter, pelo prazo legal.</li>
+</ul>
+<p>Para apagar apenas parte dos dados (por exemplo, os registros de interceptação) sem excluir a conta, envie o pedido pelo mesmo e-mail.</p>
 
-      <h2>11. Mudanças nesta Política</h2>
-      <p>
-        Esta política pode ser atualizada. Quando houver mudança relevante, a
-        nova versão será publicada nesta mesma página com nova data de vigência.
-      </p>
+<h2 id="direitos">9. Seus direitos</h2>
+<p>A LGPD (art. 18) garante a você, a qualquer momento e gratuitamente:</p>
+<ul>
+  <li>confirmar se tratamos seus dados e acessá-los;</li>
+  <li>corrigir dados incompletos, inexatos ou desatualizados;</li>
+  <li>pedir anonimização, bloqueio ou eliminação de dados desnecessários, excessivos ou tratados em desconformidade com a lei;</li>
+  <li>receber seus dados em formato estruturado (portabilidade);</li>
+  <li>eliminar os dados tratados com base no seu consentimento;</li>
+  <li>saber com quem compartilhamos seus dados;</li>
+  <li>ser informado sobre a possibilidade de não consentir e suas consequências — sem o consentimento, o bloqueio de apps e as notificações não funcionam, mas o restante do app continua disponível;</li>
+  <li>revogar o consentimento;</li>
+  <li>opor-se a tratamento baseado em legítimo interesse;</li>
+  <li>pedir revisão de decisões tomadas unicamente com base em tratamento automatizado (art. 20).</li>
+</ul>
+<p>Para exercer qualquer direito, escreva para <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a>. Poderemos pedir uma confirmação de identidade antes de atender. A confirmação de existência ou o acesso simplificado é fornecido imediatamente; a declaração completa, em até 15 dias.</p>
+<p>Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD), em <a href="https://www.gov.br/anpd" rel="noopener">gov.br/anpd</a>.</p>
 
-      <h2 id="contato">12. Contato</h2>
-      <p>
-        Dúvidas, pedidos de acesso ou de exclusão de dados:
-        <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a>.
-      </p>
-      <p class="meta">
-        [MINUTA: confirmar este endereço de contato antes de publicar —
-        recomenda-se um e-mail dedicado ao tratamento de dados e, se aplicável, a
-        indicação formal de um encarregado (DPO).]
-      </p>
-    </main>
-  </body>
+<h2 id="seguranca">10. Segurança</h2>
+<ul>
+  <li>Toda comunicação entre o app e os servidores é criptografada (HTTPS/TLS).</li>
+  <li>As regras de acesso do banco de dados garantem que cada conta só leia e altere os próprios dados.</li>
+  <li>Senhas são gerenciadas pelo Firebase Authentication e nunca ficam acessíveis a nós.</li>
+  <li>O acesso administrativo ao projeto é restrito ao controlador.</li>
+</ul>
+<p>Nenhum sistema é totalmente imune a falhas. Se ocorrer um incidente de segurança que possa trazer risco ou dano relevante a você, comunicaremos a ANPD e os titulares afetados, nos termos do art. 48 da LGPD e da regulamentação da ANPD.</p>
+
+<h2 id="idade">11. Idade mínima</h2>
+<p>O Rootora é destinado a pessoas com <strong>18 anos ou mais</strong> e não é direcionado a crianças ou adolescentes. Se soubermos que uma conta pertence a menor de 18 anos, ela será excluída. Se você é responsável legal e acredita que um menor criou uma conta, fale conosco pelo canal do item 1.</p>
+
+<h2 id="saude">12. O Rootora não é um serviço de saúde</h2>
+<p>O Rootora é uma ferramenta de apoio a hábitos e organização. Não oferece diagnóstico, terapia ou tratamento, e as informações que você registra no app não são tratadas como prontuário ou dado de saúde. Se você está passando por sofrimento emocional, procure um profissional de saúde. No Brasil, o CVV atende gratuitamente pelo telefone 188 ou em <a href="https://cvv.org.br" rel="noopener">cvv.org.br</a>.</p>
+
+<h2 id="assinatura">13. Assinaturas</h2>
+<p>Quando houver assinatura paga, o pagamento será processado inteiramente pelo Google Play. O Rootora não recebe nem armazena dados de cartão ou de pagamento; recebe apenas a situação da assinatura (ativa, em período de teste, cancelada) e o comprovante técnico da compra, usados para liberar o acesso. Esta Política será atualizada antes do lançamento da assinatura, se necessário.</p>
+
+<h2 id="site">14. Este site</h2>
+<p>As páginas desta Política e dos Termos de Uso não usam cookies, ferramentas de análise ou rastreadores. O serviço de hospedagem (Firebase Hosting, do Google) pode registrar dados técnicos de acesso, como endereço IP, para operação e segurança da infraestrutura.</p>
+
+<h2 id="alteracoes">15. Alterações desta Política</h2>
+<p>Podemos atualizar esta Política para refletir mudanças no app ou na lei. A data no topo indica a versão vigente. Mudanças relevantes — como nova finalidade, novo tipo de dado ou novo compartilhamento — serão avisadas no app ou por e-mail antes de entrarem em vigor e, quando a base legal for o consentimento, pediremos um novo consentimento. Versões anteriores podem ser solicitadas pelo canal do item 1.</p>
+
+<h2 id="lei">16. Lei aplicável e contato</h2>
+<p>Esta Política é regida pela legislação brasileira, em especial a LGPD, o Marco Civil da Internet (Lei nº 12.965/2014) e o Código de Defesa do Consumidor. Fica eleito o foro do domicílio do titular para resolver eventuais controvérsias.</p>
+<div class="note">
+  <strong>Dúvidas, pedidos ou reclamações</strong><br>
+  Lucas Esteves Fernandes Diogo — responsável pelo Rootora<br>
+  <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a>
+</div>
+
+<footer>
+  Rootora · Política de Privacidade · versão de 11 de outubro de 2026 ·
+  <a href="/termos">Termos de Uso</a>
+</footer>
+
+</main>
+</body>
 </html>
