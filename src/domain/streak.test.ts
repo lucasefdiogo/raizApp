@@ -36,22 +36,20 @@ describe('avaliarDiaCumprido', () => {
     expect(avaliarDiaCumprido(tarefas)).toBe(true);
   });
 
-  it('retorna true quando 60% ou mais das tarefas estão concluídas, mesmo sem essencial', () => {
+  it('retorna false quando todas as tarefas comuns estão concluídas mas nenhuma essencial', () => {
     const tarefas = [
       criarTarefa({ id: '1', concluida: true }),
       criarTarefa({ id: '2', concluida: true }),
       criarTarefa({ id: '3', concluida: true }),
-      criarTarefa({ id: '4', concluida: false }),
-      criarTarefa({ id: '5', concluida: false }),
     ];
-    expect(avaliarDiaCumprido(tarefas)).toBe(true);
+    expect(avaliarDiaCumprido(tarefas)).toBe(false);
   });
 
-  it('retorna false quando menos de 60% das tarefas estão concluídas e nenhuma essencial', () => {
+  it('retorna false quando a essencial está pendente, mesmo com as comuns concluídas', () => {
     const tarefas = [
-      criarTarefa({ id: '1', concluida: true }),
-      criarTarefa({ id: '2', concluida: false }),
-      criarTarefa({ id: '3', concluida: false }),
+      criarTarefa({ id: '1', essencial: true, concluida: false }),
+      criarTarefa({ id: '2', concluida: true }),
+      criarTarefa({ id: '3', concluida: true }),
     ];
     expect(avaliarDiaCumprido(tarefas)).toBe(false);
   });
@@ -307,6 +305,31 @@ describe('aplicarResultadoDia', () => {
 
     expect(resultado.streakAtual).toBe(2);
     expect(resultado.statusDiaResultante).toBe('perdido');
+  });
+
+  it('dia não cumprido sem escudo: streak 1 não cai a zero (mínimo 1)', () => {
+    const estado: EstadoStreak = {
+      ...estadoBase,
+      streakAtual: 1,
+      escudosDisponiveis: 0,
+      ultimoDiaAtivo: '2026-09-08',
+    };
+    const resultado = aplicarResultadoDia(estado, 'nao_cumprido', false, '2026-09-09');
+
+    expect(resultado.streakAtual).toBe(1);
+    expect(resultado.statusDiaResultante).toBe('perdido');
+  });
+
+  it('dia não cumprido sem escudo: streak 0 continua 0 (a queda mínima não cria streak)', () => {
+    const estado: EstadoStreak = {
+      ...estadoBase,
+      streakAtual: 0,
+      escudosDisponiveis: 0,
+      ultimoDiaAtivo: '2026-09-08',
+    };
+    const resultado = aplicarResultadoDia(estado, 'nao_cumprido', false, '2026-09-09');
+
+    expect(resultado.streakAtual).toBe(0);
   });
 
   it('2+ dias seguidos sem atividade: streak zera mesmo com escudo disponível', () => {

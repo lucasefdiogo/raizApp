@@ -41,9 +41,8 @@ function statusDoLog(log: DailyLogResumo): StatusHistoricoDia {
 interface OpcoesIntervalo {
   /**
    * Se true, o dia de hoje pode virar 'cumprido' ao vivo assim que o
-   * dailyLog já existente mostra a essencial concluída (ou 60% das
-   * tarefas) — mas NUNCA 'perdido' ou 'protegido_escudo' antes da virada:
-   * um dia sem a essencial concluída às 10h da manhã ainda pode ser
+   * dailyLog já existente mostra a essencial concluída — mas NUNCA
+   * 'perdido' ou 'protegido_escudo' antes da virada: um dia sem a essencial concluída às 10h da manhã ainda pode ser
    * cumprido às 22h, e só useStreak.processar() (no boot do dia seguinte,
    * avaliando o dia anterior) pode julgar um dia como perdido. Sem
    * cumprimento ainda, ou sem dailyLog, hoje continua 'pendente'.
@@ -115,9 +114,8 @@ export function construirHistoricoIntervalo(
 
 /**
  * Últimos 7 dias (mais antigo -> mais recente). O dia de hoje reflete o
- * dailyLog ao vivo: vira 'cumprido' assim que a essencial (ou 60% das
- * tarefas) é concluída, mas nunca 'perdido' antes da virada — sem
- * cumprimento ainda, continua 'pendente' até o boot do dia seguinte julgar
+ * dailyLog ao vivo: vira 'cumprido' assim que a essencial é concluída, mas
+ * nunca 'perdido' antes da virada — sem cumprimento ainda, continua 'pendente' até o boot do dia seguinte julgar
  * o dia (ver avaliarStatusHistoricoDia / useStreak.processar()).
  */
 export function construirHistoricoSemana(

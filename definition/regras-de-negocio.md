@@ -11,7 +11,18 @@
 ## 1. Streak e Proteção
 
 ### O que conta como "dia cumprido"
-Pelo menos 1 tarefa marcada como essencial concluída no dia.
+Pelo menos 1 tarefa marcada como essencial concluída no dia (`avaliarDiaCumprido`,
+`domain/streak.ts`). Tarefas comuns concluídas, mesmo todas, **não** cumprem o dia: o teto de
+3 essenciais existe pra manter o foco em poucas vitórias reais (princípio 4). Dia sem
+nenhuma tarefa nunca é cumprido.
+
+A mesma função decide o streak, o histórico de 7 dias, o detalhe do dia e os desafios —
+não existe segunda definição. (Até out/2026 o código também aceitava 60% das tarefas
+concluídas; a regra foi removida por divergir do que o produto define.)
+
+**Limite de essenciais:** no máximo 3 tarefas essenciais por dia (`LIMITE_TAREFAS_ESSENCIAIS`,
+`domain/dailyTasks.ts`). Promover uma tarefa a essencial com o teto atingido é recusado;
+rebaixar é sempre livre.
 
 ### Sistema de Proteção
 | Regra | Valor |
@@ -23,21 +34,29 @@ Pelo menos 1 tarefa marcada como essencial concluída no dia.
 | Efeito | Streak numérico não é zerado; dia perdido fica marcado no histórico de forma neutra |
 
 ### Sem proteção disponível
-- **1 dia perdido:** streak cai para 50% do valor anterior (arredondado pra baixo), nunca pra 0
-- **2+ dias seguidos perdidos:** streak reinicia em 1 no próximo dia cumprido;
+- **1 dia perdido:** streak cai para 50% do valor anterior, arredondado pra baixo, com
+  **mínimo de 1** enquanto o streak era maior que 0 (`Math.max(1, Math.floor(x * 0.5))`) —
+  um dia isolado nunca zera. Streak 0 continua 0. `diasTotaisAtivos` não muda
+- **2+ dias seguidos perdidos** (o app nem foi aberto no intervalo): o streak vai a 0 e,
+  no próximo dia cumprido, recomeça em 1. A proteção **não é consultada** nesse caso — ela
+  cobre uma falha isolada, não um sumiço de vários dias, mesmo que esteja disponível.
   `diasTotaisAtivos` nunca reseta
 
 ### Marcos de celebração
 3 · 7 · 14 · 30 · 60 · 90 dias
 
 ### Lógica diária (executada ao abrir o app, comparando `ultimoDiaAtivo` com a data atual)
+0. Primeiro dia de uso (`ultimoDiaAtivo` vazio): não avalia nada, não consome proteção —
+   só grava hoje como ponto de partida (`inicializarPrimeiroDia`)
 1. Dia cumprido → `streakAtual += 1`, `diasTotaisAtivos += 1`
 2. Dia não cumprido e proteção disponível → consome a proteção, streak mantido,
    `statusDia = 'protegido_escudo'`
-3. Dia não cumprido e sem proteção → `streakAtual = floor(streakAtual * 0.5)`,
+3. Dia não cumprido e sem proteção → `streakAtual = max(1, floor(streakAtual * 0.5))`
+   (0 se já era 0),
    `statusDia = 'perdido'`
-4. 2+ dias seguidos não cumpridos → `streakAtual = 0`, `statusStreak = 'pausado'`
-   (dispara `ReturnAfterPauseScreen` no próximo acesso)
+4. 2+ dias seguidos não cumpridos (checado antes dos passos 1–3, sem consultar a
+   proteção) → `streakAtual = 0`, `statusStreak = 'pausado'` (dispara
+   `ReturnAfterPauseScreen` no próximo acesso)
 
 ### Textos do produto — streak/proteção
 
@@ -51,7 +70,9 @@ Pelo menos 1 tarefa marcada como essencial concluída no dia.
 **Retorno após pausa longa (2+ dias):**
 > "Você esteve fora por alguns dias. Isso acontece — não precisa explicar, só decidir o próximo passo. Lembra por que você começou? *[reexibe o "porquê" do onboarding]* Vamos escolher 1 coisa pequena para hoje."
 
-**Dia zerado (nenhuma tarefa feita, sem proteção):**
+**Dia zerado (nenhuma tarefa feita, sem proteção):** *(texto cadastrado em
+`systemMessages/dia_zerado`, mas **ainda não exibido em nenhuma tela** — hoje o dia sem
+proteção usa o texto "Streak reduzido" acima)*
 > "Hoje não rolou, e tudo bem — um dia não define o processo. Amanhã é uma página nova, não uma dívida a pagar."
 
 **Marcos** — ver `banco-de-frases.md` para o texto exato de cada marco (3/7/14/30/60/90).
@@ -77,8 +98,14 @@ gerados automaticamente no início de cada período (segunda-feira / dia 1).
 | Desafio | Período | Meta |
 |---|---|---|
 | "Exercite-se 3x essa semana" | Semanal | 3 tarefas `tipo: 'exercicio'` concluídas na semana |
-| "Cumpra sua essencial todo dia" | Semanal | 7 dias com `statusDia` `cumprido` ou `protegido_escudo` |
-| "20 dias ativos esse mês" | Mensal | 20 dias com `statusDia` diferente de `sem_registro` e `perdido` |
+| "Cumpra sua essencial todo dia" | Semanal | 7 dias com status `cumprido` ou `protegido_escudo` |
+| "20 dias ativos esse mês" | Mensal | 20 dias com status `cumprido` ou `protegido_escudo` (hoje entra assim que a essencial é concluída; dia `pendente`, `perdido` ou sem registro não conta) |
+
+**Qual semanal o período recebe:** alterna por paridade da semana (contada a partir de
+2024-01-01, uma segunda) — semana par: "Exercite-se 3x"; semana ímpar: "Cumpra sua
+essencial todo dia". O mensal é sempre "20 dias ativos". Por isso há 1 semanal + 1
+mensal por vez, nunca os dois semanais juntos. "Dia cumprido" nos dois últimos segue a
+definição da seção 1.
 
 Progresso é sempre recalculado a partir dos `dailyLogs` reais do período (nunca
 incrementado manualmente). Se a meta não for atingida no fim do período, o desafio
@@ -107,8 +134,9 @@ lê conteúdo de tela.
   `<queries>` no manifest (MAIN/LAUNCHER) — **nunca `QUERY_ALL_PACKAGES`**, que exigiria
   justificativa extra de revisão manual na Play Store para este caso de uso.
 - **Uma única janela de horário** aplicada a todos os apps selecionados (não por app
-  individual): início, fim (precisa ser depois do início — esta versão não cobre
-  janela que atravessa a meia-noite) e dias da semana.
+  individual): início, fim (precisa ser depois do início — a tela rejeita janela que atravessa a
+  meia-noite) e dias da semana. O lado nativo (`BloqueioPrefs.kt`) já sabe avaliar
+  janela invertida, e o horário de `fim` é inclusivo; só a configuração não permite criar uma.
 - **Resumo em texto** + botão "Salvar" — ver seção 5 pra regra de quando a mudança
   vale imediatamente vs. no dia seguinte.
 
@@ -187,7 +215,7 @@ a regra normal de proteção/queda parcial (seção 1).
 
 ### Regra do streak
 Sessões de foco (2/5/10 minutos, qualquer origem) **nunca alteram `streakAtual`** — só a
-conclusão da tarefa essencial em si conta (regra "dia cumprido" da seção 1, inalterada).
+conclusão da tarefa essencial conta (regra "dia cumprido" da seção 1, inalterada).
 Evita que o timer vire atalho e esvazie o significado do streak.
 
 ### Regra de pré-compromisso (regra única — ver spec 09, seção 6)
