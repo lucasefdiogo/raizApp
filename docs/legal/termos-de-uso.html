@@ -1,251 +1,239 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>Termos de Uso — Rootora</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        line-height: 1.6;
-        color: #1c1a17;
-        background: #f8f3e9;
-        margin: 0;
-        padding: 24px 16px 64px;
-      }
-      main {
-        max-width: 720px;
-        margin: 0 auto;
-      }
-      h1 {
-        font-size: 1.6rem;
-        margin: 0 0 4px;
-      }
-      h2 {
-        font-size: 1.15rem;
-        margin: 32px 0 8px;
-      }
-      .aviso-minuta {
-        border: 2px solid #b23b1e;
-        background: #fbe9e4;
-        color: #7a2512;
-        padding: 14px 16px;
-        border-radius: 8px;
-        font-weight: 700;
-        margin-bottom: 20px;
-      }
-      .disclaimer {
-        background: #efe7d6;
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-size: 0.95rem;
-        margin-bottom: 28px;
-      }
-      .meta {
-        font-size: 0.9rem;
-        color: #5c554c;
-      }
-      ul {
-        padding-left: 22px;
-      }
-      li {
-        margin-bottom: 6px;
-      }
-      a {
-        color: #6a7b3b;
-      }
-      @media (prefers-color-scheme: dark) {
-        body {
-          color: #ece5d8;
-          background: #1c1a17;
-        }
-        .disclaimer {
-          background: #2a2620;
-        }
-        .aviso-minuta {
-          background: #3a1f16;
-          color: #f0c4b6;
-          border-color: #b23b1e;
-        }
-        .meta {
-          color: #a89f92;
-        }
-        a {
-          color: #b8c98a;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <p class="aviso-minuta">
-        MINUTA GERADA AUTOMATICAMENTE — REVISAR COM ADVOGADO ANTES DE PUBLICAR.
-        Não usar em produção sem validação jurídica.
-      </p>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Termos de Uso — Rootora</title>
+<meta name="description" content="Regras de uso do aplicativo Rootora: conta, bloqueio de apps, assinatura, responsabilidades e direitos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F1E8;
+    --surface: #FFFFFF;
+    --text: #2B2318;
+    --muted: #5C5246;
+    --accent: #8A5A20;
+    --accent-soft: #F0E3CF;
+    --border: #E3DACB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #2B2318;
+      --surface: #352C20;
+      --text: #E3DACB;
+      --muted: #B9AD9B;
+      --accent: #D9A160;
+      --accent-soft: #3D3122;
+      --border: #4A3E2E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #2B2318;
+    --surface: #352C20;
+    --text: #E3DACB;
+    --muted: #B9AD9B;
+    --accent: #D9A160;
+    --accent-soft: #3D3122;
+    --border: #4A3E2E;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  header.top { margin-bottom: 32px; }
+  .brand {
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  h1, h2, h3 { font-family: "Zilla Slab", Georgia, serif; line-height: 1.25; }
+  h1 { font-size: 34px; margin: 0 0 12px; }
+  h2 {
+    font-size: 24px;
+    margin: 48px 0 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    scroll-margin-top: 16px;
+  }
+  h3 { font-size: 19px; margin: 28px 0 8px; }
+  .meta { font-family: "Space Mono", monospace; font-size: 13px; color: var(--muted); margin: 0; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  p, li { overflow-wrap: anywhere; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .summary {
+    background: var(--accent-soft);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 24px 0;
+  }
+  .summary h2 { border: 0; margin: 0 0 8px; padding: 0; font-size: 20px; }
+  .summary ul { margin: 0; }
+  .note {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+  nav.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  nav.toc p { margin: 0 0 8px; font-weight: 600; }
+  nav.toc ol { margin: 0; columns: 2; column-gap: 24px; }
+  nav.toc li { break-inside: avoid; }
+  @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 28px; } }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
 
-      <p class="disclaimer">
-        Nem o titular do projeto nem a ferramenta de geração de código utilizada
-        são advogados. Este texto é uma <strong>minuta</strong> baseada na
-        natureza técnica e funcional do aplicativo Rootora. Não constitui
-        aconselhamento jurídico nem documento pronto para publicação. A revisão
-        jurídica é uma etapa obrigatória e separada, ainda não realizada.
-      </p>
+<header class="top">
+  <p class="brand">Rootora</p>
+  <h1>Termos de Uso</h1>
+  <p class="meta">Última atualização: 11 de outubro de 2026 · Vigentes a partir desta data</p>
+</header>
 
-      <h1>Termos de Uso — Rootora</h1>
-      <p class="meta">
-        Aplicativo Rootora (Android). Versão desta minuta: rascunho inicial, sem
-        data de vigência. Substituir por data real na publicação.
-      </p>
+<p>Estes Termos regem o uso do aplicativo <strong>Rootora</strong>, oferecido por <strong>Lucas Esteves Fernandes Diogo</strong>, pessoa física, responsável pelo app (“nós”). Ao criar uma conta ou usar o app, você declara que leu e concorda com estes Termos e com a <a href="/privacidade">Política de Privacidade</a>. Se não concordar, não use o app.</p>
 
-      <h2>1. Aceitação destes Termos</h2>
-      <p>
-        Ao criar uma conta ou usar o Rootora, você concorda com estes Termos de
-        Uso e com a
-        <a href="/privacidade">Política de Privacidade</a>. Se você não concorda,
-        não use o aplicativo.
-      </p>
+<section class="summary" aria-labelledby="resumo">
+  <h2 id="resumo">Em poucas palavras</h2>
+  <ul>
+    <li>O Rootora ajuda você a organizar tarefas e reduzir distrações. <strong>Não é terapia nem serviço de saúde.</strong></li>
+    <li>É preciso ter 18 anos ou mais.</li>
+    <li>O bloqueio de apps é opcional, e você pode desligá-lo a qualquer momento nas configurações do Android.</li>
+    <li>Você pode excluir sua conta quando quiser.</li>
+  </ul>
+</section>
 
-      <h2>2. O que o Rootora é — e o que não é</h2>
-      <p>
-        O Rootora é um aplicativo de <strong>apoio a hábitos e
-        produtividade</strong>. Ele ajuda a organizar pequenas tarefas diárias,
-        manter uma sequência de dias cumpridos e retomar a rotina após pausas,
-        com um tom que evita cobrança e culpa.
-      </p>
-      <p>
-        <strong>
-          O Rootora não é um serviço de saúde, não é terapia, não é
-          acompanhamento psicológico e não substitui tratamento médico ou
-          profissional.
-        </strong>
-        Embora o aplicativo trate de temas como procrastinação, foco e
-        bem-estar, ele não realiza diagnóstico, não oferece orientação clínica e
-        não deve ser usado como resposta a sofrimento psíquico. Se você está
-        passando por dificuldades emocionais significativas, procure um
-        profissional de saúde qualificado. Em situação de urgência, procure
-        atendimento médico ou o CVV (188).
-      </p>
+<nav class="toc" aria-label="Sumário">
+  <p>Sumário</p>
+  <ol>
+    <li><a href="#servico">O que é o Rootora</a></li>
+    <li><a href="#saude">Não é serviço de saúde</a></li>
+    <li><a href="#elegibilidade">Quem pode usar</a></li>
+    <li><a href="#conta">Sua conta</a></li>
+    <li><a href="#bloqueio">Bloqueio de apps</a></li>
+    <li><a href="#uso">Uso permitido</a></li>
+    <li><a href="#conteudo">Seu conteúdo</a></li>
+    <li><a href="#propriedade">Propriedade intelectual</a></li>
+    <li><a href="#assinatura">Preço e assinatura</a></li>
+    <li><a href="#disponibilidade">Disponibilidade e mudanças</a></li>
+    <li><a href="#responsabilidade">Responsabilidade</a></li>
+    <li><a href="#encerramento">Encerramento</a></li>
+    <li><a href="#alteracoes">Alterações destes Termos</a></li>
+    <li><a href="#lei">Lei, foro e contato</a></li>
+  </ol>
+</nav>
 
-      <h2>3. Conta de usuário</h2>
-      <ul>
-        <li>
-          Você precisa de uma conta para usar o aplicativo, criada com e-mail e
-          senha ou com uma conta Google.
-        </li>
-        <li>
-          Você deve fornecer informações verdadeiras e manter seus dados de
-          acesso em sigilo.
-        </li>
-        <li>
-          Você é responsável pelas atividades realizadas na sua conta. Avise pelo
-          contato da seção 11 se suspeitar de uso não autorizado.
-        </li>
-        <li>
-          Cada pessoa deve usar a própria conta. Não crie contas em nome de
-          terceiros sem autorização.
-        </li>
-      </ul>
+<h2 id="servico">1. O que é o Rootora</h2>
+<p>O Rootora é um aplicativo de apoio a hábitos e produtividade. Ele permite registrar tarefas diárias, acompanhar uma sequência de dias, participar de desafios, fazer sessões curtas de foco e, opcionalmente, interceptar apps que você escolher, para trazer de volta a tarefa que você queria fazer.</p>
+<p>O app é uma ferramenta de apoio. O resultado depende do seu uso, e não garantimos que ele vá eliminar a procrastinação ou mudar hábitos em determinado prazo.</p>
 
-      <h2>4. Responsabilidades de quem usa</h2>
-      <ul>
-        <li>
-          Usar o aplicativo apenas para fins pessoais e lícitos.
-        </li>
-        <li>
-          Não tentar burlar, sobrecarregar, copiar, descompilar ou interferir no
-          funcionamento do aplicativo ou da sua infraestrutura.
-        </li>
-        <li>
-          Não inserir em campos de texto (como o "porquê" ou os títulos de
-          tarefas) conteúdo ilícito, ofensivo a terceiros ou que viole direitos
-          de outras pessoas.
-        </li>
-        <li>
-          Reconhecer que os dados que você registra (tarefas, histórico,
-          "porquê") são inseridos por sua conta e risco e servem ao seu
-          acompanhamento pessoal.
-        </li>
-      </ul>
+<h2 id="saude">2. O Rootora não é um serviço de saúde</h2>
+<p>O Rootora <strong>não oferece diagnóstico, terapia, aconselhamento psicológico ou tratamento médico</strong> e não substitui o acompanhamento de um profissional de saúde. Os textos e mensagens do app têm caráter motivacional e informativo.</p>
+<p>Se você está passando por sofrimento emocional intenso, procure um profissional de saúde. No Brasil, o CVV atende gratuitamente pelo telefone 188 ou em <a href="https://cvv.org.br" rel="noopener">cvv.org.br</a>. Em emergência, ligue 192 (SAMU).</p>
 
-      <h2>5. Disponibilidade e mudanças no serviço</h2>
-      <p>
-        O Rootora é oferecido "no estado em que se encontra". Podemos alterar,
-        suspender ou encerrar funcionalidades, no todo ou em parte, e pode haver
-        indisponibilidade por manutenção, falha de terceiros (como o Firebase) ou
-        força maior. Faremos esforços razoáveis para manter o serviço no ar e
-        para preservar seus dados, sem garantir disponibilidade ininterrupta.
-      </p>
+<h2 id="elegibilidade">3. Quem pode usar</h2>
+<p>Para usar o Rootora você precisa ter <strong>18 anos ou mais</strong> e capacidade civil para aceitar estes Termos. Contas de menores de 18 anos serão excluídas quando identificadas.</p>
 
-      <h2>6. Propriedade intelectual</h2>
-      <p>
-        O nome Rootora, a identidade visual, os textos do aplicativo e o
-        código-fonte pertencem ao titular do projeto. Estes Termos não
-        transferem nenhum desses direitos a você. O conteúdo que você cria
-        (tarefas, "porquê") continua sendo seu; você apenas autoriza o
-        aplicativo a armazená-lo e processá-lo para prestar o serviço.
-      </p>
+<h2 id="conta">4. Sua conta</h2>
+<ul>
+  <li>Você pode criar conta com e-mail e senha ou com sua conta Google.</li>
+  <li>Forneça informações verdadeiras e mantenha seu e-mail atualizado, porque ele é o canal para recuperar a conta e confirmar pedidos de exclusão.</li>
+  <li>Você é responsável por manter sua senha em sigilo e pelo que é feito na sua conta. Se suspeitar de uso indevido, troque a senha e nos avise.</li>
+  <li>A conta é pessoal e intransferível.</li>
+</ul>
 
-      <h2>7. Limitação de responsabilidade</h2>
-      <ul>
-        <li>
-          O aplicativo é uma ferramenta de organização pessoal. As decisões que
-          você toma a partir do uso são de sua responsabilidade.
-        </li>
-        <li>
-          Na máxima extensão permitida pela lei, o titular do projeto não
-          responde por danos indiretos, lucros cessantes, perda de dados
-          decorrente de falha de provedores de infraestrutura, ou por resultados
-          esperados e não alcançados quanto a produtividade, foco ou hábitos.
-        </li>
-        <li>
-          Nada nestes Termos exclui responsabilidades que não possam ser
-          afastadas pela legislação aplicável, incluindo direitos do consumidor.
-        </li>
-      </ul>
+<h2 id="bloqueio">5. Bloqueio de apps</h2>
+<ul>
+  <li><strong>É opcional.</strong> Só funciona depois que você lê a explicação no app, concorda e ativa o serviço de acessibilidade do Rootora nas configurações do Android. O tratamento de dados envolvido está descrito na <a href="/privacidade#acessibilidade">Política de Privacidade</a>.</li>
+  <li><strong>Pré-compromisso.</strong> A primeira configuração vale na hora. Qualquer alteração posterior, inclusive desativar o bloqueio dentro do app, passa a valer <strong>no dia seguinte</strong>. Esse é um recurso intencional do produto, que você aceita ao configurar o bloqueio.</li>
+  <li><strong>Você sempre tem a saída.</strong> Desligar o serviço em <em>Configurações do Android → Acessibilidade → Rootora</em> interrompe a interceptação imediatamente. Desinstalar o app também.</li>
+  <li><strong>Limites técnicos.</strong> O funcionamento depende do Android e do fabricante do aparelho. Recursos de economia de bateria, atualizações do sistema ou configurações de segurança podem atrasar, impedir ou interromper a interceptação. Não garantimos que o bloqueio funcione em todos os aparelhos, o tempo todo.</li>
+  <li><strong>Escolha com cuidado.</strong> Não bloqueie apps de que você possa precisar com urgência, como telefone, mensagens, mapas, bancos ou apps de saúde e emergência. A escolha dos apps bloqueados é sua.</li>
+</ul>
 
-      <h2>8. Cancelamento e exclusão de conta</h2>
-      <ul>
-        <li>
-          Você pode parar de usar o aplicativo a qualquer momento.
-        </li>
-        <li>
-          Para excluir sua conta e os dados associados: a exclusão pelo próprio
-          aplicativo está em desenvolvimento. Até lá, envie o pedido para o
-          e-mail da seção 11, a partir do e-mail cadastrado. A remoção segue o
-          descrito na Política de Privacidade.
-        </li>
-        <li>
-          Podemos suspender ou encerrar contas que violem estes Termos ou que
-          representem risco à segurança do serviço ou de terceiros, comunicando o
-          motivo quando possível.
-        </li>
-      </ul>
+<h2 id="uso">6. Uso permitido</h2>
+<p>Você concorda em não:</p>
+<ul>
+  <li>usar o app para fins ilegais ou para prejudicar outras pessoas;</li>
+  <li>tentar acessar dados de outros usuários ou partes não públicas do sistema;</li>
+  <li>copiar, modificar, descompilar ou fazer engenharia reversa do app, exceto quando a lei expressamente permitir;</li>
+  <li>contornar mecanismos de segurança ou de cobrança, ou manipular dados de sequência e progresso por meios técnicos;</li>
+  <li>sobrecarregar ou interferir no funcionamento do serviço, inclusive com automações.</li>
+</ul>
 
-      <h2>9. Alterações destes Termos</h2>
-      <p>
-        Estes Termos podem ser atualizados. A versão vigente fica sempre nesta
-        página, com a data de vigência. O uso continuado após uma alteração
-        significa concordância com a nova versão.
-      </p>
+<h2 id="conteudo">7. Seu conteúdo</h2>
+<p>As tarefas, textos e demais informações que você registra no app são seus. Você nos autoriza a armazená-los e processá-los apenas na medida necessária para o app funcionar, conforme a <a href="/privacidade">Política de Privacidade</a>. Não usamos seu conteúdo para publicidade e não o tornamos público.</p>
+<p>Você é responsável pelo que escreve no app. Evite registrar dados de outras pessoas ou informações que não queira guardar.</p>
 
-      <h2>10. Lei aplicável e foro</h2>
-      <p>
-        Estes Termos são regidos pelas leis da República Federativa do Brasil.
-        Fica eleito o foro do domicílio do usuário para dirimir controvérsias,
-        quando aplicável a legislação consumerista.
-      </p>
+<h2 id="propriedade">8. Propriedade intelectual</h2>
+<p>O app, o nome e a marca Rootora, o design, os textos, as frases motivacionais e o código pertencem ao responsável pelo Rootora ou a seus licenciadores. Concedemos a você uma licença pessoal, gratuita (sem prejuízo da assinatura, quando houver), não exclusiva, intransferível e revogável para usar o app em seus aparelhos, de acordo com estes Termos. Nenhum outro direito é transferido.</p>
 
-      <h2 id="contato">11. Contato</h2>
-      <p>
-        <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a>
-      </p>
-      <p class="meta">
-        [MINUTA: confirmar este endereço de contato antes de publicar.]
-      </p>
-    </main>
-  </body>
+<h2 id="assinatura">9. Preço e assinatura</h2>
+<p>Enquanto não houver cobrança, o uso do app é gratuito. Quando a assinatura for lançada:</p>
+<ul>
+  <li>o preço, o período de teste gratuito e a periodicidade serão informados claramente no app e na Google Play antes da contratação;</li>
+  <li>sem assinatura ativa ou período de teste válido, o acesso às funções do app poderá ser bloqueado;</li>
+  <li>a cobrança, a renovação automática, o cancelamento e os reembolsos são processados pelo Google Play, conforme as regras dele. Você pode cancelar a qualquer momento em <em>Google Play → Pagamentos e assinaturas</em>; o cancelamento impede a próxima renovação, e o acesso continua até o fim do período já pago;</li>
+  <li>se o período de teste não for cancelado antes do fim, a primeira cobrança é feita automaticamente;</li>
+  <li>seus direitos como consumidor, inclusive o direito de arrependimento previsto no art. 49 do Código de Defesa do Consumidor, são preservados. Pedidos podem ser feitos pelo Google Play ou pelo nosso e-mail de contato;</li>
+  <li>avisaremos com antecedência qualquer mudança de preço, que só se aplicará ao período seguinte à sua concordância, conforme as regras do Google Play.</li>
+</ul>
+
+<h2 id="disponibilidade">10. Disponibilidade e mudanças no app</h2>
+<p>Trabalhamos para manter o app disponível e funcionando, mas ele pode passar por interrupções, manutenções ou falhas, inclusive dos provedores de infraestrutura. Podemos alterar, incluir ou remover funções para melhorar o produto. Se removermos uma função essencial de algo que você paga, avisaremos com antecedência razoável.</p>
+
+<h2 id="responsabilidade">11. Responsabilidade</h2>
+<p>Respondemos pelos danos que causarmos, nos termos da lei. Na máxima extensão permitida pela legislação, e sem afastar direitos garantidos pelo Código de Defesa do Consumidor, não respondemos por:</p>
+<ul>
+  <li>resultados esperados com o uso do app, como produtividade, desempenho em estudos ou trabalho, ou mudança de hábitos;</li>
+  <li>consequências de apps bloqueados por sua escolha, incluindo mensagens, chamadas ou compromissos perdidos;</li>
+  <li>falhas causadas pelo aparelho, pelo sistema operacional, pela conexão de internet ou por uso em desacordo com estes Termos;</li>
+  <li>decisões que você tome com base nos textos motivacionais do app.</li>
+</ul>
+
+<h2 id="encerramento">12. Encerramento</h2>
+<ul>
+  <li><strong>Por você:</strong> a qualquer momento, em <em>Perfil → Excluir conta</em>, ou pelo procedimento descrito na <a href="/privacidade#excluir-conta">Política de Privacidade</a>. Excluir a conta não cancela automaticamente uma assinatura no Google Play; cancele-a por lá.</li>
+  <li><strong>Por nós:</strong> podemos suspender ou encerrar contas que violem estes Termos ou a lei, avisando você sempre que possível. Se o Rootora deixar de ser oferecido, avisaremos com antecedência razoável.</li>
+</ul>
+
+<h2 id="alteracoes">13. Alterações destes Termos</h2>
+<p>Podemos atualizar estes Termos. A data no topo indica a versão vigente. Mudanças relevantes serão avisadas no app ou por e-mail antes de entrarem em vigor. Se você não concordar com a nova versão, pode excluir sua conta; continuar usando o app após a vigência significa aceitação.</p>
+
+<h2 id="lei">14. Lei aplicável, foro e contato</h2>
+<p>Estes Termos são regidos pela legislação brasileira. Fica eleito o foro do domicílio do usuário para resolver eventuais controvérsias. Se alguma cláusula for considerada inválida, as demais continuam valendo.</p>
+<div class="note">
+  <strong>Dúvidas ou reclamações</strong><br>
+  Lucas Esteves Fernandes Diogo — responsável pelo Rootora<br>
+  <a href="mailto:lucasdiogo.s.i@gmail.com">lucasdiogo.s.i@gmail.com</a>
+</div>
+
+<footer>
+  Rootora · Termos de Uso · versão de 11 de outubro de 2026 ·
+  <a href="/privacidade">Política de Privacidade</a>
+</footer>
+
+</main>
+</body>
 </html>
