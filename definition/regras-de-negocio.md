@@ -64,7 +64,7 @@ rebaixar é sempre livre.
 > "Ontem não saiu como planejado — e tudo bem. Seu progresso continua de pé. Hoje é um novo dia para agir."
 
 **Streak reduzido (sem proteção):**
-> "Você perdeu um dia e isso teve um custo — sua sequência caiu para {{streak}}. Mas {{diasTotais}} dias reais continuam contando. Vamos seguir a partir daqui, não do zero."
+> "Você perdeu um dia e isso teve um custo — sua sequência agora está em {{streak}}. Mas {{diasTotais}} dias reais continuam contando. Vamos seguir a partir daqui, não do zero."
 > (`{{streak}}` e `{{diasTotais}}` são valores DIFERENTES — sequência pós-queda e total de dias ativos, não o mesmo número repetido)
 
 **Retorno após pausa longa (2+ dias):**
