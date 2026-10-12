@@ -1,6 +1,7 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
 import { EstadoTravado, RegrasBloqueio, RegrasBloqueioPendentes } from '../domain/types';
 import { SnapshotDia } from '../domain/intercept';
+import { ConfigBloco, EstadoSaldo } from '../domain/saldoBloqueio';
 
 /**
  * App instalado com Launcher Intent — resolvido via `<queries>` (manifest,
@@ -35,7 +36,10 @@ export interface SessaoAtivaNativa {
 interface RootoraAccessibilityNative {
   isAccessibilityServiceEnabled(): Promise<boolean>;
   openAccessibilitySettings(): void;
-  registrarDesbloqueioTemporario(packageName: string, minutos: number): void;
+  obterEstadoBloqueio(): Promise<string>;
+  liberarBloco(): Promise<boolean>;
+  usarTolerancia(): Promise<boolean>;
+  recusarTolerancia(): Promise<boolean>;
   abrirApp(packageName: string): Promise<boolean>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
@@ -100,23 +104,68 @@ export function subscribeToForegroundApp(
 }
 
 /**
- * Libera packageName do bloqueio por `minutos` a partir de agora. Grava no
- * lado nativo (SharedPreferences) — é o que o AccessibilityService consulta
- * antes de reabrir o Rootora por cima do app.
+ * Estado do saldo diário de blocos como o nativo calculou — `agora` é o
+ * relógio do aparelho no momento da leitura (a contagem regressiva do JS
+ * parte dele). Mesmo formato do extra `estadoBloqueioJson` da
+ * InterceptActivity (ver SaldoBloqueioPrefs.visaoJson).
  */
-export function registrarDesbloqueioTemporario(
-  packageName: string,
-  minutos: number,
-): void {
-  moduloNativo()?.registrarDesbloqueioTemporario(packageName, minutos);
+export interface VisaoBloqueio {
+  estado: EstadoSaldo;
+  config: ConfigBloco;
+  agora: number;
+}
+
+export function parseVisaoBloqueio(json: string | undefined | null): VisaoBloqueio | null {
+  if (!json) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(json) as Partial<VisaoBloqueio>;
+    if (parsed && parsed.estado && parsed.config && typeof parsed.agora === 'number') {
+      return parsed as VisaoBloqueio;
+    }
+  } catch {
+    // JSON malformado — quem chama cai no fallback.
+  }
+  return null;
+}
+
+/** Lê o estado atual (já reconciliado com o relógio) do nativo. null sem o módulo nativo. */
+export async function obterEstadoBloqueio(): Promise<VisaoBloqueio | null> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return null;
+  }
+  return parseVisaoBloqueio(await modulo.obterEstadoBloqueio());
 }
 
 /**
- * Reabre packageName depois de um desbloqueio (estado B ou "Liberar" em
- * FimSessao) — pra o usuário não precisar sair do Rootora manualmente.
- * Resolve false (nunca rejeita) se o app não puder ser reaberto (ex:
+ * Fim da pausa de intenção: abre o bloco (consome 1 do saldo). Resolve false
+ * se não havia nada a liberar no estado atual ou sem o módulo nativo.
+ */
+export async function liberarBloco(): Promise<boolean> {
+  const modulo = moduloNativo();
+  return modulo ? modulo.liberarBloco() : false;
+}
+
+/** "+2 min para finalizar" — resolve false se já usada neste bloco. */
+export async function usarTolerancia(): Promise<boolean> {
+  const modulo = moduloNativo();
+  return modulo ? modulo.usarTolerancia() : false;
+}
+
+/** "Agora não" na oferta de tolerância — o cooldown começa neste instante. */
+export async function recusarTolerancia(): Promise<boolean> {
+  const modulo = moduloNativo();
+  return modulo ? modulo.recusarTolerancia() : false;
+}
+
+/**
+ * Reabre packageName depois de liberar um bloco (fim da pausa de intenção)
+ * ou de aceitar a tolerância — pra o usuário não precisar sair do Rootora
+ * manualmente. Resolve false (nunca rejeita) se o app não puder ser reaberto (ex:
  * desinstalado nesse meio tempo) ou sem o módulo nativo — quem chama não
- * deve travar nem mostrar erro nesse caso, já que o desbloqueio em si já
+ * deve travar nem mostrar erro nesse caso, já que a liberação em si já
  * foi concedido.
  */
 export async function abrirApp(packageName: string): Promise<boolean> {

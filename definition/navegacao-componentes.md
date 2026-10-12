@@ -79,11 +79,17 @@ carregar a navegação inteira. **Único caminho de interceptação** —
 `regrasBloqueio` → `AccessibilityService.deveInterceptar` → `InterceptActivity`.
 
 ```
-InterceptRoot (packageName, appLabel, snapshotJson, sessaoAtivaJson? via initialProps)
-└── InterceptScreen — estados A / B / C (seção 3 da spec)
-      ├── "Fazer 2 minutos" → SessaoFocoScreen (origem 'interceptacao')
-      ├── "Estou travado"   → TravadoFlowScreen (mesmo componente da Home/TaskCard)
-      └── "Liberar"/"Agora não" (estado B) → sai
+InterceptRoot (packageName, appLabel, snapshotJson, estadoBloqueioJson?, sessaoAtivaJson? via initialProps)
+└── InterceptScreen — fase do saldo de blocos (nativo) decide a tela
+      ├── BLOQUEADO_SEM_ESSENCIAL → decisão A / C (seção 3 da spec)
+      │     ├── "Fazer 2 minutos" → SessaoFocoScreen (origem 'interceptacao')
+      │     └── "Estou travado"   → TravadoFlowScreen (mesmo componente da Home/TaskCard)
+      ├── AGUARDANDO_LIBERACAO → PausaIntencaoScreen ("Liberar" → abre o bloco e o app)
+      ├── TOLERANCIA (oferta)  → TempoEsgotadoScreen ("+N min para finalizar" / "Agora não")
+      ├── COOLDOWN | SALDO_ZERADO → EsperaBloqueioScreen
+      │     ├── "Iniciar uma sessão de foco" → SessaoFocoScreen (5 min, sem tarefa)
+      │     └── "Ver tarefas extras" → TarefasExtrasScreen (concluir/adicionar → +bloco)
+      └── BLOCO_ATIVO | TOLERANCIA em curso → aviso "bloco em andamento" + abrir o app
 ```
 
 ### Lógica de decisão do `RootNavigator`
@@ -284,18 +290,23 @@ Passos: `escolha` (4 chips) → `resposta` (texto + ação por estado) → `sess
 
 ### SessaoFocoScreen
 Timer + FimSessao, usada tanto pelo `TravadoFlowScreen` quanto direto pela
-`InterceptScreen` ("Fazer 2 minutos"). Botão "Liberar o [app] por 15 minutos" só
-aparece com `origem === 'interceptacao'` e `onLiberarApp` passado.
+`InterceptScreen` ("Fazer 2 minutos"). Botão "Seguir para o [app]" só aparece com
+`origem === 'interceptacao'` e `onLiberarApp` passado — o que a `InterceptScreen` só faz
+quando há bloco a liberar (`AGUARDANDO_LIBERACAO`); o toque leva à pausa de intenção, não
+libera direto.
 
 ### InterceptScreen (root `Intercept`, spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
-Ver "Root separado — `Intercept`" na seção 1 acima pra árvore completa. Decide o estado
-A/B/C na hora a partir do `snapshot` (prop, veio do nativo) e troca sozinha pro dado ao
-vivo (`useDailyTasks`) assim que ele resolve. `sessaoAtivaResumida` (prop opcional) pula
+Ver "Root separado — `Intercept`" na seção 1 acima pra árvore completa. A fase vem do
+nativo (`useBloqueioSaldo`; `visaoInicial` = extra `estadoBloqueioJson`, relida ao montar
+e a cada segundo em COOLDOWN/SALDO_ZERADO/BLOQUEADO). Sem essencial cumprido, decide A/C
+na hora a partir do `snapshot` (prop, veio do nativo) e troca sozinha pro dado ao vivo
+(`useDailyTasks`) assim que ele resolve. `sessaoAtivaResumida` (prop opcional) pula
 a decisão inteira e abre a `SessaoFocoScreen` já retomando o tempo restante.
 
 ### InterceptDebugScreen
 Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) — 3
-botões que abrem o `InterceptRoot` de verdade com snapshot mockado pra cada estado.
+botões que abrem o `InterceptRoot` de verdade com snapshot mockado pra cada estado. O
+estado B mostra o saldo REAL do aparelho (a fase vem do nativo, não do snapshot mockado).
 
 ### Telas de permissão
 `DivulgacaoAcessibilidadeScreen` (ver acima — Perfil, antes de abrir as configurações

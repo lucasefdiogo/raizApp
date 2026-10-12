@@ -21,7 +21,7 @@ interface SessaoFocoScreenProps {
   /** Fecha o fluxo inteiro e volta pra Home/pro app de origem. */
   onFechar: () => void;
   /**
-   * Nome exibido do app de origem — só usado no texto do botão "Liberar".
+   * Nome exibido do app de origem — só usado no texto do botão que segue pro app.
    * Ausente quando origem !== 'interceptacao' (a única situação em que o
    * botão aparece, ver seção 5 da spec).
    */
@@ -139,7 +139,7 @@ export function SessaoFocoScreen({
             <SecondaryButton titulo="Parar aqui" onPress={handlePararAqui} />
             {mostrarLiberar && (
               <SecondaryButton
-                titulo={`Liberar o ${appLabel} por 15 minutos`}
+                titulo={`Seguir para o ${appLabel}`}
                 onPress={handleLiberarApp}
               />
             )}

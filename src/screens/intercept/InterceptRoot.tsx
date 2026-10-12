@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SnapshotDia } from '../../domain/intercept';
+import { parseVisaoBloqueio } from '../../native/AccessibilityDetection';
 import { InterceptScreen, SessaoAtivaResumida } from './InterceptScreen';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 
@@ -24,6 +25,8 @@ export interface InterceptRootProps {
    * andamento). Ausente/inválido = fluxo normal (decisão A/B/C).
    */
   sessaoAtivaJson?: string;
+  /** Estado do saldo de blocos (extra `estadoBloqueioJson` da InterceptActivity). Ausente = a tela lê do nativo. */
+  estadoBloqueioJson?: string;
   /**
    * Só pra a tela de debug (ver screens/debug/InterceptDebugScreen) — o
    * root real (AppRegistry.registerComponent('Intercept', ...)) nunca passa
@@ -97,6 +100,7 @@ export function InterceptRoot({
   appLabel,
   snapshotJson,
   sessaoAtivaJson,
+  estadoBloqueioJson,
   aoSairOverride,
 }: InterceptRootProps) {
   const { user, carregando } = useAuth();
@@ -112,6 +116,7 @@ export function InterceptRoot({
             packageName={packageName}
             appLabel={appLabel}
             snapshot={parseSnapshot(snapshotJson)}
+            visaoInicial={parseVisaoBloqueio(estadoBloqueioJson)}
             sessaoAtivaResumida={parseSessaoAtiva(sessaoAtivaJson)}
             onSair={aoSairOverride ?? (() => BackHandler.exitApp())}
           />

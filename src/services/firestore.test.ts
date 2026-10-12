@@ -12,6 +12,7 @@ import {
   garantirDailyLogDoDia,
   registrarSessaoFocoNoDia,
   registrarInterceptacaoNoDia,
+  registrarResumoBloqueioNoDia,
   salvarRegrasBloqueioImediatas,
   salvarRegrasBloqueioPendentes,
   cancelarRegrasBloqueioPendentes,
@@ -262,6 +263,45 @@ describe('services/firestore', () => {
       const log = await buscarDailyLog('uid-1', '2026-09-15');
       expect(log?.statusDia).toBe('cumprido');
       expect(log?.tarefas[0].concluida).toBe(true);
+    });
+  });
+
+  describe('registrarResumoBloqueioNoDia', () => {
+    it('acumula contadores e intenções sem apagar o resto do dia', async () => {
+      await salvarDailyLog('uid-1', '2026-09-15', {
+        data: '2026-09-15',
+        tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        blocosUsados: 1,
+        intencao: 'ver mensagens',
+      });
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        blocosUsados: 1,
+        intencao: 'assistir um video',
+      });
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        toleranciasUsadas: 1,
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.resumoBloqueio).toEqual({
+        blocosUsados: 2,
+        toleranciasUsadas: 1,
+        intencoes: ['ver mensagens', 'assistir um video'],
+      });
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.tarefas).toHaveLength(1);
+    });
+
+    it('sem nada a gravar (intenção vazia, contadores zerados): não escreve', async () => {
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        intencao: '',
+      });
+      expect(firestoreMock.setDoc).not.toHaveBeenCalled();
     });
   });
 

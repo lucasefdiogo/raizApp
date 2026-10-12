@@ -5,7 +5,11 @@ import {
   limparSessaoAtiva,
   listarAppsInstalados,
   openAccessibilitySettings,
-  registrarDesbloqueioTemporario,
+  liberarBloco,
+  obterEstadoBloqueio,
+  parseVisaoBloqueio,
+  recusarTolerancia,
+  usarTolerancia,
   salvarRegrasBloqueio,
   salvarRegrasBloqueioPendentes,
   salvarSessaoAtiva,
@@ -16,7 +20,10 @@ import {
 const moduloMock = {
   isAccessibilityServiceEnabled: jest.fn(),
   openAccessibilitySettings: jest.fn(),
-  registrarDesbloqueioTemporario: jest.fn(),
+  obterEstadoBloqueio: jest.fn(),
+  liberarBloco: jest.fn(),
+  usarTolerancia: jest.fn(),
+  recusarTolerancia: jest.fn(),
   abrirApp: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
@@ -219,21 +226,40 @@ describe('AccessibilityDetection', () => {
     });
   });
 
-  describe('registrarDesbloqueioTemporario', () => {
-    it('repassa packageName e minutos pro módulo nativo', () => {
-      registrarDesbloqueioTemporario('com.instagram.android', 15);
+  describe('saldo de blocos (estado, liberar, tolerância)', () => {
+    const visao = {
+      estado: { dia: '2026-10-11', fase: 'AGUARDANDO_LIBERACAO', saldo: 4 },
+      config: { duracaoBlocoMin: 15 },
+      agora: 1700000000000,
+    };
 
-      expect(moduloMock.registrarDesbloqueioTemporario).toHaveBeenCalledWith(
-        'com.instagram.android',
-        15,
-      );
+    it('obterEstadoBloqueio parseia o JSON do nativo', async () => {
+      moduloMock.obterEstadoBloqueio.mockResolvedValueOnce(JSON.stringify(visao));
+      await expect(obterEstadoBloqueio()).resolves.toEqual(visao);
     });
 
-    it('não quebra quando o módulo nativo não está linkado', () => {
+    it('obterEstadoBloqueio resolve null sem o módulo nativo', async () => {
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
-      expect(() =>
-        registrarDesbloqueioTemporario('com.instagram.android', 15),
-      ).not.toThrow();
+      await expect(obterEstadoBloqueio()).resolves.toBeNull();
+    });
+
+    it('parseVisaoBloqueio: null para ausente, malformado ou incompleto', () => {
+      expect(parseVisaoBloqueio(undefined)).toBeNull();
+      expect(parseVisaoBloqueio('{nao e json')).toBeNull();
+      expect(parseVisaoBloqueio(JSON.stringify({ estado: {} }))).toBeNull();
+    });
+
+    it.each([
+      ['liberarBloco', liberarBloco],
+      ['usarTolerancia', usarTolerancia],
+      ['recusarTolerancia', recusarTolerancia],
+    ] as const)('%s repassa o resultado do nativo e resolve false sem o módulo', async (nome, acao) => {
+      moduloMock[nome].mockResolvedValueOnce(true);
+      await expect(acao()).resolves.toBe(true);
+      expect(moduloMock[nome]).toHaveBeenCalledTimes(1);
+
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(acao()).resolves.toBe(false);
     });
   });
 

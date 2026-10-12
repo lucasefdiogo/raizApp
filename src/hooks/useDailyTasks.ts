@@ -178,6 +178,11 @@ export function useDailyTasks(uid: string): UseDailyTasksResultado {
       setTarefas(log.tarefas);
       setEscudoUsado(log.escudoUsado);
       setCarregando(false);
+      // Sincroniza o nativo na abertura também, não só a cada mudança: o
+      // saldo de blocos (essencial/extras do dia) precisa enxergar o que já
+      // estava concluído antes de a instalação ter essa regra, ou depois de
+      // uma virada de dia. Idempotente — cada tarefa extra rende bloco 1x.
+      salvarSnapshotDoDia({ tarefas: log.tarefas });
       return;
     }
 

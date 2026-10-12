@@ -88,7 +88,10 @@ caminho, com tela de configuração própria.
 | Tela de configuração (`BloqueioAppsScreen`: status, apps, janela única, resumo) | ✅ |
 | Lista de apps via `<queries>` (MAIN/LAUNCHER), sem `QUERY_ALL_PACKAGES` | ✅ |
 | Regra de pré-compromisso única (1ª config imediata, qualquer alteração depois vale amanhã, sem distinguir afrouxar/endurecer) | ✅ domain testado; promoção pendente→vigente roda no nativo (app fechado) e sincroniza no Firestore na próxima abertura |
-| Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/B) | ✅ (spec 09) |
+| Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/C) | ✅ (spec 09) |
+| Saldo diário de blocos (bloco de 15 min global em 1º plano, tolerância +2, cooldown 30, pausa de intenção crescente, extras rendem bloco) — substitui o loop de 15 min renovável | 🚧 implementado e testado (Jest + JUnit sobre fixtures comuns); **não validado em device físico** (contagem em 1º plano, tela apagada, estouro do bloco com o app aberto) |
+| Tela de edição da config de blocos (`duracaoBlocoMin` etc. em `regrasBloqueio`) | 📋 hoje só defaults / edição manual no Firestore |
+| Estatísticas de `resumoBloqueio` (blocos, tolerâncias, intenções) | 📋 hoje só gravado |
 | Divulgação em destaque do Accessibility Service, antes de abrir as configurações do Android | ✅ `DivulgacaoAcessibilidadeScreen`, consentimento gravado em `consentimentoAcessibilidade` |
 | Custo crescente entre desbloqueios | ❌ removido — substituído pela regra de pré-compromisso acima |
 | Visibilidade na Home (banner / status card) | ❌ removido — configuração vive só em Perfil agora |
@@ -153,7 +156,7 @@ caminho, com tela de configuração própria.
 | Dados: `tarefaPaiId`/`quando` em tarefas, `sessoesFoco`/`interceptacoes` em `dailyLogs`, `regrasBloqueio`/`regrasBloqueioPendentes`/`consentimentoAcessibilidade` em `users` | ✅ |
 | TravadoFlow (4 estados: confusão/medo/tédio/energia) — mesmo componente nas 3 entradas (Home, toque longo, InterceptScreen) | ✅ |
 | SessaoFocoScreen (timer + FimSessao) — sessões de foco não alteram `streakAtual` | ✅ |
-| InterceptScreen (estados A/B/C) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
+| InterceptScreen (A/C + fases do saldo de blocos) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
 | Tela de debug da InterceptScreen (Perfil → dev) | ✅ |
 | AccessibilityService: único gatilho de interceptação (`regrasBloqueio` → `deveInterceptar` → `InterceptActivity`) + "sessão ativa" (reabrir com o timer em andamento) + promoção de `regrasBloqueioPendentes` vencida (roda com o app fechado) | 🚧 implementado, não confirmado em device físico |
 | Tela de configuração de `regrasBloqueio` (`BloqueioAppsScreen`, Perfil) | ✅ |

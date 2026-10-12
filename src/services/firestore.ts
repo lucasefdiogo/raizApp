@@ -6,6 +6,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  increment,
   limit,
   query,
   serverTimestamp,
@@ -247,6 +248,9 @@ export async function buscarDailyLog(
       : {}),
     ...(bruto.interceptacoes !== undefined
       ? { interceptacoes: bruto.interceptacoes }
+      : {}),
+    ...(bruto.resumoBloqueio !== undefined
+      ? { resumoBloqueio: bruto.resumoBloqueio }
       : {}),
   };
 }
@@ -520,6 +524,34 @@ export async function registrarInterceptacaoNoDia(
     { interceptacoes: arrayUnion(interceptacao) },
     { merge: true },
   );
+}
+
+/**
+ * Acumula no resumo do saldo de blocos do dia (`resumoBloqueio`, só pra
+ * estatísticas futuras): contadores via `increment` e intenções via
+ * `arrayUnion`, ambos atômicos — nunca lê antes de gravar, então liberações
+ * concorrentes não se pisam. Só grava o que veio em `parcial`.
+ */
+export async function registrarResumoBloqueioNoDia(
+  uid: string,
+  data: string,
+  parcial: { blocosUsados?: number; toleranciasUsadas?: number; intencao?: string },
+): Promise<void> {
+  const resumo: Record<string, unknown> = {};
+  if (parcial.blocosUsados) {
+    resumo.blocosUsados = increment(parcial.blocosUsados);
+  }
+  if (parcial.toleranciasUsadas) {
+    resumo.toleranciasUsadas = increment(parcial.toleranciasUsadas);
+  }
+  if (parcial.intencao) {
+    resumo.intencoes = arrayUnion(parcial.intencao);
+  }
+  if (Object.keys(resumo).length === 0) {
+    return;
+  }
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { resumoBloqueio: resumo }, { merge: true });
 }
 
 /**

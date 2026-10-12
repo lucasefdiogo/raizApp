@@ -185,18 +185,69 @@ Nenhum desbloqueio envolve Health Connect/calorias ainda (📋 planejado, ver
 Extensão do bloqueio de apps (spec `09-ponte-fuga-tarefa-e-estou-travado.md`): o app de
 fuga passa a levar de volta à tarefa evitada, reduzida a um passo mínimo, em vez de só
 bloquear. **Único caminho de interceptação** — `regrasBloqueio` → `InterceptActivity`
-(schema e tela de configuração da seção 4). Liberar o app acontece por um de dois
-jeitos, nunca por desafio nem por respiração cronometrada:
+(schema e tela de configuração da seção 4). Liberar o app acontece pelo saldo diário de blocos
+(abaixo), nunca por desafio nem por respiração cronometrada:
 
-### InterceptScreen — 3 estados
+### InterceptScreen — decisão A/B/C + saldo diário de blocos
+Enquanto o essencial do dia não foi cumprido (`BLOQUEADO_SEM_ESSENCIAL`), valem os
+estados de sempre:
+
 | Estado | Condição | Ação primária |
 |---|---|---|
 | A | Existe essencial pendente | "Fazer 2 minutos" (sessão de foco de 2 min na tarefa) |
-| B | Essenciais do dia já cumpridas | "Liberar" o app por 15 minutos |
 | C | Nenhuma essencial cadastrada hoje | Campo de texto → cria a essencial → vira estado A |
 
 Seleção da tarefa no estado A: a primeira essencial pendente, ou — se alguma tiver o
 campo `quando` (HH:mm) preenchido — a de horário mais próximo do momento atual.
+
+O antigo estado B ("Liberar o app por 15 minutos", renovável sem fim) foi **substituído**
+pelo saldo diário abaixo.
+
+### Saldo diário de blocos (substitui o loop de 15 min)
+Ao cumprir o essencial, o usuário ganha `blocosDiarios` blocos (padrão 4); cada tarefa
+**extra** concluída (não essencial, não subtarefa) rende `blocoPorTarefaExtra` (padrão 1),
+uma vez por tarefa (marcar/desmarcar/marcar não rende de novo, e desmarcar o essencial
+depois não estorna nada). Extras feitas antes do essencial já entram no saldo. O saldo
+zera à meia-noite (data local do aparelho).
+
+- **Bloco** = `duracaoBlocoMin` (15) de uso. O tempo é GLOBAL (soma todos os apps
+  bloqueados) e só conta com um app bloqueado em PRIMEIRO PLANO: sai do app ou a tela
+  apaga, o contador pausa. Teclado e barra de notificações não contam como "sair".
+- **Tolerância** — ao acabar o bloco, tela "Tempo esgotado" com "+`toleranciaMin` min para
+  finalizar" (2). Uma vez por bloco, não acumulável; os 2 min também contam só em
+  primeiro plano. "Agora não" ou depois dos 2 min: bloqueio direto, sem nova oferta.
+- **Cooldown** — após o fim do bloco (com ou sem tolerância), `cooldownMin` (30) em
+  tempo corrido (timestamp absoluto, sobrevive a fechar o app e reiniciar). A
+  interceptação mostra a contagem regressiva e atalhos para sessão de foco (5 min, sem
+  tarefa) e tarefas extras. Terminado o cooldown, com saldo, o próximo bloco pode ser
+  liberado.
+- **Pausa de intenção** — antes de cada bloco: "O que você vai fazer agora?" (texto
+  opcional) e botão "Liberar" desabilitado com contagem: 5s, 10s, 20s, 40s e 60s dali em
+  diante (teto), pelo número de blocos já liberados no dia. Sair da tela reinicia a
+  pausa. Sequência fixa no código (`SEQUENCIA_PAUSA_INTENCAO_SEG`), não configurável.
+- **Saldo zerado** — bloqueio até o dia seguinte, com atalhos para sessão de foco e
+  tarefas extras (cada uma rende bloco novo).
+- O "Liberar" no fim de uma sessão de foco **não libera direto**: leva à pausa de
+  intenção do próximo bloco (e só aparece se houver bloco a liberar).
+- Um bloco aberto e pausado (usuário saiu com tempo sobrando) continua de onde parou
+  quando ele voltar, sem nova pausa, até a meia-noite.
+
+Máquina de estados (persistida no nativo; `PAUSA_INTENCAO` é só de tela, reinicia ao
+sair, por isso não é persistida):
+```
+BLOQUEADO_SEM_ESSENCIAL → AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → BLOCO_ATIVO
+   → TOLERANCIA → COOLDOWN → (AGUARDANDO_LIBERACAO | SALDO_ZERADO)
+SALDO_ZERADO → AGUARDANDO_LIBERACAO (tarefa extra concluída)
+qualquer estado → reinicia na virada do dia
+```
+Fonte da regra: `SaldoBloqueioMaquina.kt` (roda sem JS) com cópia de referência em
+`domain/saldoBloqueio.ts`; as duas passam nas mesmas fixtures
+(`domain/__fixtures__/saldoBloqueio.json`, lidas por Jest e JUnit).
+
+Configuração em `regrasBloqueio` (todos opcionais, ausente = padrão): `duracaoBlocoMin`
+(15), `toleranciaMin` (2), `cooldownMin` (30), `blocosDiarios` (4), `blocoPorTarefaExtra`
+(1). Seguem a regra de pré-compromisso abaixo (alteração só vale amanhã). Ainda sem tela
+de edição.
 
 ### TravadoFlow — "O que está pegando agora?"
 Acessível pelas 3 entradas com o **mesmo componente**: botão discreto abaixo da lista na
