@@ -19,6 +19,26 @@ describe('aplicarRegrasBloqueioPendentesSeVencidas', () => {
     efetivaEm: '2026-09-25',
   };
 
+  it('pendente vencida carrega os campos de config de bloco junto, sem efetivaEm', () => {
+    const comConfig: RegrasBloqueioPendentes = {
+      ...pendentesQueAfrouxam,
+      cooldownMin: 10,
+      blocosDiarios: 6,
+    };
+    const resultado = aplicarRegrasBloqueioPendentesSeVencidas(
+      regrasAtuais,
+      comConfig,
+      '2026-09-25',
+    );
+    expect(resultado.regrasBloqueio).toEqual({
+      apps: comConfig.apps,
+      janelas: comConfig.janelas,
+      cooldownMin: 10,
+      blocosDiarios: 6,
+    });
+    expect(resultado.regrasBloqueio).not.toHaveProperty('efetivaEm');
+  });
+
   it('sem pendência: devolve as regras atuais intocadas', () => {
     expect(
       aplicarRegrasBloqueioPendentesSeVencidas(
@@ -158,6 +178,24 @@ describe('decidirGravacaoRegrasBloqueio', () => {
     expect(decidirGravacaoRegrasBloqueio(atuais, novasRegras, '2026-09-24')).toEqual({
       tipo: 'pendente',
       pendente: { ...novasRegras, efetivaEm: '2026-09-25' },
+    });
+  });
+
+  it('alteração de apps/janelas preserva a config de bloco das regras vigentes', () => {
+    const atuais: RegrasBloqueio = {
+      apps: ['com.whatsapp'],
+      janelas: [],
+      duracaoBlocoMin: 20,
+      toleranciaMin: 1,
+    };
+    expect(decidirGravacaoRegrasBloqueio(atuais, novasRegras, '2026-09-24')).toEqual({
+      tipo: 'pendente',
+      pendente: {
+        ...novasRegras,
+        duracaoBlocoMin: 20,
+        toleranciaMin: 1,
+        efetivaEm: '2026-09-25',
+      },
     });
   });
 

@@ -13,6 +13,9 @@ export const DURACAO_SEG_CONTINUAR = 10 * 60;
 /** "Fazer 2 minutos" — ação primária do estado A da InterceptScreen (seção 3). */
 export const DURACAO_SEG_FAZER_2_MINUTOS = 2 * 60;
 
+/** "Iniciar uma sessão de foco" no cooldown/saldo zerado — sem tarefa específica, um bloco curto e sem cobrança. */
+export const DURACAO_SEG_SESSAO_BLOQUEIO = 5 * 60;
+
 /**
  * Projeção do dia usada pela InterceptScreen (seção 3 da spec
  * 09-ponte-fuga-tarefa) — é o que o lado nativo espelha em SharedPreferences

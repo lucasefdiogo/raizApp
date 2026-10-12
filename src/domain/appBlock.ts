@@ -1,5 +1,6 @@
 import { JanelaBloqueio, RegrasBloqueio, RegrasBloqueioPendentes } from './types';
 import { dataDeAmanhaLocal } from './data';
+import { extrairConfigBloco } from './saldoBloqueio';
 
 export function paraMinutosDoDia(horario: string): number | null {
   const partes = horario.split(':');
@@ -48,7 +49,11 @@ export function aplicarRegrasBloqueioPendentesSeVencidas(
   }
 
   return {
-    regrasBloqueio: { apps: pendentes.apps, janelas: pendentes.janelas },
+    regrasBloqueio: {
+      ...extrairConfigBloco(pendentes),
+      apps: pendentes.apps,
+      janelas: pendentes.janelas,
+    },
     regrasBloqueioPendentes: null,
   };
 }
@@ -120,8 +125,14 @@ export function decidirGravacaoRegrasBloqueio(
     return { tipo: 'imediata', regras: novasRegras };
   }
 
+  // Config de blocos (saldoBloqueio) não tem tela ainda: a alteração de
+  // apps/janelas não pode apagar o que estiver configurado nas vigentes.
   return {
     tipo: 'pendente',
-    pendente: { ...novasRegras, efetivaEm: dataDeAmanhaLocal(hojeISO) },
+    pendente: {
+      ...extrairConfigBloco(regrasVigentesAtuais),
+      ...novasRegras,
+      efetivaEm: dataDeAmanhaLocal(hojeISO),
+    },
   };
 }

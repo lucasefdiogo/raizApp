@@ -1,0 +1,169 @@
+{
+  "base": 1700000000000,
+  "dia": "2026-10-11",
+  "casos": [
+    {
+      "nome": "essencial cumprido credita o saldo diario e libera a espera",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": false, "extrasConcluidas": [] },
+          "esperado": { "fase": "BLOQUEADO_SEM_ESSENCIAL", "saldo": 0 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 1, "args": { "essencialCumprido": true, "extrasConcluidas": [] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 4 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 2, "args": { "essencialCumprido": true, "extrasConcluidas": [] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 4 } }
+      ]
+    },
+    {
+      "nome": "extra feita antes do essencial soma ao saldo e e creditada uma vez so",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": false, "extrasConcluidas": ["x1"] },
+          "esperado": { "fase": "BLOQUEADO_SEM_ESSENCIAL", "saldo": 1 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 1, "args": { "essencialCumprido": false, "extrasConcluidas": [] },
+          "esperado": { "saldo": 1 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 2, "args": { "essencialCumprido": false, "extrasConcluidas": ["x1"] },
+          "esperado": { "saldo": 1 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 3, "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 5 } }
+      ]
+    },
+    {
+      "nome": "liberar sem essencial cumprido nao faz nada",
+      "passos": [
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": false, "fase": "BLOQUEADO_SEM_ESSENCIAL", "saldo": 0 } }
+      ]
+    },
+    {
+      "nome": "fluxo completo: bloco, tolerancia, cooldown e proximo bloco",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 4 } },
+        { "evento": "liberarBloco", "agoraMin": 1,
+          "esperado": { "ok": true, "fase": "BLOCO_ATIVO", "saldo": 3, "blocosUsados": 1, "permiteUso": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 2, "esperado": { "fase": "BLOCO_ATIVO", "consumidoSeg": 0 } },
+        { "evento": "saiuDePrimeiroPlano", "agoraMin": 7, "esperado": { "fase": "BLOCO_ATIVO", "consumidoSeg": 300 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 30, "esperado": { "fase": "BLOCO_ATIVO", "consumidoSeg": 300 } },
+        { "evento": "reconciliar", "agoraMin": 40,
+          "esperado": { "fase": "TOLERANCIA", "toleranciaAtiva": false, "permiteUso": false, "consumidoSeg": 0 } },
+        { "evento": "usarTolerancia", "agoraMin": 40.5,
+          "esperado": { "ok": true, "fase": "TOLERANCIA", "toleranciaAtiva": true, "toleranciaUsada": true, "toleranciasUsadas": 1, "permiteUso": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 41, "esperado": { "fase": "TOLERANCIA" } },
+        { "evento": "reconciliar", "agoraMin": 44,
+          "esperado": { "fase": "COOLDOWN", "permiteUso": false, "fimCooldownEmMin": 73 } },
+        { "evento": "reconciliar", "agoraMin": 72.9, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "reconciliar", "agoraMin": 73, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 3 } },
+        { "evento": "liberarBloco", "agoraMin": 74, "esperado": { "ok": true, "fase": "BLOCO_ATIVO", "saldo": 2, "blocosUsados": 2, "toleranciaUsada": false } }
+      ]
+    },
+    {
+      "nome": "tolerancia so uma vez por bloco",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 16, "esperado": { "fase": "TOLERANCIA", "toleranciaAtiva": false } },
+        { "evento": "usarTolerancia", "agoraMin": 16, "esperado": { "ok": true, "toleranciaAtiva": true } },
+        { "evento": "usarTolerancia", "agoraMin": 16.1, "esperado": { "ok": false, "toleranciasUsadas": 1 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 17, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 19, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 49 } }
+      ]
+    },
+    {
+      "nome": "tolerancia fora de primeiro plano nao corre",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 16, "esperado": { "fase": "TOLERANCIA" } },
+        { "evento": "usarTolerancia", "agoraMin": 16, "esperado": { "ok": true } },
+        { "evento": "reconciliar", "agoraMin": 100, "esperado": { "fase": "TOLERANCIA", "toleranciaAtiva": true, "consumidoSeg": 0 } }
+      ]
+    },
+    {
+      "nome": "recusar a tolerancia comeca o cooldown na hora",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 16, "esperado": { "fase": "TOLERANCIA", "toleranciaAtiva": false } },
+        { "evento": "recusarTolerancia", "agoraMin": 20, "esperado": { "ok": true, "fase": "COOLDOWN", "fimCooldownEmMin": 50 } },
+        { "evento": "usarTolerancia", "agoraMin": 21, "esperado": { "ok": false, "fase": "COOLDOWN" } }
+      ]
+    },
+    {
+      "nome": "bloco sem tolerancia configurada vai direto pro cooldown",
+      "config": { "toleranciaMin": 0 },
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 20, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 46 } }
+      ]
+    },
+    {
+      "nome": "saldo zerado depois do ultimo bloco e extra reabre a espera",
+      "config": { "blocosDiarios": 1 },
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": { "saldo": 1 } },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true, "saldo": 0 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 16, "esperado": { "fase": "TOLERANCIA" } },
+        { "evento": "recusarTolerancia", "agoraMin": 16, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 46 } },
+        { "evento": "reconciliar", "agoraMin": 46, "esperado": { "fase": "SALDO_ZERADO", "saldo": 0 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 50, "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 1 } }
+      ]
+    },
+    {
+      "nome": "extra durante o cooldown soma ao saldo sem pular o cooldown",
+      "config": { "blocosDiarios": 1 },
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 16, "esperado": { "fase": "TOLERANCIA" } },
+        { "evento": "recusarTolerancia", "agoraMin": 16, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "aplicarSnapshot", "agoraMin": 20, "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] },
+          "esperado": { "fase": "COOLDOWN", "saldo": 1 } },
+        { "evento": "reconciliar", "agoraMin": 46, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 1 } }
+      ]
+    },
+    {
+      "nome": "tempo global: o relogio do bloco soma o uso de varios apps e pausa fora deles",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": [] }, "esperado": {} },
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": {} },
+        { "evento": "saiuDePrimeiroPlano", "agoraMin": 6, "esperado": { "consumidoSeg": 300 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 6, "esperado": {} },
+        { "evento": "saiuDePrimeiroPlano", "agoraMin": 11, "esperado": { "consumidoSeg": 600 } },
+        { "evento": "saiuDePrimeiroPlano", "agoraMin": 12, "esperado": { "consumidoSeg": 600 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 60, "esperado": { "fase": "BLOCO_ATIVO" } },
+        { "evento": "reconciliar", "agoraMin": 64.9, "esperado": { "fase": "BLOCO_ATIVO" } },
+        { "evento": "reconciliar", "agoraMin": 65, "esperado": { "fase": "TOLERANCIA", "toleranciaAtiva": false } }
+      ]
+    },
+    {
+      "nome": "virada do dia zera tudo",
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] },
+          "esperado": { "saldo": 5, "fase": "AGUARDANDO_LIBERACAO" } },
+        { "evento": "liberarBloco", "agoraMin": 1, "esperado": { "ok": true, "blocosUsados": 1 } },
+        { "evento": "reconciliar", "agoraMin": 1000, "dia": "2026-10-12",
+          "esperado": { "fase": "BLOQUEADO_SEM_ESSENCIAL", "saldo": 0, "blocosUsados": 0, "permiteUso": false } },
+        { "evento": "aplicarSnapshot", "agoraMin": 1001, "dia": "2026-10-12", "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] },
+          "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 5 } }
+      ]
+    },
+    {
+      "nome": "config customizada vale (bloco de 10 min, 2 blocos, +2 por extra)",
+      "config": { "duracaoBlocoMin": 10, "blocosDiarios": 2, "blocoPorTarefaExtra": 2 },
+      "passos": [
+        { "evento": "aplicarSnapshot", "agoraMin": 0, "args": { "essencialCumprido": true, "extrasConcluidas": ["x1"] }, "esperado": { "saldo": 4 } },
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 9.9, "esperado": { "fase": "BLOCO_ATIVO" } },
+        { "evento": "reconciliar", "agoraMin": 10, "esperado": { "fase": "TOLERANCIA" } }
+      ]
+    }
+  ]
+}

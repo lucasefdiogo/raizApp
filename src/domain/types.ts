@@ -1,3 +1,5 @@
+import { ConfigBloco, ResumoBloqueioDia } from './saldoBloqueio';
+
 export type StatusStreak = 'ativo' | 'em_risco' | 'perdido' | 'pausado';
 
 export type StatusDia = 'pendente' | 'cumprido' | 'nao_cumprido';
@@ -71,6 +73,11 @@ export interface DailyLog {
    * Ausente = nenhuma ainda.
    */
   interceptacoes?: Interceptacao[];
+  /**
+   * Resumo do saldo de blocos do dia (ver domain/saldoBloqueio.ts), pra
+   * estatísticas futuras. Ausente = nenhum bloco liberado ainda.
+   */
+  resumoBloqueio?: ResumoBloqueioDia;
 }
 
 /** De onde a sessão de foco começou — muda o que fica disponível em FimSessao. */
@@ -157,8 +164,11 @@ export interface JanelaBloqueio {
  * Regras de bloqueio vigentes — ÚNICO schema de bloqueio de apps (substituiu
  * `BloqueioAppsConfig`/`bloqueioApps`, removido junto da spec
  * 09-ponte-fuga-tarefa). Ausente em users/{uid} = usuário nunca configurou.
+ * Os campos de ConfigBloco (duracaoBlocoMin, toleranciaMin, cooldownMin,
+ * blocosDiarios, blocoPorTarefaExtra) são opcionais: ausente = padrão (ver
+ * CONFIG_BLOCO_PADRAO em saldoBloqueio.ts). Sem tela de edição ainda.
  */
-export interface RegrasBloqueio {
+export interface RegrasBloqueio extends Partial<ConfigBloco> {
   apps: string[];
   janelas: JanelaBloqueio[];
 }

@@ -68,6 +68,18 @@ function resolverArrayUnion(arrayAnterior, novosValores) {
   return [...atual, ...semDuplicata];
 }
 
+function ehMapa(valor) {
+  return (
+    valor !== null &&
+    typeof valor === 'object' &&
+    !Array.isArray(valor) &&
+    !('__increment' in valor) &&
+    !('__arrayUnion' in valor)
+  );
+}
+
+// Resolve increment/arrayUnion também dentro de mapas aninhados e faz o
+// merge profundo de mapas — igual ao setDoc(..., { merge: true }) real.
 function resolverOperacoesEspeciais(dadosAnteriores, dadosNovos) {
   const resolvidos = {};
   for (const chave of Object.keys(dadosNovos)) {
@@ -76,6 +88,13 @@ function resolverOperacoesEspeciais(dadosAnteriores, dadosNovos) {
       resolvidos[chave] = (dadosAnteriores[chave] || 0) + valor.__increment;
     } else if (valor && typeof valor === 'object' && '__arrayUnion' in valor) {
       resolvidos[chave] = resolverArrayUnion(dadosAnteriores[chave], valor.__arrayUnion);
+    } else if (ehMapa(valor) && ehMapa(dadosAnteriores[chave])) {
+      resolvidos[chave] = {
+        ...dadosAnteriores[chave],
+        ...resolverOperacoesEspeciais(dadosAnteriores[chave], valor),
+      };
+    } else if (ehMapa(valor)) {
+      resolvidos[chave] = resolverOperacoesEspeciais({}, valor);
     } else {
       resolvidos[chave] = valor;
     }
