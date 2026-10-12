@@ -51,7 +51,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `notificacoesAtivas` | boolean | |
 | `horarioLembreteDiario` | string (`HH:mm`) | |
 | **Bloqueio de apps** *(ÚNICO schema — `bloqueioApps`/custo crescente removidos, sem migração de dado)* | | |
-| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Gravado pela tela "Bloqueio de apps" (Perfil). Ausente = usuário nunca configurou |
+| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Gravado pela tela "Bloqueio de apps" (Perfil). Opcionais, ausente = padrão: `duracaoBlocoMin` (15), `toleranciaMin` (2), `cooldownMin` (30), `blocosDiarios` (4), `blocoPorTarefaExtra` (1) — saldo diário de blocos, ver `regras-de-negocio.md` seção 5. Ausente = usuário nunca configurou |
 | `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: string (YYYY-MM-DD)` — qualquer alteração feita depois da primeira configuração (regra única, sem distinguir afrouxar/endurecer), só promovida a partir de `efetivaEm` (`aplicarRegrasBloqueioPendentesSeVencidas`/`decidirGravacaoRegrasBloqueio`, domain/appBlock.ts). `null` explícito = sem pendência no momento |
 | `consentimentoAcessibilidade` | string (`YYYY-MM-DD`) \| ausente | Data em que o usuário concordou com a divulgação em destaque do Accessibility Service (`DivulgacaoAcessibilidadeScreen`). Ausente = nunca concordou |
 
@@ -70,6 +70,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `escudoUsado` | boolean | |
 | `sessoesFoco` | array\<map\> \| ausente | Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Gravado via `arrayUnion` (atômico, não lê+regrava o array inteiro). Ausente = nenhuma ainda |
 | `interceptacoes` | array\<map\> \| ausente | Decisões tomadas na InterceptScreen — ver estrutura abaixo. Gravado via `arrayUnion`, mesmo racional. Ausente = nenhuma ainda |
+| `resumoBloqueio` | map \| ausente | Resumo do saldo de blocos do dia, só pra estatísticas futuras: `{ blocosUsados: number, toleranciasUsadas: number, intencoes: string[] }`. Gravado via `increment`/`arrayUnion` (`registrarResumoBloqueioNoDia`). **`intencoes` é texto livre digitado pelo usuário na pausa de intenção — dado pessoal; a política de privacidade precisa cobrir isso.** Ausente = nenhum bloco liberado ainda |
 | `criadoEm` / `atualizadoEm` | timestamp | |
 
 **Estrutura de cada item em `tarefas[]`:**
@@ -269,7 +270,7 @@ A exclusão client-side em si é dívida técnica (`stack-tecnico.md`).
 | BloqueioAppsScreen | `users/{uid}.regrasBloqueio`/`.regrasBloqueioPendentes` | `users/{uid}.regrasBloqueio` (1ª configuração) ou `.regrasBloqueioPendentes` (qualquer alteração depois) |
 | DivulgacaoAcessibilidadeScreen | — | `users/{uid}.consentimentoAcessibilidade` (só ao tocar "Concordo e quero ativar") |
 | TravadoFlowScreen / SessaoFocoScreen | `dailyLogs/{hoje}` (tarefas, via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (subtarefa/edição/move pra amanhã), `dailyLogs/{hoje}.sessoesFoco[]` |
-| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (estado C), `dailyLogs/{hoje}.interceptacoes[]` |
+| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (estado C), `dailyLogs/{hoje}.interceptacoes[]`, `dailyLogs/{hoje}.resumoBloqueio` |
 | PerfilScreen | `users/{uid}` | `users/{uid}` (porquê, notificações, horário), exclusão completa via `apagarTodosOsDadosDoUsuario` |
 
 ---
@@ -281,3 +282,11 @@ estão alinhados com o código real após a remoção do bloqueio antigo e a che
 configuração mínima de `regrasBloqueio`. Próximo ponto de atenção: nenhuma tela de
 Progresso ainda lê `interceptacoes`/`sessoesFoco` de volta — os dados são gravados mas
 não aparecem em nenhuma visualização pro usuário.
+
+## Estado do saldo de blocos (só nativo, fora do Firestore)
+
+O estado do saldo diário (saldo, blocos usados, tempo consumido, tolerância, fim do
+cooldown, `fgDesde`) vive em SharedPreferences (`rootora_saldo_bloqueio`, chave
+`estado`, JSON) — sobrevive a fechar o app e reiniciar o aparelho, mas **não é
+sincronizado nem restaurado** (reinstalar zera). No Firestore vai só o resumo
+(`resumoBloqueio`).

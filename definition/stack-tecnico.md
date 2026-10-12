@@ -64,6 +64,9 @@ TypeScript, `strict: true`.
 | Cálculo de streak/escudo | Roda no client, ao abrir o app | Cloud Function agendada, quando a base crescer |
 | `streakAtual`/`escudosDisponiveis` | Graváveis diretamente pelo client | Endurecer regras (só Cloud Function admin escreve) antes de escalar |
 | Exclusão de conta | Client-side, sem exclusão recursiva via Admin SDK: a lista de subcoleções é manual (`SUBCOLECOES_DO_USUARIO`), subcoleção nova esquecida fica órfã (ver `schema-firebase.md` seção 9) | Cloud Function, mesmo racional do item acima |
+| Regra do saldo de blocos duplicada (Kotlin + TS) | `SaldoBloqueioMaquina.kt` (autoridade, roda sem JS) e `domain/saldoBloqueio.ts` (referência testada) — mantidas iguais só pelas fixtures compartilhadas (`domain/__fixtures__/saldoBloqueio.json`) | Aceito: o Service não tem JS. Mexer numa cópia exige mexer na outra + fixtures |
+| Testes Kotlin | `testImplementation` junit + org.json no `app/build.gradle`; rodar com `cd android && ./gradlew :app:testDebugUnitTest` (não faz parte do `npm test`) | Incluir no CI quando houver |
+| Estado do saldo de blocos | Só em SharedPreferences, sem backup/restauração nem sync (reinstalar zera o dia) | Aceito: o saldo vale um dia só |
 | Verificação de assinatura | N/A ainda (feature não implementada) | Será Cloud Function desde o início, não dívida — ver `procedimento-loja.md` |
 
 ## 6. Permissões Android relevantes
