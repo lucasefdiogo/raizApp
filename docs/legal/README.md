@@ -78,8 +78,9 @@ site do Hosting for renomeado, atualizar `src/config/legalLinks.ts` junto.
 ## Ainda pendente antes de publicar
 
 - [x] Revisão dos dois textos (LGPD, CDC, políticas da Google Play)
-- [x] Definir data de vigência em cada documento (11/10/2026)
-- [x] E-mail de contato definido como `ludigoapps@gmail.com` (nos dois arquivos)
+- [x] Definir data de vigência em cada documento (Termos: 11/10/2026; Política: 12/10/2026, com a inclusão do texto da pausa de intenção)
+- [ ] Avisar os usuários no app/e-mail sobre a mudança na Política (novo tipo de dado: texto da pausa de intenção), conforme o item 15 da própria Política, antes de ela entrar em vigor
+- [x] E-mail de contato definido como `luxthor.admin@gmail.com` (nos dois arquivos)
 - [ ] Confirmar a retenção do Analytics no console do Firebase — a Política diz
       "até 14 meses" (o padrão do Firebase é 2 meses)
 - [ ] `@react-native-firebase/messaging` está instalado mas sem uso: desativar o

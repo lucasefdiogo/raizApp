@@ -70,7 +70,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `escudoUsado` | boolean | |
 | `sessoesFoco` | array\<map\> \| ausente | Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Gravado via `arrayUnion` (atômico, não lê+regrava o array inteiro). Ausente = nenhuma ainda |
 | `interceptacoes` | array\<map\> \| ausente | Decisões tomadas na InterceptScreen — ver estrutura abaixo. Gravado via `arrayUnion`, mesmo racional. Ausente = nenhuma ainda |
-| `resumoBloqueio` | map \| ausente | Resumo do saldo de blocos do dia, só pra estatísticas futuras: `{ blocosUsados: number, toleranciasUsadas: number, intencoes: string[] }`. Gravado via `increment`/`arrayUnion` (`registrarResumoBloqueioNoDia`). **`intencoes` é texto livre digitado pelo usuário na pausa de intenção — dado pessoal; a política de privacidade precisa cobrir isso.** Ausente = nenhum bloco liberado ainda |
+| `resumoBloqueio` | map \| ausente | Resumo do saldo de blocos do dia, só pra estatísticas futuras: `{ blocosUsados: number, toleranciasUsadas: number, intencoes: string[] }`. Gravado via `increment`/`arrayUnion` (`registrarResumoBloqueioNoDia`). **`intencoes` é texto livre digitado pelo usuário na pausa de intenção — dado pessoal, descrito na seção 2.3 da política de privacidade (versão de 12/10/2026).** Ausente = nenhum bloco liberado ainda |
 | `criadoEm` / `atualizadoEm` | timestamp | |
 
 **Estrutura de cada item em `tarefas[]`:**
