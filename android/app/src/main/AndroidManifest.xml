@@ -1,6 +1,25 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      O app não usa Advertising ID: remove as permissões de ID de publicidade
+      (AD_ID e as duas ACCESS_ADSERVICES_*) que o SDK do Firebase Analytics
+      injeta no manifest merge (junto da meta-data
+      google_analytics_adid_collection_enabled=false em <application>), pra
+      a declaração do Play Console ("não usa ID de publicidade") bater com o
+      manifesto final.
+    -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_AD_ID"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+        tools:node="remove" />
 
     <!--
       Visibilidade de pacotes (Android 11+) pra listar apps com Launcher
@@ -27,6 +46,17 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+      <!--
+        O app não usa Advertising ID (sem anúncios, SDK de publicidade nem
+        atribuição de campanha): desliga a coleta dele pelo Firebase
+        Analytics. A lib do Analytics já declara essa chave como true, por
+        isso o tools:replace. As permissões são removidas no topo do arquivo.
+      -->
+      <meta-data
+        android:name="google_analytics_adid_collection_enabled"
+        android:value="false"
+        tools:replace="android:value" />
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
