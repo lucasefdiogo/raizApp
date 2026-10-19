@@ -5,7 +5,7 @@
   - Verificação: `npm test` gera `reports/junit/*.xml` pelo config; o `testCommand` do `verify.config.json` (`--reporters=default --reporters=jest-junit`) substitui o `reporters` do config e gera um único XML, sem duplicar (sem teste de critério)
 - [x] TASK-02 (CA-01, CA-02, RN-01, RN-02): constante da lista curada e filtro puro em `src/domain/` (pacotes instalados da lista; fora da lista nunca passam)
   - Teste: `CA-02: ignora apps instalados fora da lista curada` (feliz)
-- [ ] TASK-03 (CA-01, CA-03, RN-03): pré-marcação na primeira configuração (tudo marcado, menos YouTube) e uso das marcações salvas quando há `regrasBloqueio`
+- [x] TASK-03 (CA-01, CA-03, RN-03): pré-marcação na primeira configuração (tudo marcado, menos YouTube) e uso das marcações salvas quando há `regrasBloqueio`
   - Teste: `CA-01: primeira configuração marca tudo exceto YouTube` (feliz)
   - Teste: `CA-03: regra salva mantém exatamente as marcações salvas` (feliz)
 - [ ] TASK-04 (CA-05, RN-06, RN-07): decisão pura de limpeza em `domain/appBlock.ts` que remove pacotes fora da lista de `apps` da regra vigente e da pendente, idempotente
