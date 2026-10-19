@@ -7,6 +7,8 @@ interface AppListItemProps {
   app: AppInstalado;
   selecionado: boolean;
   onToggle: () => void;
+  /** Texto de apoio sob o nome; também vai como accessibilityHint pro leitor de tela. */
+  dica?: string;
 }
 
 /**
@@ -15,12 +17,13 @@ interface AppListItemProps {
  * indicador de seleção. Sem Switch nativo de propósito (quebra em testes
  * Jest quando roda depois de um LoadingIndicator no mesmo arquivo).
  */
-export function AppListItem({ app, selecionado, onToggle }: AppListItemProps) {
+export function AppListItem({ app, selecionado, onToggle, dica }: AppListItemProps) {
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selecionado }}
       accessibilityLabel={app.nome}
+      accessibilityHint={dica}
       onPress={onToggle}
       style={({ pressed }) => [styles.linha, pressed && styles.linhaPressionada]}
     >
@@ -28,9 +31,12 @@ export function AppListItem({ app, selecionado, onToggle }: AppListItemProps) {
         source={{ uri: `data:image/png;base64,${app.iconeBase64}` }}
         style={styles.icone}
       />
-      <Text style={styles.nome} numberOfLines={1}>
-        {app.nome}
-      </Text>
+      <View style={styles.textos}>
+        <Text style={styles.nome} numberOfLines={1}>
+          {app.nome}
+        </Text>
+        {dica && <Text style={styles.dica}>{dica}</Text>}
+      </View>
       <View style={[styles.marcador, selecionado && styles.marcadorSelecionado]}>
         {selecionado && <View style={styles.marcadorPreenchido} />}
       </View>
@@ -53,8 +59,15 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: theme.radius.sm,
   },
-  nome: {
+  textos: {
     flex: 1,
+  },
+  dica: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  nome: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,

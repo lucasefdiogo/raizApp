@@ -16,6 +16,6 @@
   - Teste: `CA-05: limpa também a pendente e espelha as duas cópias limpas no nativo` (exceção)
 - [x] TASK-06 (RN-01, CA-02): `<queries>` do `AndroidManifest.xml` com exatamente os pacotes da lista curada, sem `MAIN`/`LAUNCHER` e sem `QUERY_ALL_PACKAGES`. Antes de trocar, mapear os pontos que resolvem nome/ícone por pacote (`RootoraAccessibilityModule.listarAppsInstalados`, `RootoraAccessibilityService.resolverAppLabel`, InterceptScreen, telas de debug) e confirmar que continuam funcionando
   - Teste: `CA-02: manifesto declara exatamente os pacotes da lista curada` (feliz)
-- [ ] TASK-07 (tela, CA-01, CA-02, CA-03, CA-04, RN-04, RN-05): `BloqueioAppsScreen` com os estados normal, carregando e vazio, dica do YouTube e rótulos de acessibilidade (nome do app e estado marcado/desmarcado)
+- [x] TASK-07 (tela, CA-01, CA-02, CA-03, CA-04, RN-04, RN-05): `BloqueioAppsScreen` com os estados normal, carregando e vazio, dica do YouTube e rótulos de acessibilidade (nome do app e estado marcado/desmarcado)
   - Teste: `CA-01: lista Instagram, TikTok e YouTube com dica no YouTube` (feliz)
   - Teste: `CA-04: sem apps da lista mostra "Nenhuma rede social encontrada neste aparelho." e nenhum item` (exceção)

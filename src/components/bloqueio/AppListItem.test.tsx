@@ -27,4 +27,17 @@ describe('AppListItem', () => {
 
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
+
+  it('com dica: mostra o texto e o expõe como accessibilityHint', async () => {
+    await render(<AppListItem app={APP} selecionado={false} onToggle={jest.fn()} dica="Pode deixar livre." />);
+
+    expect(screen.getByText('Pode deixar livre.')).toBeTruthy();
+    expect(screen.getByLabelText('Instagram').props.accessibilityHint).toBe('Pode deixar livre.');
+  });
+
+  it('sem dica: não mostra texto extra nem accessibilityHint', async () => {
+    await render(<AppListItem app={APP} selecionado={false} onToggle={jest.fn()} />);
+
+    expect(screen.getByLabelText('Instagram').props.accessibilityHint).toBeUndefined();
+  });
 });
