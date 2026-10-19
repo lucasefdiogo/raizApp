@@ -8,7 +8,7 @@
 - [x] TASK-03 (CA-01, CA-03, RN-03): pré-marcação na primeira configuração (tudo marcado, menos YouTube) e uso das marcações salvas quando há `regrasBloqueio`
   - Teste: `CA-01: primeira configuração marca tudo exceto YouTube` (feliz)
   - Teste: `CA-03: regra salva mantém exatamente as marcações salvas` (feliz)
-- [ ] TASK-04 (CA-05, RN-06, RN-07): decisão pura de limpeza em `domain/appBlock.ts` que remove pacotes fora da lista de `apps` da regra vigente e da pendente, idempotente
+- [x] TASK-04 (CA-05, RN-06, RN-07): decisão pura de limpeza em `domain/appBlock.ts` que remove pacotes fora da lista de `apps` da regra vigente e da pendente, idempotente
   - Teste: `CA-05: remove app fora da lista da regra e mantém a pendência nula` (exceção)
   - Teste: `CA-05: limpeza repetida sobre regra limpa não pede gravação` (exceção, RN-07)
 - [ ] TASK-05 (CA-05, RN-06): gravação da limpeza na primeira abertura após a atualização (hook/service), no Firestore e nas cópias nativas da regra vigente E da pendente (a promoção da pendente roda no nativo com o app fechado). Se for preciso mexer em Kotlin: teste JUnit e `./gradlew :app:testDebugUnitTest` local, com o resultado no `progress.md`

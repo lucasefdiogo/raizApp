@@ -1,6 +1,7 @@
 import { JanelaBloqueio, RegrasBloqueio, RegrasBloqueioPendentes } from './types';
 import { dataDeAmanhaLocal } from './data';
 import { extrairConfigBloco } from './saldoBloqueio';
+import { PACOTES_REDES_SOCIAIS } from './redesSociais';
 
 export function paraMinutosDoDia(horario: string): number | null {
   const partes = horario.split(':');
@@ -135,4 +136,31 @@ export function decidirGravacaoRegrasBloqueio(
       efetivaEm: dataDeAmanhaLocal(hojeISO),
     },
   };
+}
+
+interface RegrasLimpas extends RegrasResolvidas {
+  /** `false` quando nada saiu de nenhuma das duas regras (nada a gravar). */
+  mudou: boolean;
+}
+
+/**
+ * Tira de `regrasBloqueio.apps` e de `regrasBloqueioPendentes.apps` todo
+ * pacote fora da lista curada de redes sociais (HU-01, RN-06). Remove direto,
+ * sem criar nem adiar pendência: a pendente existente só perde os apps,
+ * mantendo `efetivaEm`. Idempotente (RN-07): sobre regra já limpa devolve
+ * `mudou: false`.
+ */
+export function limparAppsForaDaListaCurada(
+  regras: RegrasBloqueio,
+  pendentes: RegrasBloqueioPendentes | null,
+): RegrasLimpas {
+  const naLista = (pacote: string) => PACOTES_REDES_SOCIAIS.includes(pacote);
+  const regrasLimpas = { ...regras, apps: regras.apps.filter(naLista) };
+  const pendentesLimpas = pendentes ? { ...pendentes, apps: pendentes.apps.filter(naLista) } : null;
+
+  const mudou =
+    regrasLimpas.apps.length !== regras.apps.length ||
+    (pendentes !== null && pendentesLimpas!.apps.length !== pendentes.apps.length);
+
+  return { regrasBloqueio: regrasLimpas, regrasBloqueioPendentes: pendentesLimpas, mudou };
 }
