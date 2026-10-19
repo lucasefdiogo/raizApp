@@ -11,7 +11,7 @@
 - [x] TASK-04 (CA-05, RN-06, RN-07): decisão pura de limpeza em `domain/appBlock.ts` que remove pacotes fora da lista de `apps` da regra vigente e da pendente, idempotente
   - Teste: `CA-05: remove app fora da lista da regra e mantém a pendência nula` (exceção)
   - Teste: `CA-05: limpeza repetida sobre regra limpa não pede gravação` (exceção, RN-07)
-- [ ] TASK-05 (CA-05, RN-06): gravação da limpeza na primeira abertura após a atualização (hook/service), no Firestore e nas cópias nativas da regra vigente E da pendente (a promoção da pendente roda no nativo com o app fechado). Se for preciso mexer em Kotlin: teste JUnit e `./gradlew :app:testDebugUnitTest` local, com o resultado no `progress.md`
+- [x] TASK-05 (CA-05, RN-06): gravação da limpeza na primeira abertura após a atualização (hook/service), no Firestore e nas cópias nativas da regra vigente E da pendente (a promoção da pendente roda no nativo com o app fechado). Se for preciso mexer em Kotlin: teste JUnit e `./gradlew :app:testDebugUnitTest` local, com o resultado no `progress.md`
   - Teste: `CA-05: grava regra limpa, não cria pendência e sincroniza o serviço de acessibilidade` (exceção)
   - Teste: `CA-05: limpa também a pendente e espelha as duas cópias limpas no nativo` (exceção)
 - [ ] TASK-06 (RN-01, CA-02): `<queries>` do `AndroidManifest.xml` com exatamente os pacotes da lista curada, sem `MAIN`/`LAUNCHER` e sem `QUERY_ALL_PACKAGES`. Antes de trocar, mapear os pontos que resolvem nome/ícone por pacote (`RootoraAccessibilityModule.listarAppsInstalados`, `RootoraAccessibilityService.resolverAppLabel`, InterceptScreen, telas de debug) e confirmar que continuam funcionando

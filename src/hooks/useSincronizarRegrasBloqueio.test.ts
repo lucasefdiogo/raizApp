@@ -6,19 +6,27 @@ jest.mock('../services/firestore');
 jest.mock('../native/AccessibilityDetection');
 jest.mock('../services/crashlytics');
 
-const { buscarUsuario, promoverRegrasBloqueioPendentes } = require('../services/firestore');
+const {
+  buscarUsuario,
+  promoverRegrasBloqueioPendentes,
+  salvarRegrasBloqueioImediatas,
+  salvarRegrasBloqueioPendentes: salvarRegrasBloqueioPendentesFirestore,
+} = require('../services/firestore');
 const {
   salvarRegrasBloqueio: salvarRegrasBloqueioNativo,
   salvarRegrasBloqueioPendentes: salvarRegrasBloqueioPendentesNativo,
 } = require('../native/AccessibilityDetection');
 const { registrarErro } = require('../services/crashlytics');
 
-const VIGENTE = { apps: ['com.whatsapp'], janelas: [] };
+// Só apps da lista curada: o hook agora limpa o que estiver fora dela (HU-01).
+const VIGENTE = { apps: ['com.instagram.android'], janelas: [] };
 
 describe('useSincronizarRegrasBloqueio', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     promoverRegrasBloqueioPendentes.mockResolvedValue(undefined);
+    salvarRegrasBloqueioImediatas.mockResolvedValue(undefined);
+    salvarRegrasBloqueioPendentesFirestore.mockResolvedValue(undefined);
   });
 
   it('sem regrasBloqueio configurado: não mexe em nada', async () => {
@@ -82,5 +90,79 @@ describe('useSincronizarRegrasBloqueio', () => {
         'useSincronizarRegrasBloqueio',
       ),
     );
+  });
+  describe('limpeza de apps fora da lista curada (HU-01)', () => {
+    const INSTAGRAM = 'com.instagram.android';
+    const CHROME = 'com.android.chrome';
+
+    it('CA-05: grava regra limpa, não cria pendência e sincroniza o serviço de acessibilidade', async () => {
+      buscarUsuario.mockResolvedValue({
+        regrasBloqueio: { apps: [INSTAGRAM, CHROME], janelas: [] },
+        regrasBloqueioPendentes: null,
+      });
+
+      await renderHook(() => useSincronizarRegrasBloqueio('uid-1'));
+
+      const limpa = { apps: [INSTAGRAM], janelas: [] };
+      await waitFor(() => expect(salvarRegrasBloqueioImediatas).toHaveBeenCalledWith('uid-1', limpa));
+      expect(salvarRegrasBloqueioNativo).toHaveBeenCalledWith(limpa);
+      expect(salvarRegrasBloqueioPendentesNativo).toHaveBeenCalledWith(null);
+      expect(salvarRegrasBloqueioPendentesFirestore).not.toHaveBeenCalled();
+      expect(promoverRegrasBloqueioPendentes).not.toHaveBeenCalled();
+    });
+
+    it('CA-05: limpa também a pendente e espelha as duas cópias limpas no nativo', async () => {
+      const pendente = { apps: [INSTAGRAM, CHROME], janelas: [], efetivaEm: '2099-01-01' };
+      buscarUsuario.mockResolvedValue({
+        regrasBloqueio: { apps: [INSTAGRAM, CHROME], janelas: [] },
+        regrasBloqueioPendentes: pendente,
+      });
+
+      await renderHook(() => useSincronizarRegrasBloqueio('uid-1'));
+
+      const pendenteLimpa = { ...pendente, apps: [INSTAGRAM] };
+      await waitFor(() =>
+        expect(salvarRegrasBloqueioPendentesFirestore).toHaveBeenCalledWith('uid-1', pendenteLimpa),
+      );
+      expect(salvarRegrasBloqueioNativo).toHaveBeenCalledWith({ apps: [INSTAGRAM], janelas: [] });
+      expect(salvarRegrasBloqueioPendentesNativo).toHaveBeenCalledWith(pendenteLimpa);
+    });
+
+    it('CA-05: pendente com app fora da lista já promovida pelo nativo: promove, limpa e só então espelha', async () => {
+      // O nativo promoveu com o app fechado, mas o Firestore ainda guarda a pendente vencida.
+      const pendente = { apps: [INSTAGRAM, CHROME], janelas: [], efetivaEm: hojeISOLocal() };
+      buscarUsuario.mockResolvedValue({
+        regrasBloqueio: { apps: [INSTAGRAM], janelas: [] },
+        regrasBloqueioPendentes: pendente,
+      });
+
+      await renderHook(() => useSincronizarRegrasBloqueio('uid-1'));
+
+      const limpa = { apps: [INSTAGRAM], janelas: [] };
+      await waitFor(() =>
+        expect(promoverRegrasBloqueioPendentes).toHaveBeenCalledWith('uid-1', limpa),
+      );
+      expect(salvarRegrasBloqueioNativo).toHaveBeenCalledWith(limpa);
+      expect(salvarRegrasBloqueioPendentesNativo).toHaveBeenCalledWith(null);
+      // Nada com o app fora da lista chega ao nativo nem vira pendência.
+      for (const [regras] of salvarRegrasBloqueioNativo.mock.calls) {
+        expect(regras.apps).not.toContain(CHROME);
+      }
+      expect(salvarRegrasBloqueioImediatas).not.toHaveBeenCalled();
+      expect(salvarRegrasBloqueioPendentesFirestore).not.toHaveBeenCalled();
+    });
+
+    it('CA-05: regra já limpa não grava nada no Firestore', async () => {
+      buscarUsuario.mockResolvedValue({
+        regrasBloqueio: { apps: [INSTAGRAM], janelas: [] },
+        regrasBloqueioPendentes: null,
+      });
+
+      await renderHook(() => useSincronizarRegrasBloqueio('uid-1'));
+
+      await waitFor(() => expect(salvarRegrasBloqueioNativo).toHaveBeenCalled());
+      expect(salvarRegrasBloqueioImediatas).not.toHaveBeenCalled();
+      expect(salvarRegrasBloqueioPendentesFirestore).not.toHaveBeenCalled();
+    });
   });
 });
