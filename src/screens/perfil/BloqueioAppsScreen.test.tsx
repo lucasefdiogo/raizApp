@@ -192,7 +192,7 @@ describe('BloqueioAppsScreen', () => {
   it('toggle de um app marca/desmarca a seleção', async () => {
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
 
-    await fireEvent.press(screen.getByLabelText('Instagram'));
+    // Primeira configuração: a lista já vem pré-marcada (RN-03).
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
       checked: true,
     });
@@ -201,14 +201,17 @@ describe('BloqueioAppsScreen', () => {
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
       checked: false,
     });
+
+    await fireEvent.press(screen.getByLabelText('Instagram'));
+    expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
+      checked: true,
+    });
   });
 
   it('com app selecionado mas sem nenhum dia da semana: mostra o aviso e Salvar não faz nada', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
-
-    await fireEvent.press(screen.getByLabelText('Instagram'));
 
     expect(
       screen.getByText('Escolha um horário de fim depois do início e pelo menos um dia da semana.'),
@@ -223,13 +226,12 @@ describe('BloqueioAppsScreen', () => {
     configurarRegrasPadrao({ salvar });
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
 
-    await fireEvent.press(screen.getByLabelText('Instagram'));
     await fireEvent.press(screen.getByLabelText('segunda'));
     await fireEvent.press(screen.getByText('Salvar'));
 
     await waitFor(() =>
       expect(salvar).toHaveBeenCalledWith(
-        ['com.instagram.android'],
+        ['com.instagram.android', 'com.whatsapp'],
         expect.objectContaining({ diasSemana: [1] }),
       ),
     );
@@ -240,6 +242,8 @@ describe('BloqueioAppsScreen', () => {
     configurarRegrasPadrao({ salvar });
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />);
 
+    await fireEvent.press(screen.getByLabelText('Instagram'));
+    await fireEvent.press(screen.getByLabelText('WhatsApp'));
     await fireEvent.press(screen.getByText('Salvar'));
 
     expect(salvar).toHaveBeenCalledWith([], null);
@@ -304,6 +308,79 @@ describe('BloqueioAppsScreen', () => {
 
       await waitFor(() => expect(salvar).toHaveBeenCalled());
       expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+    });
+  });
+  describe('lista curada de redes sociais (HU-01)', () => {
+    const REDES = [
+      { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'a' },
+      { packageName: 'com.zhiliaoapp.musically', nome: 'TikTok', iconeBase64: 'b' },
+      { packageName: 'com.google.android.youtube', nome: 'YouTube', iconeBase64: 'c' },
+    ];
+    const DICA_YOUTUBE = 'Usa para estudar? Pode deixar livre.';
+
+    async function renderizar() {
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} />,
+      );
+    }
+
+    it('CA-01: primeira configuração marca Instagram e TikTok, deixa o YouTube desmarcado e mostra a dica', async () => {
+      configurarRegrasPadrao({ appsInstalados: REDES, regrasVigentes: undefined });
+
+      await renderizar();
+
+      expect(screen.getByRole('checkbox', { name: 'Instagram', checked: true })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'TikTok', checked: true })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'YouTube', checked: false })).toBeTruthy();
+      expect(screen.getByText(DICA_YOUTUBE)).toBeTruthy();
+      expect(screen.getByLabelText('YouTube').props.accessibilityHint).toBe(DICA_YOUTUBE);
+    });
+
+    it('CA-01: a dica do YouTube aparece também com o YouTube marcado, e só nele', async () => {
+      configurarRegrasPadrao({
+        appsInstalados: REDES,
+        regrasVigentes: { apps: ['com.google.android.youtube'], janelas: [] },
+      });
+
+      await renderizar();
+
+      expect(screen.getByRole('checkbox', { name: 'YouTube', checked: true })).toBeTruthy();
+      expect(screen.getAllByText(DICA_YOUTUBE)).toHaveLength(1);
+    });
+
+    it('CA-03: com regra salva mostra exatamente as marcações salvas, sem pré-marcação', async () => {
+      configurarRegrasPadrao({
+        appsInstalados: REDES,
+        regrasVigentes: {
+          apps: ['com.google.android.youtube'],
+          janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1] }],
+        },
+      });
+
+      await renderizar();
+
+      expect(screen.getByRole('checkbox', { name: 'Instagram', checked: false })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'TikTok', checked: false })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'YouTube', checked: true })).toBeTruthy();
+    });
+
+    it('CA-04: sem nenhuma rede social instalada mostra o estado vazio e nenhum item de app', async () => {
+      configurarRegrasPadrao({ appsInstalados: [] });
+
+      await renderizar();
+
+      expect(screen.getByText('Nenhuma rede social encontrada neste aparelho.')).toBeTruthy();
+      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+      expect(screen.queryByLabelText('Buscar')).toBeNull();
+      expect(screen.queryByText('Salvar')).toBeNull();
+    });
+
+    it('CA-04: com redes instaladas não mostra o estado vazio', async () => {
+      configurarRegrasPadrao({ appsInstalados: REDES });
+
+      await renderizar();
+
+      expect(screen.queryByText('Nenhuma rede social encontrada neste aparelho.')).toBeNull();
     });
   });
 });

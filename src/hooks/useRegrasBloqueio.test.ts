@@ -59,10 +59,10 @@ describe('useRegrasBloqueio', () => {
   it('ordena appsInstalados por nome, alfabético, ignorando acento/maiúscula', async () => {
     buscarUsuario.mockResolvedValue({ regrasBloqueio: undefined, regrasBloqueioPendentes: null });
     listarAppsInstalados.mockResolvedValue([
-      { packageName: 'com.whatsapp', nome: 'WhatsApp', iconeBase64: 'c' },
+      { packageName: 'com.twitter.android', nome: 'X', iconeBase64: 'c' },
       { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'a' },
-      { packageName: 'com.etsy', nome: 'Ética', iconeBase64: 'd' },
-      { packageName: 'com.tiktok', nome: 'TikTok', iconeBase64: 'b' },
+      { packageName: 'com.pinterest', nome: 'Ética', iconeBase64: 'd' },
+      { packageName: 'com.zhiliaoapp.musically', nome: 'TikTok', iconeBase64: 'b' },
     ]);
 
     const { result } = await renderHook(() => useRegrasBloqueio('uid-1'));
@@ -72,7 +72,23 @@ describe('useRegrasBloqueio', () => {
       'Ética',
       'Instagram',
       'TikTok',
-      'WhatsApp',
+      'X',
+    ]);
+  });
+
+  it('CA-02: appsInstalados só tem apps da lista curada, sem WhatsApp nem Chrome', async () => {
+    buscarUsuario.mockResolvedValue({ regrasBloqueio: undefined, regrasBloqueioPendentes: null });
+    listarAppsInstalados.mockResolvedValue([
+      { packageName: 'com.whatsapp', nome: 'WhatsApp', iconeBase64: 'c' },
+      { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'a' },
+      { packageName: 'com.android.chrome', nome: 'Chrome', iconeBase64: 'd' },
+    ]);
+
+    const { result } = await renderHook(() => useRegrasBloqueio('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.appsInstalados.map(app => app.packageName)).toEqual([
+      'com.instagram.android',
     ]);
   });
 

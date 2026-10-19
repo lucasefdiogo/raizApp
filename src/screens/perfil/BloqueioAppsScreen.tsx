@@ -14,6 +14,7 @@ import {
   resumoRegrasBloqueio,
 } from '../../domain/appBlock';
 import { hojeISOLocal } from '../../domain/data';
+import { PACOTE_YOUTUBE, appsIniciaisSelecionados } from '../../domain/redesSociais';
 import { JanelaBloqueio, RegrasBloqueio } from '../../domain/types';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -25,6 +26,8 @@ import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
 import { logAcessibilidadeSaibaMais } from '../../services/analytics';
 
 const SEM_BLOQUEIO: RegrasBloqueio = { apps: [], janelas: [] };
+
+const DICA_YOUTUBE = 'Usa para estudar? Pode deixar livre.';
 
 const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSemana: [] };
 
@@ -100,9 +103,12 @@ export function BloqueioAppsScreen({
     inicializadoRef.current = true;
 
     const base = regrasPendentes ?? regrasVigentes;
-    setAppsSelecionados(base?.apps ?? []);
+    setAppsSelecionados(appsIniciaisSelecionados(base, appsInstalados));
     setJanela(base?.janelas[0] ?? JANELA_PADRAO);
-  }, [carregando, regrasPendentes, regrasVigentes]);
+  }, [carregando, regrasPendentes, regrasVigentes, appsInstalados]);
+
+  // Nenhuma rede social da lista curada instalada: sem seleção de apps (RN-05).
+  const semRedesSociais = appsInstalados.length === 0;
 
   const appsFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -241,6 +247,8 @@ export function BloqueioAppsScreen({
               </View>
             )}
 
+            {!semRedesSociais && (
+              <>
             <Text style={styles.secaoTitulo}>Horário</Text>
             <View style={styles.blocoJanela}>
               <View style={styles.linhaHorario}>
@@ -287,6 +295,8 @@ export function BloqueioAppsScreen({
               onChangeText={setBusca}
               placeholder="Nome do app"
             />
+              </>
+            )}
           </>
         }
         renderItem={({ item }) => (
@@ -294,14 +304,23 @@ export function BloqueioAppsScreen({
             app={item}
             selecionado={appsSelecionados.includes(item.packageName)}
             onToggle={() => toggleApp(item.packageName)}
+            dica={item.packageName === PACOTE_YOUTUBE ? DICA_YOUTUBE : undefined}
           />
         )}
-        ListEmptyComponent={<Text style={styles.listaVazia}>Nenhum app encontrado.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.listaVazia}>
+            {semRedesSociais
+              ? 'Nenhuma rede social encontrada neste aparelho.'
+              : 'Nenhum app encontrado.'}
+          </Text>
+        }
         ListFooterComponent={
-          <>
-            <Text style={styles.resumo}>{resumo}</Text>
-            <PrimaryButton titulo="Salvar" onPress={handleSalvar} desabilitado={!janelaValida} />
-          </>
+          semRedesSociais ? undefined : (
+            <>
+              <Text style={styles.resumo}>{resumo}</Text>
+              <PrimaryButton titulo="Salvar" onPress={handleSalvar} desabilitado={!janelaValida} />
+            </>
+          )
         }
       />
     </SafeAreaView>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { JanelaBloqueio, RegrasBloqueio, RegrasBloqueioPendentes } from '../domain/types';
 import { decidirGravacaoRegrasBloqueio } from '../domain/appBlock';
 import { hojeISOLocal } from '../domain/data';
+import { filtrarRedesSociaisInstaladas } from '../domain/redesSociais';
 import {
   buscarUsuario,
   cancelarRegrasBloqueioPendentes,
@@ -60,8 +61,10 @@ export function useRegrasBloqueio(uid: string): UseRegrasBloqueioResultado {
       // Ordem alfabética por nome (não a ordem que o PackageManager devolve,
       // que não segue critério nenhum visível pro usuário) — 'pt-BR' +
       // sensitivity 'base' pra acento/maiúscula não desempatarem antes da letra.
+      // Só a lista curada de redes sociais (HU-01, RN-02): o <queries> já
+      // restringe o que o Android devolve; o filtro garante o mesmo aqui.
       setAppsInstalados(
-        [...apps].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })),
+        filtrarRedesSociaisInstaladas(apps).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })),
       );
       setCarregando(false);
     }

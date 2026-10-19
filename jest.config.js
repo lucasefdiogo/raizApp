@@ -7,6 +7,7 @@ process.env.TZ = 'America/Sao_Paulo';
 
 module.exports = {
   preset: '@react-native/jest-preset',
+  reporters: ['default', ['jest-junit', { outputDirectory: 'reports/junit' }]],
   transform: {
     '^.+\\.(js|ts|tsx|mjs)$': 'babel-jest',
   },

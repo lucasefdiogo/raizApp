@@ -3,6 +3,7 @@ import {
   decidirGravacaoRegrasBloqueio,
   formatarDiasSemana,
   janelaBloqueioValida,
+  limparAppsForaDaListaCurada,
   resumoRegrasBloqueio,
 } from './appBlock';
 import { RegrasBloqueio, RegrasBloqueioPendentes } from './types';
@@ -214,5 +215,66 @@ describe('decidirGravacaoRegrasBloqueio', () => {
       tipo: 'pendente',
       pendente: { ...novasRegras, efetivaEm: '2027-01-01' },
     });
+  });
+});
+
+describe('limparAppsForaDaListaCurada', () => {
+  const janelas = [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }];
+
+  it('CA-05: remove app fora da lista da regra e mantém a pendência nula', () => {
+    const vigente: RegrasBloqueio = {
+      apps: ['com.instagram.android', 'com.android.chrome'],
+      janelas,
+    };
+
+    const limpo = limparAppsForaDaListaCurada(vigente, null);
+
+    expect(limpo.regrasBloqueio).toEqual({ apps: ['com.instagram.android'], janelas });
+    expect(limpo.regrasBloqueioPendentes).toBeNull();
+    expect(limpo.mudou).toBe(true);
+  });
+
+  it('CA-05: remove app fora da lista também da pendente, preservando efetivaEm e janelas', () => {
+    const vigente: RegrasBloqueio = { apps: ['com.instagram.android'], janelas };
+    const pendente: RegrasBloqueioPendentes = {
+      apps: ['com.instagram.android', 'com.whatsapp'],
+      janelas,
+      efetivaEm: '2026-09-25',
+    };
+
+    const limpo = limparAppsForaDaListaCurada(vigente, pendente);
+
+    expect(limpo.regrasBloqueio).toEqual(vigente);
+    expect(limpo.regrasBloqueioPendentes).toEqual({
+      apps: ['com.instagram.android'],
+      janelas,
+      efetivaEm: '2026-09-25',
+    });
+    expect(limpo.mudou).toBe(true);
+  });
+
+  it('CA-05: limpeza repetida sobre regra limpa não pede gravação', () => {
+    const vigente: RegrasBloqueio = {
+      apps: ['com.instagram.android', 'com.android.chrome'],
+      janelas,
+    };
+    const primeira = limparAppsForaDaListaCurada(vigente, null);
+
+    const segunda = limparAppsForaDaListaCurada(
+      primeira.regrasBloqueio,
+      primeira.regrasBloqueioPendentes,
+    );
+
+    expect(segunda.mudou).toBe(false);
+    expect(segunda.regrasBloqueio).toEqual(primeira.regrasBloqueio);
+  });
+
+  it('CA-05: regra só com apps da lista curada não muda', () => {
+    const vigente: RegrasBloqueio = {
+      apps: ['com.instagram.android', 'com.google.android.youtube'],
+      janelas,
+    };
+
+    expect(limparAppsForaDaListaCurada(vigente, null).mudou).toBe(false);
   });
 });
