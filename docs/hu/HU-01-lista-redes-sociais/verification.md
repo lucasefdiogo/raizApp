@@ -1,0 +1,13 @@
+# Verificação — HU-01-lista-redes-sociais
+
+| CA | Lacre | Teste | Resultado |
+| --- | --- | --- | --- |
+| CA-01 | 8df0ae39 | BloqueioAppsScreen lista curada de redes sociais (HU-01) CA-01: primeira configuração marca Instagram e TikTok, deixa o YouTube desmarcado e mostra a dica; BloqueioAppsScreen lista curada de redes sociais (HU-01) CA-01: a dica do YouTube aparece também com o YouTube marcado, e só nele; appsIniciaisSelecionados CA-01: primeira configuração marca tudo exceto o YouTube | passou |
+| CA-02 | d2c52c8e | useRegrasBloqueio CA-02: appsInstalados só tem apps da lista curada, sem WhatsApp nem Chrome; AndroidManifest <queries> CA-02: manifesto declara exatamente os pacotes da lista curada; AndroidManifest <queries> CA-02: sem consulta MAIN/LAUNCHER nem QUERY_ALL_PACKAGES; lista curada de redes sociais CA-02: RN-01 tem exatamente os pacotes da spec; lista curada de redes sociais CA-02: ignora apps instalados fora da lista curada; lista curada de redes sociais CA-02: sem nenhum app da lista devolve vazio | passou |
+| CA-03 | 54c3cfcf | BloqueioAppsScreen lista curada de redes sociais (HU-01) CA-03: com regra salva mostra exatamente as marcações salvas, sem pré-marcação; appsIniciaisSelecionados CA-03: regra salva mantém exatamente as marcações salvas; appsIniciaisSelecionados CA-03: regra salva sem apps não pré-marca nada | passou |
+| CA-04 | 368a8a24 | BloqueioAppsScreen lista curada de redes sociais (HU-01) CA-04: sem nenhuma rede social instalada mostra o estado vazio e nenhum item de app; BloqueioAppsScreen lista curada de redes sociais (HU-01) CA-04: com redes instaladas não mostra o estado vazio | passou |
+| CA-05 | ce2928cd | useSincronizarRegrasBloqueio limpeza de apps fora da lista curada (HU-01) CA-05: grava regra limpa, não cria pendência e sincroniza o serviço de acessibilidade; useSincronizarRegrasBloqueio limpeza de apps fora da lista curada (HU-01) CA-05: limpa também a pendente e espelha as duas cópias limpas no nativo; useSincronizarRegrasBloqueio limpeza de apps fora da lista curada (HU-01) CA-05: pendente com app fora da lista já promovida pelo nativo: promove, limpa e só então espelha; useSincronizarRegrasBloqueio limpeza de apps fora da lista curada (HU-01) CA-05: regra já limpa não grava nada no Firestore; limparAppsForaDaListaCurada CA-05: remove app fora da lista da regra e mantém a pendência nula; limparAppsForaDaListaCurada CA-05: remove app fora da lista também da pendente, preservando efetivaEm e janelas; limparAppsForaDaListaCurada CA-05: limpeza repetida sobre regra limpa não pede gravação; limparAppsForaDaListaCurada CA-05: regra só com apps da lista curada não muda | passou |
+
+Commit: 4d7a1c0 · lacre íntegro · 5/5 critérios verdes
+
+Resultado: APROVADO
