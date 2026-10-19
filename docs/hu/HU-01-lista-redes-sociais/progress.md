@@ -19,3 +19,5 @@ Build: APK release standalone (ver memória de build em device físico). Aparelh
 4. No Firestore, `regrasBloqueio.apps` só tem `com.instagram.android` e `regrasBloqueioPendentes` é null.
 5. Dentro da janela de bloqueio, abra o Chrome: a tela de interceptação NÃO aparece. Abra o Instagram: aparece.
 6. Variante com pendência: antes de atualizar, deixe uma alteração pendente que inclua o Chrome; após atualizar e abrir, confira que a pendente também perdeu o Chrome e, no dia da vigência (com o app fechado), o Chrome continua livre.
+
+- TASK-01: reporter `jest-junit` no `jest.config.js` (`reports/junit`). Conferido: `npm test` gera um `junit.xml` pelo config; o `testCommand` do `verify.config.json` (`--reporters=default --reporters=jest-junit`) substitui o `reporters` do config e também gera um único `junit.xml`, sem duplicar. Obs.: com `--reporters` variádico, o caminho de teste precisa vir depois de `--`.
