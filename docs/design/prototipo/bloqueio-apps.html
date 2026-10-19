@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloqueio de apps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --casca: #EFEAE0;
+    --areia: #E3DACB;
+    --terra-escura: #2B2318;
+    --terra-suave: #6B5E45;
+    --cobre: #B5772E;
+    --musgo: #3E4A34;
+    --border: #E3D8C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: #D9D2C4;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+  }
+  .estados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: center;
+  }
+  .estado-rotulo {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .tela {
+    width: 340px;
+    max-width: 100%;
+    min-height: 620px;
+    background: var(--casca);
+    border-radius: 18px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .voltar {
+    font-size: 14px;
+    color: var(--terra-suave);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: "Zilla Slab", serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0 0 4px;
+  }
+  .sub {
+    font-size: 14px;
+    color: var(--terra-suave);
+    margin: 0 0 18px;
+  }
+  .secao {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .lista { display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    cursor: pointer;
+  }
+  .icone {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: grid; place-items: center;
+    font-family: "Space Mono", monospace;
+    font-size: 13px;
+    color: var(--casca);
+    background: var(--terra-suave);
+  }
+  .texto { flex: 1; min-width: 0; }
+  .nome { font-weight: 500; font-size: 15px; }
+  .dica { font-size: 13px; color: var(--terra-suave); margin-top: 2px; }
+  .item input {
+    appearance: none;
+    width: 22px; height: 22px;
+    border: 2px solid var(--terra-suave);
+    border-radius: 6px;
+    margin: 0;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .item input:checked { background: var(--musgo); border-color: var(--musgo); }
+  .item input:checked::after {
+    content: "";
+    width: 6px; height: 11px;
+    border: solid var(--casca);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .item input:focus-visible { outline: 2px solid var(--cobre); outline-offset: 2px; }
+  .esqueleto .icone, .esqueleto .barra {
+    background: var(--border);
+    animation: pulso 1.4s ease-in-out infinite;
+  }
+  .barra { height: 12px; border-radius: 6px; width: 60%; }
+  @keyframes pulso { 50% { opacity: 0.5; } }
+  .rodape { margin-top: auto; padding-top: 20px; }
+  .primario {
+    width: 100%;
+    border: 0;
+    border-radius: 14px;
+    padding: 14px;
+    background: var(--cobre);
+    color: var(--casca);
+    font: 600 15px "IBM Plex Sans", sans-serif;
+  }
+  .vazio {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+    padding: 24px 8px;
+  }
+  .vazio p { margin: 0; font-size: 15px; color: var(--terra-suave); }
+</style>
+</head>
+<body>
+<div class="estados">
+
+  <!-- Estado: normal (1ª configuração, RN-03 e RN-04) -->
+  <div>
+    <p class="estado-rotulo">normal · primeira configuração</p>
+    <section class="tela" data-estado="normal" aria-label="Bloqueio de apps, estado normal">
+      <div class="voltar">‹ Perfil</div>
+      <h1>Bloqueio de apps</h1>
+      <p class="sub">Escolha as redes que entram na proteção.</p>
+      <p class="secao">Redes sociais</p>
+      <div class="lista" role="group" aria-label="Redes sociais instaladas">
+        <label class="item">
+          <span class="icone" aria-hidden="true">IG</span>
+          <span class="texto"><span class="nome">Instagram</span></span>
+          <input type="checkbox" checked aria-label="Instagram">
+        </label>
+        <label class="item">
+          <span class="icone" aria-hidden="true">TT</span>
+          <span class="texto"><span class="nome">TikTok</span></span>
+          <input type="checkbox" checked aria-label="TikTok">
+        </label>
+        <label class="item">
+          <span class="icone" aria-hidden="true">KW</span>
+          <span class="texto"><span class="nome">Kwai</span></span>
+          <input type="checkbox" checked aria-label="Kwai">
+        </label>
+        <label class="item">
+          <span class="icone" aria-hidden="true">YT</span>
+          <span class="texto">
+            <span class="nome">YouTube</span>
+            <span class="dica" id="dica-youtube">Usa para estudar? Pode deixar livre.</span>
+          </span>
+          <input type="checkbox" aria-label="YouTube" aria-describedby="dica-youtube">
+        </label>
+      </div>
+      <div class="rodape">
+        <button class="primario" type="button">Salvar</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: carregando -->
+  <div>
+    <p class="estado-rotulo">carregando</p>
+    <section class="tela" data-estado="carregando" aria-label="Bloqueio de apps, carregando" aria-busy="true">
+      <div class="voltar">‹ Perfil</div>
+      <h1>Bloqueio de apps</h1>
+      <p class="sub">Escolha as redes que entram na proteção.</p>
+      <p class="secao">Redes sociais</p>
+      <div class="lista esqueleto" aria-hidden="true">
+        <div class="item"><span class="icone"></span><span class="texto"><span class="barra" style="display:block"></span></span></div>
+        <div class="item"><span class="icone"></span><span class="texto"><span class="barra" style="display:block;width:45%"></span></span></div>
+        <div class="item"><span class="icone"></span><span class="texto"><span class="barra" style="display:block;width:55%"></span></span></div>
+      </div>
+      <span class="sub" role="status" style="margin-top:12px">Procurando redes sociais instaladas</span>
+    </section>
+  </div>
+
+  <!-- Estado: vazio (RN-05) -->
+  <div>
+    <p class="estado-rotulo">vazio</p>
+    <section class="tela" data-estado="vazio" aria-label="Bloqueio de apps, nenhuma rede social">
+      <div class="voltar">‹ Perfil</div>
+      <h1>Bloqueio de apps</h1>
+      <div class="vazio">
+        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+          <line x1="24" y1="40" x2="24" y2="26" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="24" cy="20" r="5" fill="#B5772E"/>
+        </svg>
+        <p>Nenhuma rede social encontrada neste aparelho.</p>
+      </div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>
