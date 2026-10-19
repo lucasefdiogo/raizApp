@@ -1,5 +1,27 @@
 {
   "permissions": {
     "defaultMode": "acceptEdits"
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "filesystem": {
+      "allowWrite": [
+        "~/.npm",
+        "~/.cache/pnpm",
+        "~/.local/share/pnpm",
+        "~/.gradle",
+        "~/.expo",
+        "~/.android"
+      ],
+      "denyWrite": [
+        "./.lux/diario",
+        "./.lux/vereditos",
+        "./.claude",
+        "./lefthook.yml",
+        "./.git/hooks",
+        "./.github/workflows"
+      ]
+    }
   }
 }

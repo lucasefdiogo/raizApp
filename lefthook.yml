@@ -31,3 +31,16 @@ commit-msg:
           echo "Mensagem fora do padrão tipo(HU-xx|FIX-xx|CHORE-xx): descrição (ou chore(RELEASE): vX.Y.Z)" >&2
           exit 1
         fi
+
+pre-push:
+  # The guard of the push of main: lux pre-push recomputes the verify (seal, suite, criteria, dependencies) over what is
+  # being sent, anchored on origin/main, instead of trusting verification.md or the local marker (CHORE-17). Other branches pass.
+  commands:
+    verificar-main:
+      use_stdin: true
+      run: |
+        if [ ! -f .lux/lux.py ]; then
+          echo "pre-push: .lux/lux.py não existe; rode lux atualizar-projeto" >&2
+          exit 1
+        fi
+        python3 .lux/lux.py pre-push

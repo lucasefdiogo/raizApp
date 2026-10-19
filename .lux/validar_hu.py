@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Check the readiness rules R01-R11 for a HU folder (stdlib only).
+"""Check the readiness rules R01-R11 and the revision rules V01-V08 for a HU folder (stdlib only).
 
 Rules and messages are described in templates/regras-prontidao.md.
+With `--anterior <previous HU folder>` the revision rules also compare against the previous version's lock.
 Prints one `Rnn: message` line per gap. Exit 0: ready; 1: gaps; 2: bad usage or input.
 """
+import importlib.util
+import json
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
+RETIRED_TAIL = re.compile(r"^[—–-]\s*retirado na v\d+:\s*\S")
+HISTORY_ROW = re.compile(r"^\|\s*([^|]*?)\s*\|\s*(\d+)\s*\|\s*([^|]*?)\s*\|?\s*$")
 STATES = ["normal", "carregando", "vazio", "erro", "sem-permissao", "offline"]
 CRITERION = re.compile(r"^-\s+CA-(\d{2})\s+\((feliz|exceção)\):\s*\S")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -81,7 +87,70 @@ def declared_routes(yaml_text):
     return routes
 
 
-def validate(hu):
+def load_locker():
+    spec = importlib.util.spec_from_file_location("criteria_lock", HERE / "criteria_lock.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def previous_lock(folder):
+    path = folder / "criteria.lock"
+    if not path.is_file():
+        raise InputError(f"criteria.lock da versão anterior não encontrado em {folder}")
+    try:
+        lock = json.loads(read(path))
+        return lock.get("versao", 1), lock["criterios"]
+    except (ValueError, KeyError, AttributeError):
+        raise InputError(f"criteria.lock malformado em {folder}")
+
+
+def revision_gaps(hu, meta, body, active, retired, anterior):
+    """V01-V08: version, struck criteria, history table and, with `anterior`, the step from the previous version."""
+    locker = load_locker()
+    gaps = []
+    raw = meta.get("versao")
+    if raw is not None and not (raw.isdigit() and int(raw) >= 1):
+        gaps.append(f'V01: versao "{raw}" inválida; use um inteiro a partir de 1.')
+    version = int(raw) if raw is not None and raw.isdigit() and int(raw) >= 1 else 1
+
+    for ca, (_, tail) in retired.items():
+        if not RETIRED_TAIL.match(tail):
+            gaps.append(f'V02: {ca} retirado sem o motivo; escreva "~~CA-NN (...)~~ — retirado na vN: motivo".')
+
+    if version >= 2:
+        rows = [m.groups() for m in map(HISTORY_ROW.match, body.get("Histórico de versões", "").splitlines()) if m]
+        if not any(int(v) == version and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and what for d, v, what in rows):
+            gaps.append(f'V03: "Histórico de versões" sem linha para a versão {version} (data, versão, o que mudou).')
+        if any(int(v) > version for _, v, _ in rows):
+            gaps.append(f'V03: "Histórico de versões" tem versão acima da {version} da spec.')
+
+    if anterior is not None:
+        before, prior = previous_lock(anterior)
+        if version != before + 1:
+            gaps.append(f"V04: versão {version}, esperada {before + 1} (a versão só sobe de 1 em 1).")
+        for ca in sorted(prior):
+            if ca not in active and ca not in retired:
+                gaps.append(f"V05: {ca} sumiu da spec; retire-o (riscado, com o motivo) em vez de apagar.")
+            elif ca in active and prior[ca].get("status", "ativo") == "retirado":
+                gaps.append(f"V06: {ca} foi retirado e voltou a ativo; número de CA nunca é reaproveitado.")
+        for ca, (text, _) in sorted(retired.items()):
+            if ca not in prior:
+                continue
+            if locker.hash_text(text) != prior[ca]["criterio"]:
+                gaps.append(f"V07: {ca} retirado com texto diferente da última versão.")
+            feature = hu / "cenarios" / f"{ca}.feature"
+            if feature.is_file() and locker.hash_text(read(feature), feature=True) != prior[ca]["cenario"]:
+                gaps.append(f"V07: {ca} retirado com cenário diferente da última versão.")
+        number = lambda ca: int(ca.split("-")[1])  # noqa: E731
+        free = max((number(ca) for ca in prior), default=0) + 1
+        for i, ca in enumerate(sorted((c for c in [*active, *retired] if c not in prior), key=number)):
+            if number(ca) != free + i:
+                gaps.append(f"V08: {ca} novo deve usar o próximo número livre (CA-{free + i:02d}).")
+    return gaps
+
+
+def validate(hu, anterior=None):
     hu = hu.resolve()
     root = hu.parent.parent.parent
     spec_path = hu / "spec.md"
@@ -98,11 +167,21 @@ def validate(hu):
     if not any(re.match(r"^-\s+(CA-\d+\s+)?\(exceção\)", i) for i in items):
         gaps.append("R02: nenhum critério de exceção; toda HU precisa de ao menos um.")
 
+    retired = {}
     criteria, seen, r03 = {}, set(), False
     for item in items:
+        if struck := load_locker().RETIRED.match(item):
+            ca = struck.group(1).split("(")[0].strip()
+            text = " ".join(struck.group(1).split())
+            if ca in seen or ca in retired:
+                gaps.append(f'R03: critério sem ID fixo ou repetido: "{" ".join(item.split())}".')
+                r03 = True
+            else:
+                retired[ca] = (text, struck.group(2).strip())
+            continue
         match = CRITERION.match(item)
         ca = f"CA-{match.group(1)}" if match else None
-        if not match or ca in seen:
+        if not match or ca in seen or ca in retired:
             gaps.append(f'R03: critério sem ID fixo ou repetido: "{" ".join(item.split())}".')
             r03 = True
         else:
@@ -177,19 +256,23 @@ def validate(hu):
     if not arch or (ref and not (root / ref.group(1)).is_file()):
         gaps.append("R11: arquitetura e stack não definidas (spec ou docs/arquitetura/).")
 
-    return gaps
+    return gaps + revision_gaps(hu, meta, body, criteria, retired, anterior)
 
 
 def main(argv):
+    anterior = None
+    if len(argv) == 4 and argv[2] == "--anterior":
+        anterior = Path(argv[3])
+        argv = argv[:2]
     if len(argv) != 2:
-        print("uso: validar_hu.py <pasta-da-HU>", file=sys.stderr)
+        print("uso: validar_hu.py <pasta-da-HU> [--anterior <pasta-da-versão-anterior>]", file=sys.stderr)
         return 2
     hu = Path(argv[1])
-    if not hu.is_dir():
-        print(f"erro: {hu} não é uma pasta", file=sys.stderr)
+    if not hu.is_dir() or (anterior is not None and not anterior.is_dir()):
+        print(f"erro: {hu if not hu.is_dir() else anterior} não é uma pasta", file=sys.stderr)
         return 2
     try:
-        gaps = validate(hu)
+        gaps = validate(hu, anterior)
     except InputError as e:
         print(f"erro: {e}", file=sys.stderr)
         return 2

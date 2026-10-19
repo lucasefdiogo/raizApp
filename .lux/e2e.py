@@ -52,9 +52,9 @@ def project_root(path):
     return Path(out.stdout.strip())
 
 
-def read_config(root):
-    """The `e2e` block of main's verify.config.json (None when absent), validated."""
-    out = git(root, "show", "refs/heads/main:verify.config.json")
+def read_config(root, base="refs/heads/main"):
+    """The `e2e` block of main's verify.config.json (None when absent), validated. `base` is the trusted ref (verify --base)."""
+    out = git(root, "show", f"{base}:verify.config.json")
     if out.returncode != 0:
         raise E2EError("verify.config.json não existe na main (rode /lux-preparar e faça o merge)")
     try:

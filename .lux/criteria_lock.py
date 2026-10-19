@@ -33,6 +33,7 @@ class LockError(Exception):
 
 
 CRITERION = re.compile(r"^-\s+(CA-\d+)\s*\(")
+RETIRED = re.compile(r"^-\s+~~\s*(CA-\d+\s*\(.*?)\s*~~(.*)$")  # struck line: the text inside is the last version
 
 
 def read_text(path):
@@ -42,19 +43,53 @@ def read_text(path):
         raise LockError(f"não consegui ler {path}: {e}")
 
 
-def spec_criteria(spec_text):
-    """Map CA id -> criterion text, from the lines `- CA-NN (...)` of the criteria section."""
-    found = {}
+def parse_criteria(spec_text):
+    """(active, retired) from the criteria section: CA id -> text, and CA id -> (last text, text after the strike)."""
+    active, retired = {}, {}
     in_section = False
     for line in spec_text.splitlines():
         if line.startswith("## "):
             in_section = normalize(line) == "## Critérios de aceitação"
-        elif in_section and (match := CRITERION.match(line.strip())):
+            continue
+        line = line.strip()
+        if not in_section:
+            continue
+        if match := CRITERION.match(line):
             ca = match.group(1)
-            if ca in found:
-                raise LockError(f"{ca} repetido em spec.md")
-            found[ca] = normalize(line.strip()[1:])
-    return found
+            value, target = normalize(line[1:]), active
+        elif match := RETIRED.match(line):
+            text = normalize(match.group(1))
+            ca = text.split()[0].split("(")[0]
+            value, target = (text, match.group(2).strip()), retired
+        else:
+            continue
+        if ca in active or ca in retired:
+            raise LockError(f"{ca} repetido em spec.md")
+        target[ca] = value
+    return active, retired
+
+
+def spec_criteria(spec_text):
+    """Map CA id -> criterion text of the active criteria (`- CA-NN (...)`)."""
+    return parse_criteria(spec_text)[0]
+
+
+def spec_retired(spec_text):
+    """Map CA id -> (last criterion text, text after the strike) of the retired criteria (`- ~~CA-NN (...)~~ ...`)."""
+    return parse_criteria(spec_text)[1]
+
+
+def spec_version(spec_text):
+    """Version in the frontmatter; a spec without `versao` is v1."""
+    match = re.match(r"---\n(.*?)\n---", spec_text, re.DOTALL)
+    for line in (match.group(1).splitlines() if match else []):
+        key, sep, value = line.partition(":")
+        if sep and key.strip() == "versao":
+            value = value.split("#")[0].strip()
+            if not value.isdigit() or int(value) < 1:
+                raise LockError(f'versao inválida na spec: "{value}" (use um inteiro a partir de 1)')
+            return int(value)
+    return 1
 
 
 def feature_files(hu):
@@ -70,7 +105,8 @@ def load_spec(hu):
 
 def generate(hu):
     spec_text = load_spec(hu)
-    criteria = spec_criteria(spec_text)
+    active, retired = parse_criteria(spec_text)
+    criteria = {**active, **{ca: text for ca, (text, _) in retired.items()}}
     features = feature_files(hu)
     for ca in criteria:
         if ca not in features:
@@ -84,9 +120,11 @@ def generate(hu):
     lock = {
         "algoritmo": ALGORITHM,
         "hu": match.group(1),
+        "versao": spec_version(spec_text),
         "spec": hash_text(spec_text),
         "criterios": {
             ca: {
+                "status": "retirado" if ca in retired else "ativo",
                 "criterio": hash_text(criteria[ca]),
                 "cenario": hash_text(read_text(features[ca]), feature=True),
             }
@@ -115,20 +153,29 @@ def load_lock(hu):
 def check(hu):
     lock = load_lock(hu)
     spec_text = load_spec(hu)
-    criteria = spec_criteria(spec_text)
+    active, retired = parse_criteria(spec_text)
+    criteria = {**active, **{ca: text for ca, (text, _) in retired.items()}}
     features = feature_files(hu)
     locked = lock["criterios"]
+    version, locked_version = spec_version(spec_text), lock.get("versao", 1)
     problems = []
     if hash_text(spec_text) != lock["spec"]:
         problems.append("spec.md diverge do criteria.lock")
+    if version != locked_version:
+        problems.append(f"versão da spec ({version}) diverge da versão do lacre ({locked_version})")
     for ca in sorted(set(criteria) | set(features) | set(locked)):
+        was_retired = ca in locked and locked[ca].get("status", "ativo") == "retirado"
         if ca not in locked:
             why = ["CA a mais"]
         elif ca not in criteria and ca not in features:
-            why = ["CA a menos"]
+            why = ["retirado sumiu da spec"] if was_retired else ["CA a menos"]
         else:
             why = []
-            if ca not in criteria or hash_text(criteria[ca]) != locked[ca]["criterio"]:
+            if ca in criteria and (ca in retired) != was_retired:
+                why.append("status")
+            if ca not in criteria and was_retired:
+                why.append("retirado sumiu da spec")
+            elif ca not in criteria or hash_text(criteria[ca]) != locked[ca]["criterio"]:
                 why.append("critério")
             if ca not in features or hash_text(read_text(features[ca]), feature=True) != locked[ca]["cenario"]:
                 why.append("cenário")
@@ -136,6 +183,20 @@ def check(hu):
     if problems:
         print("\n".join(problems))
     return 1 if problems else 0
+
+
+def diff_locks(old, new):
+    """(changed, new, retired, active_before): how a lock moved to the next version. `changed` are the CA active in
+    both whose criterion or scenario hash differs; `retired` are the ones that were active and are now retired."""
+    status = lambda lock, ca: lock["criterios"][ca].get("status", "ativo")  # noqa: E731
+    active_before = [ca for ca in old["criterios"] if status(old, ca) == "ativo"]
+    novos = sorted(ca for ca in new["criterios"] if ca not in old["criterios"])
+    retirados = sorted(ca for ca in new["criterios"] if ca in old["criterios"]
+                       and status(new, ca) == "retirado" and status(old, ca) == "ativo")
+    alterados = sorted(ca for ca in active_before if ca in new["criterios"] and status(new, ca) == "ativo"
+                       and (new["criterios"][ca]["criterio"] != old["criterios"][ca]["criterio"]
+                            or new["criterios"][ca]["cenario"] != old["criterios"][ca]["cenario"]))
+    return alterados, novos, retirados, active_before
 
 
 def main(argv):

@@ -4,8 +4,11 @@
 Every CA has a task; each task has a `Teste:` line; with tem_tela "sim" there is a task tagged `tela` that names
 every state listed in the spec; with muda_contrato "sim" there is a task tagged `contrato`; with tem_tela "sim" and an executor in the architecture
 (`## Executor de E2E`: maestro or playwright) there is a task tagged `e2e` that cites every CA (one flow per scenario).
+tasks.md records the spec version it was approved for (`Spec: vN`, v1 when absent) and it must match the lock (T08);
+a task for a retired CA carries the tag `remover` (T09), and a done task keeps its history.
 Prints one `Tnn: message` line per gap. Exit 0: plan covers the spec; 1: gaps; 2: bad usage or input.
 """
+import json
 import re
 import sys
 import unicodedata
@@ -13,6 +16,8 @@ from pathlib import Path
 
 E2E_EXECUTORS = ("maestro", "playwright")
 STATES = ["normal", "carregando", "vazio", "erro", "sem-permissao", "offline"]
+PLAN_VERSION = re.compile(r"^Spec:\s*v(\d+)\s*$", re.MULTILINE)
+RETIRED_CA = re.compile(r"^-\s+~~\s*(CA-\d+)", re.MULTILINE)
 TASK = re.compile(r"^- \[[ xX]\] (TASK-\d+)\s*(?:\(([^)]*)\))?")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 
@@ -80,6 +85,14 @@ def e2e_executor(hu):
     return "" if word in ("", "nenhum", "nenhuma", "não", "nao") else word
 
 
+def lock_version(hu):
+    """Version in criteria.lock (1 when the lock predates versions); None without a readable lock (R05/R06 report that)."""
+    try:
+        return json.loads(read(hu / "criteria.lock")).get("versao", 1)
+    except (InputError, ValueError, AttributeError):
+        return None
+
+
 def parse_tasks(text):
     """List of (id, tags, block text); tags are the comma-separated words in the header parentheses."""
     tasks = []
@@ -104,12 +117,25 @@ def validate(hu):
     meta = frontmatter(spec)
 
     criteria = re.findall(r"^-\s+(CA-\d+)\s+\(", spec, re.MULTILINE)
+    retired = RETIRED_CA.findall(spec)
     cited = {tag for _, tags, _ in tasks for tag in tags if re.fullmatch(r"CA-\d+", tag)}
     gaps = [f"T01: {ca} sem task; toda HU tem ao menos uma task por critério." for ca in criteria if ca not in cited]
-    for task_id, tags, _ in tasks:
+    for task_id, tags, block in tasks:
+        done = block.startswith(("- [x]", "- [X]"))
         for tag in tags:
             if re.fullmatch(r"CA-\d+", tag) and tag not in criteria:
-                gaps.append(f"T02: {task_id} cita {tag}, que não existe na spec.")
+                if tag in retired:
+                    if not done and "remover" not in tags:
+                        gaps.append(f"T02: {task_id} cita {tag}, que foi retirado; use uma task com a tag `remover`.")
+                else:
+                    gaps.append(f"T02: {task_id} cita {tag}, que não existe na spec.")
+        if "remover" in tags:
+            gaps += [f"T09: {task_id} tem a tag `remover`, mas {tag} não está retirado." for tag in tags
+                     if re.fullmatch(r"CA-\d+", tag) and tag not in retired]
+    plan, locked = PLAN_VERSION.search(read(tasks_file)), lock_version(hu)
+    plan = int(plan.group(1)) if plan else 1
+    if locked is not None and plan != locked:
+        gaps.append(f"T08: tasks.md registra a spec v{plan}, mas o lacre está na v{locked}; replaneje (/lux-planejar em modo replanejamento).")
     for task_id, _, block in tasks:
         if not re.search(r"^\s+- Teste:\s*\S", block, re.MULTILINE):
             gaps.append(f"T06: {task_id} sem linha `- Teste:` com o nome do teste.")

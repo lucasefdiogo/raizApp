@@ -4,13 +4,16 @@
 lacrar, conferir-lacre and verificar call the sibling scripts; importar brings the ZIP made by
 the lux-especificar skill into the repository. The lock file is still called criteria.lock.
 """
+import difflib
 import glob
 import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import zipfile
 from pathlib import Path
@@ -19,7 +22,7 @@ sys.dont_write_bytecode = True  # sibling scripts are loaded by path: no __pycac
 HERE = Path(__file__).resolve().parent
 DOWNLOADS = "/mnt/c/Users/*/Downloads"
 ZIP_PATTERNS = ("lux-HU-*.zip", "pacote-hu*.zip")
-USAGE = "uso: lux lacrar|conferir-lacre|verificar|importar|protegidos|testar|atualizar-projeto|instalar-ci|e2e|aparelho [argumentos]"
+USAGE = "uso: lux lacrar|conferir-lacre|conferir-plano|auditar-task|aprendizado|pre-push|verificar|importar|iniciar|protegidos|testar|sandbox|atualizar-projeto|instalar-ci|e2e|aparelho [argumentos]"
 
 
 def script(name, *args):
@@ -49,7 +52,7 @@ def hu_arg(args):
 
 
 def inside_claude_code(command):
-    """lacrar and importar are the user's own commands: the agent never runs them."""
+    """lacrar, importar and iniciar are the user's own commands: the agent never runs them."""
     if os.environ.get("CLAUDECODE"):
         print(f"erro: lux {command} não roda dentro do Claude Code (CLAUDECODE definido). Rode no seu terminal.", file=sys.stderr)
         return True
@@ -79,6 +82,65 @@ def conferir(args):
     else:
         show(done)
     return done.returncode
+
+
+def conferir_plano(args):
+    """Deterministic check of tasks.md (scope of each task, protected paths, approved dependencies): see conferir_plano.py."""
+    if len(args) != 1:
+        raise SystemExit("uso: lux conferir-plano <pasta-da-HU | HU-xx>")
+    done = script("conferir_plano.py", str(resolve_hu(args[0])))
+    show(done)
+    if done.returncode == 0:
+        print("plano conferido")
+    return done.returncode
+
+
+def auditar_task(args):
+    """Audit package of a task (and its verdict with --veredito) for the lux-auditor agent: see auditar_task.py."""
+    flags = {"--nova", "--veredito"}
+    positional = [a for a in args if a not in flags]
+    if len(positional) != 2 or any(a.startswith("--") for a in positional):
+        print("uso: lux auditar-task <HU-xx> <TASK-yy> [--nova] [--veredito]", file=sys.stderr)
+        return 2
+    audit = load_sibling("auditar_task")
+    hu, task = positional
+    try:
+        root = audit.project_root()
+        if "--veredito" in args:
+            code, message = audit.veredito(root, audit.hu_id_of(resolve_hu(hu)), task)
+            print(message)
+            return code
+        result = audit.build(root, resolve_hu(hu), task, nova="--nova" in args)
+    except audit.AuditError as e:
+        print(f"erro: {e}", file=sys.stderr)
+        return 2
+    print(f"pacote em {result['pacote'].relative_to(root)}")
+    sys.stdout.write((result["pacote"] / "pre-diagnostico.md").read_text(encoding="utf-8"))
+    stop = audit.protected_stop(root, audit.hu_id_of(resolve_hu(hu)), task)
+    if stop:  # the package is the evidence; the loop does not go on to the auditor
+        print(stop)
+        return audit.PARAR
+    return 0
+
+
+def aprendizado(args):
+    """Short lesson of a task, kept at a fixed size in .lux/aprendizados-<HU>.md: see auditar_task.py."""
+    if len(args) != 3:
+        print('uso: lux aprendizado <HU-xx> <TASK-yy> "lição curta"', file=sys.stderr)
+        return 2
+    audit = load_sibling("auditar_task")
+    try:
+        line = audit.aprendizado(audit.project_root(), audit.hu_id_of(resolve_hu(args[0])), args[1], args[2])
+    except audit.AuditError as e:
+        print(f"erro: {e}", file=sys.stderr)
+        return 2
+    print(line)
+    return 0
+
+
+def pre_push(args):
+    """The lefthook pre-push: recomputes the verify over what a push sends to main: see pre_push.py."""
+    return subprocess.run([sys.executable, "-I", str(HERE / "pre_push.py"), *args]).returncode
 
 
 def verificar(args):
@@ -114,9 +176,18 @@ def project_root():
 
 
 def protegidos(args):
-    """.lux/ and .github/workflows/ against main. --ci (GitHub Actions) only warns and always exits 0."""
+    """.lux/, .github/workflows/ and lefthook.yml against main. --ci (GitHub Actions) only warns and always exits 0.
+    --hu HU-xx lists the protected files that HU brought in (the final report of /lux-entregar; none is expected)."""
+    if len(args) == 2 and args[0] == "--hu" and re.fullmatch(r"HU-\d+", args[1]):
+        try:
+            paths = load_sibling("protegidos").merged_changes(project_root(), args[1])
+        except RuntimeError as e:
+            print(f"erro: {e}", file=sys.stderr)
+            return 2
+        print("**Arquivos protegidos alterados: nenhum**" if not paths else "**Arquivos protegidos alterados:**\n" + "\n".join(f"- {p}" for p in paths))
+        return 0
     if args not in ([], ["--ci"]):
-        raise SystemExit("uso: lux protegidos [--ci]")
+        raise SystemExit("uso: lux protegidos [--ci | --hu HU-xx]")
     try:
         lines = load_sibling("protegidos").problems(project_root(), ci=bool(args))
     except RuntimeError as e:
@@ -234,6 +305,137 @@ def approve_dependencies(root, hu_id):
     return 0
 
 
+def existing_hu(root, spec_member):
+    """The folder of this HU on main, found by its id (HU-01 in HU-01-slug): None for a HU that is new."""
+    folder = Path(spec_member).parent.name
+    hu_id = re.match(r"HU-\d+", folder)
+    if not hu_id:
+        return None
+    found = sorted(p for p in (root / "docs/hu").glob(f"{hu_id.group(0)}-*") if (p / "spec.md").is_file())
+    return found[0] if found else None
+
+
+def lock_version(folder):
+    try:
+        return json.loads((Path(folder) / "criteria.lock").read_text(encoding="utf-8")).get("versao", 1)
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def show_diff(old_root, new_root, rels):
+    """Unified diff of the files that differ (a missing file counts as empty)."""
+    for rel in rels:
+        old, new = old_root / rel, new_root / rel
+        before = old.read_text(encoding="utf-8").splitlines(keepends=True) if old.is_file() else []
+        after = new.read_text(encoding="utf-8").splitlines(keepends=True) if new.is_file() else []
+        if before != after:
+            sys.stdout.writelines(difflib.unified_diff(before, after, f"main:{rel}", f"zip:{rel}"))
+            if after and not after[-1].endswith("\n"):
+                print()
+
+
+def revisar(root, z, members, spec_member, existing):
+    """Import of a higher version of a HU that is already on main: checks everything in a copy of docs/,
+    shows the diff and the summary, asks s/N, and only then replaces the files of that HU."""
+    folder = Path(spec_member).parent
+    rel_hu = existing.relative_to(root)
+    if existing.name != folder.name:
+        print(f"erro: o ZIP traz a pasta {folder.name}, mas a main já tem a HU em {existing.name}; a revisão usa a mesma pasta.", file=sys.stderr)
+        return 1
+    others = sorted({m.filename for m in members if re.match(r"docs/hu/", m.filename) and not m.filename.startswith(f"docs/hu/{folder.name}/")})
+    if others:
+        print(f"erro: o ZIP mexe em outra HU ({others[0]}); uma revisão troca só os arquivos de {folder.name}.", file=sys.stderr)
+        return 1
+    mine = [m for m in members if m.filename.startswith(f"docs/hu/{folder.name}/")]
+    work = Path(tempfile.mkdtemp(prefix="lux-revisao-"))
+    try:
+        incoming = work / "zip"
+        for info in members:
+            dest = incoming / info.filename
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(z.read(info))
+        before, after = lock_version(existing), lock_version(incoming / rel_hu)
+        if after is None:
+            print("erro: o ZIP não traz um criteria.lock válido para a HU.", file=sys.stderr)
+            return 1
+        hu_id = re.search(r"^id:\s*(\S+)", (incoming / rel_hu / "spec.md").read_text(encoding="utf-8"), re.MULTILINE)
+        if not hu_id:
+            print("erro: spec.md sem id no frontmatter", file=sys.stderr)
+            return 1
+        hu_id = hu_id.group(1)
+        if after <= before:
+            print(f"erro: a versão do ZIP (v{after}) não é maior que a da main (v{before}); nada a revisar.", file=sys.stderr)
+            return 1
+
+        # the project as it would be after the import: main's docs/ plus the HU's files from the ZIP
+        trial = work / "trial"
+        shutil.copytree(root / "docs", trial / "docs")
+        for info in members:
+            dest = trial / info.filename
+            if info.filename.startswith(f"docs/hu/{folder.name}/") or not dest.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(z.read(info))
+        hu = trial / rel_hu
+        for stale in (hu / "cenarios").glob("*.feature"):  # the ZIP is the whole scenario set of the HU
+            if not (incoming / rel_hu / "cenarios" / stale.name).is_file():
+                stale.unlink()
+        problems = []
+        checked = script("criteria_lock.py", "check", str(hu))
+        if checked.returncode != 0:
+            problems = ["lacre rompido"] + (checked.stdout + checked.stderr).splitlines()
+        else:
+            rules = script("validar_hu.py", str(hu), "--anterior", str(existing))
+            if rules.returncode != 0:
+                problems = (rules.stdout + rules.stderr).splitlines()
+        if problems:
+            print("\n".join(problems))
+            print("Importação desfeita: nada foi gravado.")
+            return 1
+
+        summary = script("revisao.py", "resumo", str(existing), str(hu))
+        print(summary.stdout.rstrip() if summary.returncode == 0 else summary.stderr.rstrip())
+        names = sorted({Path(m.filename).relative_to(f"docs/hu/{folder.name}").as_posix() for m in mine} |
+                       {p.relative_to(existing).as_posix() for p in (existing / "cenarios").glob("*.feature")} | {"spec.md", "criteria.lock"})
+        show_diff(existing, hu, [n for n in names if n != "criteria.lock"])
+        try:
+            answer = input(f"Importar a revisão v{after} da {hu_id} (troca spec, cenários e lacre)? [s/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() != "s":
+            print("Revisão não importada: nada foi gravado.")
+            return 1
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+    entered, replaced, skipped = [], [], []
+    for info in members:
+        dest = root / info.filename
+        inside = info.filename.startswith(f"docs/hu/{folder.name}/")
+        if dest.exists() and not inside:
+            skipped.append(info.filename)
+            continue
+        (replaced if dest.exists() else entered).append(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(z.read(info))
+    rels = [str(p.relative_to(root)) for p in entered + replaced]
+    git(root, "add", "--", *rels)
+    commit = git(root, "commit", "-q", "-m", f"docs({hu_id}): spec v{after}")
+    if commit.returncode != 0:
+        git(root, "reset", "-q", "--", *rels)
+        git(root, "checkout", "--", *[str(p.relative_to(root)) for p in replaced])
+        undo(entered, [])
+        print(commit.stdout + commit.stderr, end="")
+        print("Importação desfeita: o commit foi recusado.")
+        return 1
+    for rel in rels:
+        print(f"Entrou: {rel}")
+    for rel in skipped:
+        print(f"Pulado (já existe): {rel}")
+    print("lacre conferido")
+    print(f"Commit: docs({hu_id}): spec v{after}")
+    return approve_dependencies(root, hu_id)
+
+
 def importar(args):
     if inside_claude_code("importar"):
         return 2
@@ -262,10 +464,19 @@ def importar(args):
             if name.is_absolute() or ".." in name.parts:
                 print(f"erro: caminho fora do repositório no ZIP: {info.filename}", file=sys.stderr)
                 return 1
+        # the whole package lives under docs/ (lux-especificar, "Estrutura do ZIP"): anything else would be configuration
+        # or code the user never reviewed, so the ZIP is refused as a whole
+        outside = [m.filename for m in members if Path(m.filename).parts[:1] != ("docs",)]
+        if outside:
+            print(f"erro: o ZIP traz arquivo fora de docs/ ({outside[0]}); o pacote inteiro é recusado e nada foi gravado.", file=sys.stderr)
+            return 1
         specs = [m.filename for m in members if re.fullmatch(r"docs/hu/[^/]+/spec\.md", m.filename)]
         if len(specs) != 1:
             print(f"erro: o ZIP deve ter exatamente uma HU (achei {len(specs)}).", file=sys.stderr)
             return 1
+        existing = existing_hu(root, specs[0])
+        if existing is not None:
+            return revisar(root, z, members, specs[0], existing)
         entered, skipped, new_dirs = [], [], []
         for info in members:
             dest = root / info.filename
@@ -318,8 +529,235 @@ def importar(args):
     return approve_dependencies(root, match.group(1))
 
 
-COMMANDS = {"lacrar": lacrar, "conferir-lacre": conferir, "verificar": verificar, "importar": importar,
-            "protegidos": protegidos, "testar": testar,
+def zip_lock(package, hu_id):
+    """The criteria.lock bytes of HU hu_id inside the ZIP; None when the ZIP carries another HU."""
+    try:
+        with zipfile.ZipFile(package) as z:
+            for info in z.infolist():
+                if re.fullmatch(rf"docs/hu/{re.escape(hu_id)}-[^/]+/criteria\.lock", info.filename):
+                    return z.read(info)
+    except zipfile.BadZipFile:
+        raise SystemExit(f"erro: {package} não é um ZIP válido")
+    return None
+
+
+# The commits that import and setup make on main, and the paths each one may touch: the subject alone proves nothing.
+SETUP_PATHS = (".lux/", ".github/workflows/lux.yml", ".claude/settings.json", "lefthook.yml", "verify.config.json", ".gitignore")
+INICIAR_COMMITS = (
+    (re.compile(r"^docs\(HU-\d+\): spec (aprovada|v\d+)$"), ("docs/",)),
+    (re.compile(r"^chore\(HU-\d+\): dependências aprovadas$"), ("verify.config.json",)),
+    (re.compile(r"^chore\(CHORE-\d+\): lux iniciar prepara o projeto$"), SETUP_PATHS),
+)
+# files Claude Code reads as instructions or configuration, at any depth
+AGENT_CONFIG = re.compile(r"(^|/)(\.claude/|\.mcp\.json$|CLAUDE\.md$)")
+
+
+def foreign_commit(root):
+    """Describes the first commit of origin/main..main that import and setup would not make, or None."""
+    if git(root, "rev-list", "--merges", "origin/main..main").stdout.strip():
+        return "merge"
+    for sha in git(root, "rev-list", "origin/main..main").stdout.split():
+        subject = git(root, "log", "-1", "--format=%s", sha).stdout.strip()
+        allowed = next((paths for pattern, paths in INICIAR_COMMITS if pattern.match(subject)), None)
+        if allowed is None:
+            return subject
+        touched = git(root, "-c", "core.quotePath=false", "diff-tree", "--no-commit-id", "--name-only", "-r", "--no-renames", sha).stdout.splitlines()
+        stray = [p for p in touched if not any(p == a or (a.endswith("/") and p.startswith(a)) for a in allowed)]
+        if stray:
+            return f"{subject}: mexe em {stray[0]}"
+    return None
+
+
+def refuse(message):
+    print(f"erro: {message}", file=sys.stderr)
+    return 1
+
+
+def main_in_sync(root):
+    """None when main equals origin/main (or there is no origin); otherwise the reason to stop. Offers the pull when behind."""
+    if "origin" not in git(root, "remote").stdout.split():
+        print("Aviso: sem remoto origin; não conferi a main contra ele.")
+        return None
+    fetched = git(root, "fetch", "-q", "origin")
+    if fetched.returncode != 0:
+        return f"git fetch origin falhou: {fetched.stderr.strip()}"
+    if git(root, "rev-parse", "--verify", "-q", "refs/remotes/origin/main").returncode != 0:
+        print("Aviso: origin/main não existe; não conferi a main contra ele.")
+        return None
+    ahead, behind = (int(n) for n in git(root, "rev-list", "--left-right", "--count", "main...origin/main").stdout.split())
+    if ahead and behind:
+        return "a main e a origin/main divergiram; resolva no seu terminal antes de iniciar."
+    if ahead:
+        # a second run (or another HU) starts with the commits the first one made and the user has not pushed yet
+        foreign = foreign_commit(root)
+        if foreign:
+            return f"a main está à frente da origin/main com commit que não é do lux iniciar ({foreign}); faça o push antes de iniciar."
+        print(f"Aviso: a main está {ahead} commit(s) à frente da origin/main, todos do lux iniciar; o push é seu.")
+    if behind:
+        try:
+            answer = input(f"A main está {behind} commit(s) atrás da origin/main. Atualizar com git pull --ff-only? [s/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() != "s":
+            return "a main está atrás da origin/main; atualize antes de iniciar."
+        pulled = git(root, "pull", "-q", "--ff-only", "origin", "main")
+        if pulled.returncode != 0:
+            return f"git pull --ff-only falhou: {pulled.stderr.strip()}"
+    return None
+
+
+def setup_project(root):
+    """Applies the project setup (lux atualizar-projeto plus the sandbox template) and commits it on main. 0 or an exit code."""
+    ci = load_sibling("projeto_ci")
+    try:
+        files = ci.desired(root, update_config=True, create_settings=True)
+    except ci.CiError as e:
+        return refuse(str(e))
+    before = {rel: (root / rel).is_file() for rel in files}
+    todo = {rel: content for rel, content in files.items() if not before[rel] or (root / rel).read_bytes() != content}
+    if todo:
+        print("Setup do projeto (commit chore na main):")
+        for rel in todo:
+            print(f"  {'Atualizado' if before[rel] else 'Criado'}: {rel}")
+    created_dirs = [d for d in (root / ".lux", root / ".github" / "workflows", root / ".github", root / ".claude") if not d.exists()]
+    ci.write_files(root, todo)
+    installed = subprocess.run(["lefthook", "install"], cwd=root, capture_output=True, text=True)
+    if installed.returncode != 0:
+        print(installed.stdout + installed.stderr, end="")
+        return refuse("lefthook install falhou.")
+    if not todo:
+        print("Setup do projeto: nada a atualizar.")
+        return 0
+    chore = f"CHORE-{ci.next_chore(root):02d}"
+    git(root, "add", "--", *todo)
+    print(git(root, "--no-pager", "diff", "--cached", "--stat").stdout, end="")
+    message = f"chore({chore}): lux iniciar prepara o projeto"
+    commit = git(root, "commit", "-q", "-m", message)
+    if commit.returncode != 0:
+        print(commit.stdout + commit.stderr, end="")
+        git(root, "reset", "-q")
+        for rel in todo:
+            git(root, "checkout", "--", rel) if before[rel] else (root / rel).unlink(missing_ok=True)
+        for folder in created_dirs:
+            try:
+                folder.rmdir()
+            except OSError:
+                pass
+        return refuse("setup desfeito: o commit foi recusado.")
+    if ci.WORKFLOW in todo:
+        ci.record_workflow(root, todo[ci.WORKFLOW])
+    if "lefthook.yml" in todo:
+        ci.record_workflow(root, todo["lefthook.yml"], "lefthook.yml")
+    print(f"Commit: {message}")
+    return 0
+
+
+def iniciar(args):
+    """One command from the terminal to start a HU: checks, import (when needed), project setup, then opens Claude Code
+    on /lux-entregar HU-xx. Safe to run again: whatever is done is skipped."""
+    if inside_claude_code("iniciar"):
+        return 2
+    if len(args) != 1 or not re.fullmatch(r"HU-\d+", args[0]):
+        print("uso: lux iniciar HU-xx", file=sys.stderr)
+        return 2
+    hu_id = args[0]
+    top = git(".", "rev-parse", "--show-toplevel")
+    if top.returncode != 0:
+        return refuse("rode dentro do repositório do projeto.")
+    root = Path(top.stdout.strip())
+    if root.resolve() != Path.cwd().resolve():
+        return refuse(f"rode na raiz do repositório ({root}).")
+    if git(root, "branch", "--show-current").stdout.strip() != "main":
+        return refuse("lux iniciar só roda na main.")
+    if git(root, "status", "--porcelain").stdout.strip():
+        return refuse("árvore suja; commite ou guarde o que está pendente antes de iniciar.")
+    reason = main_in_sync(root)
+    if reason:
+        return refuse(reason)
+
+    ci = load_sibling("projeto_ci")
+    problems = ci.environment_problems()
+    for tool in ("claude", "lefthook", "gitleaks"):
+        if not shutil.which(tool):
+            problems.append(f"{tool} não encontrado no PATH")
+    if problems:
+        print("erro: ambiente incompleto:", file=sys.stderr)
+        print("\n".join(f"  {p}" for p in problems), file=sys.stderr)
+        return 1
+    if not (root / "verify.config.json").is_file():
+        return refuse("o projeto ainda não tem verify.config.json (rode /lux-preparar).")
+
+    # what to do with the HU, decided before anything changes
+    existing = sorted(p for p in (root / "docs/hu").glob(f"{hu_id}-*") if (p / "spec.md").is_file())
+    package = newest_zip(None)
+    incoming = zip_lock(package, hu_id) if package else None
+    importing = False
+    if existing:
+        folder = existing[0]
+        progress = folder / "progress.md"
+        started = git(root, "rev-parse", "--verify", "-q", f"refs/heads/feature/{folder.name}").returncode == 0 \
+            or (progress.is_file() and progress.read_text(encoding="utf-8").strip() != "")
+        if started:
+            print(f"{hu_id} em andamento: só retoma.")
+            if incoming is not None and incoming != (folder / "criteria.lock").read_bytes():
+                print("Aviso: o ZIP em Downloads traz outro lacre. Para importar a revisão, rode lux importar.")
+        elif incoming is not None and incoming != (folder / "criteria.lock").read_bytes():
+            importing = True
+        else:
+            print(f"{hu_id} já importada com o mesmo lacre: pulo a importação.")
+    elif incoming is None:
+        return refuse(f"{hu_id} não está em docs/hu/ e não achei lux-{hu_id}*.zip nem pacote-hu*.zip de {hu_id} em Downloads.")
+    else:
+        importing = True
+
+    code = setup_project(root)
+    if code:
+        return code
+    problems = ci.project_sandbox_problems(root)
+    if problems:
+        return refuse("\n  ".join(problems))
+    before = git(root, "rev-parse", "HEAD").stdout.strip()
+    if importing:
+        code = importar([])
+        if code:
+            return code
+    # the import is what brings outside files into the repo: look again before a session reads them
+    problems = ci.project_sandbox_problems(root)
+    if problems:
+        return refuse("depois da importação: " + "\n  ".join(problems))
+    touched = [p for p in git(root, "-c", "core.quotePath=false", "diff", "--name-only", before, "HEAD").stdout.splitlines() if AGENT_CONFIG.search(p)]
+    if touched:
+        return refuse(f"a importação mexeu em arquivo que o Claude Code lê como instrução ou configuração ({touched[0]}); revise o commit e abra o Claude Code você mesmo.")
+    ci.ensure_verdict_dir(root)  # the sandbox mounts its write-denied paths when it comes up: .lux/vereditos/ has to exist by then
+    print(f"Abrindo o Claude Code com /lux-entregar {hu_id}")
+    sys.stdout.flush()
+    os.execvp("claude", ["claude", f"/lux-entregar {hu_id}"])
+
+
+def sandbox(args):
+    """Exit 0 when the settings and the machine leave the sandbox of bash on for a session opened here; 1 and the reasons otherwise.
+
+    --efeito is the proof of effect: run from the Bash tool of the session, it tries to write lefthook.yml and .lux/vereditos/probe and
+    fails if any write goes through."""
+    if args == ["--efeito"]:
+        problems = load_sibling("projeto_ci").sandbox_effect_problems(project_root())
+        if problems:
+            print("sandbox NÃO ativo (a prova de efeito falhou):", *problems, sep="\n  ")
+            return 1
+        print("sandbox ativo: a escrita em lefthook.yml e em .lux/vereditos/ foi negada e o hash não mudou")
+        return 0
+    if args:
+        raise SystemExit("uso: lux sandbox [--efeito]")
+    problems = load_sibling("projeto_ci").sandbox_problems(project_root())
+    if problems:
+        print("sandbox NÃO ativo:", *problems, sep="\n  ")
+        return 1
+    print("sandbox ativo")
+    return 0
+
+
+COMMANDS = {"lacrar": lacrar, "conferir-lacre": conferir, "conferir-plano": conferir_plano, "auditar-task": auditar_task, "pre-push": pre_push, "aprendizado": aprendizado, "verificar": verificar, "importar": importar, "iniciar": iniciar,
+            "protegidos": protegidos, "testar": testar, "sandbox": sandbox,
             "atualizar-projeto": atualizar_projeto, "instalar-ci": instalar_ci, "e2e": e2e, "aparelho": aparelho}
 
 
