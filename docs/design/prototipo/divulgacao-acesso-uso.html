@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acesso de uso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --casca: #EFEAE0;
+    --areia: #E3DACB;
+    --terra-escura: #2B2318;
+    --terra-suave: #6B5E45;
+    --cobre: #B5772E;
+    --musgo: #3E4A34;
+    --border: #E3D8C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: #D9D2C4;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+  }
+  .estados { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+  .estado-rotulo {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .tela {
+    width: 340px;
+    max-width: 100%;
+    min-height: 620px;
+    background: var(--casca);
+    border-radius: 18px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .voltar { font-size: 14px; color: var(--terra-suave); margin-bottom: 28px; }
+  .icone { margin-bottom: 16px; }
+  h1 {
+    font-family: "Zilla Slab", serif;
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+  }
+  .corpo { font-size: 15px; line-height: 1.55; color: var(--terra-escura); margin: 0; }
+  .aviso {
+    margin-top: 18px;
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--terra-suave);
+  }
+  .acoes { margin-top: auto; padding-top: 24px; display: flex; flex-direction: column; gap: 10px; }
+  button {
+    width: 100%;
+    border-radius: 14px;
+    padding: 14px;
+    font: 600 15px "IBM Plex Sans", sans-serif;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--cobre); outline-offset: 2px; }
+  .primario { border: 0; background: var(--cobre); color: var(--casca); }
+  .secundario { background: transparent; border: 1px solid var(--terra-suave); color: var(--terra-suave); }
+</style>
+</head>
+<body>
+<div class="estados">
+
+  <!-- Estado: normal (primeira vez na tela) -->
+  <div>
+    <p class="estado-rotulo">normal</p>
+    <section class="tela" data-estado="normal" aria-label="Medir seu tempo nas redes">
+      <div class="voltar">‹ Bloqueio de apps</div>
+      <svg class="icone" width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+        <line x1="24" y1="42" x2="24" y2="22" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="32" x2="15" y2="24" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24" cy="16" r="5" fill="#B5772E"/>
+      </svg>
+      <h1>Medir seu tempo nas redes</h1>
+      <p class="corpo">Para mostrar quanto tempo você passa nas redes sociais, o Rootora usa o acesso de uso do Android. Medimos só os apps da lista de redes sociais: tempo de uso e quantas vezes cada um foi aberto. Os dados ficam na sua conta e são apagados se você excluir a conta.</p>
+      <div class="acoes">
+        <button class="primario" type="button">Permitir acesso de uso</button>
+        <button class="secundario" type="button">Agora não</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: sem-permissao (voltou das configurações sem conceder) -->
+  <div>
+    <p class="estado-rotulo">sem-permissao</p>
+    <section class="tela" data-estado="sem-permissao" aria-label="Medir seu tempo nas redes, acesso desligado">
+      <div class="voltar">‹ Bloqueio de apps</div>
+      <svg class="icone" width="40" height="40" viewBox="0 0 48 48" aria-hidden="true">
+        <line x1="24" y1="42" x2="24" y2="22" stroke="#3E4A34" stroke-width="4" stroke-linecap="round"/>
+        <line x1="24" y1="32" x2="15" y2="24" stroke="#3E4A34" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24" cy="16" r="5" fill="#B5772E"/>
+      </svg>
+      <h1>Medir seu tempo nas redes</h1>
+      <p class="corpo">Para mostrar quanto tempo você passa nas redes sociais, o Rootora usa o acesso de uso do Android. Medimos só os apps da lista de redes sociais: tempo de uso e quantas vezes cada um foi aberto. Os dados ficam na sua conta e são apagados se você excluir a conta.</p>
+      <p class="aviso" role="status">Acesso de uso desligado. O bloqueio continua funcionando, só sem medir o tempo.</p>
+      <div class="acoes">
+        <button class="primario" type="button">Permitir acesso de uso</button>
+        <button class="secundario" type="button">Agora não</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>
