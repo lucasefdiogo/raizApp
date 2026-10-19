@@ -1,0 +1,166 @@
+# Template of .github/workflows/lux.yml, installed by /lux-preparar (new project) and `lux atualizar-projeto`.
+# The two "# LUX:" lines are replaced with the stack steps (setup before the suite, lint/types after).
+# The scripts come from .lux/, a copy of the kit (its repository is private, so nothing is fetched from there).
+# Test, report and criteria settings come from verify.config.json on main, never from this branch.
+# Everything here is free: GitHub-hosted ubuntu runner, actions pinned by commit SHA, no secrets.
+#
+# The e2e job (Android emulator or browser flows of a HU with a screen) is OFF unless verify.config.json on main has
+# e2e.ci true and an e2e.executor. Estimate per run (not measured: this CI has not run on GitHub yet), Linux minutes
+# at 1x in the Free plan's 2,000 minutes a month: off, about 1 minute billed per push to a feature/HU-* branch (the
+# job starts, checks the key and stops); on, about 15 to 25 minutes (setup 2, Maestro 1, emulator boot 3 to 5,
+# cold Gradle build 8 to 15, flows 2 to 4), so roughly 80 to 130 runs a month if nothing else uses the minutes.
+# The only non-official action is reactivecircus/android-emulator-runner (Apache-2.0), pinned by SHA.
+name: lux
+
+on:
+  push:
+    branches: ["**"]
+
+concurrency:
+  group: lux-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Main como âncora
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          [ "$BRANCH" = main ] || git fetch --no-tags origin main:main
+      - name: Arquivos protegidos
+        run: python3 .lux/lux.py protegidos --ci
+      - name: Lacre
+        run: |
+          status=0
+          for lock in docs/hu/*/criteria.lock; do
+            [ -e "$lock" ] || continue
+            python3 .lux/lux.py conferir-lacre "$(dirname "$lock")" || status=1
+          done
+          exit $status
+      - name: Preparar Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+          cache: npm
+      - name: Instalar dependências
+        run: |
+          npm install`. Tipos: `npx tsc --noEmit`.
+      - name: Suíte
+        run: python3 .lux/lux.py testar
+      - name: Verify da HU
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          case "$BRANCH" in
+            feature/HU-[0-9]*-*) ;;
+            *) echo "branch sem HU: verify não se aplica"; exit 0 ;;
+          esac
+          id=$(printf '%s' "$BRANCH" | sed -E 's|^feature/(HU-[0-9]+)-.*|\1|')
+          set -- docs/hu/"$id"-*/
+          if [ $# -ne 1 ] || [ ! -d "$1" ]; then
+            echo "pasta da $id não encontrada em docs/hu/" >&2
+            exit 1
+          fi
+          python3 .lux/lux.py verificar --ci --no-run "$1"
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+
+  e2e:
+    needs: lux
+    if: startsWith(github.ref_name, 'feature/HU-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Main como âncora
+        run: git fetch --no-tags origin main:main
+      - name: Chave e2e
+        id: chave
+        run: |
+          git show refs/heads/main:verify.config.json > "$RUNNER_TEMP/verify.config.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/verify.config.json"
+          python3 - "$RUNNER_TEMP/verify.config.json" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          e2e = json.load(open(sys.argv[1])).get("e2e") or {}
+          on = e2e.get("ci") is True and e2e.get("executor") in ("maestro", "playwright")
+          print("ligado=" + ("true" if on else "false"))
+          print("executor=" + (e2e["executor"] if on else ""))
+          PY
+      - name: Preparar Node
+        if: steps.chave.outputs.ligado == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: lts/*
+          cache: npm
+      - name: Instalar dependências
+        if: steps.chave.outputs.ligado == 'true'
+        run: |
+          npm install`. Tipos: `npx tsc --noEmit`.
+      - name: HU do E2E
+        id: hu
+        if: steps.chave.outputs.ligado == 'true'
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          id=$(printf '%s' "$BRANCH" | sed -E 's|^feature/(HU-[0-9]+)-.*|\1|')
+          set -- docs/hu/"$id"-*/
+          if [ $# -ne 1 ] || [ ! -d "$1" ]; then
+            echo "pasta da $id não encontrada em docs/hu/" >&2
+            exit 1
+          fi
+          echo "pasta=$1" >> "$GITHUB_OUTPUT"
+      - name: Java 17
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'maestro'
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: KVM
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'maestro'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Maestro
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'maestro'
+        env:
+          MAESTRO_ZIP_SHA256: 5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/maestro/releases/download/cli-2.11.0/maestro.zip
+          echo "$MAESTRO_ZIP_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$HOME"
+          echo "$HOME/maestro/bin" >> "$GITHUB_PATH"
+      - name: Fluxos no emulador
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'maestro'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          HU_DIR: ${{ steps.hu.outputs.pasta }}
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          script: python3 .lux/lux.py e2e rodar "$HU_DIR"
+      - name: Navegador
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'playwright'
+        run: npx playwright install --with-deps chromium
+      - name: Fluxos no navegador
+        if: steps.chave.outputs.ligado == 'true' && steps.chave.outputs.executor == 'playwright'
+        env:
+          HU_DIR: ${{ steps.hu.outputs.pasta }}
+        run: python3 .lux/lux.py e2e rodar "$HU_DIR"

@@ -73,7 +73,7 @@ Prettier 2.8.8 (`npx prettier --write .`)
 - @types/react-test-renderer@19.1.0 (MIT)
 - eslint@8.57.1 (MIT)
 - prettier@2.8.8 (MIT)
-- firebase-admin@14.3.0 (Apache-2.0) — só para seed em dev, nunca roda no app
+- firebase-admin@14.3.0 (Apache-2.0)
 
 ## Estrutura de pastas
 ```text

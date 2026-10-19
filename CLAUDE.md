@@ -137,3 +137,9 @@ de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
 - [ ] Se mexeu em dado sensível (streak, assinatura, firestore.rules): dívida técnica
       relevante mencionada
 - [ ] Se o código divergiu de algo documentado em `/definition`: sinalizado no resumo
+
+## Regras do kit de verificação (lux)
+
+- Instalar: `npm install`. Tipos: `npx tsc --noEmit`.
+- Teste de critério leva o ID no nome: `it('CA-01: ...')` (é o que o verify procura).
+- Relatório de testes em `reports/junit/*.xml` (ignorado pelo git).

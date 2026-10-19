@@ -90,3 +90,6 @@ seed-firestore.js
 .firebase/
 firebase-debug.log
 .firebase-cache/
+
+# Relatórios de teste (JUnit XML)
+reports/
