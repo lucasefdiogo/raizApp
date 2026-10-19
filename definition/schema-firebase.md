@@ -35,7 +35,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `nome` | string | Preenchido no cadastro (SignUpScreen tem campo próprio) ou vazio se veio do Google sem nome |
 | `createdAt` | timestamp | |
 | **Onboarding** | | |
-| `focoProcrastinacao` | string | chip selecionado: `estudos` \| `trabalho` \| `exercicio` \| `casa` \| `outro` |
+| `focoProcrastinacao` | string | chip selecionado: `redes_sociais` \| `estudos` \| `trabalho` \| `organizacao_pessoal` \| `outro` (`OPCOES_FOCO_PROCRASTINACAO`, `domain/onboarding.ts`) |
 | `tempoTelaEstimado` | number | minutos/dia |
 | `porqueTexto` | string | Texto livre — reexibido na tela de retorno após pausa |
 | `onboardingConcluido` | boolean | **Campo novo.** Gate real de saída do onboarding (substituiu a checagem antiga por `porqueTexto`). Setado como `true` só ao final do último passo (Primeira Tarefa), seja criando a tarefa ou pulando |
