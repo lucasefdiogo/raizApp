@@ -3,7 +3,7 @@
 - [x] TASK-01 (CHORE, RN-01): configurar o reporter `jest-junit` em `jest.config.js` com `outputDirectory: 'reports/junit'`
   - Teste: `npm test` gera `reports/junit/*.xml` pelo config (verificação manual, sem teste de critério)
   - Verificação: `npm test` gera `reports/junit/*.xml` pelo config; o `testCommand` do `verify.config.json` (`--reporters=default --reporters=jest-junit`) substitui o `reporters` do config e gera um único XML, sem duplicar (sem teste de critério)
-- [ ] TASK-02 (CA-01, CA-02, RN-01, RN-02): constante da lista curada e filtro puro em `src/domain/` (pacotes instalados da lista; fora da lista nunca passam)
+- [x] TASK-02 (CA-01, CA-02, RN-01, RN-02): constante da lista curada e filtro puro em `src/domain/` (pacotes instalados da lista; fora da lista nunca passam)
   - Teste: `CA-02: ignora apps instalados fora da lista curada` (feliz)
 - [ ] TASK-03 (CA-01, CA-03, RN-03): pré-marcação na primeira configuração (tudo marcado, menos YouTube) e uso das marcações salvas quando há `regrasBloqueio`
   - Teste: `CA-01: primeira configuração marca tudo exceto YouTube` (feliz)

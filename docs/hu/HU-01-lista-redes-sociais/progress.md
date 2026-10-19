@@ -21,3 +21,4 @@ Build: APK release standalone (ver memória de build em device físico). Aparelh
 6. Variante com pendência: antes de atualizar, deixe uma alteração pendente que inclua o Chrome; após atualizar e abrir, confira que a pendente também perdeu o Chrome e, no dia da vigência (com o app fechado), o Chrome continua livre.
 
 - TASK-01: reporter `jest-junit` no `jest.config.js` (`reports/junit`). Conferido: `npm test` gera um `junit.xml` pelo config; o `testCommand` do `verify.config.json` (`--reporters=default --reporters=jest-junit`) substitui o `reporters` do config e também gera um único `junit.xml`, sem duplicar. Obs.: com `--reporters` variádico, o caminho de teste precisa vir depois de `--`.
+- TASK-02: `src/domain/redesSociais.ts` com `PACOTES_REDES_SOCIAIS` (RN-01), `PACOTE_YOUTUBE` e `filtrarRedesSociaisInstaladas` (genérico em `{ packageName }`, para o domínio não importar o tipo nativo). Suíte: 110 suítes / 1068 testes verdes; tsc ok.
