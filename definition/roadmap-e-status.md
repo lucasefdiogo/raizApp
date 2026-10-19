@@ -99,6 +99,7 @@ caminho, com tela de configuração própria.
 | Widget de tela inicial (Android) | 📋 |
 | Justificativa de uso do Accessibility Service pra ficha da Play Store | 📋 ver `procedimento-loja.md` — texto-base já definido (divulgação em destaque), falta só preencher o formulário na submissão |
 | Visualização de `interceptacoes`/`sessoesFoco` no Progresso | 📋 hoje só gravado, nenhuma tela lê de volta pro usuário |
+| Eventos de Analytics `app_bloqueado_detectado` / `app_desbloqueado` (`logAppBloqueadoDetectado`/`logAppDesbloqueado`) | ⚠️ código morto do sistema antigo — definidos em `services/analytics.ts`, sem nenhum chamador (hoje valem `intercept_shown`/`intercept_action`). Não removido, só registrado |
 
 ## 9. Notificações
 
@@ -114,6 +115,7 @@ caminho, com tela de configuração própria.
 | Item | Status |
 |---|---|
 | Exclusão de conta (client-side, ordem correta de limpeza) | ✅ |
+| Advertising ID desativado (`google_analytics_adid_collection_enabled=false` + permissões `AD_ID`/`ACCESS_ADSERVICES_*` removidas do manifesto) — Play Console: "não usa ID de publicidade" | ✅ |
 | Política de Privacidade + Termos — conteúdo (minuta) e links no app | 🚧 conteúdo pronto; Firebase Hosting configurado (`firebase.json`, `docs/legal/`, URLs em `legalLinks.ts`) — deploy a confirmar. **Revisão jurídica ainda pendente** — não publicar sem isso (checklist em `docs/legal/README.md`) |
 
 ## 11. Identidade visual e design system
@@ -163,6 +165,7 @@ caminho, com tela de configuração própria.
 | "Desbloquear com desafio" (ação secundária do estado A) | ❌ removido do fluxo — mecanismo de desbloqueio-por-desafio não existe no produto |
 | Remoção do bloqueio antigo (`bloqueioApps`/custo crescente/`AppBlockedScreen`) | ✅ removido por completo, sem migração de dado (não havia usuário real) |
 | Divulgação em destaque do Accessibility Service (`DivulgacaoAcessibilidadeScreen`) | ✅ |
+| Linha de apoio após "sem energia" recorrente (5 de 7 dias → "Precisa de mais apoio?" no Perfil, CVV 188) — decisão #4 da spec | 📋 não implementado; texto exige revisão de psicólogo antes da publicação |
 
 ## 15. Pendente de decisão (não atacar sem definir escopo antes)
 
@@ -173,6 +176,7 @@ caminho, com tela de configuração própria.
 
 ## 16. Publicação (fora do código, `procedimento-loja.md`)
 
+- Versão atual do build: `versionName 1.4` / `versionCode 5` (`android/app/build.gradle`)
 - Conta de desenvolvedor Google Play
 - Ficha da app na loja (inclui justificativa de Accessibility Service)
 - Tudo do item 13 acima

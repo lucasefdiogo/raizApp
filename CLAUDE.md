@@ -48,7 +48,8 @@ Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implem
 
 ```
 RootNavigator (Stack.Navigator ÚNICO, não stacks separados por arquivo)
-├── Splash → Tutorial → Auth (SignIn/SignUp/ForgotPassword) → Onboarding → Main
+├── Splash → Tutorial → Auth (SignIn/SignUp/ForgotPassword) → Onboarding
+│     → NotificationPriming (uma vez) → Main
 ├── Onboarding é 1 tela com máquina de passos interna (Foco→TempoTela→Porque→PrimeiraTarefa)
 │     gate de saída: users/{uid}.onboardingConcluido (não porqueTexto)
 ├── Main → MainTabNavigator (Hoje / Progresso / Perfil)

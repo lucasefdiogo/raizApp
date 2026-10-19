@@ -33,10 +33,16 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │       4. OnboardingStepPrimeiraTarefa (campo de tarefa + "Começar"/"Pular por hoje" —
 │          É este passo que seta onboardingConcluido = true, não o "porquê")
 │
+├── NotificationPriming (NotificationPrimingScreen)
+│     Mostrada uma vez, se autenticado E onboardingConcluido === true e
+│     `useLocalNotifications().deveExibirPriming` — antes de `Main`. Explica a
+│     permissão de notificação (POST_NOTIFICATIONS) antes do diálogo nativo.
+│
 ├── Main → MainTabNavigator
-│     Mostrada se autenticado E onboardingConcluido === true.
+│     Mostrada se autenticado E onboardingConcluido === true (e o priming de
+│     notificação já resolvido).
 │     Abas: Hoje / Progresso / Perfil.
-│     tabBarActiveTintColor: theme.colors.cobre
+│     tabBarActiveTintColor: theme.colors.accent (= cobre)
 │     tabBarInactiveTintColor: theme.colors.terraSuave
 │     │
 │     ├── HojeStack
@@ -57,11 +63,13 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
 │           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
 │           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
-│           ├── AccessibilityDebug            (condicional a __DEV__, temporária por
-│           │     design — não remover sem avisar, ainda é usada pra validar a
-│           │     detecção em dispositivo físico)
-│           └── InterceptDebug                (idem, mesma flag — abre a InterceptScreen
-│                 de verdade com props mockadas, spec 09-ponte-fuga-tarefa)
+│           ├── AccessibilityDebug            (condicional a `__DEV__ ||
+│           │     MOSTRAR_DEBUG_ACESSIBILIDADE` de `config/debugFlags.ts` — a flag
+│           │     fica `false` no repositório e só é ligada à mão pra gerar APK de
+│           │     teste; temporária por design, não remover sem avisar, ainda é
+│           │     usada pra validar a detecção em dispositivo físico)
+│           └── InterceptDebug                (idem, mesma condição — abre a
+│                 InterceptScreen de verdade com props mockadas, spec 09)
 ```
 
 Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
@@ -98,6 +106,7 @@ InterceptRoot (packageName, appLabel, snapshotJson, estadoBloqueioJson?, sessaoA
 if (!tutorial_visto)              → Tutorial
 else if (!user)                   → SignIn (+ SignUp/ForgotPassword acessíveis)
 else if (!user.onboardingConcluido) → Onboarding
+else if (deveExibirPriming)        → NotificationPriming
 else                               → Main
 ```
 Executada uma vez no boot (mais o AsyncStorage do tutorial), com SplashScreen cobrindo
@@ -110,15 +119,17 @@ enquanto resolve — nenhuma tela pisca durante o carregamento.
 ### HomeScreen
 Ordem real de renderização, de cima pra baixo:
 1. `HomeHeader` — saudação por horário + nome, badge de streak à direita
-2. `StreakCard` — streak atual + escudos disponíveis (envolto num `View` com `ref`,
+2. `StreakCard` — streak atual + escudos disponíveis (prop opcional `hojeCumprido`: mostra o aviso de "já garantiu hoje" e soma +1 na altura visual da raiz; envolto num `View` com `ref`,
    ver "Tour de funcionalidades" abaixo)
 3. Headline "Tarefas de hoje"
-4. Lista de `TaskItem` + botão discreto "Estou travado" (abre `TravadoFlowScreen`,
+4. `TaskList` (lista de `TaskItem`) + botão discreto "Estou travado" (abre `TravadoFlowScreen`,
    spec `09-ponte-fuga-tarefa`) + `AddTaskForm` (`forwardRef` — o `ref` aponta só pro
    botão "Adicionar tarefa", não pro formulário inteiro)
 5. Overlays condicionais por cima de tudo, nesta ordem: `TaskCompletedOverlay`,
-   `StreakMilestoneModal`, `FeatureTourOverlay` (por último — fica por cima dos outros
-   dois se coincidirem), e `TravadoFlowScreen` quando aberto (botão da Home ou toque
+   `RootWateringOverlay` (animação da raiz ao concluir a essencial: ponto Cobre desce
+   pelo caule, barra até o próximo marco, ~3s ou toque fecha),
+   `StreakMilestoneModal` (só aparece quando os dois overlays anteriores já saíram),
+   `FeatureTourOverlay` (por último — fica por cima dos outros se coincidirem), e `TravadoFlowScreen` quando aberto (botão da Home ou toque
    longo numa tarefa — remonta com uma `key` nova a cada abertura, sempre começa do
    passo "escolha")
 
@@ -132,13 +143,12 @@ fechado (ver `regras-de-negocio.md` seção 4/5).
 ### `TaskItem`
 | Prop | Tipo | Descrição |
 |---|---|---|
-| `titulo` | string | |
-| `essencial` | boolean | Exibe selo de estrela |
-| `concluida` | boolean | |
-| `tipo` | `'padrao'` \| `'exercicio'` | Exibe ícone de exercício quando aplicável |
-| `duracaoMinutos` | number opcional | Só exibido quando `tipo === 'exercicio'` |
-| `origemRecorrenteId` | string opcional | Exibe ícone ↻; habilita toque longo → `RecurringTaskActionSheet` |
-| `onToggle` | function | Escrita otimista + rollback silencioso em falha |
+| `tarefa` | `Tarefa` | Objeto inteiro (`domain/types.ts`): `essencial` exibe selo de estrela; `tipo === 'exercicio'` exibe ícone e `duracaoMinutos`; `origemRecorrenteId` exibe ícone ↻ e habilita `RecurringTaskActionSheet` |
+| `onAlternar` | `(id) => void` | Marca/desmarca. A escrita otimista + rollback silencioso em falha vive em `useDailyTasks`, não no componente |
+| `onEstouTravado` | `(id) => void` opcional | Abre o TravadoFlow; a linha não aparece pra tarefa já concluída |
+| `onEditar` | `(id, titulo) => void` opcional | Edição de título |
+| `onRemover` | `(id) => void` opcional | Remoção da tarefa avulsa |
+| `onRemoverHoje` / `onPararDeRepetir` | function opcionais | Só pra tarefas recorrentes (`RecurringTaskActionSheet`) |
 
 Toque longo abre `TaskActionsSheet` (avulsa) ou `RecurringTaskActionSheet` (recorrente)
 — as duas ganharam a linha **"Estou travado"** (spec `09-ponte-fuga-tarefa`, primeira
@@ -184,8 +194,11 @@ importa o componente).
 ### `DayDetailSheet`
 | Prop | Tipo |
 |---|---|
-| `label` | string ("Quarta-feira · cumprido") |
-| `tarefas` | array — renderização somente-leitura, sem toggle funcional |
+| `visible` | boolean |
+| `label` | string ("Quarta-feira" — o status vem em prop separada) |
+| `status` | `StatusHistoricoDia` |
+| `tarefas` | `Tarefa[]` — renderização somente-leitura, sem toggle funcional |
+| `onClose` | function |
 
 ### PerfilScreen
 Seções, em ordem: "Seu porquê" (campo + botão Salvar explícito) → Notificações

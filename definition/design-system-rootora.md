@@ -19,13 +19,24 @@ Fonte de verdade dos hex: `02-identidade-visual.md`. Corrigidos em `fix/color-pa
 | `musgo` | `#3E4A34` | Estrutura da raiz, sucesso, tarefa concluída, aba ativa — nunca reaproveitado como cor de botão genérico |
 | `areia` | `#E3DACB` | Fundo de cards, inputs, chips, citações, badge de streak (neutro, ver seção 5) |
 
-Removidos por não pertencerem à paleta original: `branco` (#FFFFFF puro — identidade
-pede "não um branco clínico", eliminado em favor de `casca`/`areia` conforme contexto),
-`terraEscura2`, `erro` (vermelho — removido do uso em "Excluir conta", ver seção 6).
+Removido por não pertencer à paleta original: `branco` (#FFFFFF puro — identidade
+pede "não um branco clínico", eliminado em favor de `casca`/`areia` conforme contexto).
+
+Tokens extras em `theme/colors.ts`, fora da paleta original de `02-identidade-visual.md`
+(existem no código; usar com parcimônia):
+
+| Token | Hex | Uso |
+|---|---|---|
+| `terraEscura2` | `#3E3126` | Linha divisória do rodapé do `StreakCard` |
+| `cobreClaro` | `#DA9A63` | Texto do rodapé do `StreakCard`, chips selecionados do onboarding e destaque do `FeatureTourOverlay` |
+| `musgoClaro` | `#8A9678` | Texto do rodapé do `StreakCard` e "✓" do `TaskCompletedOverlay` |
+| `erro` | `#B5473A` | Mensagens de erro (`TextField`, telas de auth, `ReauthPromptModal`, `BloqueioAppsScreen`) e a ação "Remover" do `TaskActionsSheet`. **Não** é usado em "Excluir conta" (ver seção 6) |
+| `border` | `#E3D8C3` | Bordas de 1px de cards, inputs e divisórias |
 
 Camada semântica (aliases sobre os tokens acima, usados na maioria dos componentes):
 `background` (`casca`), `surface` (`areia`), `textPrimary` (`terraEscura`),
-`textSecondary` (`terraSuave`), `accent` (`cobre`), `overlay` (`terraEscura` com opacidade).
+`textSecondary` (`terraSuave`), `accent` (`cobre`), `border` (ver tabela acima),
+`overlay` (`terraEscura` com opacidade).
 
 Ícone genérico do app (launcher, não segue tema, ver seção 10): fundo `#EFF0EA`,
 estrutura `#222924`, accent `#AA572F` — cores médias entre os 3 temas testados, uso
@@ -78,6 +89,10 @@ nesse link, não de código quebrado.
 | `LoadingIndicator` | `src/components/common/LoadingIndicator.tsx` | Variants `fullscreen`/`inline`, RootProgressIcon `broto` + pulso via `Animated` (core do RN, não Reanimated) |
 | `EmptyState` | `src/components/common/EmptyState.tsx` | RootProgressIcon `broto` + título + corpo + CTA opcional |
 | `Toast` | `src/components/common/Toast.tsx` | Fundo `terraEscura`, texto `areia`, auto-dismiss ~3s |
+| `ProgressDots` | `src/components/ProgressDots.tsx` | Pontos de progresso (`total`, `atual`) |
+| `Chip` | `src/components/intercept/Chip.tsx` | Chip de toque único (escolha do TravadoFlow) |
+| `LinkExterno` | `src/components/common/LinkExterno.tsx` | Link de texto que abre URL externa (links legais) |
+| `BackButton` | `src/components/common/BackButton.tsx` | Botão de voltar das telas empilhadas |
 
 ## 6. Componentes compostos (moléculas)
 
@@ -85,10 +100,14 @@ nesse link, não de código quebrado.
 |---|---|---|
 | `HomeHeader` | `src/components/home/HomeHeader.tsx` | Saudação por horário + nome à esquerda, badge de streak à direita |
 | `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + escudos disponíveis, logo abaixo do HomeHeader |
+| `TaskList` | `src/components/TaskList.tsx` | Lista de `TaskItem` da Home, repassa os handlers de cada tarefa |
 | `TaskItem` | `src/components/TaskItem.tsx` | Checkbox + título + selo de essencial (estrela) + ícone ↻ se recorrente + ícone de exercício se `tipo === 'exercicio'` |
 | `AddTaskForm` | `src/components/home/AddTaskForm.tsx` | Campo de título + toggle essencial + `TaskTypeToggle` (tipo exercício + duração) + toggle "Repetir todos os dias" |
 | `TaskTypeToggle` | `src/components/home/TaskTypeToggle.tsx` | Sub-componente do AddTaskForm — alterna tipo padrão/exercício e campo de duração |
+| `TaskActionsSheet` | `src/components/home/TaskActionsSheet.tsx` | Menu de toque longo em tarefa avulsa: "Estou travado", editar, remover |
 | `TaskCompletedOverlay` | `src/components/home/TaskCompletedOverlay.tsx` | Auto-dismiss ~1.5s, 1 de 3 frases fixas |
+| `RootWateringOverlay` | `src/components/home/RootWateringOverlay.tsx` | Animação da raiz ao concluir a essencial (ponto Cobre desce pelo caule, caule pulsa, barra até o próximo marco), ~3s ou toque fecha |
+| `FeatureTourOverlay` | `src/components/tour/FeatureTourOverlay.tsx` | Tour pós-onboarding, burro: recebe posição e texto já resolvidos (`tourSteps.ts`) |
 | `StreakMilestoneModal` | `src/components/home/StreakMilestoneModal.tsx` | RootProgressIcon `completo` + marco + corpo (systemMessages) + botão único |
 | `RecoveryStateCard` | `src/components/recovery/RecoveryStateCard.tsx` | RootProgressIcon (`escudo`/`reduzido`) + corpo (systemMessages) |
 | `ReturnAfterPauseCard` | `src/components/return/ReturnAfterPauseCard.tsx` | Corpo do sistema + blockquote do "porquê" + campo de texto + botão |
@@ -111,52 +130,23 @@ nesse link, não de código quebrado.
 
 ## 8. Arquitetura real de navegação
 
-Diferente de módulos separados por stack — é **um único `Stack.Navigator`** em
-`RootNavigator.tsx`, com todas as rotas (`Tutorial`, `SignIn`, `SignUp`,
-`ForgotPassword`, `Onboarding`, `Main`) no mesmo `RootStackParamList`. "TutorialStack",
-"AuthStack", "OnboardingStack" são nomes usados neste documento só como agrupamento
-lógico da explicação, não arquivos separados no código.
+É **um único `Stack.Navigator`** em `RootNavigator.tsx`, com todas as rotas de topo
+(`Tutorial`, `SignIn`, `SignUp`, `ForgotPassword`, `Onboarding`, `NotificationPriming`,
+`Main`) no mesmo `RootStackParamList`; "AuthStack", "OnboardingStack" etc. são só
+agrupamento lógico, não arquivos. A árvore completa (abas, `HojeStack`, `ProgressoStack`,
+`PerfilStack`, rotas de debug e o root separado `Intercept`) vive em
+`navegacao-componentes.md` seção 1 — fonte única, não duplicada aqui.
 
-Não existe overlay global de bloqueio no `RootNavigator` — o sistema antigo
-(`AppBlockedScreen`) foi removido por completo. A interceptação hoje acontece fora
-desta árvore, por um root RN separado (`InterceptRoot`/`InterceptScreen`, montado por
-uma Activity Android diferente da `MainActivity` — ver `navegacao-componentes.md`).
+Não existe overlay global de bloqueio no `RootNavigator`: a interceptação acontece fora
+da árvore, por um root RN separado (`InterceptRoot`/`InterceptScreen`, montado por uma
+Activity Android diferente da `MainActivity`).
 
-```
-RootNavigator (Stack.Navigator único)
-├── SplashScreen
-├── Tutorial            (4 slides internos, TutorialScreen + TutorialSlide)
-├── SignIn / SignUp / ForgotPassword
-├── Onboarding          (OnboardingScreen.tsx — 1 tela, máquina de passos interna)
-│     passos: OnboardingStepFoco → OnboardingStepTempoTela →
-│              OnboardingStepPorque → OnboardingStepPrimeiraTarefa
-│     gate de saída: users/{uid}.onboardingConcluido === true
-│              (não mais porqueTexto — mudou em feature/onboarding-primeira-tarefa)
-└── Main → MainTabNavigator (abas: Hoje / Progresso / Perfil)
-      tabBarActiveTintColor: cobre · tabBarInactiveTintColor: terraSuave
-      ├── HojeStack
-      │     ├── HomeScreen — HomeHeader → StreakCard → headline → lista de TaskItem +
-      │     │     AddTaskForm → TaskCompletedOverlay/StreakMilestoneModal (overlays
-      │     │     condicionais)
-      │     ├── RecoveryStateScreen    (condicional, back bloqueado)
-      │     └── ReturnAfterPauseScreen (condicional, back bloqueado)
-      ├── ProgressoStack
-      │     └── ProgressoScreen — 2 statbox, 7 DayStatusPill (abre DayDetailSheet),
-      │           ChallengeCard semanal + mensal
-      └── PerfilStack
-            ├── PerfilScreen — porquê, notificações+horário, entrada "Bloqueio de
-            │     apps", links legais, "Excluir conta" (neutro), "Sair", link de
-            │     debug (condicional, baixa prioridade)
-            ├── BloqueioAppsScreen — status do serviço + link "Saiba o que é"
-            │     (sempre visível) + botão "Ativar" (SecondaryButton, só
-            │     desativado), lista de AppListItem (busca + seleção),
-            │     SeletorDiasSemana + 2 seletores de horário, resumo + Salvar
-            ├── DivulgacaoAcessibilidadeScreen — mesma rota pros dois gatilhos
-            │     acima; layout por status real do serviço (desativado = consentir
-            │     e abrir configurações; ativo = selo "ATIVO" + atalho pras
-            │     configurações, sem gravar nada de novo)
-            └── AccessibilityDebug     (condicional a __DEV__, temporária por design)
-```
+Resumo de composição por tela (detalhe em `navegacao-componentes.md` seção 2):
+- Onboarding: 1 tela com 4 passos internos; gate de saída `users/{uid}.onboardingConcluido`
+- Home: `HomeHeader` → `StreakCard` → headline → `TaskList` + `AddTaskForm` → overlays
+- Progresso: 2 statbox, 7 `DayStatusPill` (abre `DayDetailSheet`), `ChallengeCard` semanal + mensal
+- Perfil: porquê, notificações+horário, entrada "Bloqueio de apps", links legais,
+  "Excluir conta" (neutro), "Sair", link de debug (condicional)
 
 `SignUpScreen` tem 4 campos (Nome, E-mail, Senha, Confirmar senha), não 3.
 

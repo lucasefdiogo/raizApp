@@ -5,6 +5,13 @@
 > Status: **validado e implementado** — único caminho de bloqueio/interceptação em
 > produção (o sistema antigo de custo crescente foi removido, não convive mais em
 > paralelo). Decisões da seção 9 fechadas.
+>
+> **Nota (out/2026):** o saldo diário de blocos (`regras-de-negocio.md` seção 5)
+> superou partes desta spec, mantidas aqui como registro do desenho original: o
+> estado B da seção 3 ("Liberar por 15 minutos"), a ação "Liberar o [App] por 15
+> minutos" do FimSessao (seção 5) e a "Liberação temporária" `liberadoAte[packageName]`
+> da seção 8. Vale o que está em `regras-de-negocio.md` seção 5 e
+> `navegacao-componentes.md`.
 
 ---
 

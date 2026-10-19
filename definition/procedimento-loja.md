@@ -18,6 +18,10 @@ permanente depois da primeira publicação na Play Store.
   submissão, é a permissão mais escrutinada pela revisão da loja. Usar como base o
   texto já validado na `DivulgacaoAcessibilidadeScreen` (divulgação em destaque — o
   que o app vê e o que não vê), mostrada antes de abrir as configurações do sistema
+- Declaração de ID de publicidade: o app **não usa** Advertising ID — a coleta está
+  desligada (`google_analytics_adid_collection_enabled=false`) e as permissões
+  `AD_ID`/`ACCESS_ADSERVICES_*` são removidas no manifesto, então a declaração do Play
+  Console deve ser "não usa"
 - A lista de apps do bloqueio usa `<queries>` (MAIN/LAUNCHER) no manifesto, não
   `QUERY_ALL_PACKAGES` — sem formulário extra de justificativa pra essa permissão
 
