@@ -1,0 +1,48 @@
+# Tasks — HU-02
+Spec: v1
+
+- [ ] TASK-01 (CA-01, CA-02, CA-03, CA-04, RN-01, RN-02, RN-03, RN-04): função pura que agrega eventos de primeiro plano em `{ segundos, aberturas }` por dia e pacote da lista curada
+  - Teste: `CA-01: 3 aberturas somando 20 minutos viram { segundos: 1200, aberturas: 3 }` (feliz)
+  - Teste: `CA-02: pacote fora da lista curada não aparece no resultado` (feliz)
+  - Teste: `CA-03: agregar os mesmos eventos duas vezes devolve o mesmo resultado` (feliz)
+  - Teste: `CA-04: eventos de ontem geram a entrada do dia de ontem` (feliz)
+  - Escopo:
+    - CAs: CA-01, CA-02, CA-03, CA-04
+    - Arquivos: src/domain/usoApps.ts, src/domain/usoApps.test.ts, src/domain/types.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-02 (CA-06, RN-01, RN-06): módulo nativo Kotlin que lê o `UsageStatsManager`, wrapper TS sem rejeitar quando o módulo falta, permissão `PACKAGE_USAGE_STATS` no manifesto e arquitetura atualizada
+  - Teste: `CA-06: sem o módulo nativo o acesso de uso é falso e nenhum evento é devolvido` (exceção)
+  - Teste: `CA-06: manifesto declara PACKAGE_USAGE_STATS` (exceção)
+  - Escopo:
+    - CAs: CA-06
+    - Arquivos: src/native/UsoApps.ts, src/native/UsoApps.test.ts, src/native/androidManifest.test.ts, android/app/src/main/AndroidManifest.xml, android/app/src/main/java/com/luxthorapps/rootora/**, docs/arquitetura/arquitetura.md
+    - Comandos: teste, lint, tipos, build
+    - Instala: nenhuma
+- [ ] TASK-03 (CA-01, CA-03, CA-06, RN-04, RN-05, RN-06, RN-08): gravação de `usoApps` com merge e coleta dos últimos 7 dias ao abrir o app, só com acesso concedido e consentimento gravado
+  - Teste: `CA-01: com acesso e consentimento a coleta grava usoApps do Instagram de hoje` (feliz)
+  - Teste: `CA-03: coletar de novo sem uso novo grava os mesmos valores` (feliz)
+  - Teste: `CA-06: sem acesso de uso concedido a coleta não grava nada` (exceção)
+  - Teste: `CA-06: sem consentimentoAcessoUso a coleta não grava nada` (exceção)
+  - Escopo:
+    - CAs: CA-01, CA-03, CA-06
+    - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/hooks/useColetaUsoApps.ts, src/hooks/useColetaUsoApps.test.ts, src/screens/HomeScreen.tsx, src/screens/HomeScreen.test.tsx, src/domain/types.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-04 (CA-08, RN-08): dia passado cujo `dailyLog` só tem `usoApps` mantém o mesmo status no Progresso e o mesmo streak que sem o documento
+  - Teste: `CA-08: dia passado sem tarefas nem escudo continua sem_registro no Progresso` (exceção)
+  - Teste: `CA-08: streak avaliado com dailyLog de ontem só com usoApps é igual ao de sem documento` (exceção)
+  - Escopo:
+    - CAs: CA-08
+    - Arquivos: src/domain/progress.ts, src/domain/progress.test.ts, src/hooks/useStreak.test.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-05 (tela, CA-05, CA-06, CA-07, RN-06, RN-07, RN-10): `DivulgacaoAcessoUsoScreen` com os estados normal e sem-permissao, gravação do consentimento, rota no `PerfilStack` e entrada "Medir tempo nas redes" na `BloqueioAppsScreen`
+  - Teste: `CA-05: Permitir acesso de uso grava consentimentoAcessoUso com a data de hoje e abre as configurações` (feliz)
+  - Teste: `CA-06: BloqueioAppsScreen mostra a entrada Medir tempo nas redes sem acesso de uso` (exceção)
+  - Teste: `CA-07: estado sem-permissao mostra o aviso ao voltar sem conceder` (exceção)
+  - Escopo:
+    - CAs: CA-05, CA-06, CA-07
+    - Arquivos: src/screens/perfil/DivulgacaoAcessoUsoScreen.tsx, src/screens/perfil/DivulgacaoAcessoUsoScreen.test.tsx, src/screens/perfil/BloqueioAppsScreen.tsx, src/screens/perfil/BloqueioAppsScreen.test.tsx, src/hooks/useConsentimentoAcessoUso.ts, src/hooks/useConsentimentoAcessoUso.test.ts, src/hooks/useAcessoUso.ts, src/hooks/useAcessoUso.test.ts, src/navigation/PerfilStack.tsx, src/services/firestore.ts, src/services/firestore.test.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
