@@ -1,0 +1,21 @@
+# Tasks — HU-01
+
+- [ ] TASK-01 (CHORE, RN-01): configurar o reporter `jest-junit` em `jest.config.js` com `outputDirectory: 'reports/junit'`
+  - Teste: `npm test` gera `reports/junit/*.xml` pelo config (verificação manual, sem teste de critério)
+  - Verificação: `npm test` gera `reports/junit/*.xml` pelo config; o `testCommand` do `verify.config.json` (`--reporters=default --reporters=jest-junit`) substitui o `reporters` do config e gera um único XML, sem duplicar (sem teste de critério)
+- [ ] TASK-02 (CA-01, CA-02, RN-01, RN-02): constante da lista curada e filtro puro em `src/domain/` (pacotes instalados da lista; fora da lista nunca passam)
+  - Teste: `CA-02: ignora apps instalados fora da lista curada` (feliz)
+- [ ] TASK-03 (CA-01, CA-03, RN-03): pré-marcação na primeira configuração (tudo marcado, menos YouTube) e uso das marcações salvas quando há `regrasBloqueio`
+  - Teste: `CA-01: primeira configuração marca tudo exceto YouTube` (feliz)
+  - Teste: `CA-03: regra salva mantém exatamente as marcações salvas` (feliz)
+- [ ] TASK-04 (CA-05, RN-06, RN-07): decisão pura de limpeza em `domain/appBlock.ts` que remove pacotes fora da lista de `apps` da regra vigente e da pendente, idempotente
+  - Teste: `CA-05: remove app fora da lista da regra e mantém a pendência nula` (exceção)
+  - Teste: `CA-05: limpeza repetida sobre regra limpa não pede gravação` (exceção, RN-07)
+- [ ] TASK-05 (CA-05, RN-06): gravação da limpeza na primeira abertura após a atualização (hook/service), no Firestore e nas cópias nativas da regra vigente E da pendente (a promoção da pendente roda no nativo com o app fechado). Se for preciso mexer em Kotlin: teste JUnit e `./gradlew :app:testDebugUnitTest` local, com o resultado no `progress.md`
+  - Teste: `CA-05: grava regra limpa, não cria pendência e sincroniza o serviço de acessibilidade` (exceção)
+  - Teste: `CA-05: limpa também a pendente e espelha as duas cópias limpas no nativo` (exceção)
+- [ ] TASK-06 (RN-01, CA-02): `<queries>` do `AndroidManifest.xml` com exatamente os pacotes da lista curada, sem `MAIN`/`LAUNCHER` e sem `QUERY_ALL_PACKAGES`. Antes de trocar, mapear os pontos que resolvem nome/ícone por pacote (`RootoraAccessibilityModule.listarAppsInstalados`, `RootoraAccessibilityService.resolverAppLabel`, InterceptScreen, telas de debug) e confirmar que continuam funcionando
+  - Teste: `CA-02: manifesto declara exatamente os pacotes da lista curada` (feliz)
+- [ ] TASK-07 (tela, CA-01, CA-02, CA-03, CA-04, RN-04, RN-05): `BloqueioAppsScreen` com os estados normal, carregando e vazio, dica do YouTube e rótulos de acessibilidade (nome do app e estado marcado/desmarcado)
+  - Teste: `CA-01: lista Instagram, TikTok e YouTube com dica no YouTube` (feliz)
+  - Teste: `CA-04: sem apps da lista mostra "Nenhuma rede social encontrada neste aparelho." e nenhum item` (exceção)
