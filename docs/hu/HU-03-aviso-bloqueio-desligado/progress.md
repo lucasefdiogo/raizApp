@@ -18,3 +18,6 @@ Task ativa: nenhuma
 Task ativa: TASK-04
 TASK-04: comportamento já existia (HU-02, log sem tarefas nem escudo = sem_registro); só testes CA-08 de acessibilidade em progress e useStreak, com dente provado por mutação temporária revertida. Suíte 1169 verde.
 Task ativa: nenhuma
+Task ativa: TASK-05
+TASK-05: wrapper src/native/EventosAcessibilidade.ts (lerEventosAcessibilidadePendentes, marcarEventosAcessibilidadeEnviados, verificarDesligamentoNaAbertura, espelharNotificacoesAtivas); contrato que a TASK-09 implementa no módulo Kotlin. Sem módulo resolve vazio; rejeição nativa passa adiante (hook da TASK-06 trata). Suíte 1175 verde.
+Task ativa: nenhuma

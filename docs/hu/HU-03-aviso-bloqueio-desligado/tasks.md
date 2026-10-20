@@ -38,7 +38,7 @@ Spec: v1
     - Arquivos: src/domain/progress.ts, src/domain/progress.test.ts, src/hooks/useStreak.ts, src/hooks/useStreak.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-05 (CA-05, CA-06, CA-07, RN-06, RN-07): wrapper TS dos métodos nativos de eventos de acessibilidade (ler pendentes, marcar enviados, verificar desligamento na abertura, espelhar `notificacoesAtivas`), que resolve vazio ou não faz nada quando o módulo falta
+- [x] TASK-05 (CA-05, CA-06, CA-07, RN-06, RN-07): wrapper TS dos métodos nativos de eventos de acessibilidade (ler pendentes, marcar enviados, verificar desligamento na abertura, espelhar `notificacoesAtivas`), que resolve vazio ou não faz nada quando o módulo falta
   - Teste: `CA-05: sem o módulo nativo nenhum evento pendente é devolvido` (exceção)
   - Teste: `CA-07: sem o módulo nativo a verificação na abertura não lança` (exceção)
   - Teste: `CA-06: espelharNotificacoesAtivas repassa o valor ao módulo nativo` (feliz)
