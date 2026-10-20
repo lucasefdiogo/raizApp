@@ -47,7 +47,7 @@ Spec: v1
     - Arquivos: src/native/EventosAcessibilidade.ts, src/native/EventosAcessibilidade.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-06 (CA-05, CA-06, CA-07, RN-06, RN-07): hook que, ao abrir o app e ao voltar ao primeiro plano, espelha `notificacoesAtivas`, verifica o desligamento sem `onUnbind`, envia os eventos pendentes ao Firestore e os marca como enviados; ligado na `HomeScreen`
+- [x] TASK-06 (CA-05, CA-06, CA-07, RN-06, RN-07): hook que, ao abrir o app e ao voltar ao primeiro plano, espelha `notificacoesAtivas`, verifica o desligamento sem `onUnbind`, envia os eventos pendentes ao Firestore e os marca como enviados; ligado na `HomeScreen`
   - Teste: `CA-05: eventos pendentes são gravados por dia e marcados como enviados` (feliz)
   - Teste: `CA-05: sem eventos pendentes nada é gravado numa abertura posterior` (feliz)
   - Teste: `CA-07: a abertura pede a verificação de desligamento ao módulo nativo antes de ler os pendentes` (exceção)

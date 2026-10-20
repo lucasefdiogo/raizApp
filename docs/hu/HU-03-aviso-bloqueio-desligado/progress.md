@@ -21,3 +21,6 @@ Task ativa: nenhuma
 Task ativa: TASK-05
 TASK-05: wrapper src/native/EventosAcessibilidade.ts (lerEventosAcessibilidadePendentes, marcarEventosAcessibilidadeEnviados, verificarDesligamentoNaAbertura, espelharNotificacoesAtivas); contrato que a TASK-09 implementa no módulo Kotlin. Sem módulo resolve vazio; rejeição nativa passa adiante (hook da TASK-06 trata). Suíte 1175 verde.
 Task ativa: nenhuma
+Task ativa: TASK-06
+TASK-06: useSincronizarAcessibilidade (espelha notificacoesAtivas, verifica desligamento, grava eventos por dia, só marca enviados se tudo gravou) ligado na HomeScreen. Desvio mínimo aceito pelo auditor: uma linha jest.mock em src/navigation/HojeStack.test.tsx (fora do Escopo), necessária porque ele renderiza a Home real. Suíte 1181 verde.
+Task ativa: nenhuma

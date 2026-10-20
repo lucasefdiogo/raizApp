@@ -17,6 +17,7 @@ import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
 import { useColetaUsoApps } from '../hooks/useColetaUsoApps';
+import { useSincronizarAcessibilidade } from '../hooks/useSincronizarAcessibilidade';
 import { useFeatureTour } from '../hooks/useFeatureTour';
 import { useSincronizarRegrasBloqueio } from '../hooks/useSincronizarRegrasBloqueio';
 import { HomeHeader } from '../components/home/HomeHeader';
@@ -119,6 +120,9 @@ export function HomeScreen({
   // Coleta o uso das redes dos últimos 7 dias (HU-02); silenciosa e só com
   // acesso de uso concedido e consentimento gravado.
   useColetaUsoApps(uid);
+  // Espelha notificacoesAtivas, verifica o desligamento do serviço de
+  // acessibilidade e envia os eventos pendentes (HU-03); silencioso.
+  useSincronizarAcessibilidade(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {
