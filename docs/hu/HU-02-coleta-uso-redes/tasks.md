@@ -11,7 +11,7 @@ Spec: v1
     - Arquivos: src/domain/usoApps.ts, src/domain/usoApps.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-02 (CA-06, RN-01, RN-06): módulo nativo Kotlin que lê o `UsageStatsManager`, wrapper TS sem rejeitar quando o módulo falta, permissão `PACKAGE_USAGE_STATS` no manifesto e arquitetura atualizada
+- [x] TASK-02 (CA-06, RN-01, RN-06): módulo nativo Kotlin que lê o `UsageStatsManager`, wrapper TS sem rejeitar quando o módulo falta, permissão `PACKAGE_USAGE_STATS` no manifesto e arquitetura atualizada
   - Teste: `CA-06: sem o módulo nativo o acesso de uso é falso e nenhum evento é devolvido` (exceção)
   - Teste: `CA-06: manifesto declara PACKAGE_USAGE_STATS` (exceção)
   - Escopo:

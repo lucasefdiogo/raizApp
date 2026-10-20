@@ -9,3 +9,6 @@ Evidência de falso positivo, a confirmar pelo Lucas: `.mcp.json` (e .bashrc, .g
 Entrega: auditoria parou a TASK-01
 TASK-01 concluída: agregação pura de eventos de primeiro plano em `usoApps` (src/domain/usoApps.ts) com testes por CA. Commit a pedido do Lucas apesar da auditoria ter parado com 11 (falso positivo dos nós /dev/null do sandbox, a confirmar).
 Task ativa: nenhuma
+Auditoria da TASK-01 refeita após o Lucas ocultar os nós /dev/null do sandbox: ok.
+TASK-02 concluída: wrapper `src/native/UsoApps.ts`, módulo Kotlin `RootoraUsoAppsModule.kt`, permissão `PACKAGE_USAGE_STATS` no manifesto e arquitetura atualizada. Auditoria ok. Pendência: o Kotlin nunca foi compilado (gradle falha no ksp de async-storage dentro do sandbox); compilar no terminal do Lucas antes do merge.
+Task ativa: nenhuma

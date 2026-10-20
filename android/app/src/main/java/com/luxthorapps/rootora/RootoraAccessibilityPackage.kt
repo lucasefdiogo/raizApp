@@ -8,7 +8,10 @@ import com.facebook.react.uimanager.ViewManager
 class RootoraAccessibilityPackage : ReactPackage {
   override fun createNativeModules(
     reactContext: ReactApplicationContext,
-  ): List<NativeModule> = listOf(RootoraAccessibilityModule(reactContext))
+  ): List<NativeModule> = listOf(
+    RootoraAccessibilityModule(reactContext),
+    RootoraUsoAppsModule(reactContext),
+  )
 
   override fun createViewManagers(
     reactContext: ReactApplicationContext,
