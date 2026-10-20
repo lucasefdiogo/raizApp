@@ -137,6 +137,21 @@ describe('avaliarStatusHistoricoDia', () => {
     );
   });
 
+  it('CA-08: dia passado com dailyLog só de acessibilidade continua sem_registro no Progresso', () => {
+    const log = {
+      data: '2026-09-10',
+      tarefas: [],
+      escudoUsado: false,
+      acessibilidade: { desligadoEm: ['2026-09-10T14:00:00.000Z'] },
+    };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe(
+      avaliarStatusHistoricoDia(null, '2026-09-10', HOJE),
+    );
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe(
+      'sem_registro',
+    );
+  });
+
   it('hoje: sempre pendente, mesmo com log cumprido (sem avaliarHojeAoVivo)', () => {
     const log = {
       data: '2026-09-14',

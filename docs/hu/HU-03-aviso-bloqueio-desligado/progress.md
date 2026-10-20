@@ -15,3 +15,6 @@ TASK-03 (rodada de correção por decisão do Lucas): firestore.ts revertido, te
 TASK-03: auditoria aprovada no pacote 2 após o vermelho registrado.
 Entrega: plano aprovado
 Task ativa: nenhuma
+Task ativa: TASK-04
+TASK-04: comportamento já existia (HU-02, log sem tarefas nem escudo = sem_registro); só testes CA-08 de acessibilidade em progress e useStreak, com dente provado por mutação temporária revertida. Suíte 1169 verde.
+Task ativa: nenhuma

@@ -274,6 +274,44 @@ describe('useStreak', () => {
     expect(comUsoApps.result.current.statusStreak).toBe(esperado.statusStreak);
   });
 
+  it('CA-08: streak avaliado com dailyLog de ontem só com acessibilidade é igual ao de sem documento', async () => {
+    mockAgora('2026-09-09');
+    const estado = { ...ESTADO_BASE, escudosDisponiveis: 1 };
+
+    firestoreService.buscarEstadoStreak.mockResolvedValue(estado);
+    firestoreService.buscarDailyLog.mockResolvedValue(null);
+    const semDocumento = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() =>
+      expect(semDocumento.result.current.carregando).toBe(false),
+    );
+    const esperado = { ...semDocumento.result.current };
+
+    firestoreService.buscarDailyLog.mockResolvedValue({
+      data: '2026-09-08',
+      tarefas: [],
+      statusDia: 'pendente',
+      escudoUsado: false,
+      acessibilidade: { desligadoEm: ['2026-09-08T14:00:00.000Z'] },
+    });
+    const comAcessibilidade = await renderHook(() => useStreak('uid-1'));
+    await waitFor(() =>
+      expect(comAcessibilidade.result.current.carregando).toBe(false),
+    );
+
+    expect(comAcessibilidade.result.current.streakAtual).toBe(
+      esperado.streakAtual,
+    );
+    expect(comAcessibilidade.result.current.statusDiaAnterior).toBe(
+      esperado.statusDiaAnterior,
+    );
+    expect(comAcessibilidade.result.current.escudosDisponiveis).toBe(
+      esperado.escudosDisponiveis,
+    );
+    expect(comAcessibilidade.result.current.statusStreak).toBe(
+      esperado.statusStreak,
+    );
+  });
+
   it('2+ dias seguidos sem atividade: statusStreak vira pausado, e NÃO expõe statusDiaAnterior (evita disputar com a tela de recaída de 1 dia)', async () => {
     mockAgora('2026-09-12'); // gap de 4 dias desde ultimoDiaAtivo (2026-09-08)
     firestoreService.buscarEstadoStreak.mockResolvedValue({ ...ESTADO_BASE });
