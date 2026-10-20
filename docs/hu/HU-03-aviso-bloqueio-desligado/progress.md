@@ -24,3 +24,6 @@ Task ativa: nenhuma
 Task ativa: TASK-06
 TASK-06: useSincronizarAcessibilidade (espelha notificacoesAtivas, verifica desligamento, grava eventos por dia, só marca enviados se tudo gravou) ligado na HomeScreen. Desvio mínimo aceito pelo auditor: uma linha jest.mock em src/navigation/HojeStack.test.tsx (fora do Escopo), necessária porque ele renderiza a Home real. Suíte 1181 verde.
 Task ativa: nenhuma
+Task ativa: TASK-07
+TASK-07: alternarNotificacoes em usePerfil espelha notificacoesAtivas no nativo após gravar no Firestore (não espelha se a gravação falhar). Suíte 1184 verde.
+Task ativa: nenhuma

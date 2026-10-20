@@ -58,7 +58,7 @@ Spec: v1
     - Arquivos: src/hooks/useSincronizarAcessibilidade.ts, src/hooks/useSincronizarAcessibilidade.test.ts, src/screens/HomeScreen.tsx, src/screens/HomeScreen.test.tsx
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-07 (CA-06, RN-03): mudar `notificacoesAtivas` no Perfil também espelha o valor no nativo
+- [x] TASK-07 (CA-06, RN-03): mudar `notificacoesAtivas` no Perfil também espelha o valor no nativo
   - Teste: `CA-06: desligar as notificações no Perfil espelha falso no nativo` (exceção)
   - Teste: `CA-06: ligar as notificações no Perfil espelha verdadeiro no nativo` (feliz)
   - Escopo:

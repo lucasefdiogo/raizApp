@@ -5,8 +5,15 @@ jest.mock('../services/firestore');
 jest.mock('../services/notifications');
 jest.mock('../services/crashlytics');
 jest.mock('./useToast');
+jest.mock('../native/EventosAcessibilidade');
 
-const { buscarUsuario, atualizarPerfilUsuario } = require('../services/firestore');
+const {
+  espelharNotificacoesAtivas,
+} = require('../native/EventosAcessibilidade');
+const {
+  buscarUsuario,
+  atualizarPerfilUsuario,
+} = require('../services/firestore');
 const {
   agendarLembreteDiario,
   avaliarNecessidadeAlertaRisco,
@@ -236,6 +243,51 @@ describe('usePerfil', () => {
 
     expect(agendarLembreteDiario).not.toHaveBeenCalled();
     expect(result.current.notificacoesAtivas).toBe(true);
+  });
+
+  it('CA-06: ligar as notificações no Perfil espelha verdadeiro no nativo', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.alternarNotificacoes(true);
+    });
+
+    expect(espelharNotificacoesAtivas).toHaveBeenCalledTimes(1);
+    expect(espelharNotificacoesAtivas).toHaveBeenCalledWith(true);
+  });
+
+  it('CA-06: desligar as notificações no Perfil espelha falso no nativo', async () => {
+    buscarUsuario.mockResolvedValue({
+      ...USUARIO_BASE,
+      notificacoesAtivas: true,
+    });
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.alternarNotificacoes(false);
+    });
+
+    expect(espelharNotificacoesAtivas).toHaveBeenCalledTimes(1);
+    expect(espelharNotificacoesAtivas).toHaveBeenCalledWith(false);
+  });
+
+  it('CA-06: falha ao gravar no Firestore não espelha o valor no nativo', async () => {
+    buscarUsuario.mockResolvedValue(USUARIO_BASE);
+    atualizarPerfilUsuario.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => usePerfil('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    await act(async () => {
+      await result.current.alternarNotificacoes(true);
+    });
+
+    expect(espelharNotificacoesAtivas).not.toHaveBeenCalled();
   });
 
   it('testarCrash repassa direto pro service (guard __DEV__ já vive lá)', async () => {
