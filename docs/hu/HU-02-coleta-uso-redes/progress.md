@@ -14,3 +14,5 @@ TASK-02 concluída: wrapper `src/native/UsoApps.ts`, módulo Kotlin `RootoraUsoA
 Task ativa: nenhuma
 TASK-03 concluída: `gravarUsoAppsNoDia` (merge em dailyLogs), `useColetaUsoApps` (só com consentimentoAcessoUso e acesso de uso) chamado pela Home. Auditoria: 1 correção (formatação alheia em HomeScreen.test.tsx), ok na rodada 2. `buscarDailyLog` passou a devolver `usoApps`. `schema-firebase.md` ainda não documenta `usoApps` nem `consentimentoAcessoUso` (sinalizar no fim da HU).
 Task ativa: nenhuma
+TASK-04 concluída: `avaliarStatusHistoricoDia` trata dailyLog passado sem tarefas e sem escudo (ex.: só `usoApps`) como `sem_registro`; teste de streak do CA-08 passou sem mudar `useStreak.ts` (vermelho não provado por mutação). Auditoria ok de primeira. Rever em /definition textos sobre o status `perdido` de dia sem tarefas.
+Task ativa: nenhuma

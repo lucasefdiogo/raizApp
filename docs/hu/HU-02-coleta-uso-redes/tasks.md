@@ -29,7 +29,7 @@ Spec: v1
     - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/hooks/useColetaUsoApps.ts, src/hooks/useColetaUsoApps.test.ts, src/screens/HomeScreen.tsx, src/screens/HomeScreen.test.tsx, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-04 (CA-08, RN-08): dia passado cujo `dailyLog` só tem `usoApps` mantém o mesmo status no Progresso e o mesmo streak que sem o documento
+- [x] TASK-04 (CA-08, RN-08): dia passado cujo `dailyLog` só tem `usoApps` mantém o mesmo status no Progresso e o mesmo streak que sem o documento
   - Teste: `CA-08: dia passado sem tarefas nem escudo continua sem_registro no Progresso` (exceção)
   - Teste: `CA-08: streak avaliado com dailyLog de ontem só com usoApps é igual ao de sem documento` (exceção)
   - Escopo:

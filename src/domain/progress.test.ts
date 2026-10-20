@@ -127,6 +127,16 @@ describe('avaliarStatusHistoricoDia', () => {
     );
   });
 
+  it('CA-08: dia passado sem tarefas nem escudo continua sem_registro no Progresso', () => {
+    const log = { data: '2026-09-10', tarefas: [], escudoUsado: false };
+    expect(avaliarStatusHistoricoDia(log, '2026-09-10', HOJE)).toBe(
+      'sem_registro',
+    );
+    expect(avaliarStatusHistoricoDia(null, '2026-09-10', HOJE)).toBe(
+      'sem_registro',
+    );
+  });
+
   it('hoje: sempre pendente, mesmo com log cumprido (sem avaliarHojeAoVivo)', () => {
     const log = {
       data: '2026-09-14',
