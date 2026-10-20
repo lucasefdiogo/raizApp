@@ -1,7 +1,7 @@
 # Tasks — HU-03
 Spec: v1
 
-- [ ] TASK-01 (CA-01, CA-02, CA-03, CA-06, CA-07, RN-02, RN-03, RN-04, RN-06, RN-09): funções puras em `domain/avisoBloqueio.ts` com fixtures compartilhadas TS/Kotlin: horários dos lembretes, lembretes ainda agendáveis, textos, decisão de exibir e decisão de registrar desligamento na abertura
+- [x] TASK-01 (CA-01, CA-02, CA-03, CA-06, CA-07, RN-02, RN-03, RN-04, RN-06, RN-09): funções puras em `domain/avisoBloqueio.ts` com fixtures compartilhadas TS/Kotlin: horários dos lembretes, lembretes ainda agendáveis, textos, decisão de exibir e decisão de registrar desligamento na abertura
   - Teste: `CA-01: desligar às 22:00 agenda o 1º lembrete para as 09:00 do dia seguinte com título e corpo da RN-04` (feliz)
   - Teste: `CA-02: o 2º lembrete cai três dias depois do 1º, às 09:00, e não existe um 3º` (feliz)
   - Teste: `CA-03: religar antes das 09:00 do dia seguinte não deixa lembrete agendável` (feliz)

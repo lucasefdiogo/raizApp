@@ -1,0 +1,222 @@
+{
+  "lembretes": [
+    {
+      "nome": "desligar as 22:00 agenda 09:00 do dia seguinte e 3 dias depois",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "esperado": [
+        {
+          "ordem": 1,
+          "em": { "ano": 2026, "mes": 10, "dia": 12, "hora": 9, "minuto": 0 }
+        },
+        {
+          "ordem": 2,
+          "em": { "ano": 2026, "mes": 10, "dia": 15, "hora": 9, "minuto": 0 }
+        }
+      ]
+    },
+    {
+      "nome": "desligar as 03:00 ainda agenda o dia seguinte e atravessa a virada de mes",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 30,
+        "hora": 3,
+        "minuto": 0
+      },
+      "esperado": [
+        {
+          "ordem": 1,
+          "em": { "ano": 2026, "mes": 10, "dia": 31, "hora": 9, "minuto": 0 }
+        },
+        {
+          "ordem": 2,
+          "em": { "ano": 2026, "mes": 11, "dia": 3, "hora": 9, "minuto": 0 }
+        }
+      ]
+    }
+  ],
+  "textos": [
+    {
+      "ordem": 1,
+      "titulo": "Bloqueio de apps desligado",
+      "corpo": "Desligado desde ontem. Toque para religar quando quiser."
+    },
+    {
+      "ordem": 2,
+      "titulo": "Bloqueio de apps desligado",
+      "corpo": "Desligado há alguns dias. Toque para religar quando quiser."
+    }
+  ],
+  "agendaveis": [
+    {
+      "nome": "logo apos desligar os dois lembretes estao agendaveis",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": null,
+      "agora": { "ano": 2026, "mes": 10, "dia": 11, "hora": 22, "minuto": 5 },
+      "esperadoOrdens": [1, 2]
+    },
+    {
+      "nome": "religar antes das 09:00 do dia seguinte nao deixa nenhum",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 12,
+        "hora": 8,
+        "minuto": 59
+      },
+      "agora": { "ano": 2026, "mes": 10, "dia": 12, "hora": 8, "minuto": 59 },
+      "esperadoOrdens": []
+    },
+    {
+      "nome": "religamento mais antigo que o desligamento nao cancela",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 10,
+        "hora": 8,
+        "minuto": 0
+      },
+      "agora": { "ano": 2026, "mes": 10, "dia": 11, "hora": 22, "minuto": 5 },
+      "esperadoOrdens": [1, 2]
+    },
+    {
+      "nome": "depois do 1o lembrete so resta o 2o (reagendamento no boot)",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": null,
+      "agora": { "ano": 2026, "mes": 10, "dia": 13, "hora": 10, "minuto": 0 },
+      "esperadoOrdens": [2]
+    },
+    {
+      "nome": "horario igual a agora nao e agendavel",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": null,
+      "agora": { "ano": 2026, "mes": 10, "dia": 12, "hora": 9, "minuto": 0 },
+      "esperadoOrdens": [2]
+    },
+    {
+      "nome": "depois do 2o lembrete nada resta",
+      "desligadoEm": {
+        "ano": 2026,
+        "mes": 10,
+        "dia": 11,
+        "hora": 22,
+        "minuto": 0
+      },
+      "religadoEm": null,
+      "agora": { "ano": 2026, "mes": 10, "dia": 16, "hora": 8, "minuto": 0 },
+      "esperadoOrdens": []
+    }
+  ],
+  "exibir": [
+    {
+      "nome": "todas as condicoes atendidas exibe",
+      "servicoDesligado": true,
+      "temRegrasBloqueio": true,
+      "jaAtivadoAlgumaVez": true,
+      "notificacoesAtivas": true,
+      "esperado": true
+    },
+    {
+      "nome": "notificacoesAtivas falso descarta",
+      "servicoDesligado": true,
+      "temRegrasBloqueio": true,
+      "jaAtivadoAlgumaVez": true,
+      "notificacoesAtivas": false,
+      "esperado": false
+    },
+    {
+      "nome": "servico religado descarta",
+      "servicoDesligado": false,
+      "temRegrasBloqueio": true,
+      "jaAtivadoAlgumaVez": true,
+      "notificacoesAtivas": true,
+      "esperado": false
+    },
+    {
+      "nome": "sem regrasBloqueio descarta",
+      "servicoDesligado": true,
+      "temRegrasBloqueio": false,
+      "jaAtivadoAlgumaVez": true,
+      "notificacoesAtivas": true,
+      "esperado": false
+    },
+    {
+      "nome": "nunca ativado descarta",
+      "servicoDesligado": true,
+      "temRegrasBloqueio": true,
+      "jaAtivadoAlgumaVez": false,
+      "notificacoesAtivas": true,
+      "esperado": false
+    }
+  ],
+  "registrarNaAbertura": [
+    {
+      "nome": "desligado sem nenhum evento registra",
+      "servicoDesligado": true,
+      "ultimoEvento": null,
+      "esperado": true
+    },
+    {
+      "nome": "desligado e ultimo evento religamento registra",
+      "servicoDesligado": true,
+      "ultimoEvento": "religamento",
+      "esperado": true
+    },
+    {
+      "nome": "desligado e ultimo evento desligamento nao duplica",
+      "servicoDesligado": true,
+      "ultimoEvento": "desligamento",
+      "esperado": false
+    },
+    {
+      "nome": "servico ligado nao registra",
+      "servicoDesligado": false,
+      "ultimoEvento": "religamento",
+      "esperado": false
+    },
+    {
+      "nome": "servico ligado sem evento nao registra",
+      "servicoDesligado": false,
+      "ultimoEvento": null,
+      "esperado": false
+    }
+  ]
+}
