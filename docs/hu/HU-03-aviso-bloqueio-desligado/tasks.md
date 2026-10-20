@@ -66,7 +66,7 @@ Spec: v1
     - Arquivos: src/hooks/usePerfil.ts, src/hooks/usePerfil.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-08 (CA-01, CA-02, CA-03, CA-06, CA-07, RN-02, RN-03, RN-06): espelho Kotlin `AvisoDesligamentoMaquina` das funções puras da TASK-01, testado com JUnit sobre as mesmas fixtures
+- [x] TASK-08 (CA-01, CA-02, CA-03, CA-06, CA-07, RN-02, RN-03, RN-06): espelho Kotlin `AvisoDesligamentoMaquina` das funções puras da TASK-01, testado com JUnit sobre as mesmas fixtures
   - Teste: `CA-01: horários e textos do 1º lembrete batem com a fixture` (feliz)
   - Teste: `CA-02: horário e texto do 2º lembrete batem com a fixture` (feliz)
   - Teste: `CA-03: religado antes das 09:00 não deixa lembrete agendável` (feliz)

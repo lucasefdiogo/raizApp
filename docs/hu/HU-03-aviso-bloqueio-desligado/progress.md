@@ -27,3 +27,6 @@ Task ativa: nenhuma
 Task ativa: TASK-07
 TASK-07: alternarNotificacoes em usePerfil espelha notificacoesAtivas no nativo após gravar no Firestore (não espelha se a gravação falhar). Suíte 1184 verde.
 Task ativa: nenhuma
+Task ativa: TASK-08
+TASK-08: espelho Kotlin AvisoDesligamentoMaquina validado por JUnit sobre a mesma fixture (5 testes, 0 falhas; cd android && ./gradlew :app:testDebugUnitTest --tests *AvisoDesligamentoMaquinaTest* --offline). Ressalva: o vermelho (5 falhas contra stub) está só no relato do construtor, o diário não o registra em linha própria; auditor aceitou porque o código espelha o TS e a fixture é a mesma.
+Task ativa: nenhuma
