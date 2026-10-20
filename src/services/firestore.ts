@@ -260,6 +260,9 @@ export async function buscarDailyLog(
     ...(bruto.resumoBloqueio !== undefined
       ? { resumoBloqueio: bruto.resumoBloqueio }
       : {}),
+    ...(bruto.acessibilidade !== undefined
+      ? { acessibilidade: bruto.acessibilidade }
+      : {}),
   };
 }
 
@@ -532,6 +535,32 @@ export async function gravarUsoAppsNoDia(
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
   await setDoc(referencia, { usoApps }, { merge: true });
+}
+
+/**
+ * Acrescenta eventos de acessibilidade (ISO 8601) em
+ * `acessibilidade.desligadoEm`/`religadoEm` via `arrayUnion` — reenviar o
+ * mesmo evento não duplica (RN-07). O payload tem só a chave
+ * `acessibilidade`: tarefas, statusDia e escudoUsado ficam intocados (RN-08).
+ * Objeto aninhado, não chave com ponto (setDoc a trataria como literal).
+ */
+export async function gravarAcessibilidadeNoDia(
+  uid: string,
+  data: string,
+  eventos: { desligadoEm: string[]; religadoEm: string[] },
+): Promise<void> {
+  const acessibilidade: Record<string, unknown> = {};
+  if (eventos.desligadoEm.length > 0) {
+    acessibilidade.desligadoEm = arrayUnion(...eventos.desligadoEm);
+  }
+  if (eventos.religadoEm.length > 0) {
+    acessibilidade.religadoEm = arrayUnion(...eventos.religadoEm);
+  }
+  if (Object.keys(acessibilidade).length === 0) {
+    return;
+  }
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { acessibilidade }, { merge: true });
 }
 
 /** Acrescenta UMA interceptação via `arrayUnion` — mesmo racional de registrarSessaoFocoNoDia. */

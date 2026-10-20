@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { espelharNotificacoesAtivas } from '../native/EventosAcessibilidade';
 import { atualizarPerfilUsuario, buscarUsuario } from '../services/firestore';
 import {
   agendarLembreteDiario,
@@ -86,6 +87,8 @@ export function usePerfil(uid: string): UsePerfilResultado {
       try {
         await atualizarPerfilUsuario(uid, { notificacoesAtivas: ativo });
         setNotificacoesAtivas(ativo);
+        // Native reminders need this flag to decide whether to show (RN-03).
+        espelharNotificacoesAtivas(ativo);
 
         if (ativo) {
           if (horarioLembreteDiario) {

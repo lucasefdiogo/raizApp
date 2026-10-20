@@ -89,6 +89,11 @@ export interface DailyLog {
    * estatísticas futuras. Ausente = nenhum bloco liberado ainda.
    */
   resumoBloqueio?: ResumoBloqueioDia;
+  /**
+   * Eventos do serviço de acessibilidade do dia (HU-03), ISO 8601. Ausente =
+   * nenhum evento. Não conta para streak nem para o status do dia.
+   */
+  acessibilidade?: { desligadoEm?: string[]; religadoEm?: string[] };
 }
 
 /** De onde a sessão de foco começou — muda o que fica disponível em FimSessao. */

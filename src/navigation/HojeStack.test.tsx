@@ -29,6 +29,8 @@ jest.mock('../hooks/useDailyTasks');
 // mantido inativo pra não interferir nas asserções de roteamento daqui.
 jest.mock('../hooks/useFeatureTour');
 jest.mock('../hooks/useColetaUsoApps');
+jest.mock('../hooks/useSincronizarAcessibilidade');
+jest.mock('../hooks/useAbrirDestinoDaNotificacao');
 jest.mock('../services/firestore');
 jest.mock('../utils/taskFeedbackMessages');
 

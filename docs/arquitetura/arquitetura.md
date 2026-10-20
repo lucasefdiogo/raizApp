@@ -87,6 +87,7 @@ src/
   theme/       # cores e fontes; nada hardcoded fora daqui
 android/
   app/         # Kotlin: AccessibilityService, InterceptActivity, SaldoBloqueioMaquina.kt (autoridade do saldo, espelha domain/saldoBloqueio.ts), RootoraUsoAppsModule.kt (lê eventos do UsageStatsManager; permissão PACKAGE_USAGE_STATS, "Acesso de uso" concedido pelo usuário nas configurações)
+               # Aviso de bloqueio desligado (HU-03): AvisoDesligamentoPrefs.kt registra os eventos de desligar/religar do serviço (SharedPreferences, funciona com o app fechado); AvisoDesligamentoAgendador.kt agenda até 2 lembretes com AlarmManager (alarme INEXATO, setAndAllowWhileIdle, sem SCHEDULE_EXACT_ALARM); AvisoDesligamentoReceiver.kt decide (AvisoDesligamentoMaquina.kt, espelha domain/avisoBloqueio.ts) e exibe a notificação no canal "lembretes-rootora", o mesmo do notifee; AvisoDesligamentoBootReceiver.kt reagenda no boot (RECEIVE_BOOT_COMPLETED)
 native/ (src/)  # wrappers TS dos módulos nativos (AccessibilityDetection.ts, UsoApps.ts); sem o módulo linkado resolvem vazio/false, nunca rejeitam
 docs/
   legal/       # Política de Privacidade e Termos (Firebase Hosting)

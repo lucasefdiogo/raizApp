@@ -14,6 +14,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableArray
 import java.io.ByteArrayOutputStream
 
 /**
@@ -34,34 +35,97 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun isAccessibilityServiceEnabled(promise: Promise) {
     try {
-      val resolver = reactApplicationContext.contentResolver
-
-      val habilitadoGlobal =
-        Settings.Secure.getInt(resolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
-      if (!habilitadoGlobal) {
-        promise.resolve(false)
-        return
-      }
-
-      val servicosHabilitados =
-        Settings.Secure.getString(
-          resolver,
-          Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ) ?: ""
-
-      val nosso = ComponentName(
-        reactApplicationContext,
-        RootoraAccessibilityService::class.java,
-      )
-      val ativo =
-        servicosHabilitados.split(':').any { entrada ->
-          entrada.equals(nosso.flattenToString(), ignoreCase = true) ||
-            entrada.equals(nosso.flattenToShortString(), ignoreCase = true)
-        }
-
-      promise.resolve(ativo)
+      promise.resolve(servicoAcessibilidadeHabilitado())
     } catch (erro: Exception) {
       promise.reject("ACCESSIBILITY_CHECK_FAILED", erro)
+    }
+  }
+
+  private fun servicoAcessibilidadeHabilitado(): Boolean {
+    val resolver = reactApplicationContext.contentResolver
+
+    val habilitadoGlobal =
+      Settings.Secure.getInt(resolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
+    if (!habilitadoGlobal) {
+      return false
+    }
+
+    val servicosHabilitados =
+      Settings.Secure.getString(
+        resolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+      ) ?: ""
+
+    val nosso = ComponentName(
+      reactApplicationContext,
+      RootoraAccessibilityService::class.java,
+    )
+    return servicosHabilitados.split(':').any { entrada ->
+      entrada.equals(nosso.flattenToString(), ignoreCase = true) ||
+        entrada.equals(nosso.flattenToShortString(), ignoreCase = true)
+    }
+  }
+
+  /** Unsent service on/off events, oldest first, as [{ id, tipo, em }] (contract: src/native/EventosAcessibilidade.ts). */
+  @ReactMethod
+  fun lerEventosAcessibilidadePendentes(promise: Promise) {
+    try {
+      val lista = Arguments.createArray()
+      for (evento in AvisoDesligamentoPrefs.lerPendentes(reactApplicationContext)) {
+        val mapa = Arguments.createMap()
+        mapa.putString("id", evento.id)
+        mapa.putString("tipo", evento.tipo)
+        mapa.putString("em", evento.em)
+        lista.pushMap(mapa)
+      }
+      promise.resolve(lista)
+    } catch (erro: Exception) {
+      promise.reject("LER_EVENTOS_ACESSIBILIDADE_FAILED", erro)
+    }
+  }
+
+  @ReactMethod
+  fun marcarEventosAcessibilidadeEnviados(ids: ReadableArray, promise: Promise) {
+    try {
+      val lista = (0 until ids.size()).mapNotNull { ids.getString(it) }
+      AvisoDesligamentoPrefs.marcarEnviados(reactApplicationContext, lista)
+      promise.resolve(null)
+    } catch (erro: Exception) {
+      promise.reject("MARCAR_EVENTOS_ACESSIBILIDADE_FAILED", erro)
+    }
+  }
+
+  /** RN-06: covers kills where onUnbind never ran; does not duplicate a shutdown already recorded. */
+  @ReactMethod
+  fun verificarDesligamentoNaAbertura(promise: Promise) {
+    try {
+      AvisoDesligamentoPrefs.registrarDesligamentoNaAbertura(
+        reactApplicationContext,
+        !servicoAcessibilidadeHabilitado(),
+      )
+      promise.resolve(null)
+    } catch (erro: Exception) {
+      promise.reject("VERIFICAR_DESLIGAMENTO_FAILED", erro)
+    }
+  }
+
+  /** Mirrors the user's `notificacoesAtivas` setting for the native reminder (RN-03). */
+  @ReactMethod
+  fun espelharNotificacoesAtivas(ativas: Boolean) {
+    try {
+      AvisoDesligamentoPrefs.salvarNotificacoesAtivas(reactApplicationContext, ativas)
+    } catch (erro: Exception) {
+      // Not critical: mirrored again on the next change.
+    }
+  }
+
+  /** Destination left by a tapped reminder (e.g. "bloqueio-apps") or null; cleared on read. */
+  @ReactMethod
+  fun consumirDestinoNotificacao(promise: Promise) {
+    try {
+      promise.resolve(AvisoDesligamentoPrefs.consumirDestinoPendente(reactApplicationContext))
+    } catch (erro: Exception) {
+      promise.reject("CONSUMIR_DESTINO_FAILED", erro)
     }
   }
 

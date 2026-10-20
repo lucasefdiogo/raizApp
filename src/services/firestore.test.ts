@@ -28,6 +28,7 @@ import {
   desativarTarefaRecorrente,
   marcarOnboardingConcluido,
   gravarUsoAppsNoDia,
+  gravarAcessibilidadeNoDia,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -855,6 +856,83 @@ describe('services/firestore', () => {
       expect((await buscarDailyLog('uid-1', '2026-10-19'))?.usoApps).toEqual({
         'com.instagram.android': { segundos: 1500, aberturas: 4 },
       });
+    });
+  });
+
+  describe('gravarAcessibilidadeNoDia', () => {
+    const desligado = '2026-10-19T10:00:00.000-03:00';
+    const religado = '2026-10-19T11:00:00.000-03:00';
+
+    it('CA-05: gravarAcessibilidadeNoDia usa arrayUnion em desligadoEm e religadoEm com merge', async () => {
+      await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
+        desligadoEm: [desligado],
+        religadoEm: [religado],
+      });
+      await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
+        desligadoEm: [desligado],
+        religadoEm: [religado],
+      });
+
+      expect(firestoreMock.arrayUnion).toHaveBeenCalledWith(desligado);
+      expect(firestoreMock.arrayUnion).toHaveBeenCalledWith(religado);
+      expect(firestoreMock.setDoc).toHaveBeenLastCalledWith(
+        expect.anything(),
+        {
+          acessibilidade: {
+            desligadoEm: { __arrayUnion: [desligado] },
+            religadoEm: { __arrayUnion: [religado] },
+          },
+        },
+        { merge: true },
+      );
+      const log = await buscarDailyLog('uid-1', '2026-10-19');
+      expect(log?.acessibilidade).toEqual({
+        desligadoEm: [desligado],
+        religadoEm: [religado],
+      });
+    });
+
+    it('CA-08: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado', async () => {
+      await salvarDailyLog('uid-1', '2026-10-19', {
+        data: '2026-10-19',
+        tarefas: [{ id: '1', titulo: 'Estudar', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
+        desligadoEm: [desligado],
+        religadoEm: [],
+      });
+
+      const payload = firestoreMock.setDoc.mock.calls.at(-1)[1];
+      expect(Object.keys(payload)).toEqual(['acessibilidade']);
+      expect(payload.acessibilidade).toEqual({
+        desligadoEm: { __arrayUnion: [desligado] },
+      });
+      const log = await buscarDailyLog('uid-1', '2026-10-19');
+      expect(log?.tarefas).toHaveLength(1);
+      expect(log?.statusDia).toBe('cumprido');
+    });
+
+    it('CA-08: gravarAcessibilidadeNoDia sem eventos não grava nada', async () => {
+      firestoreMock.setDoc.mockClear();
+      await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
+        desligadoEm: [],
+        religadoEm: [],
+      });
+      expect(firestoreMock.setDoc).not.toHaveBeenCalled();
+    });
+
+    it('CA-05: buscarDailyLog devolve acessibilidade quando o documento tem o campo', async () => {
+      await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
+        desligadoEm: [desligado],
+        religadoEm: [],
+      });
+      expect((await buscarDailyLog('uid-1', '2026-10-19'))?.acessibilidade).toEqual({
+        desligadoEm: [desligado],
+      });
+      expect((await buscarDailyLog('uid-1', '2026-10-20'))).toBeNull();
     });
   });
 
