@@ -1,4 +1,4 @@
-import { AppState } from 'react-native';
+import { AppState, DeviceEventEmitter } from 'react-native';
 import { act, renderHook } from '@testing-library/react-native';
 import { useAbrirDestinoDaNotificacao } from './useAbrirDestinoDaNotificacao';
 import { consumirDestinoNotificacao } from '../native/DestinoNotificacao';
@@ -100,6 +100,53 @@ describe('useAbrirDestinoDaNotificacao', () => {
       erro,
       'useAbrirDestinoDaNotificacao',
     );
+    expect(mockDispatch).not.toHaveBeenCalled();
+  });
+
+  it('CA-04: com o app em primeiro plano, o evento destino-notificacao navega para a BloqueioAppsScreen', async () => {
+    consumirMock.mockResolvedValue(null);
+    await renderHook(() => useAbrirDestinoDaNotificacao());
+    expect(mockDispatch).not.toHaveBeenCalled();
+
+    consumirMock.mockResolvedValue('bloqueio-apps');
+    await act(async () => {
+      DeviceEventEmitter.emit('destino-notificacao');
+    });
+
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+    expect(mockDispatch).toHaveBeenCalledWith(ACAO_BLOQUEIO);
+  });
+
+  it('CA-04: evento recebido durante um consumo em andamento não é descartado', async () => {
+    let liberar: (v: string | null) => void = () => {};
+    consumirMock
+      .mockReturnValueOnce(new Promise((r) => (liberar = r)))
+      .mockResolvedValue('bloqueio-apps');
+    await renderHook(() => useAbrirDestinoDaNotificacao());
+
+    await act(async () => {
+      DeviceEventEmitter.emit('destino-notificacao');
+    });
+    await act(async () => {
+      liberar(null);
+    });
+
+    expect(consumirMock).toHaveBeenCalledTimes(2);
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('CA-04: depois do desmonte o hook não escuta mais o evento', async () => {
+    consumirMock.mockResolvedValue(null);
+    const { unmount } = await renderHook(() => useAbrirDestinoDaNotificacao());
+    await unmount();
+    consumirMock.mockClear();
+    consumirMock.mockResolvedValue('bloqueio-apps');
+
+    await act(async () => {
+      DeviceEventEmitter.emit('destino-notificacao');
+    });
+
+    expect(consumirMock).not.toHaveBeenCalled();
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 });

@@ -1,21 +1,26 @@
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, DeviceEventEmitter } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
-import { consumirDestinoNotificacao } from '../native/DestinoNotificacao';
+import {
+  consumirDestinoNotificacao,
+  EVENTO_DESTINO_NOTIFICACAO,
+} from '../native/DestinoNotificacao';
 import { registrarErro } from '../services/crashlytics';
 
 const ORIGEM = 'useAbrirDestinoDaNotificacao';
 const DESTINO_BLOQUEIO_APPS = 'bloqueio-apps';
 
 /**
- * Runs on mount (Home) and every time the app returns to the foreground.
+ * Runs on mount (Home), every time the app returns to the foreground and
+ * whenever the native side emits EVENTO_DESTINO_NOTIFICACAO (reminder tapped
+ * while the app is already open, no AppState change).
  * Consumes the destination left by the tapped "blocking off" reminder
  * (HU-03, RN-05) and, when it is 'bloqueio-apps', opens the Bloqueio de apps
  * screen. The native side clears the destination on read, so it is handled
- * once. Unknown or missing destination: no navigation. One run at a time.
- *
- * Known limitation: a notification tapped while the app is already in the
- * foreground (no AppState change) is only handled on the next activation.
+ * once. Unknown or missing destination: no navigation. One run at a time;
+ * a trigger that arrives during a run is not dropped: it schedules one more
+ * run right after (the in-flight read may have happened before the new
+ * destination was stored).
  *
  * Silent: failures only go to Crashlytics.
  */
@@ -25,9 +30,11 @@ export function useAbrirDestinoDaNotificacao(): void {
   useEffect(() => {
     let cancelado = false;
     let emAndamento = false;
+    let repetir = false;
 
     async function abrir() {
       if (emAndamento) {
+        repetir = true;
         return;
       }
       emAndamento = true;
@@ -46,6 +53,10 @@ export function useAbrirDestinoDaNotificacao(): void {
         registrarErro(erro as Error, ORIGEM);
       } finally {
         emAndamento = false;
+        if (repetir && !cancelado) {
+          repetir = false;
+          abrir();
+        }
       }
     }
 
@@ -56,9 +67,15 @@ export function useAbrirDestinoDaNotificacao(): void {
       }
     });
 
+    const assinaturaEvento = DeviceEventEmitter.addListener(
+      EVENTO_DESTINO_NOTIFICACAO,
+      abrir,
+    );
+
     return () => {
       cancelado = true;
       assinatura.remove();
+      assinaturaEvento.remove();
     };
   }, [navigation]);
 }

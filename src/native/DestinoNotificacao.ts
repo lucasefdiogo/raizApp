@@ -1,5 +1,8 @@
 import { NativeModules } from 'react-native';
 
+/** Event emitted by MainActivity.onNewIntent when a reminder is tapped with the app already open. */
+export const EVENTO_DESTINO_NOTIFICACAO = 'destino-notificacao';
+
 interface RootoraAccessibilityNative {
   consumirDestinoNotificacao(): Promise<string | null>;
 }

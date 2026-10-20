@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
@@ -45,11 +46,31 @@ class MainActivity : ReactActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     guardarDestinoPendente(intent)
+    avisarJS(intent)
+  }
+
+  /**
+   * App already in the foreground: AppState does not change, so tell JS to consume the pending
+   * destination now. Without an active React context nothing is emitted; the stored destination
+   * still applies on the next activation.
+   */
+  private fun avisarJS(intent: Intent?) {
+    if (intent?.getStringExtra(AvisoDesligamentoPrefs.EXTRA_DESTINO) == null) return
+    val app = application as? MainApplication ?: return
+    val reactContext = app.reactHost.currentReactContext ?: return
+    if (!reactContext.hasActiveReactInstance()) return
+    reactContext
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(EVENTO_DESTINO_NOTIFICACAO, null)
   }
 
   /** Stores the reminder destination (HU-03, RN-05); JS consumes it once via RootoraAccessibility. */
   private fun guardarDestinoPendente(intent: Intent?) {
     val destino = intent?.getStringExtra(AvisoDesligamentoPrefs.EXTRA_DESTINO) ?: return
     AvisoDesligamentoPrefs.salvarDestinoPendente(this, destino)
+  }
+
+  companion object {
+    const val EVENTO_DESTINO_NOTIFICACAO = "destino-notificacao"
   }
 }

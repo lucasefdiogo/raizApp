@@ -40,3 +40,8 @@ Task ativa: TASK-11
 TASK-11: toque na notificação grava destino pendente (MainActivity onCreate/onNewIntent), módulo consumirDestinoNotificacao (consumo único), hook useAbrirDestinoDaNotificacao navega para PerfilTab>BloqueioApps na montagem e a cada AppState active, ligado na Home. Desvio mínimo aceito: uma linha jest.mock em src/navigation/HojeStack.test.tsx. Suíte 1196 verde. Limitação: toque com o app já em primeiro plano só é tratado na próxima ativação. Parte Kotlin sem teste automatizado.
 Entrega: tasks concluídas
 Task ativa: nenhuma
+Validação (tentativa 1): verify 8/8 verde; lux-revisor REPROVADO. Achado que bloqueia: CA-04 — com o app já em primeiro plano o toque cai em MainActivity.onNewIntent, sem mudança de AppState, e nada navega. Correção: onNewIntent emite um evento ao JS e o hook useAbrirDestinoDaNotificacao o escuta (teste primeiro). Melhorias do revisor não aplicadas nesta rodada: decisão agendar/cancelar sem função pura/JUnit, montagem de CondicoesExibicao no Receiver sem teste, default nativo de notificacoesAtivas = true até o JS espelhar, testes de manifesto com ID de CA, ids CA repetidos entre HUs no verification.md, teste de Prefs com notificacoesAtivas falso.
+Entrega: validação reprovada (1/3)
+Task ativa: TASK-11
+Correção da tentativa 1: MainActivity.onNewIntent emite o evento destino-notificacao ao JS e o hook o escuta (reexecuta se chegar durante um consumo). Vermelho registrado (2 falhas por asserção), suíte 1199 verde. Depende de teste manual: toque com o app em primeiro plano, segundo plano e fechado.
+Task ativa: nenhuma
