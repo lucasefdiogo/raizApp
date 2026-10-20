@@ -13,7 +13,7 @@ Spec: v1
     - Arquivos: src/domain/avisoBloqueio.ts, src/domain/avisoBloqueio.test.ts, src/domain/__fixtures__/avisoBloqueio.json
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-02 (CA-05, RN-07): função pura que agrupa eventos de desligamento e religamento por dia local do evento em `{ desligadoEm[], religadoEm[] }`, sem repetir o mesmo horário
+- [x] TASK-02 (CA-05, RN-07): função pura que agrupa eventos de desligamento e religamento por dia local do evento em `{ desligadoEm[], religadoEm[] }`, sem repetir o mesmo horário
   - Teste: `CA-05: desligamento e religamento de dias diferentes vão cada um para o dia do evento` (feliz)
   - Teste: `CA-05: o mesmo evento repetido na lista aparece uma vez só` (feliz)
   - Escopo:
