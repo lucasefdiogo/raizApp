@@ -21,7 +21,7 @@ Spec: v1
     - Arquivos: src/domain/acessibilidade.ts, src/domain/acessibilidade.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-03 (CA-05, CA-08, RN-07, RN-08): gravação de `acessibilidade` em `dailyLogs/{dia}` via `arrayUnion` com merge, sem tocar nos demais campos, e leitura do campo em `buscarDailyLog`
+- [x] TASK-03 (CA-05, CA-08, RN-07, RN-08): gravação de `acessibilidade` em `dailyLogs/{dia}` via `arrayUnion` com merge, sem tocar nos demais campos, e leitura do campo em `buscarDailyLog`
   - Teste: `CA-05: gravarAcessibilidadeNoDia usa arrayUnion em desligadoEm e religadoEm com merge` (feliz)
   - Teste: `CA-08: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado` (exceção)
   - Teste: `CA-05: buscarDailyLog devolve acessibilidade quando o documento tem o campo` (feliz)
