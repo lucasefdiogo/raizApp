@@ -73,7 +73,9 @@ export function avaliarStatusHistoricoDia(
     }
     return 'pendente';
   }
-  if (!log) {
+  // Log sem tarefas nem escudo (ex: criado só por usoApps) equivale a não
+  // ter documento.
+  if (!log || (log.tarefas.length === 0 && !log.escudoUsado)) {
     return 'sem_registro';
   }
   return statusDoLog(log);

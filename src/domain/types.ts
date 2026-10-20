@@ -57,6 +57,15 @@ export interface Tarefa {
   quando?: string;
 }
 
+/** Uso de um app num dia (HU-02, RN-03): tempo em primeiro plano e aberturas. */
+export interface UsoApp {
+  segundos: number;
+  aberturas: number;
+}
+
+/** Uso por pacote; chave = nome do pacote Android. */
+export type UsoApps = Record<string, UsoApp>;
+
 export interface DailyLog {
   data: string;
   tarefas: Tarefa[];
@@ -68,6 +77,8 @@ export interface DailyLog {
    * essencial conta (regra 1.1 inalterada).
    */
   sessoesFoco?: SessaoFoco[];
+  /** Uso das redes sociais do dia (HU-02). Ausente = nada coletado. */
+  usoApps?: UsoApps;
   /**
    * Interceptações do dia (app bloqueado detectado, ver domain/intercept.ts).
    * Ausente = nenhuma ainda.

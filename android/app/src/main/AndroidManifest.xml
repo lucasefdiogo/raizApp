@@ -4,6 +4,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+      HU-02: leitura do tempo de uso das redes sociais da lista curada via
+      UsageStatsManager. Permissão especial ("Acesso de uso"): o usuário
+      concede nas configurações do sistema, depois da divulgação do app.
+      tools:ignore porque o lint a trata como permissão de sistema.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!--
       O app não usa Advertising ID: remove as permissões de ID de publicidade
       (AD_ID e as duas ACCESS_ADSERVICES_*) que o SDK do Firebase Analytics
       injeta no manifest merge (junto da meta-data
