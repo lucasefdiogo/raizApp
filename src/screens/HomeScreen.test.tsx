@@ -52,6 +52,12 @@ const { useColetaUsoApps } = require('../hooks/useColetaUsoApps');
 jest.mock('../hooks/useSincronizarAcessibilidade');
 const { useSincronizarAcessibilidade } = require('../hooks/useSincronizarAcessibilidade');
 
+// Abertura do destino da notificação (HU-03): tem teste próprio.
+jest.mock('../hooks/useAbrirDestinoDaNotificacao');
+const {
+  useAbrirDestinoDaNotificacao,
+} = require('../hooks/useAbrirDestinoDaNotificacao');
+
 // useFeatureTour usa useNavigation/useFocusEffect (precisaria de um
 // NavigationContainer, que este arquivo não monta) — mockado e inativo por
 // padrão; o comportamento do hook em si tem teste próprio
@@ -195,6 +201,11 @@ describe('HomeScreen', () => {
   it('CA-05: a Home dispara a sincronização de acessibilidade com o uid do usuário', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(useSincronizarAcessibilidade).toHaveBeenCalledWith('uid-teste');
+  });
+
+  it('CA-04: a Home dispara a abertura do destino da notificação', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    expect(useAbrirDestinoDaNotificacao).toHaveBeenCalled();
   });
 
   it('mostra a mensagem de dia pendente antes de qualquer tarefa concluída', async () => {

@@ -1,5 +1,6 @@
 package com.luxthorapps.rootora
 
+import android.content.Intent
 import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -36,5 +37,19 @@ class MainActivity : ReactActivity() {
    */
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(null)
+    guardarDestinoPendente(intent)
+  }
+
+  /** singleTask: a reminder tap on a live instance arrives here instead of onCreate. */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    guardarDestinoPendente(intent)
+  }
+
+  /** Stores the reminder destination (HU-03, RN-05); JS consumes it once via RootoraAccessibility. */
+  private fun guardarDestinoPendente(intent: Intent?) {
+    val destino = intent?.getStringExtra(AvisoDesligamentoPrefs.EXTRA_DESTINO) ?: return
+    AvisoDesligamentoPrefs.salvarDestinoPendente(this, destino)
   }
 }

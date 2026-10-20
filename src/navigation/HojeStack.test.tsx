@@ -30,6 +30,7 @@ jest.mock('../hooks/useDailyTasks');
 jest.mock('../hooks/useFeatureTour');
 jest.mock('../hooks/useColetaUsoApps');
 jest.mock('../hooks/useSincronizarAcessibilidade');
+jest.mock('../hooks/useAbrirDestinoDaNotificacao');
 jest.mock('../services/firestore');
 jest.mock('../utils/taskFeedbackMessages');
 

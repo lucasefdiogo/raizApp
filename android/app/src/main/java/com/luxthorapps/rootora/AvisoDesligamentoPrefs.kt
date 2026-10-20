@@ -32,6 +32,7 @@ object AvisoDesligamentoPrefs {
   private const val CHAVE_EVENTOS = "eventos"
   private const val CHAVE_JA_ATIVADO = "ja_ativado_alguma_vez"
   private const val CHAVE_NOTIFICACOES_ATIVAS = "notificacoes_ativas"
+  private const val CHAVE_DESTINO_PENDENTE = "destino_pendente"
 
   // ---- Pure logic ----
 
@@ -193,4 +194,16 @@ object AvisoDesligamentoPrefs {
 
   /** Mirror of the JS setting; defaults to true until JS mirrors it (opt-out setting). */
   fun notificacoesAtivas(context: Context): Boolean = prefs(context).getBoolean(CHAVE_NOTIFICACOES_ATIVAS, true)
+
+  fun salvarDestinoPendente(context: Context, destino: String) {
+    prefs(context).edit().putString(CHAVE_DESTINO_PENDENTE, destino).apply()
+  }
+
+  /** Returns the pending notification destination and clears it (single consumption). */
+  @Synchronized
+  fun consumirDestinoPendente(context: Context): String? {
+    val destino = prefs(context).getString(CHAVE_DESTINO_PENDENTE, null)
+    if (destino != null) prefs(context).edit().remove(CHAVE_DESTINO_PENDENTE).apply()
+    return destino
+  }
 }

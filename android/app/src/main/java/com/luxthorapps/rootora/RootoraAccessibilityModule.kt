@@ -119,6 +119,16 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  /** Destination left by a tapped reminder (e.g. "bloqueio-apps") or null; cleared on read. */
+  @ReactMethod
+  fun consumirDestinoNotificacao(promise: Promise) {
+    try {
+      promise.resolve(AvisoDesligamentoPrefs.consumirDestinoPendente(reactApplicationContext))
+    } catch (erro: Exception) {
+      promise.reject("CONSUMIR_DESTINO_FAILED", erro)
+    }
+  }
+
   @ReactMethod
   fun openAccessibilitySettings() {
     val intent =

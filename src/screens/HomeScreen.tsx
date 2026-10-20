@@ -18,6 +18,7 @@ import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
 import { useColetaUsoApps } from '../hooks/useColetaUsoApps';
 import { useSincronizarAcessibilidade } from '../hooks/useSincronizarAcessibilidade';
+import { useAbrirDestinoDaNotificacao } from '../hooks/useAbrirDestinoDaNotificacao';
 import { useFeatureTour } from '../hooks/useFeatureTour';
 import { useSincronizarRegrasBloqueio } from '../hooks/useSincronizarRegrasBloqueio';
 import { HomeHeader } from '../components/home/HomeHeader';
@@ -123,6 +124,8 @@ export function HomeScreen({
   // Espelha notificacoesAtivas, verifica o desligamento do serviço de
   // acessibilidade e envia os eventos pendentes (HU-03); silencioso.
   useSincronizarAcessibilidade(uid);
+  // Opens Bloqueio de apps when the app was opened by the reminder (HU-03).
+  useAbrirDestinoDaNotificacao();
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {

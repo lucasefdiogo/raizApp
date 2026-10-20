@@ -36,3 +36,7 @@ Task ativa: nenhuma
 Task ativa: TASK-10
 TASK-10: agendamento AlarmManager inexato (setAndAllowWhileIdle, sem SCHEDULE_EXACT_ALARM), AvisoDesligamentoReceiver (RN-03 + canal lembretes-rootora + areNotificationsEnabled), BootReceiver (reagenda), permissão RECEIVE_BOOT_COMPLETED, arquitetura.md atualizada. Receivers exported=false. Jest 1187, JUnit, compileDebugKotlin e processDebugManifest ok. NÃO testado automaticamente (precisa de aparelho): disparo do alarme/Doze, reagendamento após reboot, notificação real, ausência de POST_NOTIFICATIONS, cancelamento ao religar. Ícone da notificação usa o ic_launcher (pode aparecer quadrado).
 Task ativa: nenhuma
+Task ativa: TASK-11
+TASK-11: toque na notificação grava destino pendente (MainActivity onCreate/onNewIntent), módulo consumirDestinoNotificacao (consumo único), hook useAbrirDestinoDaNotificacao navega para PerfilTab>BloqueioApps na montagem e a cada AppState active, ligado na Home. Desvio mínimo aceito: uma linha jest.mock em src/navigation/HojeStack.test.tsx. Suíte 1196 verde. Limitação: toque com o app já em primeiro plano só é tratado na próxima ativação. Parte Kotlin sem teste automatizado.
+Entrega: tasks concluídas
+Task ativa: nenhuma

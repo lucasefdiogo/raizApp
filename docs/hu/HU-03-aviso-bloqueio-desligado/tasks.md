@@ -93,7 +93,7 @@ Spec: v1
     - Arquivos: android/app/src/main/AndroidManifest.xml, android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoAgendador.kt, android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoReceiver.kt, android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoBootReceiver.kt, android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoPrefs.kt, android/app/src/main/java/com/luxthorapps/rootora/RootoraAccessibilityService.kt, src/native/androidManifest.test.ts, docs/arquitetura/arquitetura.md
     - Comandos: teste, lint, tipos, build
     - Instala: nenhuma
-- [ ] TASK-11 (CA-04, RN-05): tocar na notificação abre o app na `BloqueioAppsScreen` (destino pendente gravado pela `MainActivity`, consumido pelo JS ao abrir ou voltar ao primeiro plano)
+- [x] TASK-11 (CA-04, RN-05): tocar na notificação abre o app na `BloqueioAppsScreen` (destino pendente gravado pela `MainActivity`, consumido pelo JS ao abrir ou voltar ao primeiro plano)
   - Teste: `CA-04: com destino pendente bloqueio-apps o app navega para a BloqueioAppsScreen` (feliz)
   - Teste: `CA-04: sem destino pendente nenhuma navegação acontece` (exceção)
   - Teste: `CA-04: o destino pendente é consumido uma vez só` (exceção)
