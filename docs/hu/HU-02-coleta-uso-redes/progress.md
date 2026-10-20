@@ -2,3 +2,10 @@
 
 Planejamento: HU pronta, branch feature/HU-02-coleta-uso-redes
 Entrega: plano aprovado
+Task ativa: TASK-01
+
+Auditoria da TASK-01: `lux auditar-task HU-02 TASK-01 --nova` saiu com 11 ("mudança em arquivo protegido: .mcp.json").
+Evidência de falso positivo, a confirmar pelo Lucas: `.mcp.json` (e .bashrc, .gitconfig, .gitmodules, .profile, .ripgreprc, .vscode, .zprofile, .zshrc) são nós /dev/null (char device 1,3, dono nobody) montados pelo sandbox na raiz; já apareciam como `??` antes de qualquer task (`git status` do passo de planejamento) e não são arquivos reais. O código da TASK-01 está só no working tree (não commitado): src/domain/usoApps.ts, usoApps.test.ts, types.ts.
+Entrega: auditoria parou a TASK-01
+TASK-01 concluída: agregação pura de eventos de primeiro plano em `usoApps` (src/domain/usoApps.ts) com testes por CA. Commit a pedido do Lucas apesar da auditoria ter parado com 11 (falso positivo dos nós /dev/null do sandbox, a confirmar).
+Task ativa: nenhuma

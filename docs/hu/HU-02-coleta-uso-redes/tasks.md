@@ -1,7 +1,7 @@
 # Tasks — HU-02
 Spec: v1
 
-- [ ] TASK-01 (CA-01, CA-02, CA-03, CA-04, RN-01, RN-02, RN-03, RN-04): função pura que agrega eventos de primeiro plano em `{ segundos, aberturas }` por dia e pacote da lista curada
+- [x] TASK-01 (CA-01, CA-02, CA-03, CA-04, RN-01, RN-02, RN-03, RN-04): função pura que agrega eventos de primeiro plano em `{ segundos, aberturas }` por dia e pacote da lista curada
   - Teste: `CA-01: 3 aberturas somando 20 minutos viram { segundos: 1200, aberturas: 3 }` (feliz)
   - Teste: `CA-02: pacote fora da lista curada não aparece no resultado` (feliz)
   - Teste: `CA-03: agregar os mesmos eventos duas vezes devolve o mesmo resultado` (feliz)
