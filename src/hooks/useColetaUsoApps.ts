@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { agregarUsoPorDia } from '../domain/usoApps';
 import { buscarUsuario, gravarUsoAppsNoDia } from '../services/firestore';
 import { lerEventosUso, temAcessoUso } from '../native/UsoApps';
@@ -8,7 +9,9 @@ import { registrarErro } from '../services/crashlytics';
 const DIAS_RETROATIVOS = 6;
 
 /**
- * Roda uma vez por abertura do app (montada na Home): lê os eventos de uso
+ * Roda na montagem (Home) e a cada vez que o app volta ao primeiro plano —
+ * o que cobre voltar das configurações com o acesso recém-concedido
+ * (RN-05). Só uma coleta por vez: um evento durante outra é ignorado. Lê os eventos de uso
  * dos últimos 7 dias, agrega por dia e grava `usoApps` em cada dailyLog
  * (HU-02, RN-04). Recalcula a janela inteira, então rodar de novo não muda
  * o resultado.
@@ -20,8 +23,13 @@ const DIAS_RETROATIVOS = 6;
 export function useColetaUsoApps(uid: string): void {
   useEffect(() => {
     let cancelado = false;
+    let emAndamento = false;
 
     async function coletar() {
+      if (emAndamento) {
+        return;
+      }
+      emAndamento = true;
       try {
         const usuario = await buscarUsuario(uid);
         if (cancelado || !usuario?.consentimentoAcessoUso) {
@@ -53,13 +61,21 @@ export function useColetaUsoApps(uid: string): void {
         }
       } catch (erro) {
         registrarErro(erro as Error, 'useColetaUsoApps');
+      } finally {
+        emAndamento = false;
       }
     }
 
     coletar();
+    const assinatura = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') {
+        coletar();
+      }
+    });
 
     return () => {
       cancelado = true;
+      assinatura.remove();
     };
   }, [uid]);
 }

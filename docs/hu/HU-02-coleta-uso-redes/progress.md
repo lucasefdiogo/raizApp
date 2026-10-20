@@ -20,3 +20,5 @@ TASK-05 concluída: `DivulgacaoAcessoUsoScreen` (estados normal e sem-permissao)
 Entrega: tasks concluídas
 Task ativa: nenhuma
 Validação: `git merge main` feito sem conflito (só .lux/lux.py). `verify.py` parou com `ÁRVORE: 1 arquivo(s) com alterações não commitadas`: `.bash_profile` (nó /dev/null do sandbox) ficou fora do .git/info/exclude do Lucas. Necessidade fora da cerca: o Lucas precisa acrescentar `.bash_profile` ao .git/info/exclude. Também pendente no terminal do Lucas: compilar o Kotlin (`RootoraUsoAppsModule.kt`), que o sandbox não consegue. Aviso: `e2e detectar` disse que não há executor de E2E configurado na main (a HU tem tela; sem task e2e no plano).
+Validação: `verify` 8/8 verde (1ª rodada falhou por timeouts intermitentes em ReauthPromptModal, TarefasExtrasScreen e BloqueioAppsScreen sob carga; passam isolados e a 2ª rodada fechou verde). `lux-revisor` REPROVADO: RN-05 pede coleta a cada volta ao primeiro plano e `useColetaUsoApps` só roda na montagem (sem AppState).
+Entrega: validação reprovada (1/3)

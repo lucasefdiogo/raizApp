@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useConsentimentoAcessoUso } from './useConsentimentoAcessoUso';
+import { hojeISOLocal } from '../domain/data';
 
 jest.mock('../services/firestore');
 jest.mock('../native/UsoApps');
@@ -37,7 +38,7 @@ describe('useConsentimentoAcessoUso', () => {
     expect(sucesso).toBe(true);
     expect(registrarConsentimentoAcessoUso).toHaveBeenCalledWith(
       'uid-1',
-      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      hojeISOLocal(),
     );
     expect(ordem).toEqual(['gravou', 'abriu']);
   });
