@@ -28,6 +28,7 @@ jest.mock('../hooks/useDailyTasks');
 // Não é o foco deste arquivo (tem teste próprio em useFeatureTour.test.ts) —
 // mantido inativo pra não interferir nas asserções de roteamento daqui.
 jest.mock('../hooks/useFeatureTour');
+jest.mock('../hooks/useColetaUsoApps');
 jest.mock('../services/firestore');
 jest.mock('../utils/taskFeedbackMessages');
 

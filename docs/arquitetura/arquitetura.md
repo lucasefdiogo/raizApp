@@ -86,7 +86,8 @@ src/
   services/    # única camada que fala com Firebase (analytics, crashlytics, firestore)
   theme/       # cores e fontes; nada hardcoded fora daqui
 android/
-  app/         # Kotlin: AccessibilityService, InterceptActivity, SaldoBloqueioMaquina.kt (autoridade do saldo, espelha domain/saldoBloqueio.ts)
+  app/         # Kotlin: AccessibilityService, InterceptActivity, SaldoBloqueioMaquina.kt (autoridade do saldo, espelha domain/saldoBloqueio.ts), RootoraUsoAppsModule.kt (lê eventos do UsageStatsManager; permissão PACKAGE_USAGE_STATS, "Acesso de uso" concedido pelo usuário nas configurações)
+native/ (src/)  # wrappers TS dos módulos nativos (AccessibilityDetection.ts, UsoApps.ts); sem o módulo linkado resolvem vazio/false, nunca rejeitam
 docs/
   legal/       # Política de Privacidade e Termos (Firebase Hosting)
 ```

@@ -8,13 +8,22 @@ const manifesto: string = fs
   // Comentários explicam o porquê e citam o que NÃO se usa; só o XML ativo conta.
   .replace(/<!--[\s\S]*?-->/g, '');
 
+describe('AndroidManifest permissões', () => {
+  it('CA-06: manifesto declara PACKAGE_USAGE_STATS', () => {
+    expect(manifesto).toMatch(
+      /<uses-permission[^>]*android:name="android\.permission\.PACKAGE_USAGE_STATS"/,
+    );
+  });
+});
+
 describe('AndroidManifest <queries>', () => {
-  const blocoQueries = manifesto.match(/<queries>([\s\S]*?)<\/queries>/)?.[1] ?? '';
+  const blocoQueries =
+    manifesto.match(/<queries>([\s\S]*?)<\/queries>/)?.[1] ?? '';
 
   it('CA-02: manifesto declara exatamente os pacotes da lista curada', () => {
-    const declarados = [...blocoQueries.matchAll(/<package\s+android:name="([^"]+)"\s*\/>/g)].map(
-      (m) => m[1],
-    );
+    const declarados = [
+      ...blocoQueries.matchAll(/<package\s+android:name="([^"]+)"\s*\/>/g),
+    ].map(m => m[1]);
 
     expect([...declarados].sort()).toEqual([...PACOTES_REDES_SOCIAIS].sort());
   });
