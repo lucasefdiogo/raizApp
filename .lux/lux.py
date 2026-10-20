@@ -4,6 +4,7 @@
 lacrar, conferir-lacre and verificar call the sibling scripts; importar brings the ZIP made by
 the lux-especificar skill into the repository. The lock file is still called criteria.lock.
 """
+import datetime
 import difflib
 import glob
 import importlib.util
@@ -22,7 +23,7 @@ sys.dont_write_bytecode = True  # sibling scripts are loaded by path: no __pycac
 HERE = Path(__file__).resolve().parent
 DOWNLOADS = "/mnt/c/Users/*/Downloads"
 ZIP_PATTERNS = ("lux-HU-*.zip", "pacote-hu*.zip")
-USAGE = "uso: lux lacrar|conferir-lacre|conferir-plano|auditar-task|aprendizado|pre-push|verificar|importar|iniciar|protegidos|testar|sandbox|atualizar-projeto|instalar-ci|e2e|aparelho [argumentos]"
+USAGE = "uso: lux lacrar|conferir-lacre|conferir-plano|auditar-task|aprendizado|pre-push|verificar|importar|iniciar|protegidos|testar|sandbox|atualizar-projeto|instalar-ci|ci-dispensado|e2e|aparelho [argumentos]"
 
 
 def script(name, *args):
@@ -606,6 +607,35 @@ def main_in_sync(root):
     return None
 
 
+def session_env(root):
+    """Environment of the Claude Code session. A Gradle project (CHORE-19) gets the JVM temp dir inside ~/.gradle, which the
+    sandbox lets bash write: the JVM ignores TMPDIR and /tmp is read-only there, so the sqlite-jdbc of KSP (async-storage,
+    Room) failed with ExceptionInInitializerError. Nothing changes for other projects or when a temp dir is already chosen."""
+    env = dict(os.environ)
+    if not any((root / rel).is_file() for rel in ("gradlew", "android/gradlew")) or "java.io.tmpdir" in env.get("JAVA_TOOL_OPTIONS", ""):
+        return env
+    tmp = Path.home() / ".gradle" / "tmp"
+    tmp.mkdir(parents=True, exist_ok=True)
+    env["JAVA_TOOL_OPTIONS"] = f"{env.get('JAVA_TOOL_OPTIONS', '')} -Djava.io.tmpdir={tmp}".strip()
+    return env
+
+
+def prepare_git(root, hu_id):
+    """Git preparation of the session (CHORE-19), done here because the sandbox keeps .git/config read-only:
+    origin/HEAD (the /security-review reads it) and the upstream of the work branch of the HU, which exists only after the
+    planning, so that the push needs no -u (it writes .git/config). A failure of the first is a warning."""
+    if "origin" not in git(root, "remote").stdout.split():
+        return
+    head = git(root, "remote", "set-head", "origin", "-a")
+    if head.returncode != 0:
+        print(f"Aviso: não consegui definir origin/HEAD ({head.stderr.strip() or 'git remote set-head origin -a falhou'}); o /security-review pode não achar a base.")
+    folders = sorted(p.name for p in (root / "docs/hu").glob(f"{hu_id}-*") if (p / "spec.md").is_file())
+    if folders:
+        branch = f"feature/{folders[0]}"
+        git(root, "config", f"branch.{branch}.remote", "origin")
+        git(root, "config", f"branch.{branch}.merge", f"refs/heads/{branch}")
+
+
 def setup_project(root):
     """Applies the project setup (lux atualizar-projeto plus the sandbox template) and commits it on main. 0 or an exit code."""
     ci = load_sibling("projeto_ci")
@@ -669,13 +699,14 @@ def iniciar(args):
         return refuse(f"rode na raiz do repositório ({root}).")
     if git(root, "branch", "--show-current").stdout.strip() != "main":
         return refuse("lux iniciar só roda na main.")
+    ci = load_sibling("projeto_ci")
+    ci.ensure_git_exclude(root)  # the sandbox ghost files must not count as a dirty tree
     if git(root, "status", "--porcelain").stdout.strip():
         return refuse("árvore suja; commite ou guarde o que está pendente antes de iniciar.")
     reason = main_in_sync(root)
     if reason:
         return refuse(reason)
 
-    ci = load_sibling("projeto_ci")
     problems = ci.environment_problems()
     for tool in ("claude", "lefthook", "gitleaks"):
         if not shutil.which(tool):
@@ -729,9 +760,48 @@ def iniciar(args):
     if touched:
         return refuse(f"a importação mexeu em arquivo que o Claude Code lê como instrução ou configuração ({touched[0]}); revise o commit e abra o Claude Code você mesmo.")
     ci.ensure_verdict_dir(root)  # the sandbox mounts its write-denied paths when it comes up: .lux/vereditos/ has to exist by then
+    prepare_git(root, hu_id)
     print(f"Abrindo o Claude Code com /lux-entregar {hu_id}")
     sys.stdout.flush()
-    os.execvp("claude", ["claude", "--permission-mode", "bypassPermissions", f"/lux-entregar {hu_id}"])
+    os.execvpe("claude", ["claude", "--permission-mode", "bypassPermissions", f"/lux-entregar {hu_id}"], session_env(root))
+
+
+def ci_dispensado(args):
+    """The Lucas waived the CI (red for a reason outside the HU, or unreachable): records it with the reason in the verification.md of
+    the HU, commits it with the progress.md line, and renews the marker of /lux-validar at the new tip, so the merge gate stays open
+    (CHORE-19). The agent runs it only after the Lucas said so in the conversation."""
+    if len(args) != 2 or not re.fullmatch(r"HU-\d+", args[0]):
+        print('uso: lux ci-dispensado HU-xx "<motivo>"', file=sys.stderr)
+        return 2
+    hu_id, reason = args[0], " ".join(args[1].split())
+    if not reason:
+        return refuse("diga o motivo da dispensa do CI.")
+    root = project_root()
+    if not re.fullmatch(rf"feature/{hu_id}-[^/]+", git(root, "branch", "--show-current").stdout.strip()):
+        return refuse(f"rode na branch feature/{hu_id}-* validada.")
+    folders = sorted(p for p in (root / "docs/hu").glob(f"{hu_id}-*") if (p / "verification.md").is_file())
+    if not folders:
+        return refuse(f"{hu_id} não tem verification.md: rode /lux-validar.")
+    folder = folders[0]
+    if git(root, "status", "--porcelain").stdout.strip():
+        return refuse("árvore suja; a dispensa do CI é um commit só de verification.md e progress.md.")
+    report = folder / "verification.md"
+    text = report.read_text(encoding="utf-8")
+    if not re.search(r"^Resultado: APROVADO$", text, re.MULTILINE):
+        return refuse("verification.md não está APROVADO: a dispensa do CI não substitui o /lux-validar.")
+    text = re.sub(r"\n## CI\n.*?(?=\n## |\Z)", "", text, flags=re.DOTALL).rstrip("\n")
+    report.write_text(f"{text}\n\n## CI\n\nCI dispensado pelo Lucas em {datetime.date.today().isoformat()}: {reason}\n", encoding="utf-8")
+    with (folder / "progress.md").open("a", encoding="utf-8") as f:
+        f.write(f"Entrega: CI dispensado pelo Lucas: {reason}\n")
+    git(root, "add", "--", str(report), str(folder / "progress.md"))
+    commit = git(root, "commit", "-q", "-m", f"docs({hu_id}): CI dispensado pelo Lucas")
+    if commit.returncode != 0:
+        print(commit.stdout + commit.stderr, end="")
+        git(root, "reset", "-q")
+        git(root, "checkout", "--", str(report), str(folder / "progress.md"))
+        return refuse("o commit foi recusado; nada foi registrado.")
+    print(f"CI dispensado registrado em {report.relative_to(root)}")
+    return subprocess.run([sys.executable, "-I", str(HERE / "verify.py"), "--aprovar", str(folder)], cwd=root).returncode
 
 
 def sandbox(args):
@@ -747,7 +817,7 @@ def sandbox(args):
 
 
 COMMANDS = {"lacrar": lacrar, "conferir-lacre": conferir, "conferir-plano": conferir_plano, "auditar-task": auditar_task, "pre-push": pre_push, "aprendizado": aprendizado, "verificar": verificar, "importar": importar, "iniciar": iniciar,
-            "protegidos": protegidos, "testar": testar, "sandbox": sandbox,
+            "protegidos": protegidos, "testar": testar, "sandbox": sandbox, "ci-dispensado": ci_dispensado,
             "atualizar-projeto": atualizar_projeto, "instalar-ci": instalar_ci, "e2e": e2e, "aparelho": aparelho}
 
 
