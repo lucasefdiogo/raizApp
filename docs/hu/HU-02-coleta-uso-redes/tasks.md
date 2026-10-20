@@ -19,7 +19,7 @@ Spec: v1
     - Arquivos: src/native/UsoApps.ts, src/native/UsoApps.test.ts, src/native/androidManifest.test.ts, android/app/src/main/AndroidManifest.xml, android/app/src/main/java/com/luxthorapps/rootora/**, docs/arquitetura/arquitetura.md
     - Comandos: teste, lint, tipos, build
     - Instala: nenhuma
-- [ ] TASK-03 (CA-01, CA-03, CA-06, RN-04, RN-05, RN-06, RN-08): gravação de `usoApps` com merge e coleta dos últimos 7 dias ao abrir o app, só com acesso concedido e consentimento gravado
+- [x] TASK-03 (CA-01, CA-03, CA-06, RN-04, RN-05, RN-06, RN-08): gravação de `usoApps` com merge e coleta dos últimos 7 dias ao abrir o app, só com acesso concedido e consentimento gravado
   - Teste: `CA-01: com acesso e consentimento a coleta grava usoApps do Instagram de hoje` (feliz)
   - Teste: `CA-03: coletar de novo sem uso novo grava os mesmos valores` (feliz)
   - Teste: `CA-06: sem acesso de uso concedido a coleta não grava nada` (exceção)

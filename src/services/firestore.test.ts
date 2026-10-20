@@ -26,6 +26,7 @@ import {
   buscarTarefasRecorrentesAtivas,
   desativarTarefaRecorrente,
   marcarOnboardingConcluido,
+  gravarUsoAppsNoDia,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -806,6 +807,39 @@ describe('services/firestore', () => {
       expect(usuario).toMatchObject({
         email: 'a@a.com',
         consentimentoAcessibilidade: '2026-09-24',
+      });
+    });
+  });
+
+  describe('gravarUsoAppsNoDia', () => {
+    const instagram = { 'com.instagram.android': { segundos: 1200, aberturas: 3 } };
+
+    it('CA-01: grava usoApps do Instagram no dailyLog do dia sem mexer nas tarefas', async () => {
+      await salvarDailyLog('uid-1', '2026-10-19', {
+        data: '2026-10-19',
+        tarefas: [{ id: '1', titulo: 'Estudar', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+      });
+
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', instagram);
+
+      const log = await buscarDailyLog('uid-1', '2026-10-19');
+      expect(log?.usoApps).toEqual(instagram);
+      expect(log?.tarefas).toHaveLength(1);
+      expect(log?.statusDia).toBe('cumprido');
+    });
+
+    it('CA-03: gravar de novo os mesmos valores deixa usoApps igual e substitui o valor do pacote', async () => {
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', instagram);
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', instagram);
+      expect((await buscarDailyLog('uid-1', '2026-10-19'))?.usoApps).toEqual(instagram);
+
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', {
+        'com.instagram.android': { segundos: 1500, aberturas: 4 },
+      });
+      expect((await buscarDailyLog('uid-1', '2026-10-19'))?.usoApps).toEqual({
+        'com.instagram.android': { segundos: 1500, aberturas: 4 },
       });
     });
   });

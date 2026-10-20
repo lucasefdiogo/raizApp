@@ -12,3 +12,5 @@ Task ativa: nenhuma
 Auditoria da TASK-01 refeita após o Lucas ocultar os nós /dev/null do sandbox: ok.
 TASK-02 concluída: wrapper `src/native/UsoApps.ts`, módulo Kotlin `RootoraUsoAppsModule.kt`, permissão `PACKAGE_USAGE_STATS` no manifesto e arquitetura atualizada. Auditoria ok. Pendência: o Kotlin nunca foi compilado (gradle falha no ksp de async-storage dentro do sandbox); compilar no terminal do Lucas antes do merge.
 Task ativa: nenhuma
+TASK-03 concluída: `gravarUsoAppsNoDia` (merge em dailyLogs), `useColetaUsoApps` (só com consentimentoAcessoUso e acesso de uso) chamado pela Home. Auditoria: 1 correção (formatação alheia em HomeScreen.test.tsx), ok na rodada 2. `buscarDailyLog` passou a devolver `usoApps`. `schema-firebase.md` ainda não documenta `usoApps` nem `consentimentoAcessoUso` (sinalizar no fim da HU).
+Task ativa: nenhuma

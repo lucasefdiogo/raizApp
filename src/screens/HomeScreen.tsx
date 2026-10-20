@@ -16,6 +16,7 @@ import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
+import { useColetaUsoApps } from '../hooks/useColetaUsoApps';
 import { useFeatureTour } from '../hooks/useFeatureTour';
 import { useSincronizarRegrasBloqueio } from '../hooks/useSincronizarRegrasBloqueio';
 import { HomeHeader } from '../components/home/HomeHeader';
@@ -115,6 +116,9 @@ export function HomeScreen({
   // useSincronizarRegrasBloqueio (promove regrasBloqueioPendentes vencida e
   // espelha o estado atual em SharedPreferences pro AccessibilityService).
   useSincronizarRegrasBloqueio(uid);
+  // Coleta o uso das redes dos últimos 7 dias (HU-02); silenciosa e só com
+  // acesso de uso concedido e consentimento gravado.
+  useColetaUsoApps(uid);
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {

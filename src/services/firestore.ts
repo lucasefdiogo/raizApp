@@ -27,6 +27,7 @@ import {
   StatusStreak,
   Tarefa,
   TipoTarefa,
+  UsoApps,
 } from '../domain/types';
 import { dataLocalDeISO, paraISOLocal } from '../domain/data';
 
@@ -65,6 +66,12 @@ export interface UsuarioDocumento {
    * configurações do sistema. Ausente = nunca concordou.
    */
   consentimentoAcessibilidade?: string | null;
+  /**
+   * Data (YYYY-MM-DD) em que o usuário concordou com a divulgação do acesso
+   * de uso (HU-02, RN-06/RN-07). Ausente = nunca concordou; sem ela a coleta
+   * de `usoApps` não roda.
+   */
+  consentimentoAcessoUso?: string | null;
   /**
    * Gate real de conclusão do onboarding (ver RootNavigator, via
    * useOnboardingStatus) — não `porqueTexto`. Só vira true ao final do
@@ -246,6 +253,7 @@ export async function buscarDailyLog(
     ...(bruto.sessoesFoco !== undefined
       ? { sessoesFoco: bruto.sessoesFoco }
       : {}),
+    ...(bruto.usoApps !== undefined ? { usoApps: bruto.usoApps } : {}),
     ...(bruto.interceptacoes !== undefined
       ? { interceptacoes: bruto.interceptacoes }
       : {}),
@@ -510,6 +518,20 @@ export async function registrarSessaoFocoNoDia(
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
   await setDoc(referencia, { sessoesFoco: arrayUnion(sessaoFoco) }, { merge: true });
+}
+
+/**
+ * Grava `usoApps` em dailyLogs/{data} com merge: cada pacote passado
+ * substitui o valor anterior (nunca soma, RN-04) e `tarefas`, `statusDia`,
+ * `escudoUsado` e demais campos do dia ficam intocados (RN-08).
+ */
+export async function gravarUsoAppsNoDia(
+  uid: string,
+  data: string,
+  usoApps: UsoApps,
+): Promise<void> {
+  const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
+  await setDoc(referencia, { usoApps }, { merge: true });
 }
 
 /** Acrescenta UMA interceptação via `arrayUnion` — mesmo racional de registrarSessaoFocoNoDia. */

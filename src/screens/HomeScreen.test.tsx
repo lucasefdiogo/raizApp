@@ -44,6 +44,10 @@ const { useNomeUsuario } = require('../hooks/useNomeUsuario');
 // (useSincronizarRegrasBloqueio.test.ts).
 jest.mock('../hooks/useSincronizarRegrasBloqueio');
 
+// Coleta de uso das redes (HU-02): tem teste próprio; aqui só a chamada.
+jest.mock('../hooks/useColetaUsoApps');
+const { useColetaUsoApps } = require('../hooks/useColetaUsoApps');
+
 // useFeatureTour usa useNavigation/useFocusEffect (precisaria de um
 // NavigationContainer, que este arquivo não monta) — mockado e inativo por
 // padrão; o comportamento do hook em si tem teste próprio
@@ -179,6 +183,11 @@ beforeEach(() => {
 });
 
 describe('HomeScreen', () => {
+  it('CA-01: a Home dispara a coleta de uso das redes com o uid do usuário', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    expect(useColetaUsoApps).toHaveBeenCalledWith('uid-teste');
+  });
+
   it('mostra a mensagem de dia pendente antes de qualquer tarefa concluída', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('O dia ainda está começando.')).toBeTruthy();
