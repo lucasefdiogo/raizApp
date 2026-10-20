@@ -25,3 +25,7 @@ Resultado: APROVADO
 | TASK-03 | 34 | 0 | 10 | 4 | 0 |
 | TASK-04 | 27 | 1 | 12 | 4 | 0 |
 | sem task | 192 | 9 | 120 | 14 | 14 |
+
+## CI
+
+CI dispensado pelo Lucas — falha preexistente do lux.yml, não relacionada à HU. O run 39352051051 (SHA f9b7332) falhou no step "Instalar dependências" antes dos testes; a `main` falha no mesmo step.
