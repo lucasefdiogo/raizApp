@@ -647,6 +647,22 @@ export async function registrarConsentimentoAcessibilidade(
   );
 }
 
+/**
+ * Grava a data (YYYY-MM-DD) do consentimento ao acesso de uso (HU-02, RN-07)
+ * — chamado só ao tocar "Permitir acesso de uso", antes de abrir as
+ * configurações do sistema.
+ */
+export async function registrarConsentimentoAcessoUso(
+  uid: string,
+  dataISO: string,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { consentimentoAcessoUso: dataISO },
+    { merge: true },
+  );
+}
+
 export async function atualizarPerfilUsuario(
   uid: string,
   campos: Partial<{

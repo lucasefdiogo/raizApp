@@ -8,6 +8,7 @@ import { Info } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
+import { useAcessoUso } from '../../hooks/useAcessoUso';
 import {
   decidirGravacaoRegrasBloqueio,
   janelaBloqueioValida,
@@ -40,6 +41,8 @@ interface BloqueioAppsScreenProps {
    */
   aoTocarAtivar: () => void;
   aoTocarSaibaOQueE: () => void;
+  /** Abre a divulgação do acesso de uso (HU-02); só aparece com o acesso desligado. */
+  aoTocarMedirTempo: () => void;
 }
 
 function horarioParaDate(horario: string): Date {
@@ -68,6 +71,7 @@ export function BloqueioAppsScreen({
   uid,
   aoTocarAtivar,
   aoTocarSaibaOQueE,
+  aoTocarMedirTempo,
 }: BloqueioAppsScreenProps) {
   const {
     carregando,
@@ -78,6 +82,7 @@ export function BloqueioAppsScreen({
     cancelarAlteracaoPendente,
   } = useRegrasBloqueio(uid);
   const { ativo: servicoAtivo, carregando: statusCarregando } = useAccessibilityPermission();
+  const { concedido: acessoUsoConcedido, carregando: acessoUsoCarregando } = useAcessoUso();
 
   const handleAtivar = () => {
     logAcessibilidadeSaibaMais('ativar', servicoAtivo ? 'ativo' : 'desativado');
@@ -235,6 +240,17 @@ export function BloqueioAppsScreen({
               )}
             </View>
 
+            {!acessoUsoCarregando && !acessoUsoConcedido && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={aoTocarMedirTempo}
+                hitSlop={8}
+                style={styles.linkMedirTempo}
+              >
+                <Text style={styles.linkSaibaOQueETexto}>Medir tempo nas redes</Text>
+              </Pressable>
+            )}
+
             {regrasPendentes && (
               <View style={styles.avisoPendente}>
                 <Text style={styles.avisoPendenteTexto}>
@@ -383,6 +399,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: theme.spacing.xs,
     alignSelf: 'flex-start',
+    minHeight: 44,
+  },
+  linkMedirTempo: {
+    alignSelf: 'flex-start',
+    justifyContent: 'center',
     minHeight: 44,
   },
   linkSaibaOQueETexto: {

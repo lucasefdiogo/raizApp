@@ -18,6 +18,7 @@ import {
   cancelarRegrasBloqueioPendentes,
   promoverRegrasBloqueioPendentes,
   registrarConsentimentoAcessibilidade,
+  registrarConsentimentoAcessoUso,
   atualizarPerfilUsuario,
   apagarTodosOsDadosDoUsuario,
   preencherNomeSeVazio,
@@ -807,6 +808,19 @@ describe('services/firestore', () => {
       expect(usuario).toMatchObject({
         email: 'a@a.com',
         consentimentoAcessibilidade: '2026-09-24',
+      });
+    });
+  });
+
+  describe('registrarConsentimentoAcessoUso', () => {
+    it('CA-05: grava a data de consentimento sem mexer em outros campos', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await registrarConsentimentoAcessoUso('uid-1', '2026-10-19');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario).toMatchObject({
+        email: 'a@a.com',
+        consentimentoAcessoUso: '2026-10-19',
       });
     });
   });

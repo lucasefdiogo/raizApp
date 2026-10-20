@@ -16,3 +16,6 @@ TASK-03 concluída: `gravarUsoAppsNoDia` (merge em dailyLogs), `useColetaUsoApps
 Task ativa: nenhuma
 TASK-04 concluída: `avaliarStatusHistoricoDia` trata dailyLog passado sem tarefas e sem escudo (ex.: só `usoApps`) como `sem_registro`; teste de streak do CA-08 passou sem mudar `useStreak.ts` (vermelho não provado por mutação). Auditoria ok de primeira. Rever em /definition textos sobre o status `perdido` de dia sem tarefas.
 Task ativa: nenhuma
+TASK-05 concluída: `DivulgacaoAcessoUsoScreen` (estados normal e sem-permissao), hooks `useAcessoUso` e `useConsentimentoAcessoUso`, `registrarConsentimentoAcessoUso`, rota `DivulgacaoAcessoUso` no PerfilStack e entrada "Medir tempo nas redes" na BloqueioAppsScreen. Auditoria: 1 correção (fechamento automático fora da spec, removido); ok na rodada 2. Em /definition faltam `usoApps`, `consentimentoAcessoUso` e a rota `DivulgacaoAcessoUso`.
+Entrega: tasks concluídas
+Task ativa: nenhuma

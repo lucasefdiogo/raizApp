@@ -37,7 +37,7 @@ Spec: v1
     - Arquivos: src/domain/progress.ts, src/domain/progress.test.ts, src/hooks/useStreak.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-05 (tela, CA-05, CA-06, CA-07, RN-06, RN-07, RN-10): `DivulgacaoAcessoUsoScreen` com os estados normal e sem-permissao, gravação do consentimento, rota no `PerfilStack` e entrada "Medir tempo nas redes" na `BloqueioAppsScreen`
+- [x] TASK-05 (tela, CA-05, CA-06, CA-07, RN-06, RN-07, RN-10): `DivulgacaoAcessoUsoScreen` com os estados normal e sem-permissao, gravação do consentimento, rota no `PerfilStack` e entrada "Medir tempo nas redes" na `BloqueioAppsScreen`
   - Teste: `CA-05: Permitir acesso de uso grava consentimentoAcessoUso com a data de hoje e abre as configurações` (feliz)
   - Teste: `CA-06: BloqueioAppsScreen mostra a entrada Medir tempo nas redes sem acesso de uso` (exceção)
   - Teste: `CA-07: estado sem-permissao mostra o aviso ao voltar sem conceder` (exceção)

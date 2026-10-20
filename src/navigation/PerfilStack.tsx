@@ -6,6 +6,7 @@ import {
 import { PerfilScreen } from '../screens/perfil/PerfilScreen';
 import { BloqueioAppsScreen } from '../screens/perfil/BloqueioAppsScreen';
 import { DivulgacaoAcessibilidadeScreen } from '../screens/perfil/DivulgacaoAcessibilidadeScreen';
+import { DivulgacaoAcessoUsoScreen } from '../screens/perfil/DivulgacaoAcessoUsoScreen';
 import { AccessibilityDebugScreen } from '../screens/debug/AccessibilityDebugScreen';
 import { InterceptDebugScreen } from '../screens/debug/InterceptDebugScreen';
 import { MOSTRAR_DEBUG_ACESSIBILIDADE } from '../config/debugFlags';
@@ -22,6 +23,7 @@ export type PerfilStackParamList = {
   Perfil: undefined;
   BloqueioApps: undefined;
   DivulgacaoAcessibilidade: undefined;
+  DivulgacaoAcessoUso: undefined;
   // Rota temporária de debug (Fase 3, parte 1) — só em dev, some numa tarefa futura.
   AccessibilityDebug: undefined;
   // Rota temporária de debug (Etapa 3 da spec 09) — só em dev.
@@ -65,12 +67,18 @@ export function PerfilStack({ uid }: PerfilStackProps) {
             uid={uid}
             aoTocarAtivar={() => navigation.navigate('DivulgacaoAcessibilidade')}
             aoTocarSaibaOQueE={() => navigation.navigate('DivulgacaoAcessibilidade')}
+            aoTocarMedirTempo={() => navigation.navigate('DivulgacaoAcessoUso')}
           />
         )}
       </Stack.Screen>
       <Stack.Screen name="DivulgacaoAcessibilidade">
         {({ navigation }) => (
           <DivulgacaoAcessibilidadeScreen uid={uid} onVoltar={() => navigation.goBack()} />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="DivulgacaoAcessoUso">
+        {({ navigation }) => (
+          <DivulgacaoAcessoUsoScreen uid={uid} onVoltar={() => navigation.goBack()} />
         )}
       </Stack.Screen>
       {EXPOR_DEBUG_ACESSIBILIDADE && (
