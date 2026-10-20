@@ -52,6 +52,14 @@ class RootoraAccessibilityService : AccessibilityService() {
     // Processo/serviço reiniciou: um trecho em aberto não tem fim conhecido.
     SaldoBloqueioPrefs.descartarTrechoEmAberto(applicationContext)
     registerReceiver(receiverTela, IntentFilter(Intent.ACTION_SCREEN_OFF))
+    // RN-01: records the re-enable (if a shutdown was recorded) and marks "already activated".
+    AvisoDesligamentoPrefs.registrarConexaoDoServico(applicationContext)
+  }
+
+  /** Service switched off by the user or the system: record the shutdown time (RN-01). */
+  override fun onUnbind(intent: Intent?): Boolean {
+    AvisoDesligamentoPrefs.registrarDesligamento(applicationContext)
+    return super.onUnbind(intent)
   }
 
   override fun onDestroy() {

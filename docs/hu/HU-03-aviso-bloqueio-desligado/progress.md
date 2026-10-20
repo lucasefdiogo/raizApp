@@ -30,3 +30,6 @@ Task ativa: nenhuma
 Task ativa: TASK-08
 TASK-08: espelho Kotlin AvisoDesligamentoMaquina validado por JUnit sobre a mesma fixture (5 testes, 0 falhas; cd android && ./gradlew :app:testDebugUnitTest --tests *AvisoDesligamentoMaquinaTest* --offline). Ressalva: o vermelho (5 falhas contra stub) está só no relato do construtor, o diário não o registra em linha própria; auditor aceitou porque o código espelha o TS e a fixture é a mesma.
 Task ativa: nenhuma
+Task ativa: TASK-09
+TASK-09: AvisoDesligamentoPrefs (lógica pura de log de eventos + camada SharedPreferences), onUnbind/onServiceConnected registrando eventos, 4 métodos no módulo RootoraAccessibility conforme o contrato TS. JUnit 8/8, suíte 1185 verde, compileDebugKotlin ok. Decisões: primeira conexão sem desligamento prévio não grava religamento; notificacoesAtivas nativo começa true até o JS espelhar; eventos enviados ficam no log (TASK-10 precisa de getter do horário do desligamento). Sem teste automatizado para a camada com Context nem para o Service.
+Task ativa: nenhuma

@@ -77,7 +77,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoMaquina.kt, android/app/src/test/java/com/luxthorapps/rootora/AvisoDesligamentoMaquinaTest.kt
     - Comandos: teste, build
     - Instala: nenhuma
-- [ ] TASK-09 (CA-05, CA-07, RN-01, RN-06, RN-07): registro nativo em `SharedPreferences` dos eventos de desligamento (`onUnbind`) e religamento (`onServiceConnected`) com ISO 8601, marca de "já ativado", verificação na abertura, leitura e marcação de enviados e espelho de `notificacoesAtivas`, expostos pelo módulo `RootoraAccessibility`
+- [x] TASK-09 (CA-05, CA-07, RN-01, RN-06, RN-07): registro nativo em `SharedPreferences` dos eventos de desligamento (`onUnbind`) e religamento (`onServiceConnected`) com ISO 8601, marca de "já ativado", verificação na abertura, leitura e marcação de enviados e espelho de `notificacoesAtivas`, expostos pelo módulo `RootoraAccessibility`
   - Teste: `CA-05: ler pendentes e marcar enviados no módulo nativo existem no wrapper TS` (feliz)
   - Teste: `CA-07: registrar desligamento na abertura não duplica um desligamento já registrado` (exceção)
   - Escopo:

@@ -48,6 +48,26 @@ describe('EventosAcessibilidade (wrapper nativo)', () => {
     );
   });
 
+  it('CA-05: ler pendentes e marcar enviados no módulo nativo existem no wrapper TS', async () => {
+    moduloMock.lerEventosAcessibilidadePendentes.mockResolvedValue([]);
+    moduloMock.marcarEventosAcessibilidadeEnviados.mockResolvedValue(undefined);
+
+    await lerEventosAcessibilidadePendentes();
+    await marcarEventosAcessibilidadeEnviados(['e1']);
+
+    // Exact native method names and arguments: the contract the Kotlin module implements.
+    expect(moduloMock.lerEventosAcessibilidadePendentes).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(moduloMock.lerEventosAcessibilidadePendentes).toHaveBeenCalledWith();
+    expect(moduloMock.marcarEventosAcessibilidadeEnviados).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(moduloMock.marcarEventosAcessibilidadeEnviados).toHaveBeenCalledWith(
+      ['e1'],
+    );
+  });
+
   it('CA-07: sem o módulo nativo a verificação na abertura não lança', async () => {
     delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
 
