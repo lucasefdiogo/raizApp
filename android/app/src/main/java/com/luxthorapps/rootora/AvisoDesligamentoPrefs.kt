@@ -24,6 +24,10 @@ object AvisoDesligamentoPrefs {
   const val TIPO_DESLIGAMENTO = "desligamento"
   const val TIPO_RELIGAMENTO = "religamento"
 
+  /** Intent extra the reminder tap carries; consumed by MainActivity (TASK-11). */
+  const val EXTRA_DESTINO = "destino"
+  const val DESTINO_BLOQUEIO_APPS = "bloqueio-apps"
+
   private const val PREFS_NOME = "rootora_aviso_desligamento"
   private const val CHAVE_EVENTOS = "eventos"
   private const val CHAVE_JA_ATIVADO = "ja_ativado_alguma_vez"
@@ -133,6 +137,7 @@ object AvisoDesligamentoPrefs {
   @Synchronized
   fun registrarDesligamento(context: Context) {
     gravarEventos(context, registrarEvento(lerEventos(context), TIPO_DESLIGAMENTO, System.currentTimeMillis(), novoId()))
+    sincronizarAlarmes(context)
   }
 
   /** Called on every service connection: marks "already activated" and records a re-enable if due. */
@@ -140,6 +145,7 @@ object AvisoDesligamentoPrefs {
   fun registrarConexaoDoServico(context: Context) {
     gravarEventos(context, registrarReligamento(lerEventos(context), System.currentTimeMillis(), novoId()))
     prefs(context).edit().putBoolean(CHAVE_JA_ATIVADO, true).apply()
+    sincronizarAlarmes(context)
   }
 
   @Synchronized
@@ -148,6 +154,28 @@ object AvisoDesligamentoPrefs {
       context,
       registrarDesligamentoNaAbertura(lerEventos(context), servicoDesligado, System.currentTimeMillis(), novoId()),
     )
+    sincronizarAlarmes(context)
+  }
+
+  /**
+   * Single path to the alarms: last event a shutdown -> (re)schedule from its
+   * time; otherwise (re-enable or no events) -> cancel. Idempotent, so every
+   * writer (service, app-open check) just calls it after logging.
+   */
+  private fun sincronizarAlarmes(context: Context) {
+    try {
+      AvisoDesligamentoAgendador.reagendar(context)
+    } catch (erro: Exception) {
+      // The event is already logged; the boot receiver or next app open retries.
+    }
+  }
+
+  /** Epoch ms of the last event when it is a shutdown (reminders pending); null otherwise. */
+  fun ultimoDesligamentoEmMs(context: Context): Long? {
+    val json = lerEventos(context)
+    if (ultimoEvento(json) != TIPO_DESLIGAMENTO) return null
+    val lista = lerArray(json)
+    return AvisoDesligamentoAgendador.parseIso(lista.getJSONObject(lista.length() - 1).getString("em"))
   }
 
   fun lerPendentes(context: Context): List<EventoAcessibilidadeNativo> = pendentes(lerEventos(context))

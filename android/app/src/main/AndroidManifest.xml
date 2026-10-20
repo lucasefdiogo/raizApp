@@ -4,6 +4,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
+      HU-03: reagenda os lembretes de "bloqueio de apps desligado" depois de
+      reiniciar o aparelho (o AlarmManager perde os alarmes no reboot).
+      Permissão normal, concedida na instalação. Os alarmes são inexatos, então
+      SCHEDULE_EXACT_ALARM não é usada.
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--
       HU-02: leitura do tempo de uso das redes sociais da lista curada via
       UsageStatsManager. Permissão especial ("Acesso de uso"): o usuário
       concede nas configurações do sistema, depois da divulgação do app.
@@ -115,5 +123,26 @@
           android:name="android.accessibilityservice"
           android:resource="@xml/accessibility_service_config" />
       </service>
+
+      <!--
+        HU-03: lembrete de bloqueio desligado. Disparado só pelo AlarmManager
+        do próprio app (PendingIntent explícito), por isso exported="false".
+        O texto vem de AvisoDesligamentoMaquina (RN-04).
+      -->
+      <receiver
+        android:name=".AvisoDesligamentoReceiver"
+        android:exported="false" />
+
+      <!--
+        HU-03: reagenda os lembretes no boot. BOOT_COMPLETED é broadcast
+        protegido do sistema: chega mesmo com exported="false".
+      -->
+      <receiver
+        android:name=".AvisoDesligamentoBootReceiver"
+        android:exported="false">
+        <intent-filter>
+          <action android:name="android.intent.action.BOOT_COMPLETED" />
+        </intent-filter>
+      </receiver>
     </application>
 </manifest>

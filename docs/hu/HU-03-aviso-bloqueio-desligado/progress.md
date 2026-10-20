@@ -33,3 +33,6 @@ Task ativa: nenhuma
 Task ativa: TASK-09
 TASK-09: AvisoDesligamentoPrefs (lógica pura de log de eventos + camada SharedPreferences), onUnbind/onServiceConnected registrando eventos, 4 métodos no módulo RootoraAccessibility conforme o contrato TS. JUnit 8/8, suíte 1185 verde, compileDebugKotlin ok. Decisões: primeira conexão sem desligamento prévio não grava religamento; notificacoesAtivas nativo começa true até o JS espelhar; eventos enviados ficam no log (TASK-10 precisa de getter do horário do desligamento). Sem teste automatizado para a camada com Context nem para o Service.
 Task ativa: nenhuma
+Task ativa: TASK-10
+TASK-10: agendamento AlarmManager inexato (setAndAllowWhileIdle, sem SCHEDULE_EXACT_ALARM), AvisoDesligamentoReceiver (RN-03 + canal lembretes-rootora + areNotificationsEnabled), BootReceiver (reagenda), permissão RECEIVE_BOOT_COMPLETED, arquitetura.md atualizada. Receivers exported=false. Jest 1187, JUnit, compileDebugKotlin e processDebugManifest ok. NÃO testado automaticamente (precisa de aparelho): disparo do alarme/Doze, reagendamento após reboot, notificação real, ausência de POST_NOTIFICATIONS, cancelamento ao religar. Ícone da notificação usa o ic_launcher (pode aparecer quadrado).
+Task ativa: nenhuma

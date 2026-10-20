@@ -34,3 +34,27 @@ describe('AndroidManifest <queries>', () => {
     expect(manifesto).not.toContain('QUERY_ALL_PACKAGES');
   });
 });
+
+describe('AndroidManifest aviso de bloqueio desligado (HU-03)', () => {
+  const receiver = (nome: string): string =>
+    manifesto.match(
+      new RegExp(`<receiver[^>]*android:name="\\.${nome}"[\\s\\S]*?(?:/>|</receiver>)`),
+    )?.[0] ?? '';
+
+  it('CA-01: manifesto declara o receiver do lembrete e RECEIVE_BOOT_COMPLETED', () => {
+    expect(receiver('AvisoDesligamentoReceiver')).not.toBe('');
+    expect(manifesto).toMatch(
+      /<uses-permission[^>]*android:name="android\.permission\.RECEIVE_BOOT_COMPLETED"/,
+    );
+    const boot = receiver('AvisoDesligamentoBootReceiver');
+    expect(boot).toContain('android.intent.action.BOOT_COMPLETED');
+  });
+
+  it('CA-06: o receiver do lembrete não é exportado', () => {
+    const lembrete = receiver('AvisoDesligamentoReceiver');
+    expect(lembrete).toContain('android:exported="false"');
+    expect(lembrete).not.toContain('<intent-filter');
+    // Boot receiver also stays private: BOOT_COMPLETED is a protected system broadcast.
+    expect(receiver('AvisoDesligamentoBootReceiver')).toContain('android:exported="false"');
+  });
+});

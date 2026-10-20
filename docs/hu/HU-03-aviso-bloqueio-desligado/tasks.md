@@ -85,7 +85,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/AvisoDesligamentoPrefs.kt, android/app/src/main/java/com/luxthorapps/rootora/RootoraAccessibilityService.kt, android/app/src/main/java/com/luxthorapps/rootora/RootoraAccessibilityModule.kt, android/app/src/test/java/com/luxthorapps/rootora/AvisoDesligamentoPrefsTest.kt, src/native/EventosAcessibilidade.test.ts
     - Comandos: teste, build
     - Instala: nenhuma
-- [ ] TASK-10 (CA-01, CA-02, CA-03, CA-06, RN-01, RN-02, RN-03, RN-04): agendamento com `AlarmManager` ao desligar, cancelamento ao religar, `BroadcastReceiver` que decide pela RN-03 e exibe a notificação no canal `lembretes-rootora`, reagendamento no boot, permissão `RECEIVE_BOOT_COMPLETED` e arquitetura atualizada
+- [x] TASK-10 (CA-01, CA-02, CA-03, CA-06, RN-01, RN-02, RN-03, RN-04): agendamento com `AlarmManager` ao desligar, cancelamento ao religar, `BroadcastReceiver` que decide pela RN-03 e exibe a notificação no canal `lembretes-rootora`, reagendamento no boot, permissão `RECEIVE_BOOT_COMPLETED` e arquitetura atualizada
   - Teste: `CA-01: manifesto declara o receiver do lembrete e RECEIVE_BOOT_COMPLETED` (feliz)
   - Teste: `CA-06: o receiver do lembrete não é exportado` (exceção)
   - Escopo:
