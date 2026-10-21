@@ -1,0 +1,99 @@
+# Tasks — HU-04
+Spec: v1
+
+- [ ] TASK-01 (CA-01, CA-04, CA-05, RN-02, RN-06, RN-10): config padrão e sequência da pausa de intenção em `domain/saldoBloqueio.ts`: sessão 15 min, cooldown 45 min, `blocosDiarios` sem limite por padrão, sem tolerância, `SEQUENCIA_PAUSA_INTENCAO_SEG_V2` = [10, 20, 30, 40, 50, 60] pela posição da sessão já liberada; `resolverConfigBloco` aplica o padrão novo a todo usuário sem criar regras pendentes
+  - Teste: `CA-01: a primeira sessão do dia tem pausa de intenção de 10 segundos` (feliz)
+  - Teste: `CA-04: a segunda sessão do dia tem pausa de intenção de 20 segundos` (feliz)
+  - Teste: `CA-05: a sexta sessão em diante fica no teto de 60 segundos` (feliz)
+  - Teste: `CA-05: sem blocosDiarios configurado o padrão resolvido é sem limite` (feliz)
+  - Teste: `CA-06: blocosDiarios inválido ou negativo cai em sem limite, não em zero` (exceção)
+  - Teste: `CA-01: regras antigas com duracaoBlocoMin 15 e cooldownMin 30 salvos passam a valer 15 e 45` (exceção)
+  - Escopo:
+    - CAs: CA-01, CA-04, CA-05, CA-06
+    - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/appBlock.ts, src/domain/appBlock.test.ts, src/domain/types.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-02 (CA-02, CA-03, RN-03, RN-04, RN-05, RN-11): máquina de estados `AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → SESSAO_ATIVA → COOLDOWN` em `domain/saldoBloqueio.ts`, sem `BLOQUEADO_SEM_ESSENCIAL`, `TOLERANCIA` nem ganho de bloco por tarefa; tempo só corre em primeiro plano, aviso 1 min antes do fim, cooldown por timestamp absoluto; fixtures compartilhadas atualizadas
+  - Teste: `CA-02: apagar a tela por 2 minutos não avança o tempo da sessão` (feliz)
+  - Teste: `CA-03: faltando 1 minuto para o fim a sessão sinaliza o aviso` (feliz)
+  - Teste: `CA-03: ao completar 15 minutos a sessão termina e o cooldown de 45 minutos começa` (feliz)
+  - Teste: `CA-03: o cooldown diminui com o tempo e sobrevive a reiniciar, por timestamp absoluto` (feliz)
+  - Teste: `CA-02: liberar fora de AGUARDANDO_LIBERACAO não abre sessão` (exceção)
+  - Teste: `CA-03: sem tolerância, o fim da sessão vai direto para o cooldown` (exceção)
+  - Escopo:
+    - CAs: CA-02, CA-03
+    - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/__fixtures__/saldoBloqueio.json
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-03 (CA-05, CA-06, CA-07, RN-08, RN-11): `SALDO_ZERADO` só com `blocosDiarios` numérico; tarefa extra concluída com saldo zerado volta a `AGUARDANDO_LIBERACAO`; sem limite sempre há próxima sessão; virada do dia reinicia para `AGUARDANDO_LIBERACAO`; fixtures atualizadas
+  - Teste: `CA-05: sem blocosDiarios, depois do cooldown da 5ª sessão a 6ª é oferecida com pausa de 60 segundos` (feliz)
+  - Teste: `CA-06: com blocosDiarios 2 e 2 sessões usadas o fim do cooldown leva a SALDO_ZERADO, sem pausa de intenção` (exceção)
+  - Teste: `CA-06: com blocosDiarios configurado e saldo zerado não há bloqueio até o dia seguinte` (exceção)
+  - Teste: `CA-07: tarefa extra concluída em SALDO_ZERADO volta a AGUARDANDO_LIBERACAO` (exceção)
+  - Teste: `CA-05: a virada do dia reinicia qualquer estado para AGUARDANDO_LIBERACAO` (feliz)
+  - Escopo:
+    - CAs: CA-05, CA-06, CA-07
+    - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/__fixtures__/saldoBloqueio.json
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-04 (CA-02, CA-03, CA-05, CA-06, CA-07, RN-03, RN-05, RN-08, RN-11): cópia Kotlin da máquina em `SaldoBloqueioMaquina.kt` (autoridade) passando pelas mesmas fixtures do JUnit; resultado do JUnit registrado no progress.md
+  - Teste: `CA-02: fixtures compartilhadas — sessão só conta em primeiro plano` (feliz)
+  - Teste: `CA-03: fixtures compartilhadas — fim da sessão abre cooldown de 45 minutos` (feliz)
+  - Teste: `CA-05: fixtures compartilhadas — sem limite diário a 6ª sessão é oferecida` (feliz)
+  - Teste: `CA-06: fixtures compartilhadas — saldo zerado só com blocosDiarios configurado` (exceção)
+  - Teste: `CA-07: fixtures compartilhadas — extra concluída sai de SALDO_ZERADO` (exceção)
+  - Escopo:
+    - CAs: CA-02, CA-03, CA-05, CA-06, CA-07
+    - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioMaquina.kt, android/app/src/test/java/com/luxthorapps/rootora/SaldoBloqueioMaquinaTest.kt
+    - Comandos: teste, build
+    - Instala: nenhuma
+- [ ] TASK-05 (CA-03, CA-06, RN-03, RN-04, RN-10): integração nativa da nova máquina: persistência do estado e da config (padrões novos valem imediatamente, sem `regrasBloqueioPendentes`), Service com aviso de 1 minuto no lugar do "Tempo esgotado" e sem tolerância, Activity e wrapper TS sem os estados removidos
+  - Teste: `CA-03: o wrapper TS expõe sessão ativa, aviso de 1 minuto e cooldown sem campos de tolerância` (feliz)
+  - Teste: `CA-06: o wrapper TS aceita blocosDiarios ausente como sem limite` (exceção)
+  - Teste: `CA-03: estado salvo com fase antiga BLOCO_ATIVO ou TOLERANCIA é lido sem quebrar` (exceção)
+  - Escopo:
+    - CAs: CA-03, CA-06
+    - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/**, android/app/src/test/java/com/luxthorapps/rootora/**, src/native/AccessibilityDetection.ts, src/native/AccessibilityDetection.test.ts
+    - Comandos: teste, lint, tipos, build
+    - Instala: nenhuma
+- [ ] TASK-06 (CA-02, RN-09): `registrarResumoBloqueioNoDia` grava `sessoesUsadas` e `intencoes`, não grava mais `toleranciasUsadas`, e mantém os demais campos de `resumoBloqueio`
+  - Teste: `CA-02: ao liberar a sessão registrarResumoBloqueioNoDia incrementa sessoesUsadas e acrescenta a intenção` (feliz)
+  - Teste: `CA-02: registrarResumoBloqueioNoDia não grava toleranciasUsadas` (exceção)
+  - Escopo:
+    - CAs: CA-02
+    - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/domain/types.ts, src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-07 (CA-01, CA-03, CA-04, CA-06, CA-07, RN-02, RN-05, RN-08, RN-09): `useBloqueioSaldo` com a nova visão: pausa pela posição da sessão, tempo restante da sessão e do cooldown, aviso de 1 minuto, sem tolerância, resumo do dia por `sessoesUsadas`
+  - Teste: `CA-01: a primeira liberação do dia expõe pausa de 10 segundos` (feliz)
+  - Teste: `CA-04: depois de uma sessão liberada o hook expõe pausa de 20 segundos` (feliz)
+  - Teste: `CA-03: o hook expõe o tempo restante do cooldown e ele diminui a cada segundo` (feliz)
+  - Teste: `CA-06: em SALDO_ZERADO o hook não expõe pausa de intenção` (exceção)
+  - Teste: `CA-07: o hook volta a AGUARDANDO_LIBERACAO quando o nativo credita uma extra` (exceção)
+  - Escopo:
+    - CAs: CA-01, CA-03, CA-04, CA-06, CA-07
+    - Arquivos: src/hooks/useBloqueioSaldo.ts, src/hooks/useBloqueioSaldo.test.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-08 (CA-01, CA-06, CA-07, RN-01, RN-07, RN-08): `InterceptScreen` sem os estados A/C, sem "Estou travado" e sem a decisão pela tarefa essencial; abrir app bloqueado vai direto à pausa de intenção, ao cooldown ou ao saldo zerado; remoção de `TempoEsgotadoScreen`, que não tem mais uso
+  - Teste: `CA-01: sem sessão nem cooldown ativos a interceptação mostra a pausa de intenção, não os estados A/C` (feliz)
+  - Teste: `CA-06: com saldo zerado mostra os atalhos de sessão de foco e tarefas extras, sem pausa` (exceção)
+  - Teste: `CA-07: depois de uma tarefa extra concluída a próxima abertura mostra a pausa, não o saldo zerado` (exceção)
+  - Teste: `CA-01: a interceptação não oferece mais o botão Estou travado` (exceção)
+  - Escopo:
+    - CAs: CA-01, CA-06, CA-07
+    - Arquivos: src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx, src/screens/intercept/TempoEsgotadoScreen.tsx, src/screens/intercept/TempoEsgotadoScreen.test.tsx, src/screens/intercept/InterceptRoot.tsx, src/screens/intercept/InterceptRoot.test.tsx, src/screens/intercept/TarefasExtrasScreen.tsx, src/screens/intercept/TarefasExtrasScreen.test.tsx, src/domain/intercept.ts, src/domain/intercept.test.ts
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
+- [ ] TASK-09 (tela, CA-01, CA-02, CA-03, CA-04): estados de tela da interceptação conforme `docs/design/prototipo/intercept-sessoes.html`: estado normal (pausa de intenção com contador e campo de intenção), estado carregando (sessão ativa com o tempo restante e o aviso "1 minuto restante" não bloqueante) e estado erro (cooldown em andamento com "próximo acesso em X min" e os atalhos de foco e tarefas extras); tempo lido pelo leitor de tela como texto, copy sem exclamação nem "proteção"
+  - Teste: `CA-01: estado normal mostra o campo de intenção e o botão Liberar desabilitado durante a pausa` (feliz)
+  - Teste: `CA-03: estado carregando mostra o tempo restante da sessão e o aviso 1 minuto restante` (feliz)
+  - Teste: `CA-03: estado erro mostra próximo acesso em 45 min com os atalhos de foco e tarefas extras` (feliz)
+  - Teste: `CA-04: estado normal da segunda sessão mantém o Liberar desabilitado por 20 segundos` (feliz)
+  - Teste: `CA-02: o tempo restante da sessão e do cooldown tem texto acessível para o leitor de tela` (exceção)
+  - Teste: `CA-03: nenhum texto das telas de sessão tem exclamação nem a palavra proteção` (exceção)
+  - Escopo:
+    - CAs: CA-01, CA-02, CA-03, CA-04
+    - Arquivos: src/screens/intercept/PausaIntencaoScreen.tsx, src/screens/intercept/PausaIntencaoScreen.test.tsx, src/screens/intercept/EsperaBloqueioScreen.tsx, src/screens/intercept/EsperaBloqueioScreen.test.tsx, src/screens/intercept/SessaoAtivaAviso.tsx, src/screens/intercept/SessaoAtivaAviso.test.tsx, src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx
+    - Comandos: teste, lint, tipos
+    - Instala: nenhuma
