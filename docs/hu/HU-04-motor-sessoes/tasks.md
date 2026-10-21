@@ -64,7 +64,7 @@ Spec: v1
     - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/domain/types.ts, src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-07 (CA-01, CA-03, CA-04, CA-06, CA-07, RN-02, RN-05, RN-08, RN-09): `useBloqueioSaldo` com a nova visão: pausa pela posição da sessão, tempo restante da sessão e do cooldown, aviso de 1 minuto, sem tolerância, resumo do dia por `sessoesUsadas`
+- [x] TASK-07 (CA-01, CA-03, CA-04, CA-06, CA-07, RN-02, RN-05, RN-08, RN-09): `useBloqueioSaldo` com a nova visão: pausa pela posição da sessão, tempo restante da sessão e do cooldown, aviso de 1 minuto, sem tolerância, resumo do dia por `sessoesUsadas`
   - Teste: `CA-01: a primeira liberação do dia expõe pausa de 10 segundos` (feliz)
   - Teste: `CA-04: depois de uma sessão liberada o hook expõe pausa de 20 segundos` (feliz)
   - Teste: `CA-03: o hook expõe o tempo restante do cooldown e ele diminui a cada segundo` (feliz)

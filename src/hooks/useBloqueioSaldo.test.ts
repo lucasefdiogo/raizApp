@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useBloqueioSaldo } from './useBloqueioSaldo';
-import { CONFIG_BLOCO_PADRAO, estadoInicialSaldo } from '../domain/saldoBloqueio';
+import { CONFIG_BLOCO_PADRAO, estadoInicialDia } from '../domain/saldoBloqueio';
 import { VisaoBloqueio } from '../native/AccessibilityDetection';
 
 jest.mock('../native/AccessibilityDetection');
@@ -11,16 +11,16 @@ const native = require('../native/AccessibilityDetection');
 const { registrarResumoBloqueioNoDia } = require('../services/firestore');
 const { registrarErro } = require('../services/crashlytics');
 
-function visao(sobrescrita: Partial<VisaoBloqueio['estado']> = {}): VisaoBloqueio {
+function visao(
+  sobrescrita: Partial<VisaoBloqueio['estado']> = {},
+  config: Partial<VisaoBloqueio['config']> = {},
+): VisaoBloqueio {
   return {
     estado: {
-      ...estadoInicialSaldo('2026-10-11'),
-      fase: 'AGUARDANDO_LIBERACAO',
-      saldo: 4,
+      ...estadoInicialDia('2026-10-11'),
       ...sobrescrita,
     },
-    // Tolerância 3 explícita (2 é o padrão antigo, que o resolver descarta): o padrão novo é sem tolerância; a TASK-07/08 reescreve este teste.
-    config: { ...CONFIG_BLOCO_PADRAO, toleranciaMin: 3 },
+    config: { ...CONFIG_BLOCO_PADRAO, ...config },
     agora: 1_700_000_000_000,
   };
 }
@@ -32,14 +32,40 @@ describe('useBloqueioSaldo', () => {
     registrarResumoBloqueioNoDia.mockResolvedValue(undefined);
   });
 
-  it('começa na visão inicial e a duração da pausa vem de blocosUsados', async () => {
-    native.obterEstadoBloqueio.mockResolvedValue(visao({ blocosUsados: 2 }));
-    const { result } = await renderHook(() =>
-      useBloqueioSaldo('uid-1', visao({ blocosUsados: 2 })),
-    );
+  it('CA-01: a primeira liberação do dia expõe pausa de 10 segundos', async () => {
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', visao()));
 
-    expect(result.current.pausaIntencaoSeg).toBe(30);
+    expect(result.current.pausaIntencaoSeg).toBe(10);
+    expect(result.current.podeLiberar).toBe(true);
     expect(result.current.visao?.estado.fase).toBe('AGUARDANDO_LIBERACAO');
+  });
+
+  it('CA-04: depois de uma sessão liberada o hook expõe pausa de 20 segundos', async () => {
+    const v = visao({ blocosUsados: 1, fase: 'AGUARDANDO_LIBERACAO' });
+    native.obterEstadoBloqueio.mockResolvedValue(v);
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+    expect(result.current.pausaIntencaoSeg).toBe(20);
+  });
+
+  it('CA-06: em SALDO_ZERADO o hook não expõe pausa de intenção', async () => {
+    const v = visao({ blocosUsados: 2, fase: 'SALDO_ZERADO' }, { blocosDiarios: 2 });
+    native.obterEstadoBloqueio.mockResolvedValue(v);
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+    expect(result.current.podeLiberar).toBe(false);
+    expect(result.current.visao?.estado.fase).toBe('SALDO_ZERADO');
+  });
+
+  it('expõe tempo restante da sessão ativa e o aviso de 1 minuto', async () => {
+    const agora = Date.now();
+    const v = visao({ fase: 'SESSAO_ATIVA', blocosUsados: 1, consumidoMs: 14 * 60_000 + 10_000 });
+    native.obterEstadoBloqueio.mockResolvedValue({ ...v, agora });
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+    expect(result.current.msRestantesSessao).toBe(50_000);
+    expect(result.current.avisoUmMinuto).toBe(true);
+    expect(result.current.msRestantesCooldown).toBe(0);
   });
 
   it('sem visão inicial: carrega do nativo', async () => {
@@ -62,7 +88,7 @@ describe('useBloqueioSaldo', () => {
     expect(registrarResumoBloqueioNoDia).toHaveBeenCalledWith(
       'uid-1',
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-      { blocosUsados: 1, intencao: 'ver mensagens' },
+      { sessoesUsadas: 1, intencao: 'ver mensagens' },
     );
   });
 
@@ -91,42 +117,52 @@ describe('useBloqueioSaldo', () => {
     await waitFor(() => expect(registrarErro).toHaveBeenCalled());
   });
 
-  it('aceitarTolerancia grava toleranciasUsadas; recusar não grava nada', async () => {
-    native.obterEstadoBloqueio.mockResolvedValue(visao({ fase: 'TOLERANCIA' }));
-    native.usarTolerancia.mockResolvedValue(true);
-    native.recusarTolerancia.mockResolvedValue(true);
-    const { result } = await renderHook(() =>
-      useBloqueioSaldo('uid-1', visao({ fase: 'TOLERANCIA' })),
-    );
-
-    expect(result.current.podeTolerancia).toBe(true);
-
-    await act(async () => {
-      await result.current.recusarTolerancia();
-    });
-    expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await result.current.aceitarTolerancia();
-    });
-    expect(registrarResumoBloqueioNoDia).toHaveBeenCalledWith(
-      'uid-1',
-      expect.any(String),
-      { toleranciasUsadas: 1 },
-    );
-  });
-
-  it('podeTolerancia é false depois de usada', async () => {
-    const usada = visao({ fase: 'TOLERANCIA', toleranciaUsada: true });
-    native.obterEstadoBloqueio.mockResolvedValue(usada);
-    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', usada));
+  it('shim de tolerância não grava nada no resumo', async () => {
+    native.usarTolerancia.mockResolvedValue(false);
+    native.recusarTolerancia.mockResolvedValue(false);
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', visao()));
 
     expect(result.current.podeTolerancia).toBe(false);
+    await act(async () => {
+      await result.current.recusarTolerancia();
+      await result.current.aceitarTolerancia();
+    });
+    expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
   });
 
   describe('polling', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => jest.useRealTimers());
+
+    it('CA-03: o hook expõe o tempo restante do cooldown e ele diminui a cada segundo', async () => {
+      const agora = Date.now();
+      const cd = visao({ fase: 'COOLDOWN', blocosUsados: 1, fimCooldownEm: agora + 45 * 60_000 });
+      native.obterEstadoBloqueio.mockResolvedValue(cd);
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', cd));
+
+      const antes = result.current.msRestantesCooldown;
+      expect(antes).toBeGreaterThan(44 * 60_000);
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(result.current.msRestantesCooldown).toBeLessThan(antes);
+    });
+
+    it('CA-07: o hook volta a AGUARDANDO_LIBERACAO quando o nativo credita uma extra', async () => {
+      const zerado = visao({ fase: 'SALDO_ZERADO', blocosUsados: 2 }, { blocosDiarios: 2 });
+      native.obterEstadoBloqueio.mockResolvedValue(zerado);
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', zerado));
+      expect(result.current.podeLiberar).toBe(false);
+
+      native.obterEstadoBloqueio.mockResolvedValue(
+        visao({ fase: 'AGUARDANDO_LIBERACAO', blocosUsados: 2, saldo: 1 }, { blocosDiarios: 2 }),
+      );
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(result.current.visao?.estado.fase).toBe('AGUARDANDO_LIBERACAO');
+      expect(result.current.podeLiberar).toBe(true);
+    });
 
     it('em COOLDOWN relê o nativo a cada segundo; em AGUARDANDO_LIBERACAO não', async () => {
       const cooldown = visao({ fase: 'COOLDOWN', fimCooldownEm: 1_700_000_900_000 });
