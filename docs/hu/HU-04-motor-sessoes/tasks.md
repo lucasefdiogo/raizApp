@@ -25,7 +25,7 @@ Spec: v1
     - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/__fixtures__/saldoBloqueio.json
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-03 (CA-05, CA-06, CA-07, RN-08, RN-11): `SALDO_ZERADO` só com `blocosDiarios` numérico; tarefa extra concluída com saldo zerado volta a `AGUARDANDO_LIBERACAO`; sem limite sempre há próxima sessão; virada do dia reinicia para `AGUARDANDO_LIBERACAO`; fixtures atualizadas
+- [x] TASK-03 (CA-05, CA-06, CA-07, RN-08, RN-11): `SALDO_ZERADO` só com `blocosDiarios` numérico; tarefa extra concluída com saldo zerado volta a `AGUARDANDO_LIBERACAO`; sem limite sempre há próxima sessão; virada do dia reinicia para `AGUARDANDO_LIBERACAO`; fixtures atualizadas
   - Teste: `CA-05: sem blocosDiarios, depois do cooldown da 5ª sessão a 6ª é oferecida com pausa de 60 segundos` (feliz)
   - Teste: `CA-06: com blocosDiarios 2 e 2 sessões usadas o fim do cooldown leva a SALDO_ZERADO, sem pausa de intenção` (exceção)
   - Teste: `CA-06: com blocosDiarios configurado e saldo zerado não há bloqueio até o dia seguinte` (exceção)

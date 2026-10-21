@@ -20,6 +20,7 @@ import {
   permiteUso,
   reconciliar,
   resolverConfigBloco,
+  saldoDisponivel,
   saiuDePrimeiroPlano,
 } from './saldoBloqueio';
 import { Tarefa } from './types';
@@ -69,6 +70,8 @@ function valorObservado(
       return r.ok;
     case 'permiteUso':
       return permiteUso(e);
+    case 'saldoDisponivel':
+      return saldoDisponivel(e, cfg);
     case 'consumidoSeg':
       return e.consumidoMs / 1000;
     case 'fimCooldownEmMin':
@@ -194,6 +197,88 @@ describe('motor de sessões', () => {
     // nenhuma fase intermediária de oferta de tempo extra
     expect(fim.fase).toBe('COOLDOWN');
     expect(Object.keys(fim)).not.toContain('toleranciaAtiva');
+  });
+});
+
+describe('saldo de sessões (RN-08, RN-11)', () => {
+  const dia = fixtures.dia;
+  const t0 = fixtures.base;
+
+  /** Roda `n` sessões completas (libera, usa 15 min em primeiro plano) e devolve o estado em cooldown. */
+  function usarSessoes(n: number, cfg: ConfigBloco): EstadoSaldo {
+    let e = estadoInicialDia(dia);
+    let t = t0;
+    for (let i = 0; i < n; i++) {
+      e = liberarBloco(e, cfg, t, dia).estado;
+      e = entrouEmPrimeiroPlano(e, cfg, t, dia).estado;
+      t += cfg.duracaoBlocoMin * MIN;
+      e = reconciliar(e, cfg, t, dia);
+      if (i < n - 1) {
+        t += cfg.cooldownMin * MIN;
+        e = reconciliar(e, cfg, t, dia);
+      }
+    }
+    return e;
+  }
+
+  it('CA-05: sem blocosDiarios, depois do cooldown da 5ª sessão a 6ª é oferecida com pausa de 60 segundos', () => {
+    const cfg = CONFIG_BLOCO_PADRAO;
+    const emCooldown = usarSessoes(5, cfg);
+    expect(emCooldown.fase).toBe('COOLDOWN');
+    expect(emCooldown.blocosUsados).toBe(5);
+    const depois = reconciliar(emCooldown, cfg, emCooldown.fimCooldownEm, dia);
+    expect(depois.fase).toBe('AGUARDANDO_LIBERACAO');
+    expect(duracaoPausaIntencaoSeg(depois.blocosUsados)).toBe(60);
+    expect(liberarBloco(depois, cfg, emCooldown.fimCooldownEm, dia).ok).toBe(true);
+  });
+
+  it('CA-06: com blocosDiarios 2 e 2 sessões usadas o fim do cooldown leva a SALDO_ZERADO, sem pausa de intenção', () => {
+    const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, blocosDiarios: 2 };
+    const emCooldown = usarSessoes(2, cfg);
+    expect(saldoDisponivel(emCooldown, cfg)).toBe(0);
+    const antes = reconciliar(emCooldown, cfg, emCooldown.fimCooldownEm - 1, dia);
+    expect(antes.fase).toBe('COOLDOWN');
+    const depois = reconciliar(emCooldown, cfg, emCooldown.fimCooldownEm, dia);
+    expect(depois.fase).toBe('SALDO_ZERADO');
+    const tentativa = liberarBloco(depois, cfg, emCooldown.fimCooldownEm, dia);
+    expect(tentativa.ok).toBe(false);
+    expect(tentativa.estado.fase).toBe('SALDO_ZERADO');
+  });
+
+  it('CA-06: com blocosDiarios configurado e saldo zerado não há bloqueio até o dia seguinte', () => {
+    const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, blocosDiarios: 2 };
+    const emCooldown = usarSessoes(2, cfg);
+    const zerado = reconciliar(emCooldown, cfg, emCooldown.fimCooldownEm, dia);
+    const tarde = reconciliar(zerado, cfg, emCooldown.fimCooldownEm + 600 * MIN, dia);
+    expect(tarde.fase).toBe('SALDO_ZERADO');
+    expect(permiteUso(tarde)).toBe(false);
+    const amanha = reconciliar(tarde, cfg, tarde.fimCooldownEm + 700 * MIN, '2026-10-12');
+    expect(amanha.fase).toBe('AGUARDANDO_LIBERACAO');
+  });
+
+  it('CA-07: tarefa extra concluída em SALDO_ZERADO volta a AGUARDANDO_LIBERACAO', () => {
+    const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, blocosDiarios: 2 };
+    const emCooldown = usarSessoes(2, cfg);
+    const t = emCooldown.fimCooldownEm;
+    const zerado = reconciliar(emCooldown, cfg, t, dia);
+    expect(zerado.fase).toBe('SALDO_ZERADO');
+    const r = aplicarSnapshot(zerado, { extrasConcluidas: ['x1'] }, cfg, t, dia);
+    expect(r.estado.fase).toBe('AGUARDANDO_LIBERACAO');
+    expect(saldoDisponivel(r.estado, cfg)).toBe(1);
+    expect(liberarBloco(r.estado, cfg, t, dia).ok).toBe(true);
+  });
+
+  it('CA-05: a virada do dia reinicia qualquer estado para AGUARDANDO_LIBERACAO', () => {
+    const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, blocosDiarios: 2 };
+    const emCooldown = usarSessoes(2, cfg);
+    const zerado = reconciliar(emCooldown, cfg, emCooldown.fimCooldownEm, dia);
+    const ativa = liberarBloco(estadoInicialDia(dia), cfg, t0, dia).estado;
+    [ativa, emCooldown, zerado].forEach(estado => {
+      const novo = reconciliar(estado, cfg, t0 + 2000 * MIN, '2026-10-12');
+      expect(novo.fase).toBe('AGUARDANDO_LIBERACAO');
+      expect(novo.blocosUsados).toBe(0);
+      expect(saldoDisponivel(novo, cfg)).toBe(2);
+    });
   });
 });
 

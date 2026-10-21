@@ -17,9 +17,9 @@ import { Tarefa } from './types';
  * (ver FaseTela) — se o usuário sai, ela reinicia, então não há nada pra
  * persistir. O estado persistido fica em AGUARDANDO_LIBERACAO até o
  * "Liberar" valer. A sessão está disponível desde o início do dia: nenhuma
- * tarefa precisa ser feita para liberar. SALDO_ZERADO só passa a ser
- * produzido pela regra do saldo (blocosDiarios numérico), fora desta máquina
- * básica.
+ * tarefa precisa ser feita para liberar. SALDO_ZERADO só existe com
+ * blocosDiarios numérico: as sessões do dia acabaram e o cooldown terminou
+ * (ver saldoDisponivel).
  */
 export type FaseBloqueio =
   | 'AGUARDANDO_LIBERACAO'
@@ -72,6 +72,7 @@ export interface EstadoSaldo {
   /** YYYY-MM-DD local — virou o dia, tudo zera (reconciliar). */
   dia: string;
   fase: FaseBloqueio;
+  /** Créditos de tarefas extras concluídas (soma ao limite diário em saldoDisponivel). */
   saldo: number;
   blocosUsados: number;
   /** Ids das tarefas extras que já renderam bloco — impede marcar/desmarcar/marcar de novo pra farmar. */
@@ -184,6 +185,20 @@ export function essencialCumpridoNoDia(tarefas: Tarefa[]): boolean {
   return essenciais.length > 0 && essenciais.every(t => t.concluida);
 }
 
+/**
+ * Sessões ainda disponíveis hoje: blocosDiarios - blocosUsados + créditos de
+ * tarefas extras. null = sem limite (blocosDiarios não configurado).
+ */
+export function saldoDisponivel(
+  estado: EstadoSaldo,
+  cfg: ConfigBloco,
+): number | null {
+  if (cfg.blocosDiarios === null) {
+    return null;
+  }
+  return Math.max(0, cfg.blocosDiarios - estado.blocosUsados + estado.saldo);
+}
+
 export function permiteUso(estado: EstadoSaldo): boolean {
   return estado.fase === 'SESSAO_ATIVA';
 }
@@ -205,7 +220,7 @@ function entrarEmCooldown(
 /**
  * Aplica o que o passar do tempo já decidiu: virada do dia, sessão que se
  * esgotou em primeiro plano (vai direto ao cooldown), cooldown que acabou
- * (volta a AGUARDANDO_LIBERACAO). Toda transição chama isto antes de agir —
+ * (volta a AGUARDANDO_LIBERACAO, ou SALDO_ZERADO se o limite diário acabou). Toda transição chama isto antes de agir —
  * assim o estado é sempre derivável só de timestamps absolutos, mesmo que o
  * app/aparelho tenha ficado parado.
  */
@@ -230,16 +245,21 @@ export function reconciliar(
 
   if (s.fase === 'COOLDOWN' && agora >= s.fimCooldownEm) {
     s.fase = 'AGUARDANDO_LIBERACAO';
+    if (saldoDisponivel(s, cfg) === 0) {
+      s.fase = 'SALDO_ZERADO';
+    }
+  } else if (s.fase === 'SALDO_ZERADO' && saldoDisponivel(s, cfg) !== 0) {
+    // crédito de tarefa extra (ou limite aumentado): volta a oferecer sessão
+    s.fase = 'AGUARDANDO_LIBERACAO';
   }
   return s;
 }
 
 /**
  * Chamada a cada mudança em tarefas[] (snapshot do dia). Credita cada tarefa
- * extra nova (uma vez por id). O essencial não credita nada e nenhum crédito
- * muda a fase nem é necessário para liberar a sessão.
- *
- * compat: a TASK-03 redefine este crédito para o CA-07 (extra tira de SALDO_ZERADO)
+ * extra nova (uma vez por id). O essencial não credita nada e o crédito não é
+ * necessário para liberar a sessão; só muda a fase ao tirar de SALDO_ZERADO
+ * (CA-07), via reconciliar.
  */
 export function aplicarSnapshot(
   estado: EstadoSaldo,

@@ -130,6 +130,58 @@
       ]
     },
     {
+      "nome": "sem blocosDiarios o cooldown da 5a sessao leva a AGUARDANDO_LIBERACAO e a 6a e oferecida",
+      "passos": [
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true, "blocosUsados": 1 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 15, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "liberarBloco", "agoraMin": 60, "esperado": { "ok": true, "blocosUsados": 2 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 60, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 75, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "liberarBloco", "agoraMin": 120, "esperado": { "ok": true, "blocosUsados": 3 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 120, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 135, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "liberarBloco", "agoraMin": 180, "esperado": { "ok": true, "blocosUsados": 4 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 180, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 195, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "liberarBloco", "agoraMin": 240, "esperado": { "ok": true, "blocosUsados": 5 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 240, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 255, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 300 } },
+        { "evento": "reconciliar", "agoraMin": 300, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "blocosUsados": 5, "saldoDisponivel": null } },
+        { "evento": "liberarBloco", "agoraMin": 300, "esperado": { "ok": true, "fase": "SESSAO_ATIVA", "blocosUsados": 6 } }
+      ]
+    },
+    {
+      "nome": "com blocosDiarios 2 e 2 sessoes usadas o fim do cooldown leva a SALDO_ZERADO e continua assim ate o dia seguinte",
+      "config": { "blocosDiarios": 2 },
+      "passos": [
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true, "saldoDisponivel": 1 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 15, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "reconciliar", "agoraMin": 60, "esperado": { "fase": "AGUARDANDO_LIBERACAO" } },
+        { "evento": "liberarBloco", "agoraMin": 60, "esperado": { "ok": true, "blocosUsados": 2, "saldoDisponivel": 0 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 60, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 75, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 120 } },
+        { "evento": "reconciliar", "agoraMin": 119.9, "esperado": { "fase": "COOLDOWN" } },
+        { "evento": "reconciliar", "agoraMin": 120, "esperado": { "fase": "SALDO_ZERADO", "permiteUso": false } },
+        { "evento": "liberarBloco", "agoraMin": 121, "esperado": { "ok": false, "fase": "SALDO_ZERADO", "blocosUsados": 2 } },
+        { "evento": "reconciliar", "agoraMin": 1000, "esperado": { "fase": "SALDO_ZERADO" } },
+        { "evento": "reconciliar", "agoraMin": 1500, "dia": "2026-10-12", "esperado": { "fase": "AGUARDANDO_LIBERACAO", "blocosUsados": 0, "saldoDisponivel": 2 } }
+      ]
+    },
+    {
+      "nome": "tarefa extra concluida em SALDO_ZERADO volta a AGUARDANDO_LIBERACAO e libera uma sessao",
+      "config": { "blocosDiarios": 1 },
+      "passos": [
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 60, "esperado": { "fase": "SALDO_ZERADO", "saldoDisponivel": 0 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 61, "args": { "extrasConcluidas": ["x1"] }, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldo": 1, "saldoDisponivel": 1 } },
+        { "evento": "aplicarSnapshot", "agoraMin": 62, "args": { "extrasConcluidas": ["x1"] }, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "saldoDisponivel": 1 } },
+        { "evento": "liberarBloco", "agoraMin": 63, "esperado": { "ok": true, "fase": "SESSAO_ATIVA", "blocosUsados": 2, "saldoDisponivel": 0 } }
+      ]
+    },
+    {
       "nome": "config customizada vale (sessao de 10 min, cooldown de 20 min)",
       "config": { "duracaoBlocoMin": 10, "cooldownMin": 20 },
       "passos": [
