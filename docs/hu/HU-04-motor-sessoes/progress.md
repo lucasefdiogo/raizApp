@@ -15,3 +15,5 @@ Plano: TASK-10 acrescentada (aviso nativo de 1 minuto, CA-03/RN-04) após lacuna
 TASK-10: Service agenda Toast "1 minuto restante" em msAteAviso (uma vez por sessão, flag em SharedPreferences chave dia#blocosUsados, fora da máquina compartilhada); decisão pura msParaAgendarAviso testada no JUnit (AvisoSessaoTest). Não testado em aparelho: roteiro manual no relatório. Auditoria ok na rodada 2 (1 correção: evidência de execução).
 Task ativa: nenhuma
 Entrega: tasks concluídas
+Entrega: validação reprovada (1/3)
+verify: RASTREABILIDADE, 6 testes herdados da HU-03 citavam CA-08, inexistente na spec da HU-04 (7 CAs). Correção: rótulo dos 6 testes trocado para "HU-03 critério 8:" (só o nome, sem mudar asserção). Observação do kit: o verify lê todo "CA-nn" da suíte inteira, então testes de HUs anteriores com CA-01..07 contam como cobertura falsa da HU-04.

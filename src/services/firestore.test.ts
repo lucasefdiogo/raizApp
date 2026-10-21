@@ -888,7 +888,7 @@ describe('services/firestore', () => {
       });
     });
 
-    it('CA-08: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado', async () => {
+    it('HU-03 critério 8: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado', async () => {
       await salvarDailyLog('uid-1', '2026-10-19', {
         data: '2026-10-19',
         tarefas: [{ id: '1', titulo: 'Estudar', essencial: true, concluida: true }],
@@ -911,7 +911,7 @@ describe('services/firestore', () => {
       expect(log?.statusDia).toBe('cumprido');
     });
 
-    it('CA-08: gravarAcessibilidadeNoDia sem eventos não grava nada', async () => {
+    it('HU-03 critério 8: gravarAcessibilidadeNoDia sem eventos não grava nada', async () => {
       firestoreMock.setDoc.mockClear();
       await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
         desligadoEm: [],

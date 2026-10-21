@@ -240,7 +240,7 @@ describe('useStreak', () => {
     expect(result.current.escudosDisponiveis).toBe(0);
   });
 
-  it('CA-08: streak avaliado com dailyLog de ontem só com usoApps é igual ao de sem documento', async () => {
+  it('HU-03 critério 8: streak avaliado com dailyLog de ontem só com usoApps é igual ao de sem documento', async () => {
     mockAgora('2026-09-09');
     const estado = { ...ESTADO_BASE, escudosDisponiveis: 1 };
 
@@ -274,7 +274,7 @@ describe('useStreak', () => {
     expect(comUsoApps.result.current.statusStreak).toBe(esperado.statusStreak);
   });
 
-  it('CA-08: streak avaliado com dailyLog de ontem só com acessibilidade é igual ao de sem documento', async () => {
+  it('HU-03 critério 8: streak avaliado com dailyLog de ontem só com acessibilidade é igual ao de sem documento', async () => {
     mockAgora('2026-09-09');
     const estado = { ...ESTADO_BASE, escudosDisponiveis: 1 };
 
