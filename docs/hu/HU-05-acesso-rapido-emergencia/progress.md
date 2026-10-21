@@ -23,3 +23,7 @@ Task ativa: nenhuma
 Task ativa: TASK-07
 TASK-07: AcessoRapidoOpcoes (botão com espera de 5 s, "próximo acesso rápido em X min", emergência só se oferecida), RespiracaoEmergenciaScreen (60 s, sem pular, onConcluir) e EsperaBloqueioScreen com props opcionais; textos acessíveis com live region. Ligação com hook/nativo fica na TASK-08. Não conferido em aparelho real.
 Task ativa: nenhuma
+Task ativa: TASK-08
+TASK-08: InterceptScreen liga EsperaBloqueioScreen ao hook; acesso rápido chama liberarAcessoRapido() e abre o app se aceito; emergência mostra a respiração de 60 s e chama concluirEmergencia(); recusa do nativo na emergência volta ao modo principal (robustez, fora da spec). InterceptRoot não mudou.
+Task ativa: nenhuma
+Entrega: tasks concluídas

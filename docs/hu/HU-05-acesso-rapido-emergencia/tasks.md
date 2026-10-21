@@ -77,7 +77,7 @@ Spec: v1
     - Arquivos: src/screens/intercept/**, src/components/intercept/**
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-08 (CA-07, RN-08): `InterceptRoot` liga a tela ao hook e à ponte nativa: o acesso rápido e a emergência usados na interceptação chegam ao nativo e ao resumo do dia, e a cota exibida segue a do nativo ao reabrir
+- [x] TASK-08 (CA-07, RN-08): `InterceptRoot` liga a tela ao hook e à ponte nativa: o acesso rápido e a emergência usados na interceptação chegam ao nativo e ao resumo do dia, e a cota exibida segue a do nativo ao reabrir
   - Teste: `CA-07: reabrir a interceptação depois de uma emergência mostra a mesma cota de acesso rápido` (exceção)
   - Teste: `CA-01: tocar em Acesso rápido (2 min) chama a liberação nativa depois da espera de 5 segundos` (feliz)
   - Escopo:

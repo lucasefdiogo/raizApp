@@ -448,4 +448,123 @@ describe('InterceptScreen', () => {
       expect(screen.queryByTestId('sessao-foco-mock')).toBeNull();
     });
   });
+
+  describe('acesso rápido e emergência (HU-05)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      configurarDailyTasks({ tarefas: [] });
+    });
+    afterEach(() => jest.useRealTimers());
+
+    async function passar(segundos: number) {
+      for (let i = 0; i < segundos; i++) {
+        await act(async () => {
+          jest.advanceTimersByTime(1_000);
+        });
+      }
+    }
+
+    it('CA-01: tocar em Acesso rápido (2 min) chama a liberação nativa depois da espera de 5 segundos', async () => {
+      const liberarAcessoRapido = jest.fn().mockResolvedValue(true);
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        {
+          acessoRapidoDisponivel: true,
+          esperaAcessoRapidoSeg: 5,
+          msAteProximoAcessoRapido: 0,
+          emergenciaOferecida: false,
+          liberarAcessoRapido,
+        },
+      );
+      const onSair = jest.fn();
+      await render(<InterceptScreen {...props} onSair={onSair} />);
+
+      await fireEvent.press(screen.getByText('Acesso rápido (2 min)'));
+      await passar(4);
+      expect(liberarAcessoRapido).not.toHaveBeenCalled();
+      await passar(1);
+
+      expect(liberarAcessoRapido).toHaveBeenCalledTimes(1);
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+      expect(onSair).toHaveBeenCalledTimes(1);
+    });
+
+    it('CA-01: se o nativo recusar o acesso rápido, o app não abre', async () => {
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        {
+          acessoRapidoDisponivel: true,
+          esperaAcessoRapidoSeg: 5,
+          liberarAcessoRapido: jest.fn().mockResolvedValue(false),
+        },
+      );
+      const onSair = jest.fn();
+      await render(<InterceptScreen {...props} onSair={onSair} />);
+
+      await fireEvent.press(screen.getByText('Acesso rápido (2 min)'));
+      await passar(5);
+
+      expect(abrirApp).not.toHaveBeenCalled();
+      expect(onSair).not.toHaveBeenCalled();
+    });
+
+    it('CA-07: reabrir a interceptação depois de uma emergência mostra a mesma cota de acesso rápido', async () => {
+      const concluirEmergencia = jest.fn().mockResolvedValue(true);
+      const cota = {
+        acessoRapidoDisponivel: false,
+        msAteProximoAcessoRapido: 20 * 60_000,
+        emergenciaOferecida: true,
+      };
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        { ...cota, concluirEmergencia },
+      );
+      const onSair = jest.fn();
+      const { unmount } = await render(
+        <InterceptScreen {...props} onSair={onSair} />,
+      );
+      expect(screen.getByText('Próximo acesso rápido em 20 min')).toBeTruthy();
+
+      await fireEvent.press(
+        screen.getByText('Preciso agora (respiração de 1 min)'),
+      );
+      expect(screen.getByTestId('respiracao-emergencia')).toBeTruthy();
+      expect(concluirEmergencia).not.toHaveBeenCalled();
+      await passar(60);
+
+      expect(concluirEmergencia).toHaveBeenCalledTimes(1);
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+      expect(onSair).toHaveBeenCalledTimes(1);
+
+      // Reabre: a visão nativa traz a mesma cota (a emergência não a consumiu).
+      await unmount();
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        { ...cota, concluirEmergencia },
+      );
+      await render(<InterceptScreen {...props} />);
+      expect(screen.getByText('Próximo acesso rápido em 20 min')).toBeTruthy();
+    });
+
+    it('CA-07: se o nativo recusar a emergência, o app não abre', async () => {
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        {
+          acessoRapidoDisponivel: false,
+          msAteProximoAcessoRapido: 20 * 60_000,
+          emergenciaOferecida: true,
+          concluirEmergencia: jest.fn().mockResolvedValue(false),
+        },
+      );
+      const onSair = jest.fn();
+      await render(<InterceptScreen {...props} onSair={onSair} />);
+      await fireEvent.press(
+        screen.getByText('Preciso agora (respiração de 1 min)'),
+      );
+      await passar(60);
+
+      expect(abrirApp).not.toHaveBeenCalled();
+      expect(onSair).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -14,6 +14,7 @@ import { SessaoFocoScreen } from './SessaoFocoScreen';
 import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { PausaIntencaoScreen } from './PausaIntencaoScreen';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
+import { RespiracaoEmergenciaScreen } from './RespiracaoEmergenciaScreen';
 import { TarefasExtrasScreen } from './TarefasExtrasScreen';
 
 /**
@@ -45,7 +46,10 @@ interface InterceptScreenProps {
   onSair: () => void;
 }
 
-type Modo = 'principal' | 'sessao' | 'extras';
+type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia';
+
+/** Respiração guiada da saída de emergência (RN-06). */
+const DURACAO_SEG_RESPIRACAO_EMERGENCIA = 60;
 
 interface ParametrosSessao {
   tarefaId: string | null;
@@ -113,6 +117,20 @@ export function InterceptScreen({
     }
   }
 
+  async function handleAcessoRapido() {
+    if (await saldo.liberarAcessoRapido()) {
+      await abrirAppEFechar();
+    }
+  }
+
+  async function handleEmergenciaConcluida() {
+    if (await saldo.concluirEmergencia()) {
+      await abrirAppEFechar();
+    } else {
+      setModo('principal');
+    }
+  }
+
   function handleAgoraNaoPausa() {
     registrarAcao('B', 'saiu');
     onSair();
@@ -162,6 +180,17 @@ export function InterceptScreen({
           onLiberarApp={
             fase === 'AGUARDANDO_LIBERACAO' ? handleLiberarNaSessao : undefined
           }
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (modo === 'emergencia') {
+    return (
+      <SafeAreaView style={styles.container} testID="intercept-screen">
+        <RespiracaoEmergenciaScreen
+          duracaoSeg={DURACAO_SEG_RESPIRACAO_EMERGENCIA}
+          onConcluir={handleEmergenciaConcluida}
         />
       </SafeAreaView>
     );
@@ -219,6 +248,12 @@ export function InterceptScreen({
           onSessaoFoco={handleSessaoDeFoco}
           onTarefasExtras={() => setModo('extras')}
           onSair={onSair}
+          acessoRapidoDisponivel={saldo.acessoRapidoDisponivel}
+          esperaSeg={saldo.esperaAcessoRapidoSeg}
+          msAteProximo={saldo.msAteProximoAcessoRapido}
+          emergenciaOferecida={saldo.emergenciaOferecida}
+          onAcessoRapido={handleAcessoRapido}
+          onEmergencia={() => setModo('emergencia')}
         />
       </SafeAreaView>
     );
