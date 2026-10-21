@@ -209,4 +209,11 @@ object SaldoBloqueioMaquina {
     val restante = msRestantes(s, cfg, agora)
     return permiteUso(s) && restante > 0L && restante <= AVISO_FIM_SESSAO_MS
   }
+
+  /** Quando agendar o toast de aviso (ms a partir de agora); null = não agendar (parado, sem sessão ativa ou já exibido). */
+  fun msParaAgendarAviso(s: EstadoSaldo, cfg: ConfigBloco, agora: Long, avisoJaExibido: Boolean): Long? =
+    if (avisoJaExibido) null else msAteAviso(s, cfg, agora)
+
+  /** Identifica a sessão (dia + contador de sessões usadas) para lembrar que o aviso dela já saiu. */
+  fun chaveAvisoSessao(s: EstadoSaldo): String = "${s.dia}#${s.blocosUsados}"
 }

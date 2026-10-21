@@ -16,6 +16,7 @@ import org.json.JSONObject
 object SaldoBloqueioPrefs {
   private const val PREFS_NOME = "rootora_saldo_bloqueio"
   private const val CHAVE_ESTADO = "estado"
+  private const val CHAVE_AVISO_EXIBIDO = "avisoSessaoExibido"
   private const val COOLDOWN_MIN_PADRAO_ANTIGO = 30
   private const val BLOCOS_DIARIOS_PADRAO_ANTIGO = 4
 
@@ -166,6 +167,16 @@ object SaldoBloqueioPrefs {
         SaldoBloqueioMaquina.msAteAviso(estado, cfg, agora)?.let { put("msAteAviso", it) }
       }
       .toString()
+
+  /** O aviso de 1 minuto da sessão `chave` (ver chaveAvisoSessao) já foi exibido? */
+  @Synchronized
+  fun avisoSessaoExibido(context: Context, chave: String): Boolean =
+    prefs(context).getString(CHAVE_AVISO_EXIBIDO, null) == chave
+
+  @Synchronized
+  fun marcarAvisoSessaoExibido(context: Context, chave: String) {
+    prefs(context).edit().putString(CHAVE_AVISO_EXIBIDO, chave).apply()
+  }
 
   /** Reinício do Service/processo: o trecho em primeiro plano em aberto é descartado (não dá pra saber quando acabou). */
   @Synchronized
