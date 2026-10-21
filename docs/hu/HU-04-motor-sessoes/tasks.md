@@ -36,7 +36,7 @@ Spec: v1
     - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/__fixtures__/saldoBloqueio.json
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-04 (CA-02, CA-03, CA-05, CA-06, CA-07, RN-03, RN-05, RN-08, RN-11): cópia Kotlin da máquina em `SaldoBloqueioMaquina.kt` (autoridade) passando pelas mesmas fixtures do JUnit; resultado do JUnit registrado no progress.md
+- [x] TASK-04 (CA-02, CA-03, CA-05, CA-06, CA-07, RN-03, RN-05, RN-08, RN-11): cópia Kotlin da máquina em `SaldoBloqueioMaquina.kt` (autoridade) passando pelas mesmas fixtures do JUnit; resultado do JUnit registrado no progress.md
   - Teste: `CA-02: fixtures compartilhadas — sessão só conta em primeiro plano` (feliz)
   - Teste: `CA-03: fixtures compartilhadas — fim da sessão abre cooldown de 45 minutos` (feliz)
   - Teste: `CA-05: fixtures compartilhadas — sem limite diário a 6ª sessão é oferecida` (feliz)
@@ -44,7 +44,7 @@ Spec: v1
   - Teste: `CA-07: fixtures compartilhadas — extra concluída sai de SALDO_ZERADO` (exceção)
   - Escopo:
     - CAs: CA-02, CA-03, CA-05, CA-06, CA-07
-    - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioMaquina.kt, android/app/src/test/java/com/luxthorapps/rootora/SaldoBloqueioMaquinaTest.kt
+    - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioMaquina.kt, android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioPrefs.kt, android/app/src/test/java/com/luxthorapps/rootora/SaldoBloqueioMaquinaTest.kt
     - Comandos: teste, build
     - Instala: nenhuma
 - [ ] TASK-05 (CA-03, CA-06, RN-03, RN-04, RN-10): integração nativa da nova máquina: persistência do estado e da config (padrões novos valem imediatamente, sem `regrasBloqueioPendentes`), Service com aviso de 1 minuto no lugar do "Tempo esgotado" e sem tolerância, Activity e wrapper TS sem os estados removidos

@@ -13,6 +13,16 @@ import org.junit.Test
  * domain/saldoBloqueio.ts não divergem.
  */
 class SaldoBloqueioMaquinaTest {
+  // Cada caso das fixtures pertence a um único critério (primeiro que casar).
+  private fun grupoDoCaso(nome: String): String =
+    when {
+      nome.startsWith("sem blocosDiarios") -> "CA-05"
+      nome.startsWith("com blocosDiarios") -> "CA-06"
+      nome.startsWith("tarefa extra concluida em SALDO_ZERADO") -> "CA-07"
+      nome.contains("cooldown") || nome.contains("virada do dia") || nome.startsWith("liberar fora") -> "CA-03"
+      else -> "CA-02"
+    }
+
   private val minuto = 60_000.0
 
   private fun carregarFixtures(): JSONObject {
@@ -27,9 +37,8 @@ class SaldoBloqueioMaquinaTest {
     val p = ConfigBloco()
     return ConfigBloco(
       duracaoBlocoMin = c.optInt("duracaoBlocoMin", p.duracaoBlocoMin),
-      toleranciaMin = c.optInt("toleranciaMin", p.toleranciaMin),
       cooldownMin = c.optInt("cooldownMin", p.cooldownMin),
-      blocosDiarios = c.optInt("blocosDiarios", p.blocosDiarios),
+      blocosDiarios = if (c.has("blocosDiarios") && !c.isNull("blocosDiarios")) c.getInt("blocosDiarios") else null,
       blocoPorTarefaExtra = c.optInt("blocoPorTarefaExtra", p.blocoPorTarefaExtra),
     )
   }
@@ -37,16 +46,19 @@ class SaldoBloqueioMaquinaTest {
   private fun lista(arr: JSONArray?): List<String> =
     if (arr == null) emptyList() else (0 until arr.length()).map { arr.getString(it) }
 
-  @Test
-  fun fixturesCompartilhadasComOJest() {
+  /** Roda os casos das fixtures do grupo; devolve quantos rodou. */
+  private fun rodarGrupo(grupo: String): Int {
     val fixtures = carregarFixtures()
     val base = fixtures.getLong("base")
     val diaPadrao = fixtures.getString("dia")
     val casos = fixtures.getJSONArray("casos")
+    var rodados = 0
 
     for (i in 0 until casos.length()) {
       val caso = casos.getJSONObject(i)
       val nome = caso.getString("nome")
+      if (grupoDoCaso(nome) != grupo) continue
+      rodados++
       val cfg = configDoCaso(caso)
       var estado = EstadoSaldo(dia = diaPadrao)
       val passos = caso.getJSONArray("passos")
@@ -62,8 +74,7 @@ class SaldoBloqueioMaquinaTest {
             "aplicarSnapshot" ->
               SaldoBloqueioMaquina.aplicarSnapshot(
                 estado,
-                args!!.getBoolean("essencialCumprido"),
-                lista(args.optJSONArray("extrasConcluidas")),
+                lista(args!!.optJSONArray("extrasConcluidas")),
                 cfg,
                 agora,
                 dia,
@@ -71,8 +82,6 @@ class SaldoBloqueioMaquinaTest {
             "liberarBloco" -> SaldoBloqueioMaquina.liberarBloco(estado, cfg, agora, dia)
             "entrouEmPrimeiroPlano" -> SaldoBloqueioMaquina.entrouEmPrimeiroPlano(estado, cfg, agora, dia)
             "saiuDePrimeiroPlano" -> SaldoBloqueioMaquina.saiuDePrimeiroPlano(estado, cfg, agora, dia)
-            "usarTolerancia" -> SaldoBloqueioMaquina.usarTolerancia(estado, cfg, agora, dia)
-            "recusarTolerancia" -> SaldoBloqueioMaquina.recusarTolerancia(estado, cfg, agora, dia)
             "reconciliar" -> ResultadoTransicao(SaldoBloqueioMaquina.reconciliar(estado, cfg, agora, dia), true)
             else -> throw IllegalStateException("evento desconhecido: $evento")
           }
@@ -86,11 +95,26 @@ class SaldoBloqueioMaquinaTest {
             "fase" -> assertEquals(contexto, esperado.getString(chave), estado.fase.name)
             "saldo" -> assertEquals(contexto, esperado.getInt(chave), estado.saldo)
             "blocosUsados" -> assertEquals(contexto, esperado.getInt(chave), estado.blocosUsados)
-            "toleranciasUsadas" -> assertEquals(contexto, esperado.getInt(chave), estado.toleranciasUsadas)
-            "toleranciaUsada" -> assertEquals(contexto, esperado.getBoolean(chave), estado.toleranciaUsada)
-            "toleranciaAtiva" -> assertEquals(contexto, esperado.getBoolean(chave), estado.toleranciaAtiva)
             "permiteUso" -> assertEquals(contexto, esperado.getBoolean(chave), SaldoBloqueioMaquina.permiteUso(estado))
+            "saldoDisponivel" ->
+              assertEquals(
+                contexto,
+                if (esperado.isNull(chave)) null else esperado.getInt(chave),
+                SaldoBloqueioMaquina.saldoDisponivel(estado, cfg),
+              )
             "consumidoSeg" -> assertEquals(contexto, esperado.getDouble(chave), estado.consumidoMs / 1000.0, 1e-6)
+            "restanteSeg" ->
+              assertEquals(contexto, esperado.getDouble(chave), SaldoBloqueioMaquina.msRestantes(estado, cfg, agora) / 1000.0, 1e-6)
+            "avisoUmMinuto" ->
+              assertEquals(contexto, esperado.getBoolean(chave), SaldoBloqueioMaquina.avisoUmMinutoAtivo(estado, cfg, agora))
+            "msAteAvisoSeg" -> {
+              val obtido = SaldoBloqueioMaquina.msAteAviso(estado, cfg, agora)
+              if (esperado.isNull(chave)) {
+                assertEquals(contexto, null, obtido)
+              } else {
+                assertEquals(contexto, esperado.getDouble(chave), obtido!! / 1000.0, 1e-6)
+              }
+            }
             "fimCooldownEmMin" ->
               assertEquals(contexto, esperado.getDouble(chave), (estado.fimCooldownEm - base) / minuto, 1e-6)
             else -> throw IllegalStateException("campo esperado desconhecido: $chave")
@@ -98,5 +122,36 @@ class SaldoBloqueioMaquinaTest {
         }
       }
     }
+    return rodados
+  }
+
+  private fun exigir(grupo: String) {
+    assertTrue("nenhum caso das fixtures para $grupo", rodarGrupo(grupo) > 0)
+  }
+
+  @Test
+  fun `CA-02 fixtures compartilhadas - sessão só conta em primeiro plano`() = exigir("CA-02")
+
+  @Test
+  fun `CA-03 fixtures compartilhadas - fim da sessão abre cooldown de 45 minutos`() = exigir("CA-03")
+
+  @Test
+  fun `CA-05 fixtures compartilhadas - sem limite diário a 6ª sessão é oferecida`() = exigir("CA-05")
+
+  @Test
+  fun `CA-06 fixtures compartilhadas - saldo zerado só com blocosDiarios configurado`() = exigir("CA-06")
+
+  @Test
+  fun `CA-07 fixtures compartilhadas - extra concluída sai de SALDO_ZERADO`() = exigir("CA-07")
+
+  @Test
+  fun `defaults da máquina são 15 minutos, cooldown 45 e sem limite`() {
+    val c = ConfigBloco()
+    assertEquals(15, c.duracaoBlocoMin)
+    assertEquals(45, c.cooldownMin)
+    assertEquals(null, c.blocosDiarios)
+    assertEquals(listOf(10, 20, 30, 40, 50, 60), SaldoBloqueioMaquina.SEQUENCIA_PAUSA_INTENCAO_SEG_V2)
+    assertEquals(10, SaldoBloqueioMaquina.duracaoPausaIntencaoSeg(0))
+    assertEquals(60, SaldoBloqueioMaquina.duracaoPausaIntencaoSeg(9))
   }
 }

@@ -47,7 +47,7 @@ object SaldoBloqueioPrefs {
         duracaoBlocoMin = campo("duracaoBlocoMin", padrao.duracaoBlocoMin),
         toleranciaMin = campo("toleranciaMin", padrao.toleranciaMin),
         cooldownMin = campo("cooldownMin", padrao.cooldownMin),
-        blocosDiarios = campo("blocosDiarios", padrao.blocosDiarios),
+        blocosDiarios = if (r.has("blocosDiarios") && r.optInt("blocosDiarios", -1) >= 0) r.getInt("blocosDiarios") else null,
         blocoPorTarefaExtra = campo("blocoPorTarefaExtra", padrao.blocoPorTarefaExtra),
       )
     } catch (erro: Exception) {
@@ -150,7 +150,7 @@ object SaldoBloqueioPrefs {
             put("duracaoBlocoMin", cfg.duracaoBlocoMin)
             put("toleranciaMin", cfg.toleranciaMin)
             put("cooldownMin", cfg.cooldownMin)
-            put("blocosDiarios", cfg.blocosDiarios)
+            cfg.blocosDiarios?.let { put("blocosDiarios", it) }
             put("blocoPorTarefaExtra", cfg.blocoPorTarefaExtra)
           },
         )
