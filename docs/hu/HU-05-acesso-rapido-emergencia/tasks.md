@@ -1,7 +1,7 @@
 # Tasks — HU-05
 Spec: v1
 
-- [ ] TASK-01 (CA-03, CA-06, RN-02, RN-03, RN-05, RN-06): constantes e funções puras em `domain/acessoRapido.ts`: `ACESSOS_RAPIDOS_DIARIOS` = 3, intervalos [15, 30, 60] min contados do fim do acesso anterior, `acessoRapidoDisponivel`, `msAteProximoAcessoRapido`, `emergenciaOferecida` (só sem sessão ativa, sem cooldown liberável e sem acesso rápido disponível)
+- [x] TASK-01 (CA-03, CA-06, RN-02, RN-03, RN-05, RN-06): constantes e funções puras em `domain/acessoRapido.ts`: `ACESSOS_RAPIDOS_DIARIOS` = 3, intervalos [15, 30, 60] min contados do fim do acesso anterior, `acessoRapidoDisponivel`, `msAteProximoAcessoRapido`, `emergenciaOferecida` (só sem sessão ativa, sem cooldown liberável e sem acesso rápido disponível)
   - Teste: `CA-03: depois do 1º acesso rápido o próximo libera em 15 min, depois do 2º em 30 min` (feliz)
   - Teste: `CA-03: depois do 3º acesso rápido do dia a cota esgota e o botão não volta` (feliz)
   - Teste: `CA-06: com acesso rápido disponível a emergência não é oferecida` (exceção)
