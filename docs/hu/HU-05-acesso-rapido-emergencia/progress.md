@@ -14,3 +14,6 @@ Task ativa: nenhuma
 Task ativa: TASK-04
 TASK-04: módulo nativo liberarAcessoRapido()/concluirEmergencia() resolvem JSON {aceito, visao}; visão ganha msRestantesLiberacaoRapida, acessosRapidosRestantes, msAteProximoAcessoRapido (ausente = cota esgotada), emergenciaOferecida; Service usa appPodeAbrir = permiteUso || acessoRapidoLiberado e agenda o timer pelo que esgotar primeiro. JUnit 38 testes, 0 falhas; assembleDebug ok. Não conferido em aparelho real: reabertura da interceptação ao fim da liberação rápida.
 Task ativa: nenhuma
+Task ativa: TASK-05
+TASK-05: registrarResumoBloqueioNoDia aceita acessosRapidos e emergencias no objeto parcial (increment atômico, só se diferente de zero); ResumoBloqueioDia ganha os dois como opcionais (dia antigo = 0). Doc a atualizar: definition/schema-firebase.md (resumoBloqueio.acessosRapidos e .emergencias).
+Task ativa: nenhuma

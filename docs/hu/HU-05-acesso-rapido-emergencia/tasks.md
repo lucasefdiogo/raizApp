@@ -44,7 +44,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/**, android/app/src/test/java/com/luxthorapps/rootora/**, src/native/AccessibilityDetection.ts, src/native/AccessibilityDetection.test.ts
     - Comandos: teste, lint, tipos, build
     - Instala: nenhuma
-- [ ] TASK-05 (CA-05, RN-08, RN-09): `registrarResumoBloqueioNoDia` grava `acessosRapidos` e `emergencias` além de `sessoesUsadas` e `intencoes`, cada um incrementado a cada uso
+- [x] TASK-05 (CA-05, RN-08, RN-09): `registrarResumoBloqueioNoDia` grava `acessosRapidos` e `emergencias` além de `sessoesUsadas` e `intencoes`, cada um incrementado a cada uso
   - Teste: `CA-05: concluir a emergência incrementa emergencias do dia em 1` (feliz)
   - Teste: `CA-01: usar o acesso rápido incrementa acessosRapidos e não emergencias` (feliz)
   - Teste: `CA-07: registrar a emergência não altera acessosRapidos nem sessoesUsadas` (exceção)

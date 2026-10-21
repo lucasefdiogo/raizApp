@@ -588,10 +588,18 @@ export async function registrarResumoBloqueioNoDia(
   data: string,
   parcial: {
     sessoesUsadas?: number;
+    acessosRapidos?: number;
+    emergencias?: number;
     intencao?: string;
   },
 ): Promise<void> {
   const resumo: Record<string, unknown> = {};
+  if (parcial.acessosRapidos) {
+    resumo.acessosRapidos = increment(parcial.acessosRapidos);
+  }
+  if (parcial.emergencias) {
+    resumo.emergencias = increment(parcial.emergencias);
+  }
   if (parcial.sessoesUsadas) {
     resumo.sessoesUsadas = increment(parcial.sessoesUsadas);
   }

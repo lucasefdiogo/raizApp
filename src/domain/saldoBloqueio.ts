@@ -553,4 +553,7 @@ export function formatarContagemMs(ms: number): string {
 export interface ResumoBloqueioDia {
   sessoesUsadas: number;
   intencoes: string[];
+  /** Ausentes em dias anteriores à HU-05 (ler como 0). */
+  acessosRapidos?: number;
+  emergencias?: number;
 }
