@@ -65,7 +65,7 @@ Spec: v1
     - Arquivos: src/hooks/useBloqueioSaldo.ts, src/hooks/useBloqueioSaldo.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-07 (tela, CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-07): telas conforme `docs/design/prototipo/acesso-rapido-emergencia.html`: estado normal (cooldown com o botão "Acesso rápido (2 min)"), estado carregando (respiração guiada de 60 segundos sem opção de pular), estado vazio (acesso rápido indisponível com "próximo acesso rápido em X min" e a opção de emergência); espera de 5 segundos sem campo de texto
+- [x] TASK-07 (tela, CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, CA-07): telas conforme `docs/design/prototipo/acesso-rapido-emergencia.html`: estado normal (cooldown com o botão "Acesso rápido (2 min)"), estado carregando (respiração guiada de 60 segundos sem opção de pular), estado vazio (acesso rápido indisponível com "próximo acesso rápido em X min" e a opção de emergência); espera de 5 segundos sem campo de texto
   - Teste: `CA-01: estado normal mostra o botão Acesso rápido (2 min) no cooldown` (feliz)
   - Teste: `CA-05: estado carregando mostra a respiração de 60 segundos sem botão de pular` (feliz)
   - Teste: `CA-04: estado vazio mostra próximo acesso rápido em X min e a saída de emergência` (feliz)

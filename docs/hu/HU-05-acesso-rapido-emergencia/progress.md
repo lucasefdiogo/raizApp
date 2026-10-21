@@ -20,3 +20,6 @@ Task ativa: nenhuma
 Task ativa: TASK-06
 TASK-06: useBloqueioSaldo expõe acessoRapidoDisponivel, esperaAcessoRapidoSeg (5), acessosRapidosRestantes, msAteProximoAcessoRapido, emergenciaOferecida e liberarAcessoRapido()/concluirEmergencia() (Promise<boolean>, registram o resumo só se aceito). 1 rodada de correção (constante duplicada, agora importa ACESSOS_RAPIDOS_DIARIOS).
 Task ativa: nenhuma
+Task ativa: TASK-07
+TASK-07: AcessoRapidoOpcoes (botão com espera de 5 s, "próximo acesso rápido em X min", emergência só se oferecida), RespiracaoEmergenciaScreen (60 s, sem pular, onConcluir) e EsperaBloqueioScreen com props opcionais; textos acessíveis com live region. Ligação com hook/nativo fica na TASK-08. Não conferido em aparelho real.
+Task ativa: nenhuma
