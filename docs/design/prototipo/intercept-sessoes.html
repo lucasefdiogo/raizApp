@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interceptação — sessões</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --casca: #EFEAE0;
+    --areia: #E3DACB;
+    --terra-escura: #2B2318;
+    --terra-suave: #6B5E45;
+    --cobre: #B5772E;
+    --musgo: #3E4A34;
+    --border: #E3D8C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: #D9D2C4;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+  }
+  .estados { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+  .estado-rotulo {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .tela {
+    width: 340px;
+    max-width: 100%;
+    min-height: 620px;
+    background: var(--casca);
+    border-radius: 18px;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  h1 {
+    font-family: "Zilla Slab", serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 12px 0 8px;
+  }
+  .corpo { font-size: 14px; line-height: 1.5; color: var(--terra-suave); margin: 0 0 20px; }
+  .timer {
+    font-family: "Space Mono", monospace;
+    font-size: 40px;
+    font-weight: 400;
+    color: var(--terra-escura);
+    margin: 8px 0 20px;
+  }
+  .timer-label {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: -14px 0 24px;
+  }
+  textarea {
+    width: 100%;
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    font: 400 14px "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+    resize: none;
+    margin-bottom: 20px;
+  }
+  textarea::placeholder { color: var(--terra-suave); }
+  .acoes { width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  button {
+    width: 100%;
+    border-radius: 14px;
+    padding: 14px;
+    font: 600 15px "IBM Plex Sans", sans-serif;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--cobre); outline-offset: 2px; }
+  .primario { border: 0; background: var(--cobre); color: var(--casca); }
+  .primario:disabled { background: var(--border); color: var(--terra-suave); cursor: not-allowed; }
+  .secundario { background: transparent; border: 1px solid var(--terra-suave); color: var(--terra-suave); }
+  .aviso {
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--terra-suave);
+    margin-bottom: 16px;
+  }
+  .atalhos { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .atalho {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--terra-suave);
+    font: 500 13px "IBM Plex Sans", sans-serif;
+    padding: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="estados">
+
+  <!-- Estado: normal (pausa de intenção) -->
+  <div>
+    <p class="estado-rotulo">normal · pausa de intenção</p>
+    <section class="tela" data-estado="normal" aria-label="Pausa de intenção">
+      <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="#3E4A34" stroke-width="3"/>
+        <line x1="24" y1="24" x2="24" y2="14" stroke="#B5772E" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <h1>O que você vai fazer agora?</h1>
+      <p class="corpo">Escrever é opcional. O botão libera em alguns segundos.</p>
+      <textarea rows="2" placeholder="Ex.: ver uma mensagem rápida" aria-label="O que você vai fazer agora (opcional)"></textarea>
+      <div class="acoes">
+        <button class="primario" type="button" disabled aria-live="polite">Liberar (10s)</button>
+        <button class="secundario" type="button">Voltar</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: carregando (sessão ativa) -->
+  <div>
+    <p class="estado-rotulo">carregando · sessão ativa</p>
+    <section class="tela" data-estado="carregando" aria-label="Sessão ativa">
+      <p class="timer-label">Tempo livre</p>
+      <p class="timer" role="timer" aria-live="polite">12:41</p>
+      <p class="corpo">Contando só enquanto o app está na tela.</p>
+      <div class="aviso" role="status">1 minuto restante</div>
+      <div class="acoes">
+        <button class="secundario" type="button">Encerrar agora</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: erro (usado como "aguarde" — cooldown em andamento) -->
+  <div>
+    <p class="estado-rotulo">erro · cooldown (aguarde)</p>
+    <section class="tela" data-estado="erro" aria-label="Aguardando o próximo acesso">
+      <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="#6B5E45" stroke-width="3" stroke-dasharray="4 4"/>
+      </svg>
+      <h1>Próximo acesso em</h1>
+      <p class="timer" role="timer" aria-live="polite">32:08</p>
+      <p class="corpo">Enquanto isso, dá pra fazer uma pausa de 5 minutos ou uma tarefa extra.</p>
+      <div class="atalhos">
+        <button class="atalho" type="button">Sessão de foco de 5 min</button>
+        <button class="atalho" type="button">Ver tarefas extras</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>

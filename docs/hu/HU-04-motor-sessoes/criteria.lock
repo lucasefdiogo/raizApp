@@ -1,0 +1,43 @@
+{
+  "algoritmo": 1,
+  "hu": "HU-04",
+  "versao": 1,
+  "spec": "4d30902d4f6c4a848d07fccf99c1a4f290b1a4612b9dc22c9d01d6d6f3d81355",
+  "criterios": {
+    "CA-01": {
+      "status": "ativo",
+      "criterio": "9780613720c23d2dbef5249f26bcaa972117d31a8a4bdefa3356917eeeb0d8a6",
+      "cenario": "55d2381b8e49f2915b0f5057345821df932de3efde7d1bf5926ceaeb3ed29c1e"
+    },
+    "CA-02": {
+      "status": "ativo",
+      "criterio": "0f950095d7eb9de0aa94951340198d4cbe7d51cf2c92b50da5816a51f6aac163",
+      "cenario": "b5e708bf63cd93e32a551a94415981cc7fa4e9cdbc25778444508f47468e352d"
+    },
+    "CA-03": {
+      "status": "ativo",
+      "criterio": "34205b328d95c4897cedbbfbbb6b9f4ad674ae6dbcf4e7f197cd89fde777d285",
+      "cenario": "1386644c07b80c438f39c3d5e1ad22298d02be3554f7bb26fd5dcd9ea2ba6754"
+    },
+    "CA-04": {
+      "status": "ativo",
+      "criterio": "d7d612a62477159f3c6e536d1d8805268250dd5bcbe2c4918db58ef0d4468580",
+      "cenario": "e8ed24814a2af4b70049b0187d0750e78ac48b31a8ceb9270b8cf10318c4eebb"
+    },
+    "CA-05": {
+      "status": "ativo",
+      "criterio": "0c808ecacbebd18b60a8042a975c5cce697408910561fadca6f0bca1853c7f72",
+      "cenario": "080da8b9ca0750634913d671a173cf8c93ec8c3472c625e91f56026dea495665"
+    },
+    "CA-06": {
+      "status": "ativo",
+      "criterio": "65b289db314e6a4e39b0ce832fd23404acab1adc5f62cad39c6995060fe51469",
+      "cenario": "e45439970edaee9640fe6cd5e19a24e609d926cdedf88e31748f3bde2ef18da9"
+    },
+    "CA-07": {
+      "status": "ativo",
+      "criterio": "e59075c424788cfae342922b3e5d5b78f369672cc641674a1cac92e93a7bd7cb",
+      "cenario": "31638fd62591839cefb4004b2597aac7af0564a374780376c618e3c6c39605cd"
+    }
+  }
+}
