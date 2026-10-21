@@ -11,7 +11,7 @@ Spec: v1
     - Arquivos: src/domain/acessoRapido.ts, src/domain/acessoRapido.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-02 (CA-01, CA-02, CA-04, CA-05, CA-07, RN-01, RN-04, RN-06, RN-07, RN-08): transições do acesso rápido e da emergência em `domain/saldoBloqueio.ts`: liberação de 2 min contada só em primeiro plano, em campos próprios que não tocam `fimCooldownEm` nem `consumidoMs` da sessão; emergência libera 2 min sem consumir a cota; cota e intervalo zeram na virada do dia; fixtures compartilhadas atualizadas
+- [x] TASK-02 (CA-01, CA-02, CA-04, CA-05, CA-07, RN-01, RN-04, RN-06, RN-07, RN-08): transições do acesso rápido e da emergência em `domain/saldoBloqueio.ts`: liberação de 2 min contada só em primeiro plano, em campos próprios que não tocam `fimCooldownEm` nem `consumidoMs` da sessão; emergência libera 2 min sem consumir a cota; cota e intervalo zeram na virada do dia; fixtures compartilhadas atualizadas
   - Teste: `CA-01: liberar o acesso rápido abre 2 minutos de uso contados só em primeiro plano` (feliz)
   - Teste: `CA-02: usar o acesso rápido durante o cooldown não altera o tempo restante do cooldown` (feliz)
   - Teste: `CA-04: com a cota esgotada e sem sessão disponível a emergência é oferecida` (feliz)

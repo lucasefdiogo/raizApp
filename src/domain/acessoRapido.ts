@@ -12,6 +12,9 @@ export const ACESSOS_RAPIDOS_DIARIOS = 3;
  */
 export const INTERVALOS_ACESSO_RAPIDO_MIN = [15, 30, 60];
 
+/** Duração da liberação do acesso rápido e da emergência, só em primeiro plano. */
+export const DURACAO_LIBERACAO_RAPIDA_MIN = 2;
+
 const MS_POR_MIN = 60_000;
 
 /**
