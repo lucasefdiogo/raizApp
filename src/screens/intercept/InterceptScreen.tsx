@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { EstadoTravado } from '../../domain/types';
 import { DURACAO_SEG_SESSAO_BLOQUEIO, SnapshotDia } from '../../domain/intercept';
-import { resolverConfigBloco } from '../../domain/saldoBloqueio';
+import { resolverConfigBloco, saldoDisponivel } from '../../domain/saldoBloqueio';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
 import { useIntercept } from '../../hooks/useIntercept';
 import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
+import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { PausaIntencaoScreen } from './PausaIntencaoScreen';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
 import { TarefasExtrasScreen } from './TarefasExtrasScreen';
@@ -189,7 +190,11 @@ export function InterceptScreen({
         <PausaIntencaoScreen
           appLabel={appLabel}
           duracaoSeg={saldo.pausaIntencaoSeg}
-          saldo={saldo.visao?.estado.saldo ?? 0}
+          saldo={
+            saldo.visao
+              ? saldoDisponivel(saldo.visao.estado, configBloco)
+              : null
+          }
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
         />
@@ -201,7 +206,6 @@ export function InterceptScreen({
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <EsperaBloqueioScreen
-          appLabel={appLabel}
           variante={fase === 'COOLDOWN' ? 'cooldown' : 'zerado'}
           restanteMs={
             fase === 'COOLDOWN'
@@ -211,7 +215,6 @@ export function InterceptScreen({
                 )
               : 0
           }
-          saldo={saldo.visao?.estado.saldo ?? 0}
           blocoPorTarefaExtra={configBloco.blocoPorTarefaExtra}
           onSessaoFoco={handleSessaoDeFoco}
           onTarefasExtras={() => setModo('extras')}
@@ -221,12 +224,15 @@ export function InterceptScreen({
     );
   }
 
-  // Sessão já em andamento (o Service não deveria interceptar, mas a tela
-  // pode ter ficado aberta enquanto o estado virou).
+  // Sessão já em andamento (o Service não intercepta nesta fase, mas a tela
+  // pode ter ficado aberta enquanto o estado virou): tempo restante e aviso.
   return (
     <SafeAreaView style={styles.container} testID="intercept-screen">
       <View style={styles.conteudo}>
-        <Text style={styles.titulo}>Sua sessão está em andamento.</Text>
+        <SessaoAtivaAviso
+          msRestantes={saldo.msRestantesSessao}
+          avisoUmMinuto={saldo.avisoUmMinuto}
+        />
         <PrimaryButton
           titulo={`Abrir o ${appLabel}`}
           onPress={abrirAppEFechar}
@@ -246,11 +252,5 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
     justifyContent: 'center',
-  },
-  titulo: {
-    fontSize: theme.typography.fontSize.xl,
-    fontFamily: theme.typography.fontFamily.headingBold,
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
   },
 });

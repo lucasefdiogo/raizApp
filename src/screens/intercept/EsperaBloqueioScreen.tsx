@@ -1,17 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
-import { formatarContagemMs } from '../../domain/saldoBloqueio';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 
 interface EsperaBloqueioScreenProps {
-  appLabel: string;
-  /** cooldown = contagem regressiva até o próximo bloco; zerado = sem blocos até amanhã. */
+  /** cooldown = contagem regressiva até a próxima sessão; zerado = sessões do dia usadas (só com limite diário). */
   variante: 'cooldown' | 'zerado';
   /** Só usado em 'cooldown'. */
   restanteMs?: number;
-  saldo: number;
+  /** Quantas sessões cada tarefa extra concluída rende. */
   blocoPorTarefaExtra: number;
   onSessaoFoco: () => void;
   onTarefasExtras: () => void;
@@ -19,15 +17,14 @@ interface EsperaBloqueioScreenProps {
 }
 
 /**
- * Cooldown entre blocos e saldo zerado: o app segue bloqueado, mas as duas
- * saídas úteis ficam à mão — sessão de foco e tarefas extras (que rendem
- * bloco). Texto neutro, sem cobrança.
+ * Cooldown entre sessões e saldo zerado: as duas saídas úteis ficam à mão —
+ * sessão de foco e tarefas extras (que rendem sessão). Texto neutro, sem
+ * cobrança. O cooldown mostra minutos (arredondados para cima) e o texto
+ * lido pelo leitor de tela também muda só por minuto.
  */
 export function EsperaBloqueioScreen({
-  appLabel,
   variante,
   restanteMs = 0,
-  saldo,
   blocoPorTarefaExtra,
   onSessaoFoco,
   onTarefasExtras,
@@ -35,28 +32,35 @@ export function EsperaBloqueioScreen({
 }: EsperaBloqueioScreenProps) {
   const textoExtras =
     blocoPorTarefaExtra === 1
-      ? 'Cada tarefa extra concluída rende 1 bloco.'
-      : `Cada tarefa extra concluída rende ${blocoPorTarefaExtra} blocos.`;
+      ? 'Cada tarefa extra concluída rende 1 sessão.'
+      : `Cada tarefa extra concluída rende ${blocoPorTarefaExtra} sessões.`;
+  const minutos = Math.ceil(Math.max(0, restanteMs) / 60_000);
 
   return (
     <View style={styles.conteudo} testID={`espera-${variante}`}>
       {variante === 'cooldown' ? (
         <>
-          <Text style={styles.titulo}>Próximo bloco em</Text>
-          <Text style={styles.contagem} testID="espera-contagem">
-            {formatarContagemMs(restanteMs)}
+          <Text
+            style={styles.contagem}
+            testID="espera-contagem"
+            accessibilityRole="timer"
+            accessibilityLabel={`Próximo acesso em ${minutos} ${
+              minutos === 1 ? 'minuto' : 'minutos'
+            }`}
+            accessibilityLiveRegion="polite"
+          >
+            {`Próximo acesso em ${minutos} min`}
           </Text>
           <Text style={styles.apoio}>
-            {saldo === 1
-              ? 'Você tem 1 bloco guardado para depois.'
-              : `Você tem ${saldo} blocos guardados para depois.`}
+            Enquanto isso, dá pra fazer uma pausa de 5 minutos ou uma tarefa
+            extra. {textoExtras}
           </Text>
         </>
       ) : (
         <>
-          <Text style={styles.titulo}>Os blocos de hoje acabaram</Text>
+          <Text style={styles.titulo}>Você usou as sessões de hoje</Text>
           <Text style={styles.apoio}>
-            O {appLabel} volta a ficar disponível amanhã. {textoExtras}
+            Dá pra fazer uma sessão de foco ou uma tarefa extra. {textoExtras}
           </Text>
         </>
       )}
@@ -83,7 +87,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   contagem: {
-    fontSize: theme.typography.fontSize.xxl,
+    fontSize: theme.typography.fontSize.xl,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
     textAlign: 'center',

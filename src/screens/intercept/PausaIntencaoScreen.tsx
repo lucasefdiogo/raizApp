@@ -7,15 +7,16 @@ import { SecondaryButton } from '../../components/SecondaryButton';
 
 interface PausaIntencaoScreenProps {
   appLabel: string;
-  /** Duração da pausa deste bloco (5/10/20/40/60s — ver duracaoPausaIntencaoSeg). */
+  /** Duração da pausa desta sessão (10/20/.../60s — ver duracaoPausaIntencaoSeg). */
   duracaoSeg: number;
-  saldo: number;
+  /** Sessões restantes hoje; null = sem limite diário (nada a mostrar). */
+  saldo: number | null;
   onLiberar: (intencao: string) => void;
   onAgoraNao: () => void;
 }
 
 /**
- * Pausa antes de liberar cada bloco: pergunta opcional e botão que só
+ * Pausa antes de liberar cada sessão: pergunta opcional e botão que só
  * habilita ao fim da contagem. O estado é local de propósito — se o usuário
  * sai da tela, a próxima tentativa monta uma instância nova e a contagem
  * recomeça (regra 5). Fricção, não punição: ele pode sair a qualquer
@@ -44,8 +45,12 @@ export function PausaIntencaoScreen({
     <View style={styles.conteudo} testID="pausa-intencao">
       <Text style={styles.titulo}>O que você vai fazer agora?</Text>
       <Text style={styles.apoio}>
-        Um respiro antes de abrir o {appLabel}.{' '}
-        {saldo === 1 ? 'Resta 1 bloco hoje.' : `Restam ${saldo} blocos hoje.`}
+        Um respiro antes de abrir o {appLabel}. Escrever é opcional.
+        {saldo === null
+          ? ''
+          : saldo === 1
+          ? ' Resta 1 sessão hoje.'
+          : ` Restam ${saldo} sessões hoje.`}
       </Text>
       <TextField
         label="Se quiser, escreva (opcional)"

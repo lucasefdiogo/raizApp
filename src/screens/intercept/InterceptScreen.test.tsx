@@ -4,6 +4,7 @@ import { InterceptScreen } from './InterceptScreen';
 import { Tarefa } from '../../domain/types';
 import {
   CONFIG_BLOCO_PADRAO,
+  ConfigBloco,
   EstadoSaldo,
   estadoInicialDia,
 } from '../../domain/saldoBloqueio';
@@ -96,15 +97,18 @@ const AGORA = 1_700_000_000_000;
 function configurarSaldo(
   estado: Partial<EstadoSaldo> = {},
   sobrescritas: Record<string, unknown> = {},
+  config: Partial<ConfigBloco> = {},
 ) {
   const retorno = {
     visao: {
       estado: { ...estadoInicialDia('2026-10-11'), ...estado },
-      config: CONFIG_BLOCO_PADRAO,
+      config: { ...CONFIG_BLOCO_PADRAO, ...config },
       agora: AGORA,
     },
     agora: AGORA,
     pausaIntencaoSeg: 5,
+    msRestantesSessao: 0,
+    avisoUmMinuto: false,
     recarregar: jest.fn(),
     liberar: jest.fn().mockResolvedValue(true),
     ...sobrescritas,
@@ -178,16 +182,24 @@ describe('InterceptScreen', () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
     });
 
-    it('mostra a pausa com a duração e o saldo vindos do estado', async () => {
+    it('CA-04: mostra a pausa com a duração vinda do hook e, com limite diário, o saldo restante', async () => {
       configurarSaldo(
-        { fase: 'AGUARDANDO_LIBERACAO', saldo: 3, blocosUsados: 2 },
+        { fase: 'AGUARDANDO_LIBERACAO', saldo: 0, blocosUsados: 1 },
         { pausaIntencaoSeg: 20 },
+        { blocosDiarios: 6 },
       );
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
       expect(screen.getByText('Liberar em 20s')).toBeTruthy();
-      expect(screen.getByText(/Restam 3 blocos hoje/)).toBeTruthy();
+      expect(screen.getByText(/Restam 5 sessões hoje/)).toBeTruthy();
+    });
+
+    it('sem limite diário a pausa não mostra saldo restante', async () => {
+      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 3 });
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.queryByText(/Rest/)).toBeNull();
     });
 
     it('"Liberar" (com a pausa zerada): registra a ação, libera com a intenção, reabre o app e sai', async () => {
@@ -268,15 +280,14 @@ describe('InterceptScreen', () => {
       });
     });
 
-    it('cooldown: contagem regressiva até fimCooldownEm e os atalhos', async () => {
+    it('CA-03: cooldown: minutos até fimCooldownEm e os atalhos', async () => {
       configurarSaldo(
         { fase: 'COOLDOWN', saldo: 2, fimCooldownEm: AGORA + 125_000 },
         { agora: AGORA },
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Próximo bloco em')).toBeTruthy();
-      expect(screen.getByTestId('espera-contagem').props.children).toBe('02:05');
+      expect(screen.getByText('Próximo acesso em 3 min')).toBeTruthy();
       expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
       expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
     });
@@ -285,8 +296,8 @@ describe('InterceptScreen', () => {
       configurarSaldo({ fase: 'SALDO_ZERADO', saldo: 0 });
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Os blocos de hoje acabaram')).toBeTruthy();
-      expect(screen.getByText(/volta a ficar disponível amanhã/)).toBeTruthy();
+      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
+      expect(screen.queryByText(/amanhã/)).toBeNull();
       expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
       expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
       expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
@@ -298,7 +309,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.queryByText('Os blocos de hoje acabaram')).toBeNull();
+      expect(screen.queryByText('Você usou as sessões de hoje')).toBeNull();
       expect(screen.queryByText('Ver tarefas extras')).toBeNull();
     });
 
@@ -342,7 +353,7 @@ describe('InterceptScreen', () => {
       expect(adicionarTarefa).toHaveBeenCalledWith('Nova extra', false);
 
       await fireEvent.press(screen.getByText('mock-voltar'));
-      expect(screen.getByText('Os blocos de hoje acabaram')).toBeTruthy();
+      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
     });
   });
 
@@ -364,6 +375,35 @@ describe('InterceptScreen', () => {
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
       expect(sem.liberar).not.toHaveBeenCalled();
       expect(abrirApp).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('SESSAO_ATIVA', () => {
+    it('CA-03: mostra o tempo restante e o aviso 1 minuto restante quando o hook sinaliza', async () => {
+      configurarDailyTasks();
+      configurarSaldo(
+        { fase: 'SESSAO_ATIVA' },
+        { msRestantesSessao: 45_000, avisoUmMinuto: true },
+      );
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByText('00:45')).toBeTruthy();
+      expect(screen.getByText('1 minuto restante')).toBeTruthy();
+      expect(screen.queryByText('Sua sessão está em andamento.')).toBeNull();
+      await fireEvent.press(screen.getByText('Abrir o Instagram'));
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+    });
+
+    it('CA-03: fora do último minuto não há aviso', async () => {
+      configurarDailyTasks();
+      configurarSaldo(
+        { fase: 'SESSAO_ATIVA' },
+        { msRestantesSessao: 5 * 60_000, avisoUmMinuto: false },
+      );
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByText('05:00')).toBeTruthy();
+      expect(screen.queryByText('1 minuto restante')).toBeNull();
     });
   });
 
