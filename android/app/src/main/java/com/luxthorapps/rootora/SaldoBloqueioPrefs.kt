@@ -73,6 +73,11 @@ object SaldoBloqueioPrefs {
       put("consumidoMs", s.consumidoMs)
       put("fimCooldownEm", s.fimCooldownEm)
       put("fgDesde", s.fgDesde)
+      put("acessoRapidoUsos", s.acessoRapidoUsos)
+      put("acessoRapidoFimUltimoEm", s.acessoRapidoFimUltimoEm)
+      put("liberacaoRapida", s.liberacaoRapida.name)
+      put("liberacaoRapidaConsumidoMs", s.liberacaoRapidaConsumidoMs)
+      put("liberacaoRapidaFgDesde", s.liberacaoRapidaFgDesde)
     }
 
   fun deJson(json: String, diaPadrao: String): EstadoSaldo =
@@ -88,6 +93,14 @@ object SaldoBloqueioPrefs {
         consumidoMs = o.optLong("consumidoMs", 0L),
         fimCooldownEm = o.optLong("fimCooldownEm", 0L),
         fgDesde = o.optLong("fgDesde", 0L),
+        // Campos da HU-05 ausentes em estado antigo: cota cheia, sem liberação rápida.
+        acessoRapidoUsos = o.optInt("acessoRapidoUsos", 0),
+        acessoRapidoFimUltimoEm = o.optLong("acessoRapidoFimUltimoEm", 0L),
+        liberacaoRapida =
+          LiberacaoRapida.values().firstOrNull { it.name == o.optString("liberacaoRapida", "") }
+            ?: LiberacaoRapida.NENHUMA,
+        liberacaoRapidaConsumidoMs = o.optLong("liberacaoRapidaConsumidoMs", 0L),
+        liberacaoRapidaFgDesde = o.optLong("liberacaoRapidaFgDesde", 0L),
       )
     } catch (erro: Exception) {
       EstadoSaldo(dia = diaPadrao)

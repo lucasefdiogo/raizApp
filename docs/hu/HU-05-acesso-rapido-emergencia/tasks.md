@@ -24,7 +24,7 @@ Spec: v1
     - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/acessoRapido.ts, src/domain/acessoRapido.test.ts, src/domain/__fixtures__/saldoBloqueio.json
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-03 (CA-01, CA-02, CA-03, CA-05, CA-07, RN-03, RN-04, RN-07, RN-08): cópia Kotlin das transições em `SaldoBloqueioMaquina.kt` (autoridade) passando pelas mesmas fixtures do JUnit; resultado do JUnit registrado no progress.md
+- [x] TASK-03 (CA-01, CA-02, CA-03, CA-05, CA-07, RN-03, RN-04, RN-07, RN-08): cópia Kotlin das transições em `SaldoBloqueioMaquina.kt` (autoridade) passando pelas mesmas fixtures do JUnit; resultado do JUnit registrado no progress.md
   - Teste: `CA-01: fixtures compartilhadas — acesso rápido conta 2 minutos só em primeiro plano` (feliz)
   - Teste: `CA-02: fixtures compartilhadas — acesso rápido no cooldown não mexe no cooldown` (feliz)
   - Teste: `CA-03: fixtures compartilhadas — intervalos de 15, 30 e 60 minutos e cota de 3` (feliz)

@@ -16,6 +16,12 @@ class SaldoBloqueioMaquinaTest {
   // Cada caso das fixtures pertence a um único critério (primeiro que casar).
   private fun grupoDoCaso(nome: String): String =
     when {
+      // HU-05: casos novos, em grupos próprios para não colidir com os critérios da HU-04.
+      nome.startsWith("acesso rapido libera 2 minutos") -> "HU05-CA-01"
+      nome.startsWith("acesso rapido no cooldown") -> "HU05-CA-02"
+      nome.startsWith("intervalos de 15 e 30") -> "HU05-CA-03"
+      nome.startsWith("emergencia libera 2 minutos") -> "HU05-CA-05"
+      nome.startsWith("emergencia so e oferecida") -> "HU05-CA-04"
       nome.startsWith("sem blocosDiarios") -> "CA-05"
       nome.startsWith("com blocosDiarios") -> "CA-06"
       nome.startsWith("tarefa extra concluida em SALDO_ZERADO") -> "CA-07"
@@ -82,6 +88,8 @@ class SaldoBloqueioMaquinaTest {
             "liberarBloco" -> SaldoBloqueioMaquina.liberarBloco(estado, cfg, agora, dia)
             "entrouEmPrimeiroPlano" -> SaldoBloqueioMaquina.entrouEmPrimeiroPlano(estado, cfg, agora, dia)
             "saiuDePrimeiroPlano" -> SaldoBloqueioMaquina.saiuDePrimeiroPlano(estado, cfg, agora, dia)
+            "liberarAcessoRapido" -> SaldoBloqueioMaquina.liberarAcessoRapido(estado, cfg, agora, dia)
+            "concluirEmergencia" -> SaldoBloqueioMaquina.concluirEmergencia(estado, cfg, agora, dia)
             "reconciliar" -> ResultadoTransicao(SaldoBloqueioMaquina.reconciliar(estado, cfg, agora, dia), true)
             else -> throw IllegalStateException("evento desconhecido: $evento")
           }
@@ -117,6 +125,19 @@ class SaldoBloqueioMaquinaTest {
             }
             "fimCooldownEmMin" ->
               assertEquals(contexto, esperado.getDouble(chave), (estado.fimCooldownEm - base) / minuto, 1e-6)
+            "liberacaoRapida" -> assertEquals(contexto, esperado.getString(chave), estado.liberacaoRapida.name)
+            "acessoRapidoUsos" -> assertEquals(contexto, esperado.getInt(chave), estado.acessoRapidoUsos)
+            "acessoRapidoFimUltimoEmMin" ->
+              assertEquals(
+                contexto,
+                esperado.getDouble(chave),
+                if (estado.acessoRapidoFimUltimoEm == 0L) 0.0 else (estado.acessoRapidoFimUltimoEm - base) / minuto,
+                1e-6,
+              )
+            "liberacaoRestanteSeg" ->
+              assertEquals(contexto, esperado.getDouble(chave), SaldoBloqueioMaquina.msRestantesLiberacaoRapida(estado, agora) / 1000.0, 1e-6)
+            "emergenciaOferecida" ->
+              assertEquals(contexto, esperado.getBoolean(chave), SaldoBloqueioMaquina.emergenciaOferecidaNoEstado(estado, cfg, agora, dia))
             else -> throw IllegalStateException("campo esperado desconhecido: $chave")
           }
         }
@@ -143,6 +164,24 @@ class SaldoBloqueioMaquinaTest {
 
   @Test
   fun `CA-07 fixtures compartilhadas - extra concluída sai de SALDO_ZERADO`() = exigir("CA-07")
+
+  @Test
+  fun `CA-01 fixtures compartilhadas - acesso rápido conta 2 minutos só em primeiro plano`() = exigir("HU05-CA-01")
+
+  @Test
+  fun `CA-02 fixtures compartilhadas - acesso rápido no cooldown não mexe no cooldown`() = exigir("HU05-CA-02")
+
+  @Test
+  fun `CA-03 fixtures compartilhadas - intervalos de 15, 30 e 60 minutos e cota de 3`() = exigir("HU05-CA-03")
+
+  @Test
+  fun `CA-04 fixtures compartilhadas - emergência só é oferecida sem acesso rápido possível`() = exigir("HU05-CA-04")
+
+  @Test
+  fun `CA-05 fixtures compartilhadas - emergência libera 2 minutos`() = exigir("HU05-CA-05")
+
+  @Test
+  fun `CA-07 fixtures compartilhadas - emergência não consome a cota do acesso rápido`() = exigir("HU05-CA-05")
 
   @Test
   fun `defaults da máquina são 15 minutos, cooldown 45 e sem limite`() {
