@@ -588,17 +588,12 @@ export async function registrarResumoBloqueioNoDia(
   data: string,
   parcial: {
     sessoesUsadas?: number;
-    /** @deprecated compat temporário — removido na TASK-07 (alias de sessoesUsadas). */
-    blocosUsados?: number;
-    /** @deprecated compat temporário — removido na TASK-07 (aceito e ignorado). */
-    toleranciasUsadas?: number;
     intencao?: string;
   },
 ): Promise<void> {
   const resumo: Record<string, unknown> = {};
-  const sessoes = parcial.sessoesUsadas ?? parcial.blocosUsados;
-  if (sessoes) {
-    resumo.sessoesUsadas = increment(sessoes);
+  if (parcial.sessoesUsadas) {
+    resumo.sessoesUsadas = increment(parcial.sessoesUsadas);
   }
   if (parcial.intencao) {
     resumo.intencoes = arrayUnion(parcial.intencao);

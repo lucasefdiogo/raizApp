@@ -154,16 +154,6 @@ export async function liberarBloco(): Promise<boolean> {
   return modulo ? modulo.liberarBloco() : false;
 }
 
-/** @deprecated compat temporário — removido na TASK-07/08. A tolerância deixou de existir: resolve false sem chamar o nativo. */
-export async function usarTolerancia(): Promise<boolean> {
-  return false;
-}
-
-/** @deprecated compat temporário — removido na TASK-07/08. A tolerância deixou de existir: resolve false sem chamar o nativo. */
-export async function recusarTolerancia(): Promise<boolean> {
-  return false;
-}
-
 /**
  * Reabre packageName depois de liberar uma sessão (fim da pausa de intenção) — pra o usuário não precisar sair do Rootora
  * manualmente. Resolve false (nunca rejeita) se o app não puder ser reaberto (ex:

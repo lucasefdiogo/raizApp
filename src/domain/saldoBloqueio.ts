@@ -25,13 +25,7 @@ export type FaseBloqueio =
   | 'AGUARDANDO_LIBERACAO'
   | 'SESSAO_ATIVA'
   | 'COOLDOWN'
-  | 'SALDO_ZERADO'
-  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
-  | 'BLOQUEADO_SEM_ESSENCIAL'
-  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
-  | 'TOLERANCIA'
-  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
-  | 'BLOCO_ATIVO';
+  | 'SALDO_ZERADO';
 
 export type FaseTela = FaseBloqueio | 'PAUSA_INTENCAO';
 
@@ -79,12 +73,6 @@ export interface EstadoSaldo {
   extrasCreditadas: string[];
   /** Tempo em primeiro plano já gasto na sessão em curso, sem contar o trecho aberto de `fgDesde`. */
   consumidoMs: number;
-  /** @deprecated compat temporário — removido na TASK-07/08. */
-  toleranciasUsadas?: number;
-  /** @deprecated compat temporário — removido na TASK-07/08. */
-  toleranciaUsada?: boolean;
-  /** @deprecated compat temporário — removido na TASK-07/08. */
-  toleranciaAtiva?: boolean;
   /** Epoch ms de quando o cooldown acaba (timestamp absoluto, nunca timer em memória). */
   fimCooldownEm: number;
   /** Epoch ms de quando o app bloqueado entrou em primeiro plano agora; 0 = fora de primeiro plano. */
@@ -113,15 +101,6 @@ export function estadoInicialDia(dia: string): EstadoSaldo {
     fimCooldownEm: 0,
     fgDesde: 0,
   };
-}
-
-/**
- * @deprecated compat temporário — removido na TASK-07/08. Devolve o dia no
- * estado antigo (BLOQUEADO_SEM_ESSENCIAL) só para os testes de hook/tela que
- * ainda o assumem; a máquina nova usa estadoInicialDia.
- */
-export function estadoInicialSaldo(dia: string): EstadoSaldo {
-  return { ...estadoInicialDia(dia), fase: 'BLOQUEADO_SEM_ESSENCIAL' };
 }
 
 /** Campos ausentes ou inválidos (usuário que configurou antes desta regra existir) caem no padrão. */
@@ -384,19 +363,6 @@ export function avisoUmMinutoAtivo(
 ): boolean {
   const restante = msRestantes(estado, cfg, agora);
   return permiteUso(estado) && restante > 0 && restante <= AVISO_FIM_SESSAO_MS;
-}
-
-/** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não tem tolerância. */
-export function toleranciaDisponivel(
-  estado: EstadoSaldo,
-  cfg: ConfigBloco,
-): boolean {
-  return (
-    estado.fase === 'TOLERANCIA' &&
-    !estado.toleranciaAtiva &&
-    !estado.toleranciaUsada &&
-    cfg.toleranciaMin > 0
-  );
 }
 
 /** "MM:SS" a partir de ms (arredonda pra cima — 0:00 só quando de fato acabou). */

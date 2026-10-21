@@ -75,14 +75,14 @@ Spec: v1
     - Arquivos: src/hooks/useBloqueioSaldo.ts, src/hooks/useBloqueioSaldo.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-08 (CA-01, CA-06, CA-07, RN-01, RN-07, RN-08): `InterceptScreen` sem os estados A/C, sem "Estou travado" e sem a decisão pela tarefa essencial; abrir app bloqueado vai direto à pausa de intenção, ao cooldown ou ao saldo zerado; remoção de `TempoEsgotadoScreen`, que não tem mais uso
+- [x] TASK-08 (CA-01, CA-06, CA-07, RN-01, RN-07, RN-08): `InterceptScreen` sem os estados A/C, sem "Estou travado" e sem a decisão pela tarefa essencial; abrir app bloqueado vai direto à pausa de intenção, ao cooldown ou ao saldo zerado; remoção de `TempoEsgotadoScreen`, que não tem mais uso
   - Teste: `CA-01: sem sessão nem cooldown ativos a interceptação mostra a pausa de intenção, não os estados A/C` (feliz)
   - Teste: `CA-06: com saldo zerado mostra os atalhos de sessão de foco e tarefas extras, sem pausa` (exceção)
   - Teste: `CA-07: depois de uma tarefa extra concluída a próxima abertura mostra a pausa, não o saldo zerado` (exceção)
   - Teste: `CA-01: a interceptação não oferece mais o botão Estou travado` (exceção)
   - Escopo:
     - CAs: CA-01, CA-06, CA-07
-    - Arquivos: src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx, src/screens/intercept/TempoEsgotadoScreen.tsx, src/screens/intercept/TempoEsgotadoScreen.test.tsx, src/screens/intercept/InterceptRoot.tsx, src/screens/intercept/InterceptRoot.test.tsx, src/screens/intercept/TarefasExtrasScreen.tsx, src/screens/intercept/TarefasExtrasScreen.test.tsx, src/domain/intercept.ts, src/domain/intercept.test.ts
+    - Arquivos: src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx, src/screens/intercept/TempoEsgotadoScreen.tsx, src/screens/intercept/TempoEsgotadoScreen.test.tsx, src/screens/intercept/InterceptRoot.tsx, src/screens/intercept/InterceptRoot.test.tsx, src/screens/intercept/TarefasExtrasScreen.tsx, src/screens/intercept/TarefasExtrasScreen.test.tsx, src/domain/intercept.ts, src/domain/intercept.test.ts, src/hooks/useBloqueioSaldo.ts, src/hooks/useBloqueioSaldo.test.ts, src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/native/AccessibilityDetection.ts, src/native/AccessibilityDetection.test.ts, src/services/firestore.ts, src/services/firestore.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
 - [ ] TASK-09 (tela, CA-01, CA-02, CA-03, CA-04): estados de tela da interceptação conforme `docs/design/prototipo/intercept-sessoes.html`: estado normal (pausa de intenção com contador e campo de intenção), estado carregando (sessão ativa com o tempo restante e o aviso "1 minuto restante" não bloqueante) e estado erro (cooldown em andamento com "próximo acesso em X min" e os atalhos de foco e tarefas extras); tempo lido pelo leitor de tela como texto, copy sem exclamação nem "proteção"

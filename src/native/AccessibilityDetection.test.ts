@@ -8,8 +8,6 @@ import {
   liberarBloco,
   obterEstadoBloqueio,
   parseVisaoBloqueio,
-  recusarTolerancia,
-  usarTolerancia,
   salvarRegrasBloqueio,
   salvarRegrasBloqueioPendentes,
   salvarSessaoAtiva,
@@ -308,11 +306,6 @@ describe('AccessibilityDetection', () => {
       expect(comLimite?.config.blocosDiarios).toBe(3);
     });
 
-    it('os módulos de tolerância não são mais chamados no nativo (shim resolve false)', async () => {
-      await expect(usarTolerancia()).resolves.toBe(false);
-      await expect(recusarTolerancia()).resolves.toBe(false);
-      expect(Object.keys(moduloMock)).not.toContain('usarTolerancia');
-    });
   });
 
   describe('abrirApp', () => {

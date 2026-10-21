@@ -296,20 +296,6 @@ describe('services/firestore', () => {
       expect(log?.tarefas).toHaveLength(1);
     });
 
-    it('CA-02: registrarResumoBloqueioNoDia não grava toleranciasUsadas', async () => {
-      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        sessoesUsadas: 1,
-        toleranciasUsadas: 1,
-      });
-      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        toleranciasUsadas: 1,
-      });
-
-      const log = await buscarDailyLog('uid-1', '2026-09-15');
-      expect(log?.resumoBloqueio).toEqual({ sessoesUsadas: 1 });
-      expect(log?.resumoBloqueio).not.toHaveProperty('toleranciasUsadas');
-    });
-
     it('sem nada a gravar (intenção vazia, contadores zerados): não escreve', async () => {
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
         intencao: '',

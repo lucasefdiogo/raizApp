@@ -117,19 +117,6 @@ describe('useBloqueioSaldo', () => {
     await waitFor(() => expect(registrarErro).toHaveBeenCalled());
   });
 
-  it('shim de tolerância não grava nada no resumo', async () => {
-    native.usarTolerancia.mockResolvedValue(false);
-    native.recusarTolerancia.mockResolvedValue(false);
-    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', visao()));
-
-    expect(result.current.podeTolerancia).toBe(false);
-    await act(async () => {
-      await result.current.recusarTolerancia();
-      await result.current.aceitarTolerancia();
-    });
-    expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
-  });
-
   describe('polling', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => jest.useRealTimers());

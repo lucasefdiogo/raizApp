@@ -5,15 +5,12 @@ import {
   duracaoPausaIntencaoSeg,
   msRestantes,
   resolverConfigBloco,
-  toleranciaDisponivel,
 } from '../domain/saldoBloqueio';
 import { hojeISOLocal } from '../domain/data';
 import {
   VisaoBloqueio,
   liberarBloco,
   obterEstadoBloqueio,
-  recusarTolerancia as recusarToleranciaNativo,
-  usarTolerancia,
 } from '../native/AccessibilityDetection';
 import { registrarResumoBloqueioNoDia } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
@@ -44,15 +41,9 @@ interface UseBloqueioSaldoResultado {
   msRestantesCooldown: number;
   /** Sessão ativa com 1 minuto ou menos restante. */
   avisoUmMinuto: boolean;
-  /** @deprecated compat temporário — removido na TASK-08. */
-  podeTolerancia: boolean;
   recarregar: () => Promise<void>;
   /** Fim da pausa: abre o bloco e grava o resumo do dia (bloco + intenção, se digitada). Resolve se abriu. */
   liberar: (intencao: string) => Promise<boolean>;
-  /** @deprecated compat temporário — removido na TASK-08. Resolve false (a tolerância não existe mais). */
-  aceitarTolerancia: () => Promise<boolean>;
-  /** @deprecated compat temporário — removido na TASK-08. */
-  recusarTolerancia: () => Promise<boolean>;
 }
 
 /**
@@ -137,18 +128,6 @@ export function useBloqueioSaldo(
     [gravarResumo, recarregar],
   );
 
-  const aceitarTolerancia = useCallback(async () => {
-    const ok = await usarTolerancia();
-    await recarregar();
-    return ok;
-  }, [recarregar]);
-
-  const recusarTolerancia = useCallback(async () => {
-    const ok = await recusarToleranciaNativo();
-    await recarregar();
-    return ok;
-  }, [recarregar]);
-
   const config = visao ? resolverConfigBloco(visao.config) : null;
 
   const estado = visao?.estado;
@@ -162,10 +141,7 @@ export function useBloqueioSaldo(
     msRestantesCooldown:
       estado?.fase === 'COOLDOWN' ? Math.max(0, estado.fimCooldownEm - agora) : 0,
     avisoUmMinuto: !!estado && !!config && avisoUmMinutoAtivo(estado, config, agora),
-    podeTolerancia: !!visao && !!config && toleranciaDisponivel(visao.estado, config),
     recarregar,
     liberar,
-    aceitarTolerancia,
-    recusarTolerancia,
   };
 }
