@@ -158,6 +158,29 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
     SaldoBloqueioMaquina.liberarBloco(s, cfg, agora, dia)
   }
 
+  /** Fim da espera de 5 s do acesso rápido. Resolve JSON `{aceito, visao}`; aceito=false se cota/intervalo/sessão impedem. */
+  @ReactMethod
+  fun liberarAcessoRapido(promise: Promise) = transicionarComVisao(promise) { s, cfg, agora, dia ->
+    SaldoBloqueioMaquina.liberarAcessoRapido(s, cfg, agora, dia)
+  }
+
+  /** Fim da respiração de 60 s da emergência. Resolve JSON `{aceito, visao}`; não consome a cota do acesso rápido. */
+  @ReactMethod
+  fun concluirEmergencia(promise: Promise) = transicionarComVisao(promise) { s, cfg, agora, dia ->
+    SaldoBloqueioMaquina.concluirEmergencia(s, cfg, agora, dia)
+  }
+
+  private fun transicionarComVisao(
+    promise: Promise,
+    transicao: (EstadoSaldo, ConfigBloco, Long, String) -> ResultadoTransicao,
+  ) {
+    try {
+      promise.resolve(SaldoBloqueioPrefs.transicionarComVisaoJson(reactApplicationContext, transicao))
+    } catch (erro: Exception) {
+      promise.reject("TRANSICAO_BLOQUEIO_FAILED", erro)
+    }
+  }
+
   private fun transicionar(
     promise: Promise,
     transicao: (EstadoSaldo, ConfigBloco, Long, String) -> ResultadoTransicao,

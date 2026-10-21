@@ -38,6 +38,8 @@ interface RootoraAccessibilityNative {
   openAccessibilitySettings(): void;
   obterEstadoBloqueio(): Promise<string>;
   liberarBloco(): Promise<boolean>;
+  liberarAcessoRapido(): Promise<string>;
+  concluirEmergencia(): Promise<string>;
   abrirApp(packageName: string): Promise<boolean>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
@@ -119,6 +121,39 @@ export interface VisaoBloqueio {
   avisoUmMinutoAtivo?: boolean;
   /** Ms até o aviso de 1 minuto (0 se já passou); ausente com o relógio parado (app fora de primeiro plano). */
   msAteAviso?: number;
+  /**
+   * Acesso rápido / emergência (HU-05). Todos ausentes em estado antigo =
+   * cota cheia, sem liberação rápida, emergência não oferecida.
+   * Ms que restam dos 2 min da liberação rápida (0 sem liberação em curso).
+   */
+  msRestantesLiberacaoRapida?: number;
+  /** Acessos rápidos que ainda cabem hoje (cota diária menos os usos). */
+  acessosRapidosRestantes?: number;
+  /** Ms até o próximo acesso rápido (0 = disponível agora); ausente = cota do dia esgotada. */
+  msAteProximoAcessoRapido?: number;
+  /** A saída de emergência deve aparecer (RN-06). */
+  emergenciaOferecida?: boolean;
+}
+
+/** Resultado de liberarAcessoRapido/concluirEmergencia: se o nativo aceitou e o estado depois da tentativa. */
+export interface ResultadoLiberacaoRapida {
+  aceito: boolean;
+  visao: VisaoBloqueio | null;
+}
+
+function parseResultadoLiberacaoRapida(json: string | undefined | null): ResultadoLiberacaoRapida {
+  if (json) {
+    try {
+      const parsed = JSON.parse(json) as { aceito?: unknown; visao?: unknown };
+      return {
+        aceito: parsed.aceito === true,
+        visao: parseVisaoBloqueio(JSON.stringify(parsed.visao ?? null)),
+      };
+    } catch {
+      // JSON malformado — cai na recusa abaixo.
+    }
+  }
+  return { aceito: false, visao: null };
 }
 
 export function parseVisaoBloqueio(json: string | undefined | null): VisaoBloqueio | null {
@@ -152,6 +187,31 @@ export async function obterEstadoBloqueio(): Promise<VisaoBloqueio | null> {
 export async function liberarBloco(): Promise<boolean> {
   const modulo = moduloNativo();
   return modulo ? modulo.liberarBloco() : false;
+}
+
+/**
+ * Fim da espera de 5 s do acesso rápido: abre 2 min de uso do app bloqueado.
+ * `aceito` false = cota, intervalo ou sessão ativa impedem (ou sem o módulo
+ * nativo, com `visao` null).
+ */
+export async function liberarAcessoRapido(): Promise<ResultadoLiberacaoRapida> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return { aceito: false, visao: null };
+  }
+  return parseResultadoLiberacaoRapida(await modulo.liberarAcessoRapido());
+}
+
+/**
+ * Fim da respiração de 60 s da emergência: abre 2 min de uso sem gastar a
+ * cota do acesso rápido. Mesmo formato de retorno de liberarAcessoRapido.
+ */
+export async function concluirEmergencia(): Promise<ResultadoLiberacaoRapida> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return { aceito: false, visao: null };
+  }
+  return parseResultadoLiberacaoRapida(await modulo.concluirEmergencia());
 }
 
 /**

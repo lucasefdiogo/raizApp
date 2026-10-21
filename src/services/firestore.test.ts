@@ -296,6 +296,39 @@ describe('services/firestore', () => {
       expect(log?.tarefas).toHaveLength(1);
     });
 
+    it('CA-05: concluir a emergência incrementa emergencias do dia em 1', async () => {
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', { emergencias: 1 });
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', { emergencias: 1 });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.resumoBloqueio?.emergencias).toBe(2);
+    });
+
+    it('CA-01: usar o acesso rápido incrementa acessosRapidos e não emergencias', async () => {
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', { acessosRapidos: 1 });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.resumoBloqueio?.acessosRapidos).toBe(1);
+      expect(log?.resumoBloqueio?.emergencias).toBeUndefined();
+    });
+
+    it('CA-07: registrar a emergência não altera acessosRapidos nem sessoesUsadas', async () => {
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        sessoesUsadas: 1,
+        intencao: 'ver mensagens',
+      });
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', { acessosRapidos: 2 });
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', { emergencias: 1 });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.resumoBloqueio).toEqual({
+        sessoesUsadas: 1,
+        intencoes: ['ver mensagens'],
+        acessosRapidos: 2,
+        emergencias: 1,
+      });
+    });
+
     it('sem nada a gravar (intenção vazia, contadores zerados): não escreve', async () => {
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
         intencao: '',

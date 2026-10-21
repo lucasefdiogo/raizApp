@@ -127,7 +127,7 @@ object BloqueioPrefs {
     if (!dentroDaJanelaVigente(context)) {
       return false
     }
-    return !SaldoBloqueioMaquina.permiteUso(SaldoBloqueioPrefs.estadoAtual(context))
+    return !SaldoBloqueioMaquina.appPodeAbrir(SaldoBloqueioPrefs.estadoAtual(context))
   }
 
   /**

@@ -5,6 +5,8 @@ import {
   limparSessaoAtiva,
   listarAppsInstalados,
   openAccessibilitySettings,
+  liberarAcessoRapido,
+  concluirEmergencia,
   liberarBloco,
   obterEstadoBloqueio,
   parseVisaoBloqueio,
@@ -20,6 +22,8 @@ const moduloMock = {
   openAccessibilitySettings: jest.fn(),
   obterEstadoBloqueio: jest.fn(),
   liberarBloco: jest.fn(),
+  liberarAcessoRapido: jest.fn(),
+  concluirEmergencia: jest.fn(),
   abrirApp: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
@@ -252,6 +256,56 @@ describe('AccessibilityDetection', () => {
 
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
       await expect(liberarBloco()).resolves.toBe(false);
+    });
+
+    it('CA-01: o wrapper TS expõe liberar acesso rápido e o tempo restante dos 2 minutos', async () => {
+      const visaoRapida = {
+        ...visao,
+        estado: { ...visao.estado, liberacaoRapida: 'ACESSO_RAPIDO' },
+        msRestantesLiberacaoRapida: 120000,
+        acessosRapidosRestantes: 2,
+        msAteProximoAcessoRapido: 900000,
+        emergenciaOferecida: false,
+      };
+      moduloMock.liberarAcessoRapido.mockResolvedValueOnce(
+        JSON.stringify({ aceito: true, visao: visaoRapida }),
+      );
+      const r = await liberarAcessoRapido();
+      expect(r.aceito).toBe(true);
+      expect(r.visao?.msRestantesLiberacaoRapida).toBe(120000);
+      expect(r.visao?.acessosRapidosRestantes).toBe(2);
+      expect(r.visao?.msAteProximoAcessoRapido).toBe(900000);
+
+      moduloMock.obterEstadoBloqueio.mockResolvedValueOnce(JSON.stringify(visaoRapida));
+      await expect(obterEstadoBloqueio()).resolves.toEqual(visaoRapida);
+
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(liberarAcessoRapido()).resolves.toEqual({ aceito: false, visao: null });
+    });
+
+    it('CA-05: o wrapper TS expõe concluir emergência', async () => {
+      moduloMock.concluirEmergencia.mockResolvedValueOnce(
+        JSON.stringify({ aceito: true, visao: { ...visao, msRestantesLiberacaoRapida: 120000, emergenciaOferecida: false } }),
+      );
+      const r = await concluirEmergencia();
+      expect(moduloMock.concluirEmergencia).toHaveBeenCalledTimes(1);
+      expect(r.aceito).toBe(true);
+      expect(r.visao?.msRestantesLiberacaoRapida).toBe(120000);
+
+      moduloMock.concluirEmergencia.mockResolvedValueOnce(JSON.stringify({ aceito: false, visao }));
+      expect((await concluirEmergencia()).aceito).toBe(false);
+
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      await expect(concluirEmergencia()).resolves.toEqual({ aceito: false, visao: null });
+    });
+
+    it('CA-02: estado salvo sem campos de acesso rápido é lido como cota cheia, sem quebrar', () => {
+      const v = parseVisaoBloqueio(JSON.stringify(visao));
+      expect(v).not.toBeNull();
+      expect(v?.acessosRapidosRestantes ?? 3).toBe(3);
+      expect(v?.msAteProximoAcessoRapido ?? 0).toBe(0);
+      expect(v?.msRestantesLiberacaoRapida ?? 0).toBe(0);
+      expect(v?.emergenciaOferecida ?? false).toBe(false);
     });
 
     it('CA-03: o wrapper TS expõe sessão ativa, aviso de 1 minuto e cooldown sem campos de tolerância', async () => {

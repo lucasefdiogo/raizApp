@@ -190,6 +190,77 @@
         { "evento": "reconciliar", "agoraMin": 9.9, "esperado": { "fase": "SESSAO_ATIVA" } },
         { "evento": "reconciliar", "agoraMin": 10, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 30 } }
       ]
+    },
+    {
+      "nome": "acesso rapido libera 2 minutos contados so em primeiro plano e o intervalo conta do fim",
+      "passos": [
+        { "evento": "liberarAcessoRapido", "agoraMin": 0, "esperado": { "ok": true, "liberacaoRapida": "ACESSO_RAPIDO", "acessoRapidoUsos": 1, "liberacaoRestanteSeg": 120, "fase": "AGUARDANDO_LIBERACAO", "permiteUso": false } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 1, "esperado": { "liberacaoRestanteSeg": 120 } },
+        { "evento": "saiuDePrimeiroPlano", "agoraMin": 1.5, "esperado": { "liberacaoRestanteSeg": 90, "liberacaoRapida": "ACESSO_RAPIDO" } },
+        { "evento": "reconciliar", "agoraMin": 100, "esperado": { "liberacaoRapida": "ACESSO_RAPIDO", "liberacaoRestanteSeg": 90 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 100, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 101.49, "esperado": { "liberacaoRapida": "ACESSO_RAPIDO" } },
+        { "evento": "reconciliar", "agoraMin": 101.5, "esperado": { "liberacaoRapida": "NENHUMA", "acessoRapidoUsos": 1, "acessoRapidoFimUltimoEmMin": 101.5, "liberacaoRestanteSeg": 0 } }
+      ]
+    },
+    {
+      "nome": "acesso rapido no cooldown nao mexe no cooldown nem no consumo da sessao",
+      "passos": [
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 15, "esperado": { "fase": "COOLDOWN", "fimCooldownEmMin": 60 } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 20, "esperado": { "ok": true, "fase": "COOLDOWN", "fimCooldownEmMin": 60, "consumidoSeg": 0 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 20, "esperado": { "fimCooldownEmMin": 60, "consumidoSeg": 0, "permiteUso": false } },
+        { "evento": "reconciliar", "agoraMin": 21.99, "esperado": { "liberacaoRapida": "ACESSO_RAPIDO", "fimCooldownEmMin": 60 } },
+        { "evento": "reconciliar", "agoraMin": 22, "esperado": { "liberacaoRapida": "NENHUMA", "fase": "COOLDOWN", "fimCooldownEmMin": 60, "consumidoSeg": 0, "blocosUsados": 1 } },
+        { "evento": "reconciliar", "agoraMin": 60, "esperado": { "fase": "AGUARDANDO_LIBERACAO", "blocosUsados": 1 } }
+      ]
+    },
+    {
+      "nome": "intervalos de 15 e 30 minutos entre acessos rapidos, cota de 3 e zera na virada do dia",
+      "passos": [
+        { "evento": "liberarAcessoRapido", "agoraMin": 0, "esperado": { "ok": true, "acessoRapidoUsos": 1 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 2, "esperado": { "liberacaoRapida": "NENHUMA", "acessoRapidoFimUltimoEmMin": 2 } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 16.9, "esperado": { "ok": false, "acessoRapidoUsos": 1, "liberacaoRapida": "NENHUMA" } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 17, "esperado": { "ok": true, "acessoRapidoUsos": 2 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 17, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 19, "esperado": { "liberacaoRapida": "NENHUMA", "acessoRapidoFimUltimoEmMin": 19 } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 48.9, "esperado": { "ok": false, "acessoRapidoUsos": 2 } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 49, "esperado": { "ok": true, "acessoRapidoUsos": 3 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 49, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 51, "esperado": { "liberacaoRapida": "NENHUMA", "acessoRapidoFimUltimoEmMin": 51 } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 500, "esperado": { "ok": false, "acessoRapidoUsos": 3 } },
+        { "evento": "reconciliar", "agoraMin": 1000, "dia": "2026-10-12", "esperado": { "acessoRapidoUsos": 0, "acessoRapidoFimUltimoEmMin": 0, "liberacaoRapida": "NENHUMA" } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 1001, "dia": "2026-10-12", "esperado": { "ok": true, "acessoRapidoUsos": 1 } }
+      ]
+    },
+    {
+      "nome": "emergencia libera 2 minutos sem consumir a cota do acesso rapido e sem limite diario",
+      "passos": [
+        { "evento": "liberarAcessoRapido", "agoraMin": 0, "esperado": { "ok": true, "acessoRapidoUsos": 1 } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 2, "esperado": { "acessoRapidoFimUltimoEmMin": 2 } },
+        { "evento": "concluirEmergencia", "agoraMin": 3, "esperado": { "ok": true, "liberacaoRapida": "EMERGENCIA", "liberacaoRestanteSeg": 120, "acessoRapidoUsos": 1, "acessoRapidoFimUltimoEmMin": 2 } },
+        { "evento": "concluirEmergencia", "agoraMin": 4, "esperado": { "ok": false, "liberacaoRapida": "EMERGENCIA" } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 4, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 5.99, "esperado": { "liberacaoRapida": "EMERGENCIA" } },
+        { "evento": "reconciliar", "agoraMin": 6, "esperado": { "liberacaoRapida": "NENHUMA", "acessoRapidoUsos": 1, "acessoRapidoFimUltimoEmMin": 2 } },
+        { "evento": "concluirEmergencia", "agoraMin": 7, "esperado": { "ok": true, "liberacaoRapida": "EMERGENCIA", "acessoRapidoUsos": 1 } }
+      ]
+    },
+    {
+      "nome": "emergencia so e oferecida em cooldown ou saldo zerado com acesso rapido indisponivel",
+      "passos": [
+        { "evento": "reconciliar", "agoraMin": 0, "esperado": { "emergenciaOferecida": false } },
+        { "evento": "liberarBloco", "agoraMin": 0, "esperado": { "ok": true } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 0, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 15, "esperado": { "fase": "COOLDOWN", "emergenciaOferecida": false } },
+        { "evento": "liberarAcessoRapido", "agoraMin": 16, "esperado": { "ok": true, "emergenciaOferecida": false } },
+        { "evento": "entrouEmPrimeiroPlano", "agoraMin": 16, "esperado": {} },
+        { "evento": "reconciliar", "agoraMin": 18, "esperado": { "liberacaoRapida": "NENHUMA", "emergenciaOferecida": true } },
+        { "evento": "reconciliar", "agoraMin": 33, "esperado": { "emergenciaOferecida": false } }
+      ]
     }
   ]
 }

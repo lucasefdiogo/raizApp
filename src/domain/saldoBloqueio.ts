@@ -10,7 +10,12 @@
 // pelas MESMAS fixtures (domain/__fixtures__/saldoBloqueio.json, lidas pelo
 // Jest e pelo JUnit): mexeu aqui, mexa lá e nas fixtures.
 
-import { Tarefa } from './types';
+import {
+  DURACAO_LIBERACAO_RAPIDA_MIN,
+  acessoRapidoDisponivel,
+  emergenciaOferecida,
+} from './acessoRapido';
+import { EstadoAcessoRapido, Tarefa } from './types';
 
 /**
  * PAUSA_INTENCAO não aparece aqui de propósito: é um estado só de tela
@@ -62,6 +67,13 @@ export const AVISO_FIM_SESSAO_MS = 60_000;
 
 const MS_POR_MIN = 60_000;
 
+/**
+ * Liberação de 2 min fora da sessão normal (HU-05): NENHUMA, ACESSO_RAPIDO
+ * (conta na cota) ou EMERGENCIA (não conta). Tem relógio próprio — nunca
+ * mexe em consumidoMs, fgDesde nem fimCooldownEm da sessão.
+ */
+export type LiberacaoRapida = 'NENHUMA' | 'ACESSO_RAPIDO' | 'EMERGENCIA';
+
 export interface EstadoSaldo {
   /** YYYY-MM-DD local — virou o dia, tudo zera (reconciliar). */
   dia: string;
@@ -77,6 +89,14 @@ export interface EstadoSaldo {
   fimCooldownEm: number;
   /** Epoch ms de quando o app bloqueado entrou em primeiro plano agora; 0 = fora de primeiro plano. */
   fgDesde: number;
+  /** Cota e intervalo do acesso rápido no dia. Ausente em estado salvo antes da HU-05 = cota cheia. */
+  acessoRapido: EstadoAcessoRapido;
+  /** Liberação rápida em curso. Ausente em estado antigo = NENHUMA. */
+  liberacaoRapida: LiberacaoRapida;
+  /** Primeiro plano já gasto na liberação rápida, sem o trecho aberto de `liberacaoRapidaFgDesde`. */
+  liberacaoRapidaConsumidoMs: number;
+  /** Epoch ms de quando o app bloqueado entrou em primeiro plano na liberação rápida; 0 = fora. */
+  liberacaoRapidaFgDesde: number;
 }
 
 export interface ResultadoTransicao {
@@ -100,6 +120,10 @@ export function estadoInicialDia(dia: string): EstadoSaldo {
     consumidoMs: 0,
     fimCooldownEm: 0,
     fgDesde: 0,
+    acessoRapido: { usosHoje: 0, fimUltimoEm: 0 },
+    liberacaoRapida: 'NENHUMA',
+    liberacaoRapidaConsumidoMs: 0,
+    liberacaoRapidaFgDesde: 0,
   };
 }
 
@@ -209,8 +233,11 @@ export function reconciliar(
   agora: number,
   dia: string,
 ): EstadoSaldo {
+  // Estado salvo antes da HU-05 não tem os campos de acesso rápido: entra com a cota cheia.
   let s: EstadoSaldo =
-    estadoAtual.dia !== dia ? estadoInicialDia(dia) : { ...estadoAtual };
+    estadoAtual.dia !== dia
+      ? estadoInicialDia(dia)
+      : { ...estadoInicialDia(dia), ...estadoAtual };
 
   if (s.fase === 'SESSAO_ATIVA') {
     const limite = cfg.duracaoBlocoMin * MS_POR_MIN;
@@ -219,6 +246,31 @@ export function reconciliar(
       const instanteFim =
         s.fgDesde > 0 ? s.fgDesde + (limite - s.consumidoMs) : agora;
       s = entrarEmCooldown(s, cfg, instanteFim);
+    }
+  }
+
+  if (s.liberacaoRapida !== 'NENHUMA') {
+    const limite = DURACAO_LIBERACAO_RAPIDA_MIN * MS_POR_MIN;
+    const emCurso =
+      s.liberacaoRapidaFgDesde > 0
+        ? Math.max(0, agora - s.liberacaoRapidaFgDesde)
+        : 0;
+    if (s.liberacaoRapidaConsumidoMs + emCurso >= limite) {
+      const instanteFim =
+        s.liberacaoRapidaFgDesde > 0
+          ? s.liberacaoRapidaFgDesde + (limite - s.liberacaoRapidaConsumidoMs)
+          : agora;
+      s = {
+        ...s,
+        // o intervalo entre acessos conta do fim; a emergência não mexe na cota
+        acessoRapido:
+          s.liberacaoRapida === 'ACESSO_RAPIDO'
+            ? { ...s.acessoRapido, fimUltimoEm: instanteFim }
+            : s.acessoRapido,
+        liberacaoRapida: 'NENHUMA',
+        liberacaoRapidaConsumidoMs: 0,
+        liberacaoRapidaFgDesde: 0,
+      };
     }
   }
 
@@ -283,6 +335,119 @@ export function liberarBloco(
   };
 }
 
+export function liberacaoRapidaAtiva(estado: EstadoSaldo): boolean {
+  return estado.liberacaoRapida !== 'NENHUMA';
+}
+
+/** Há uma liberação de 2 min (acesso rápido ou emergência) valendo agora. */
+export function acessoRapidoLiberado(estado: EstadoSaldo): boolean {
+  return liberacaoRapidaAtiva(estado);
+}
+
+function abrirLiberacaoRapida(
+  s: EstadoSaldo,
+  tipo: Exclude<LiberacaoRapida, 'NENHUMA'>,
+): EstadoSaldo {
+  return {
+    ...s,
+    liberacaoRapida: tipo,
+    liberacaoRapidaConsumidoMs: 0,
+    liberacaoRapidaFgDesde: 0,
+    acessoRapido:
+      tipo === 'ACESSO_RAPIDO'
+        ? { ...s.acessoRapido, usosHoje: s.acessoRapido.usosHoje + 1 }
+        : s.acessoRapido,
+  };
+}
+
+/**
+ * Fim da espera de 5 s do acesso rápido: abre 2 min de uso. Vale com cota e
+ * intervalo livres, sem sessão ativa e sem outra liberação rápida em curso.
+ * Pode ser usado em cooldown, que segue intacto.
+ */
+export function liberarAcessoRapido(
+  estado: EstadoSaldo,
+  cfg: ConfigBloco,
+  agora: number,
+  dia: string,
+): ResultadoTransicao {
+  const s = reconciliar(estado, cfg, agora, dia);
+  if (
+    s.fase === 'SESSAO_ATIVA' ||
+    liberacaoRapidaAtiva(s) ||
+    !acessoRapidoDisponivel(s.acessoRapido, agora)
+  ) {
+    return { estado: s, ok: false };
+  }
+  return { estado: abrirLiberacaoRapida(s, 'ACESSO_RAPIDO'), ok: true };
+}
+
+/**
+ * Fim da respiração de 60 s da emergência: abre 2 min de uso sem consumir a
+ * cota do acesso rápido e sem limite diário. Só vale sem sessão ativa e sem
+ * outra liberação rápida em curso.
+ */
+export function concluirEmergencia(
+  estado: EstadoSaldo,
+  cfg: ConfigBloco,
+  agora: number,
+  dia: string,
+): ResultadoTransicao {
+  const s = reconciliar(estado, cfg, agora, dia);
+  if (s.fase === 'SESSAO_ATIVA' || liberacaoRapidaAtiva(s)) {
+    return { estado: s, ok: false };
+  }
+  return { estado: abrirLiberacaoRapida(s, 'EMERGENCIA'), ok: true };
+}
+
+/** A saída de emergência aparece: sem sessão disponível, sem liberação em curso e sem acesso rápido possível (RN-06). */
+export function emergenciaOferecidaNoEstado(
+  estado: EstadoSaldo,
+  cfg: ConfigBloco,
+  agora: number,
+  dia: string = estado.dia,
+): boolean {
+  const s = reconciliar(estado, cfg, agora, dia);
+  if (liberacaoRapidaAtiva(s)) {
+    return false;
+  }
+  return emergenciaOferecida({
+    sessaoAtiva: s.fase === 'SESSAO_ATIVA' || s.fase === 'AGUARDANDO_LIBERACAO',
+    cooldownLiberavel: false,
+    acessoRapido: s.acessoRapido,
+    agora,
+  });
+}
+
+/** Ms da liberação rápida ainda disponíveis (relógio parado ou não). */
+export function msRestantesLiberacaoRapida(
+  estado: EstadoSaldo,
+  agora: number,
+): number {
+  if (!liberacaoRapidaAtiva(estado)) {
+    return 0;
+  }
+  const emCurso =
+    estado.liberacaoRapidaFgDesde > 0 ? agora - estado.liberacaoRapidaFgDesde : 0;
+  return Math.max(
+    0,
+    DURACAO_LIBERACAO_RAPIDA_MIN * MS_POR_MIN -
+      estado.liberacaoRapidaConsumidoMs -
+      emCurso,
+  );
+}
+
+/** Ms até a liberação rápida esgotar contando só primeiro plano; null se o relógio está parado. */
+export function msAteEsgotarLiberacaoRapida(
+  estado: EstadoSaldo,
+  agora: number,
+): number | null {
+  if (!liberacaoRapidaAtiva(estado) || estado.liberacaoRapidaFgDesde === 0) {
+    return null;
+  }
+  return msRestantesLiberacaoRapida(estado, agora);
+}
+
 /** App bloqueado voltou ao primeiro plano — o relógio da sessão volta a correr. */
 export function entrouEmPrimeiroPlano(
   estado: EstadoSaldo,
@@ -293,6 +458,9 @@ export function entrouEmPrimeiroPlano(
   const s = reconciliar(estado, cfg, agora, dia);
   if (permiteUso(s) && s.fgDesde === 0) {
     s.fgDesde = agora;
+  }
+  if (liberacaoRapidaAtiva(s) && s.liberacaoRapidaFgDesde === 0) {
+    s.liberacaoRapidaFgDesde = agora;
   }
   return { estado: s, ok: true };
 }
@@ -307,6 +475,14 @@ export function saiuDePrimeiroPlano(
   let s = reconciliar(estado, cfg, agora, dia);
   if (s.fgDesde > 0) {
     s = { ...s, consumidoMs: s.consumidoMs + (agora - s.fgDesde), fgDesde: 0 };
+  }
+  if (s.liberacaoRapidaFgDesde > 0) {
+    s = {
+      ...s,
+      liberacaoRapidaConsumidoMs:
+        s.liberacaoRapidaConsumidoMs + (agora - s.liberacaoRapidaFgDesde),
+      liberacaoRapidaFgDesde: 0,
+    };
   }
   return { estado: s, ok: true };
 }
@@ -377,4 +553,7 @@ export function formatarContagemMs(ms: number): string {
 export interface ResumoBloqueioDia {
   sessoesUsadas: number;
   intencoes: string[];
+  /** Ausentes em dias anteriores à HU-05 (ler como 0). */
+  acessosRapidos?: number;
+  emergencias?: number;
 }

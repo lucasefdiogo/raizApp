@@ -4,7 +4,9 @@ import {
   ConfigBloco,
   EstadoSaldo,
   ResultadoTransicao,
+  acessoRapidoLiberado,
   aplicarSnapshot,
+  concluirEmergencia,
   duracaoPausaIntencaoSeg,
   entrouEmPrimeiroPlano,
   essencialCumpridoNoDia,
@@ -13,8 +15,12 @@ import {
   extrasConcluidasDoDia,
   formatarContagemMs,
   avisoUmMinutoAtivo,
+  emergenciaOferecidaNoEstado,
+  liberarAcessoRapido,
   liberarBloco,
   msAteAviso,
+  msAteEsgotarLiberacaoRapida,
+  msRestantesLiberacaoRapida,
   msAteEsgotar,
   msRestantes,
   permiteUso,
@@ -23,6 +29,7 @@ import {
   saldoDisponivel,
   saiuDePrimeiroPlano,
 } from './saldoBloqueio';
+import { acessoRapidoDisponivel, msAteProximoAcessoRapido } from './acessoRapido';
 import { Tarefa } from './types';
 
 const MIN = 60_000;
@@ -47,6 +54,10 @@ function executar(
       return aplicarSnapshot(estado, passo.args!, cfg, agora, dia);
     case 'liberarBloco':
       return liberarBloco(estado, cfg, agora, dia);
+    case 'liberarAcessoRapido':
+      return liberarAcessoRapido(estado, cfg, agora, dia);
+    case 'concluirEmergencia':
+      return concluirEmergencia(estado, cfg, agora, dia);
     case 'entrouEmPrimeiroPlano':
       return entrouEmPrimeiroPlano(estado, cfg, agora, dia);
     case 'saiuDePrimeiroPlano':
@@ -78,6 +89,16 @@ function valorObservado(
       return (e.fimCooldownEm - fixtures.base) / MIN;
     case 'restanteSeg':
       return msRestantes(e, cfg, agora) / 1000;
+    case 'acessoRapidoUsos':
+      return e.acessoRapido.usosHoje;
+    case 'acessoRapidoFimUltimoEmMin':
+      return e.acessoRapido.fimUltimoEm === 0
+        ? 0
+        : (e.acessoRapido.fimUltimoEm - fixtures.base) / MIN;
+    case 'liberacaoRestanteSeg':
+      return msRestantesLiberacaoRapida(e, agora) / 1000;
+    case 'emergenciaOferecida':
+      return emergenciaOferecidaNoEstado(e, cfg, agora);
     case 'avisoUmMinuto':
       return avisoUmMinutoAtivo(e, cfg, agora);
     case 'msAteAvisoSeg': {
@@ -413,5 +434,192 @@ describe('derivados de exibição', () => {
     expect(formatarContagemMs(30 * MIN)).toBe('30:00');
     expect(formatarContagemMs(1)).toBe('00:01');
     expect(formatarContagemMs(-5)).toBe('00:00');
+  });
+});
+
+describe('acesso rápido e emergência no motor de saldo (HU-05)', () => {
+  const dia = fixtures.dia;
+  const t0 = fixtures.base;
+  const cfg = CONFIG_BLOCO_PADRAO;
+
+  // Sessão de 15 min gasta por inteiro: cai em COOLDOWN até t0 + 15 + 45 min.
+  function emCooldown(): EstadoSaldo {
+    let e = liberarBloco(estadoInicialDia(dia), cfg, t0, dia).estado;
+    e = entrouEmPrimeiroPlano(e, cfg, t0, dia).estado;
+    return reconciliar(e, cfg, t0 + 15 * MIN, dia);
+  }
+
+  it('CA-01: liberar o acesso rápido abre 2 minutos de uso contados só em primeiro plano', () => {
+    const r = liberarAcessoRapido(estadoInicialDia(dia), cfg, t0, dia);
+    expect(r.ok).toBe(true);
+    expect(acessoRapidoLiberado(r.estado)).toBe(true);
+    expect(r.estado.liberacaoRapida).toBe('ACESSO_RAPIDO');
+    expect(r.estado.acessoRapido.usosHoje).toBe(1);
+    // relógio parado: nada gasto
+    expect(msRestantesLiberacaoRapida(r.estado, t0 + 30 * MIN)).toBe(2 * MIN);
+    expect(msAteEsgotarLiberacaoRapida(r.estado, t0)).toBeNull();
+
+    let e = entrouEmPrimeiroPlano(r.estado, cfg, t0 + MIN, dia).estado;
+    expect(msAteEsgotarLiberacaoRapida(e, t0 + MIN)).toBe(2 * MIN);
+    e = saiuDePrimeiroPlano(e, cfg, t0 + MIN + 30_000, dia).estado;
+    expect(e.liberacaoRapidaConsumidoMs).toBe(30_000);
+    // tela apagada por 1h não conta
+    e = reconciliar(e, cfg, t0 + 61 * MIN, dia);
+    expect(acessoRapidoLiberado(e)).toBe(true);
+    expect(msRestantesLiberacaoRapida(e, t0 + 61 * MIN)).toBe(90_000);
+    // volta e gasta o resto
+    e = entrouEmPrimeiroPlano(e, cfg, t0 + 61 * MIN, dia).estado;
+    e = reconciliar(e, cfg, t0 + 61 * MIN + 89_999, dia);
+    expect(acessoRapidoLiberado(e)).toBe(true);
+    e = reconciliar(e, cfg, t0 + 61 * MIN + 90_000, dia);
+    expect(acessoRapidoLiberado(e)).toBe(false);
+    expect(e.liberacaoRapida).toBe('NENHUMA');
+    // o intervalo conta do fim do acesso, não do início
+    expect(e.acessoRapido.fimUltimoEm).toBe(t0 + 61 * MIN + 90_000);
+    expect(msAteProximoAcessoRapido(e.acessoRapido, t0 + 61 * MIN + 90_000)).toBe(
+      15 * MIN,
+    );
+  });
+
+  it('CA-02: usar o acesso rápido durante o cooldown não altera o tempo restante do cooldown', () => {
+    const cd = emCooldown();
+    expect(cd.fase).toBe('COOLDOWN');
+    const fimAntes = cd.fimCooldownEm;
+    expect(fimAntes).toBe(t0 + 60 * MIN);
+
+    const r = liberarAcessoRapido(cd, cfg, t0 + 20 * MIN, dia);
+    expect(r.ok).toBe(true);
+    let e = entrouEmPrimeiroPlano(r.estado, cfg, t0 + 20 * MIN, dia).estado;
+    e = reconciliar(e, cfg, t0 + 22 * MIN, dia); // acabou a liberação
+    expect(acessoRapidoLiberado(e)).toBe(false);
+    expect(e.fase).toBe('COOLDOWN');
+    expect(e.fimCooldownEm).toBe(fimAntes);
+    expect(e.consumidoMs).toBe(cd.consumidoMs);
+    expect(e.fgDesde).toBe(0);
+    expect(e.blocosUsados).toBe(cd.blocosUsados);
+    // e o cooldown segue contando normalmente até o fim original
+    expect(reconciliar(e, cfg, t0 + 60 * MIN, dia).fase).toBe(
+      'AGUARDANDO_LIBERACAO',
+    );
+  });
+
+  it('CA-04: com a cota esgotada e sem sessão disponível a emergência é oferecida', () => {
+    let e = emCooldown();
+    // cooldown + cota cheia: o acesso rápido é a opção melhor
+    expect(emergenciaOferecidaNoEstado(e, cfg, t0 + 16 * MIN)).toBe(false);
+    // cota esgotada (3 usos)
+    e = { ...e, acessoRapido: { usosHoje: 3, fimUltimoEm: t0 + 17 * MIN } };
+    expect(emergenciaOferecidaNoEstado(e, cfg, t0 + 18 * MIN)).toBe(true);
+    // dentro do intervalo também (1 uso, fim há 5 min)
+    e = { ...e, acessoRapido: { usosHoje: 1, fimUltimoEm: t0 + 13 * MIN } };
+    expect(emergenciaOferecidaNoEstado(e, cfg, t0 + 18 * MIN)).toBe(true);
+    // intervalo passou: volta a ser acesso rápido, sem emergência
+    expect(emergenciaOferecidaNoEstado(e, cfg, t0 + 28 * MIN)).toBe(false);
+    // com sessão disponível a emergência não aparece mesmo sem cota
+    const livre: EstadoSaldo = {
+      ...estadoInicialDia(dia),
+      acessoRapido: { usosHoje: 3, fimUltimoEm: t0 },
+    };
+    expect(emergenciaOferecidaNoEstado(livre, cfg, t0 + MIN)).toBe(false);
+  });
+
+  it('CA-05: concluir a emergência libera 2 minutos de uso', () => {
+    const cd = emCooldown();
+    const r = concluirEmergencia(cd, cfg, t0 + 20 * MIN, dia);
+    expect(r.ok).toBe(true);
+    expect(r.estado.liberacaoRapida).toBe('EMERGENCIA');
+    expect(acessoRapidoLiberado(r.estado)).toBe(true);
+    let e = entrouEmPrimeiroPlano(r.estado, cfg, t0 + 21 * MIN, dia).estado;
+    e = reconciliar(e, cfg, t0 + 22 * MIN + 59_000, dia);
+    expect(acessoRapidoLiberado(e)).toBe(true);
+    e = reconciliar(e, cfg, t0 + 23 * MIN, dia);
+    expect(acessoRapidoLiberado(e)).toBe(false);
+    expect(e.fimCooldownEm).toBe(cd.fimCooldownEm);
+  });
+
+  it('CA-07: usar a emergência não consome nem altera a cota do acesso rápido', () => {
+    const base: EstadoSaldo = {
+      ...emCooldown(),
+      acessoRapido: { usosHoje: 2, fimUltimoEm: t0 + 10 * MIN },
+    };
+    const r = concluirEmergencia(base, cfg, t0 + 30 * MIN, dia);
+    expect(r.ok).toBe(true);
+    expect(r.estado.acessoRapido).toEqual(base.acessoRapido);
+    let e = entrouEmPrimeiroPlano(r.estado, cfg, t0 + 30 * MIN, dia).estado;
+    e = reconciliar(e, cfg, t0 + 32 * MIN, dia);
+    expect(e.liberacaoRapida).toBe('NENHUMA');
+    expect(e.acessoRapido).toEqual(base.acessoRapido);
+    // sem limite diário: pode repetir a emergência
+    expect(concluirEmergencia(e, cfg, t0 + 33 * MIN, dia).ok).toBe(true);
+  });
+
+  it('CA-01: liberar o acesso rápido dentro do intervalo ou sem cota não abre uso', () => {
+    const cd = emCooldown();
+    // dentro do intervalo
+    const noIntervalo: EstadoSaldo = {
+      ...cd,
+      acessoRapido: { usosHoje: 1, fimUltimoEm: t0 + 10 * MIN },
+    };
+    const r1 = liberarAcessoRapido(noIntervalo, cfg, t0 + 20 * MIN, dia);
+    expect(r1.ok).toBe(false);
+    expect(acessoRapidoLiberado(r1.estado)).toBe(false);
+    expect(r1.estado.acessoRapido).toEqual(noIntervalo.acessoRapido);
+    // intervalo passado: libera
+    expect(liberarAcessoRapido(noIntervalo, cfg, t0 + 25 * MIN, dia).ok).toBe(
+      true,
+    );
+    // sem cota
+    const semCota: EstadoSaldo = {
+      ...cd,
+      acessoRapido: { usosHoje: 3, fimUltimoEm: t0 },
+    };
+    const r2 = liberarAcessoRapido(semCota, cfg, t0 + 500 * MIN, dia);
+    expect(r2.ok).toBe(false);
+    expect(acessoRapidoLiberado(r2.estado)).toBe(false);
+    // já há uma liberação rápida em curso: não empilha
+    const ativa = liberarAcessoRapido(cd, cfg, t0 + 20 * MIN, dia).estado;
+    expect(liberarAcessoRapido(ativa, cfg, t0 + 21 * MIN, dia).ok).toBe(false);
+    expect(concluirEmergencia(ativa, cfg, t0 + 21 * MIN, dia).ok).toBe(false);
+    // sessão normal ativa: não abre segundo relógio
+    const sessao = liberarBloco(estadoInicialDia(dia), cfg, t0, dia).estado;
+    expect(liberarAcessoRapido(sessao, cfg, t0 + MIN, dia).ok).toBe(false);
+    expect(concluirEmergencia(sessao, cfg, t0 + MIN, dia).ok).toBe(false);
+  });
+
+  it('CA-03: a virada do dia zera a cota e o intervalo do acesso rápido', () => {
+    const usado: EstadoSaldo = {
+      ...emCooldown(),
+      acessoRapido: { usosHoje: 3, fimUltimoEm: t0 + 10 * MIN },
+    };
+    const amanha = reconciliar(usado, cfg, t0 + 1000 * MIN, '2026-10-12');
+    expect(amanha.acessoRapido).toEqual({ usosHoje: 0, fimUltimoEm: 0 });
+    expect(amanha.liberacaoRapida).toBe('NENHUMA');
+    expect(acessoRapidoDisponivel(amanha.acessoRapido, t0 + 1000 * MIN)).toBe(
+      true,
+    );
+    // liberação em curso também some na virada
+    const ativa = liberarAcessoRapido(estadoInicialDia(dia), cfg, t0, dia).estado;
+    const outroDia = reconciliar(ativa, cfg, t0 + 1000 * MIN, '2026-10-12');
+    expect(acessoRapidoLiberado(outroDia)).toBe(false);
+    expect(outroDia.acessoRapido.usosHoje).toBe(0);
+  });
+
+  it('CA-01: estado salvo antes da HU-05, sem os campos novos, é aceito com a cota cheia', () => {
+    const antigo = {
+      dia,
+      fase: 'COOLDOWN',
+      saldo: 0,
+      blocosUsados: 1,
+      extrasCreditadas: [],
+      consumidoMs: 0,
+      fimCooldownEm: t0 + 60 * MIN,
+      fgDesde: 0,
+    } as unknown as EstadoSaldo;
+    const s = reconciliar(antigo, cfg, t0 + 20 * MIN, dia);
+    expect(s.acessoRapido).toEqual({ usosHoje: 0, fimUltimoEm: 0 });
+    expect(s.liberacaoRapida).toBe('NENHUMA');
+    expect(s.fimCooldownEm).toBe(t0 + 60 * MIN);
+    expect(liberarAcessoRapido(antigo, cfg, t0 + 20 * MIN, dia).ok).toBe(true);
+    expect(concluirEmergencia(antigo, cfg, t0 + 20 * MIN, dia).ok).toBe(true);
   });
 });

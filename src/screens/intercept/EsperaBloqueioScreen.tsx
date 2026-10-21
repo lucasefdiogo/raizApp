@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
+import { AcessoRapidoOpcoes } from '../../components/intercept/AcessoRapidoOpcoes';
 
 interface EsperaBloqueioScreenProps {
   /** cooldown = contagem regressiva até a próxima sessão; zerado = sessões do dia usadas (só com limite diário). */
@@ -14,6 +15,13 @@ interface EsperaBloqueioScreenProps {
   onSessaoFoco: () => void;
   onTarefasExtras: () => void;
   onSair: () => void;
+  /** Acesso rápido e emergência (HU-05); sem esta prop o bloco não aparece. */
+  acessoRapidoDisponivel?: boolean;
+  esperaSeg?: number;
+  msAteProximo?: number;
+  emergenciaOferecida?: boolean;
+  onAcessoRapido?: () => void;
+  onEmergencia?: () => void;
 }
 
 /**
@@ -29,6 +37,12 @@ export function EsperaBloqueioScreen({
   onSessaoFoco,
   onTarefasExtras,
   onSair,
+  acessoRapidoDisponivel,
+  esperaSeg = 5,
+  msAteProximo,
+  emergenciaOferecida = false,
+  onAcessoRapido,
+  onEmergencia,
 }: EsperaBloqueioScreenProps) {
   const textoExtras =
     blocoPorTarefaExtra === 1
@@ -64,6 +78,16 @@ export function EsperaBloqueioScreen({
           </Text>
         </>
       )}
+      {acessoRapidoDisponivel !== undefined && onAcessoRapido && onEmergencia ? (
+        <AcessoRapidoOpcoes
+          acessoRapidoDisponivel={acessoRapidoDisponivel}
+          esperaSeg={esperaSeg}
+          msAteProximo={msAteProximo}
+          emergenciaOferecida={emergenciaOferecida}
+          onAcessoRapido={onAcessoRapido}
+          onEmergencia={onEmergencia}
+        />
+      ) : null}
       <View style={styles.acoes}>
         <PrimaryButton titulo="Iniciar uma sessão de foco" onPress={onSessaoFoco} />
         <SecondaryButton titulo="Ver tarefas extras" onPress={onTarefasExtras} />

@@ -214,3 +214,11 @@ export interface OnboardingData {
   focoProcrastinacao: FocoProcrastinacao | null;
   tempoTelaEstimado: number | null;
 }
+
+/** Estado do acesso rápido no dia (HU-05). Zera na virada do dia junto com o saldo. */
+export interface EstadoAcessoRapido {
+  /** Quantos acessos rápidos já foram usados hoje. */
+  usosHoje: number;
+  /** Epoch ms de quando o último acesso rápido terminou; 0 = nenhum uso hoje. */
+  fimUltimoEm: number;
+}
