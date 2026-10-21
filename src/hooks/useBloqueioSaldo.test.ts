@@ -117,6 +117,134 @@ describe('useBloqueioSaldo', () => {
     await waitFor(() => expect(registrarErro).toHaveBeenCalled());
   });
 
+  describe('acesso rápido e emergência (HU-05)', () => {
+    const base = (extra: Partial<VisaoBloqueio> = {}): VisaoBloqueio => ({ ...visao(), ...extra });
+
+    it('CA-01: o hook expõe o acesso rápido disponível e a espera de 5 segundos antes de liberar', async () => {
+      const v = base({ acessosRapidosRestantes: 3, msAteProximoAcessoRapido: 0 });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+
+      expect(result.current.acessoRapidoDisponivel).toBe(true);
+      expect(result.current.esperaAcessoRapidoSeg).toBe(5);
+      expect(result.current.acessosRapidosRestantes).toBe(3);
+    });
+
+    it('CA-03: depois do 1º uso o hook expõe o tempo até o próximo acesso rápido', async () => {
+      const v = base({ acessosRapidosRestantes: 2, msAteProximoAcessoRapido: 25 * 60_000 });
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      expect(result.current.acessoRapidoDisponivel).toBe(false);
+      expect(result.current.msAteProximoAcessoRapido).toBe(25 * 60_000);
+      expect(result.current.acessosRapidosRestantes).toBe(2);
+    });
+
+    it('CA-04: com a cota esgotada o hook expõe a emergência como oferecida', async () => {
+      const v = base({ acessosRapidosRestantes: 0, emergenciaOferecida: true });
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      expect(result.current.acessoRapidoDisponivel).toBe(false);
+      expect(result.current.emergenciaOferecida).toBe(true);
+    });
+
+    it('CA-05: concluir a emergência registra emergencias no resumo do dia', async () => {
+      const esgotada = base({ acessosRapidosRestantes: 0, emergenciaOferecida: true });
+      native.obterEstadoBloqueio.mockResolvedValue(esgotada);
+      native.concluirEmergencia.mockResolvedValue({ aceito: true, visao: esgotada });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', esgotada));
+
+      let aceito = false;
+      await act(async () => {
+        aceito = await result.current.concluirEmergencia();
+      });
+
+      expect(aceito).toBe(true);
+      expect(registrarResumoBloqueioNoDia).toHaveBeenCalledWith(
+        'uid-1',
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        { emergencias: 1 },
+      );
+    });
+
+    it('CA-05: liberar o acesso rápido aceito registra acessosRapidos; recusado não registra', async () => {
+      const v = base({ acessosRapidosRestantes: 3, msAteProximoAcessoRapido: 0 });
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+      native.liberarAcessoRapido.mockResolvedValueOnce({ aceito: false, visao: v });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      await act(async () => {
+        await result.current.liberarAcessoRapido();
+      });
+      expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
+
+      native.liberarAcessoRapido.mockResolvedValueOnce({
+        aceito: true,
+        visao: base({ acessosRapidosRestantes: 2, msAteProximoAcessoRapido: 25 * 60_000 }),
+      });
+      await act(async () => {
+        await result.current.liberarAcessoRapido();
+      });
+      expect(registrarResumoBloqueioNoDia).toHaveBeenCalledWith(
+        'uid-1',
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        { acessosRapidos: 1 },
+      );
+      expect(result.current.acessosRapidosRestantes).toBe(2);
+    });
+
+    it('CA-06: com acesso rápido disponível o hook não expõe a emergência', async () => {
+      const v = base({ acessosRapidosRestantes: 3, msAteProximoAcessoRapido: 0 });
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      expect(result.current.acessoRapidoDisponivel).toBe(true);
+      expect(result.current.emergenciaOferecida).toBe(false);
+    });
+
+    it('CA-06: visão sem campos novos vale 3 restantes, próximo em 0 e sem emergência', async () => {
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', visao()));
+
+      expect(result.current.acessosRapidosRestantes).toBe(3);
+      expect(result.current.msAteProximoAcessoRapido).toBe(0);
+      expect(result.current.emergenciaOferecida).toBe(false);
+    });
+
+    it('CA-07: concluir a emergência não muda a cota exposta do acesso rápido', async () => {
+      const esgotada = base({ acessosRapidosRestantes: 0, emergenciaOferecida: true });
+      native.obterEstadoBloqueio.mockResolvedValue(esgotada);
+      native.concluirEmergencia.mockResolvedValue({ aceito: true, visao: esgotada });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', esgotada));
+
+      await act(async () => {
+        await result.current.concluirEmergencia();
+      });
+
+      expect(result.current.acessosRapidosRestantes).toBe(0);
+      expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ acessosRapidos: expect.anything() }),
+      );
+    });
+
+    it('CA-05: emergência recusada pelo nativo não registra o resumo', async () => {
+      const v = base({ acessosRapidosRestantes: 3 });
+      native.obterEstadoBloqueio.mockResolvedValue(v);
+      native.concluirEmergencia.mockResolvedValue({ aceito: false, visao: v });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      let aceito = true;
+      await act(async () => {
+        aceito = await result.current.concluirEmergencia();
+      });
+
+      expect(aceito).toBe(false);
+      expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
+    });
+  });
+
   describe('polling', () => {
     beforeEach(() => jest.useFakeTimers());
     afterEach(() => jest.useRealTimers());

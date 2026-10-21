@@ -17,3 +17,6 @@ Task ativa: nenhuma
 Task ativa: TASK-05
 TASK-05: registrarResumoBloqueioNoDia aceita acessosRapidos e emergencias no objeto parcial (increment atômico, só se diferente de zero); ResumoBloqueioDia ganha os dois como opcionais (dia antigo = 0). Doc a atualizar: definition/schema-firebase.md (resumoBloqueio.acessosRapidos e .emergencias).
 Task ativa: nenhuma
+Task ativa: TASK-06
+TASK-06: useBloqueioSaldo expõe acessoRapidoDisponivel, esperaAcessoRapidoSeg (5), acessosRapidosRestantes, msAteProximoAcessoRapido, emergenciaOferecida e liberarAcessoRapido()/concluirEmergencia() (Promise<boolean>, registram o resumo só se aceito). 1 rodada de correção (constante duplicada, agora importa ACESSOS_RAPIDOS_DIARIOS).
+Task ativa: nenhuma

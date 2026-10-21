@@ -53,7 +53,7 @@ Spec: v1
     - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/domain/types.ts, src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-06 (CA-01, CA-03, CA-04, CA-05, CA-06, CA-07, RN-05, RN-06, RN-07, RN-09): `useBloqueioSaldo` expõe acesso rápido disponível, tempo até o próximo, emergência oferecida e as ações de liberar e concluir emergência, registrando o resumo do dia
+- [x] TASK-06 (CA-01, CA-03, CA-04, CA-05, CA-06, CA-07, RN-05, RN-06, RN-07, RN-09): `useBloqueioSaldo` expõe acesso rápido disponível, tempo até o próximo, emergência oferecida e as ações de liberar e concluir emergência, registrando o resumo do dia
   - Teste: `CA-01: o hook expõe o acesso rápido disponível e a espera de 5 segundos antes de liberar` (feliz)
   - Teste: `CA-03: depois do 1º uso o hook expõe o tempo até o próximo acesso rápido` (feliz)
   - Teste: `CA-04: com a cota esgotada o hook expõe a emergência como oferecida` (feliz)

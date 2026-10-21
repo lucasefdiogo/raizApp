@@ -6,9 +6,13 @@ import {
   msRestantes,
   resolverConfigBloco,
 } from '../domain/saldoBloqueio';
+import { ACESSOS_RAPIDOS_DIARIOS } from '../domain/acessoRapido';
 import { hojeISOLocal } from '../domain/data';
 import {
   VisaoBloqueio,
+  ResultadoLiberacaoRapida,
+  concluirEmergencia as concluirEmergenciaNativo,
+  liberarAcessoRapido as liberarAcessoRapidoNativo,
   liberarBloco,
   obterEstadoBloqueio,
 } from '../native/AccessibilityDetection';
@@ -26,6 +30,9 @@ const FASES_COM_POLLING: EstadoSaldo['fase'][] = [
   'COOLDOWN',
 ];
 
+/** Espera antes de liberar o acesso rápido (RN-01); fixa, sem campo de texto. */
+const ESPERA_ACESSO_RAPIDO_SEG = 5;
+
 interface UseBloqueioSaldoResultado {
   /** null só se o nativo não respondeu e não havia visão inicial (não deveria acontecer no device). */
   visao: VisaoBloqueio | null;
@@ -41,6 +48,20 @@ interface UseBloqueioSaldoResultado {
   msRestantesCooldown: number;
   /** Sessão ativa com 1 minuto ou menos restante. */
   avisoUmMinuto: boolean;
+  /** Há acesso rápido a usar agora (cota restante e intervalo cumprido). */
+  acessoRapidoDisponivel: boolean;
+  /** Espera fixa de 5 segundos antes de liberar o acesso rápido. */
+  esperaAcessoRapidoSeg: number;
+  /** Acessos rápidos que ainda cabem hoje (default 3 sem o campo no nativo). */
+  acessosRapidosRestantes: number;
+  /** Ms até o próximo acesso rápido (0 = agora, ou cota esgotada: ver acessosRapidosRestantes). */
+  msAteProximoAcessoRapido: number;
+  /** A saída de emergência deve aparecer (RN-06). */
+  emergenciaOferecida: boolean;
+  /** Fim da espera de 5 s: abre 2 min de uso e conta no resumo do dia. Resolve se o nativo aceitou. */
+  liberarAcessoRapido: () => Promise<boolean>;
+  /** Fim da respiração de 60 s: abre 2 min sem gastar a cota e conta no resumo do dia. Resolve se aceitou. */
+  concluirEmergencia: () => Promise<boolean>;
   recarregar: () => Promise<void>;
   /** Fim da pausa: abre o bloco e grava o resumo do dia (bloco + intenção, se digitada). Resolve se abriu. */
   liberar: (intencao: string) => Promise<boolean>;
@@ -128,6 +149,36 @@ export function useBloqueioSaldo(
     [gravarResumo, recarregar],
   );
 
+  const executarLiberacaoRapida = useCallback(
+    async (
+      acao: () => Promise<ResultadoLiberacaoRapida>,
+      contador: 'acessosRapidos' | 'emergencias',
+    ) => {
+      const { aceito, visao: nova } = await acao();
+      if (nova && montado.current) {
+        setVisao(nova);
+      }
+      if (aceito) {
+        gravarResumo({ [contador]: 1 });
+      }
+      return aceito;
+    },
+    [gravarResumo],
+  );
+
+  const liberarAcessoRapido = useCallback(
+    () => executarLiberacaoRapida(liberarAcessoRapidoNativo, 'acessosRapidos'),
+    [executarLiberacaoRapida],
+  );
+
+  const concluirEmergencia = useCallback(
+    () => executarLiberacaoRapida(concluirEmergenciaNativo, 'emergencias'),
+    [executarLiberacaoRapida],
+  );
+
+  const acessosRapidosRestantes = visao?.acessosRapidosRestantes ?? ACESSOS_RAPIDOS_DIARIOS;
+  const msAteProximoAcessoRapido = visao?.msAteProximoAcessoRapido ?? 0;
+
   const config = visao ? resolverConfigBloco(visao.config) : null;
 
   const estado = visao?.estado;
@@ -141,6 +192,13 @@ export function useBloqueioSaldo(
     msRestantesCooldown:
       estado?.fase === 'COOLDOWN' ? Math.max(0, estado.fimCooldownEm - agora) : 0,
     avisoUmMinuto: !!estado && !!config && avisoUmMinutoAtivo(estado, config, agora),
+    acessoRapidoDisponivel: acessosRapidosRestantes > 0 && msAteProximoAcessoRapido === 0,
+    esperaAcessoRapidoSeg: ESPERA_ACESSO_RAPIDO_SEG,
+    acessosRapidosRestantes,
+    msAteProximoAcessoRapido,
+    emergenciaOferecida: visao?.emergenciaOferecida ?? false,
+    liberarAcessoRapido,
+    concluirEmergencia,
     recarregar,
     liberar,
   };
