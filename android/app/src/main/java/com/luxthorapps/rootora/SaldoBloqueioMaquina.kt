@@ -115,6 +115,9 @@ object SaldoBloqueioMaquina {
 
   fun permiteUso(s: EstadoSaldo): Boolean = s.fase == FaseBloqueio.SESSAO_ATIVA
 
+  /** O app bloqueado abre sem interceptação: sessão ativa ou liberação rápida (acesso rápido/emergência) valendo. */
+  fun appPodeAbrir(s: EstadoSaldo): Boolean = permiteUso(s) || acessoRapidoLiberado(s)
+
   private fun entrarEmCooldown(s: EstadoSaldo, cfg: ConfigBloco, instante: Long) =
     s.copy(
       fase = FaseBloqueio.COOLDOWN,

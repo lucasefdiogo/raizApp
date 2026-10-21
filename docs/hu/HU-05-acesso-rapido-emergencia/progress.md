@@ -11,3 +11,6 @@ Task ativa: nenhuma
 Task ativa: TASK-03
 TASK-03: cópia Kotlin das transições (campos achatados acessoRapidoUsos/FimUltimoEm, liberacaoRapida*), Prefs persiste os 5 campos com default de cota cheia. JUnit (cd android && ./gradlew :app:testDebugUnitTest --offline): 35 testes, 0 falhas. Teste CA-04 extra cobre a fixture da emergência oferecida. Pendente na TASK-04: teste CA-02 de leitura de estado sem campos.
 Task ativa: nenhuma
+Task ativa: TASK-04
+TASK-04: módulo nativo liberarAcessoRapido()/concluirEmergencia() resolvem JSON {aceito, visao}; visão ganha msRestantesLiberacaoRapida, acessosRapidosRestantes, msAteProximoAcessoRapido (ausente = cota esgotada), emergenciaOferecida; Service usa appPodeAbrir = permiteUso || acessoRapidoLiberado e agenda o timer pelo que esgotar primeiro. JUnit 38 testes, 0 falhas; assembleDebug ok. Não conferido em aparelho real: reabertura da interceptação ao fim da liberação rápida.
+Task ativa: nenhuma

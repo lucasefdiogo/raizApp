@@ -35,7 +35,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioMaquina.kt, android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioPrefs.kt, android/app/src/test/java/com/luxthorapps/rootora/SaldoBloqueioMaquinaTest.kt
     - Comandos: teste, build
     - Instala: nenhuma
-- [ ] TASK-04 (CA-01, CA-02, CA-05, RN-01, RN-04, RN-07): integração nativa: persistência do estado do acesso rápido, Service que deixa o app bloqueado abrir durante os 2 minutos e encerra a liberação ao fim (sem mexer na sessão nem no cooldown), Activity e wrapper TS com os métodos de liberar acesso rápido e concluir emergência
+- [x] TASK-04 (CA-01, CA-02, CA-05, RN-01, RN-04, RN-07): integração nativa: persistência do estado do acesso rápido, Service que deixa o app bloqueado abrir durante os 2 minutos e encerra a liberação ao fim (sem mexer na sessão nem no cooldown), Activity e wrapper TS com os métodos de liberar acesso rápido e concluir emergência
   - Teste: `CA-01: o wrapper TS expõe liberar acesso rápido e o tempo restante dos 2 minutos` (feliz)
   - Teste: `CA-05: o wrapper TS expõe concluir emergência` (feliz)
   - Teste: `CA-02: estado salvo sem campos de acesso rápido é lido como cota cheia, sem quebrar` (exceção)

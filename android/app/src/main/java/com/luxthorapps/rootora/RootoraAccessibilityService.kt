@@ -134,7 +134,14 @@ class RootoraAccessibilityService : AccessibilityService() {
     handler.removeCallbacks(aoEstourarBloco)
     val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
     val cfg = SaldoBloqueioPrefs.configAtual(applicationContext)
-    val faltam = SaldoBloqueioMaquina.msAteEsgotar(estado, cfg, System.currentTimeMillis()) ?: return
+    val agora = System.currentTimeMillis()
+    // O que esgotar primeiro: a sessão ou a liberação rápida de 2 min (o cooldown e a cota não mudam).
+    val faltam =
+      listOfNotNull(
+          SaldoBloqueioMaquina.msAteEsgotar(estado, cfg, agora),
+          SaldoBloqueioMaquina.msAteEsgotarLiberacaoRapida(estado, agora),
+        )
+        .minOrNull() ?: return
     handler.postDelayed(aoEstourarBloco, faltam + 50L)
   }
 
@@ -158,7 +165,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     Toast.makeText(applicationContext, "1 minuto restante", Toast.LENGTH_SHORT).show()
   }
 
-  /** Sessão esgotou com o app ainda em primeiro plano: entra em cooldown e reabre a interceptação por cima dele. */
+  /** Sessão ou liberação rápida esgotou com o app ainda em primeiro plano: reconcilia (cooldown / encerra a liberação) e reabre a interceptação por cima dele. */
   private fun aoBlocoEstourar() {
     val pacote = pacoteBloqueadoEmFoco ?: return
     // reconciliar (dentro de estadoAtual) move pra COOLDOWN e zera o trecho em aberto.

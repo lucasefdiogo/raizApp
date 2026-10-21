@@ -178,8 +178,26 @@ object SaldoBloqueioPrefs {
         put("msRestantes", SaldoBloqueioMaquina.msRestantes(estado, cfg, agora))
         put("avisoUmMinutoAtivo", SaldoBloqueioMaquina.avisoUmMinutoAtivo(estado, cfg, agora))
         SaldoBloqueioMaquina.msAteAviso(estado, cfg, agora)?.let { put("msAteAviso", it) }
+        put("msRestantesLiberacaoRapida", SaldoBloqueioMaquina.msRestantesLiberacaoRapida(estado, agora))
+        put(
+          "acessosRapidosRestantes",
+          maxOf(0, SaldoBloqueioMaquina.ACESSOS_RAPIDOS_DIARIOS - estado.acessoRapidoUsos),
+        )
+        // ausente = cota do dia esgotada
+        SaldoBloqueioMaquina.msAteProximoAcessoRapido(estado, agora)?.let { put("msAteProximoAcessoRapido", it) }
+        put("emergenciaOferecida", SaldoBloqueioMaquina.emergenciaOferecidaNoEstado(estado, cfg, agora))
       }
       .toString()
+
+  /** Aplica a transição e devolve `{aceito, visao}` (visão já com o estado novo) para o RN. */
+  @Synchronized
+  fun transicionarComVisaoJson(
+    context: Context,
+    transicao: (EstadoSaldo, ConfigBloco, Long, String) -> ResultadoTransicao,
+  ): String {
+    val aceito = transicionar(context, transicao).ok
+    return JSONObject().put("aceito", aceito).put("visao", JSONObject(visaoJson(context))).toString()
+  }
 
   /** O aviso de 1 minuto da sessão `chave` (ver chaveAvisoSessao) já foi exibido? */
   @Synchronized
@@ -194,7 +212,9 @@ object SaldoBloqueioPrefs {
   /** Reinício do Service/processo: o trecho em primeiro plano em aberto é descartado (não dá pra saber quando acabou). */
   @Synchronized
   fun descartarTrechoEmAberto(context: Context) {
-    transicionar(context) { s, _, _, _ -> ResultadoTransicao(s.copy(fgDesde = 0L), true) }
+    transicionar(context) { s, _, _, _ ->
+      ResultadoTransicao(s.copy(fgDesde = 0L, liberacaoRapidaFgDesde = 0L), true)
+    }
   }
 
   /** Snapshot do dia (JSON de domain/intercept.ts SnapshotDia) -> só as extras concluídas rendem crédito. */

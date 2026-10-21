@@ -90,4 +90,51 @@ class SaldoBloqueioPrefsTest {
     val parado = EstadoSaldo(dia = "d", fase = FaseBloqueio.SESSAO_ATIVA)
     assertFalse(JSONObject(SaldoBloqueioPrefs.visaoParaJson(parado, cfg, agora)).has("msAteAviso"))
   }
+
+  @Test
+  fun `CA-02 estado salvo sem campos de acesso rapido e lido como cota cheia e a visao expoe isso`() {
+    val estado = SaldoBloqueioPrefs.deJson(estadoSalvo("COOLDOWN"), "2026-10-11")
+    assertEquals(0, estado.acessoRapidoUsos)
+    assertEquals(LiberacaoRapida.NENHUMA, estado.liberacaoRapida)
+    val agora = 1_000_000L
+    val v = JSONObject(SaldoBloqueioPrefs.visaoParaJson(estado, ConfigBloco(), agora))
+    assertEquals(3, v.getInt("acessosRapidosRestantes"))
+    assertEquals(0L, v.getLong("msAteProximoAcessoRapido"))
+    assertEquals(0L, v.getLong("msRestantesLiberacaoRapida"))
+    assertFalse(v.getBoolean("emergenciaOferecida"))
+  }
+
+  @Test
+  fun `CA-01 visao expoe o tempo restante da liberacao rapida e CA-04 a emergencia com a cota esgotada`() {
+    val agora = 10_000_000L
+    val rapida =
+      EstadoSaldo(dia = "d", fase = FaseBloqueio.COOLDOWN, fimCooldownEm = agora + 60_000L, acessoRapidoUsos = 1,
+        liberacaoRapida = LiberacaoRapida.ACESSO_RAPIDO, liberacaoRapidaConsumidoMs = 30_000L, liberacaoRapidaFgDesde = agora - 10_000L)
+    val v = JSONObject(SaldoBloqueioPrefs.visaoParaJson(rapida, ConfigBloco(), agora))
+    assertEquals(80_000L, v.getLong("msRestantesLiberacaoRapida"))
+    assertEquals(2, v.getInt("acessosRapidosRestantes"))
+
+    val esgotada = EstadoSaldo(dia = "d", fase = FaseBloqueio.COOLDOWN, fimCooldownEm = agora + 60_000L, acessoRapidoUsos = 3, acessoRapidoFimUltimoEm = agora - 1_000L)
+    val v2 = JSONObject(SaldoBloqueioPrefs.visaoParaJson(esgotada, ConfigBloco(), agora))
+    assertEquals(0, v2.getInt("acessosRapidosRestantes"))
+    assertFalse(v2.has("msAteProximoAcessoRapido"))
+    assertTrue(v2.getBoolean("emergenciaOferecida"))
+
+    val intervalo = EstadoSaldo(dia = "d", fase = FaseBloqueio.COOLDOWN, fimCooldownEm = agora + 60_000L, acessoRapidoUsos = 1, acessoRapidoFimUltimoEm = agora - 60_000L)
+    assertEquals(14 * 60_000L, JSONObject(SaldoBloqueioPrefs.visaoParaJson(intervalo, ConfigBloco(), agora)).getLong("msAteProximoAcessoRapido"))
+  }
+
+  @Test
+  fun `CA-02 durante a liberacao rapida o app bloqueado abre e o cooldown segue intacto`() {
+    val agora = 10_000_000L
+    val cooldown = EstadoSaldo(dia = "d", fase = FaseBloqueio.COOLDOWN, fimCooldownEm = agora + 600_000L)
+    assertFalse(SaldoBloqueioMaquina.appPodeAbrir(cooldown))
+    val aberta = SaldoBloqueioMaquina.liberarAcessoRapido(cooldown, ConfigBloco(), agora, "d").estado
+    assertTrue(SaldoBloqueioMaquina.appPodeAbrir(aberta))
+    assertEquals(cooldown.fimCooldownEm, aberta.fimCooldownEm)
+    val fim = SaldoBloqueioMaquina.reconciliar(aberta.copy(liberacaoRapidaFgDesde = agora), ConfigBloco(), agora + 130_000L, "d")
+    assertFalse(SaldoBloqueioMaquina.appPodeAbrir(fim))
+    assertEquals(FaseBloqueio.COOLDOWN, fim.fase)
+    assertEquals(cooldown.fimCooldownEm, fim.fimCooldownEm)
+  }
 }
