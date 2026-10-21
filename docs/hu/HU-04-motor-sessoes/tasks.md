@@ -97,3 +97,12 @@ Spec: v1
     - Arquivos: src/screens/intercept/PausaIntencaoScreen.tsx, src/screens/intercept/PausaIntencaoScreen.test.tsx, src/screens/intercept/EsperaBloqueioScreen.tsx, src/screens/intercept/EsperaBloqueioScreen.test.tsx, src/screens/intercept/SessaoAtivaAviso.tsx, src/screens/intercept/SessaoAtivaAviso.test.tsx, src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
+- [ ] TASK-10 (CA-03, RN-04): aviso não bloqueante "1 minuto restante" durante a sessão ativa, dentro do app bloqueado: o `RootoraAccessibilityService` agenda o aviso (Toast) em `msAteAviso`, só com o app bloqueado em primeiro plano, uma vez por sessão, e cancela ao sair do app, apagar a tela ou terminar a sessão; a decisão de agendar vive numa função pura testada no JUnit
+  - Teste: `CA-03 sessão ativa em primeiro plano com mais de 1 minuto restante agenda o aviso para daqui a msAteAviso` (feliz)
+  - Teste: `CA-03 o aviso não é agendado de novo na mesma sessão depois de exibido` (exceção)
+  - Teste: `CA-03 fora de primeiro plano ou sem sessão ativa não agenda aviso` (exceção)
+  - Escopo:
+    - CAs: CA-03
+    - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/**, android/app/src/test/java/com/luxthorapps/rootora/**
+    - Comandos: teste, build
+    - Instala: nenhuma
