@@ -32,20 +32,28 @@ export interface ConfigBloco {
   duracaoBlocoMin: number;
   toleranciaMin: number;
   cooldownMin: number;
-  blocosDiarios: number;
+  /** null = sem limite de sessões por dia. */
+  blocosDiarios: number | null;
   blocoPorTarefaExtra: number;
 }
 
 export const CONFIG_BLOCO_PADRAO: ConfigBloco = {
   duracaoBlocoMin: 15,
-  toleranciaMin: 2,
-  cooldownMin: 30,
-  blocosDiarios: 4,
+  toleranciaMin: 0,
+  cooldownMin: 45,
+  blocosDiarios: null,
   blocoPorTarefaExtra: 1,
 };
 
+/** Valores que eram o padrão antigo: salvos nas regras sem escolha do usuário, passam a valer o padrão novo. */
+const PADRAO_ANTIGO: Partial<ConfigBloco> = {
+  toleranciaMin: 2,
+  cooldownMin: 30,
+  blocosDiarios: 4,
+};
+
 /** Duração da pausa de intenção por bloco já liberado no dia; o último valor é o teto. Fixa no código por enquanto. */
-export const SEQUENCIA_PAUSA_INTENCAO_SEG = [5, 10, 20, 40, 60];
+export const SEQUENCIA_PAUSA_INTENCAO_SEG_V2 = [10, 20, 30, 40, 50, 60];
 
 const MS_POR_MIN = 60_000;
 
@@ -111,7 +119,13 @@ export function resolverConfigBloco(
   }
   (Object.keys(CONFIG_BLOCO_PADRAO) as (keyof ConfigBloco)[]).forEach(chave => {
     const valor = regras[chave];
-    if (typeof valor === 'number' && Number.isFinite(valor) && valor >= 0) {
+    if (
+      typeof valor === 'number' &&
+      Number.isFinite(valor) &&
+      valor >= 0 &&
+      (chave !== 'blocosDiarios' || Number.isInteger(valor)) &&
+      valor !== PADRAO_ANTIGO[chave]
+    ) {
       resolvido[chave] = valor;
     }
   });
@@ -128,19 +142,19 @@ export function extrairConfigBloco(
   }
   (Object.keys(CONFIG_BLOCO_PADRAO) as (keyof ConfigBloco)[]).forEach(chave => {
     if (regras[chave] !== undefined) {
-      extraido[chave] = regras[chave];
+      (extraido as Record<string, unknown>)[chave] = regras[chave];
     }
   });
   return extraido;
 }
 
-/** Pausa de intenção antes de liberar o próximo bloco: 5s, 10s, 20s, 40s, depois 60s. */
+/** Pausa de intenção antes de liberar o próximo bloco: 10s, 20s, 30s, 40s, 50s, depois 60s. */
 export function duracaoPausaIntencaoSeg(blocosUsados: number): number {
   const indice = Math.min(
     Math.max(0, blocosUsados),
-    SEQUENCIA_PAUSA_INTENCAO_SEG.length - 1,
+    SEQUENCIA_PAUSA_INTENCAO_SEG_V2.length - 1,
   );
-  return SEQUENCIA_PAUSA_INTENCAO_SEG[indice];
+  return SEQUENCIA_PAUSA_INTENCAO_SEG_V2[indice];
 }
 
 /** Tarefas extras que rendem bloco: concluídas, não essenciais e que não são subtarefa de outra. */
@@ -247,7 +261,7 @@ export function aplicarSnapshot(
 
   if (snapshot.essencialCumprido && !s.essencialCreditado) {
     s.essencialCreditado = true;
-    s.saldo += cfg.blocosDiarios;
+    s.saldo += cfg.blocosDiarios ?? 0;
     if (s.fase === 'BLOQUEADO_SEM_ESSENCIAL') {
       s.fase = 'AGUARDANDO_LIBERACAO';
     }

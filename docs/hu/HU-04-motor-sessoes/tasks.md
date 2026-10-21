@@ -1,7 +1,7 @@
 # Tasks — HU-04
 Spec: v1
 
-- [ ] TASK-01 (CA-01, CA-04, CA-05, RN-02, RN-06, RN-10): config padrão e sequência da pausa de intenção em `domain/saldoBloqueio.ts`: sessão 15 min, cooldown 45 min, `blocosDiarios` sem limite por padrão, sem tolerância, `SEQUENCIA_PAUSA_INTENCAO_SEG_V2` = [10, 20, 30, 40, 50, 60] pela posição da sessão já liberada; `resolverConfigBloco` aplica o padrão novo a todo usuário sem criar regras pendentes
+- [x] TASK-01 (CA-01, CA-04, CA-05, RN-02, RN-06, RN-10): config padrão e sequência da pausa de intenção em `domain/saldoBloqueio.ts`: sessão 15 min, cooldown 45 min, `blocosDiarios` sem limite por padrão, sem tolerância, `SEQUENCIA_PAUSA_INTENCAO_SEG_V2` = [10, 20, 30, 40, 50, 60] pela posição da sessão já liberada; `resolverConfigBloco` aplica o padrão novo a todo usuário sem criar regras pendentes
   - Teste: `CA-01: a primeira sessão do dia tem pausa de intenção de 10 segundos` (feliz)
   - Teste: `CA-04: a segunda sessão do dia tem pausa de intenção de 20 segundos` (feliz)
   - Teste: `CA-05: a sexta sessão em diante fica no teto de 60 segundos` (feliz)
@@ -10,7 +10,7 @@ Spec: v1
   - Teste: `CA-01: regras antigas com duracaoBlocoMin 15 e cooldownMin 30 salvos passam a valer 15 e 45` (exceção)
   - Escopo:
     - CAs: CA-01, CA-04, CA-05, CA-06
-    - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/appBlock.ts, src/domain/appBlock.test.ts, src/domain/types.ts
+    - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/appBlock.ts, src/domain/appBlock.test.ts, src/domain/types.ts, src/hooks/useBloqueioSaldo.test.ts, src/screens/intercept/InterceptScreen.test.tsx
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
 - [ ] TASK-02 (CA-02, CA-03, RN-03, RN-04, RN-05, RN-11): máquina de estados `AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → SESSAO_ATIVA → COOLDOWN` em `domain/saldoBloqueio.ts`, sem `BLOQUEADO_SEM_ESSENCIAL`, `TOLERANCIA` nem ganho de bloco por tarefa; tempo só corre em primeiro plano, aviso 1 min antes do fim, cooldown por timestamp absoluto; fixtures compartilhadas atualizadas

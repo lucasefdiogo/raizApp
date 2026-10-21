@@ -108,7 +108,8 @@ function configurarSaldo(
   const retorno = {
     visao: {
       estado: { ...estadoInicialSaldo('2026-10-11'), ...estado },
-      config: CONFIG_BLOCO_PADRAO,
+      // Tolerância 3 explícita (2 é o padrão antigo, que o resolver descarta): o padrão novo é sem tolerância; a TASK-07/08 reescreve este teste.
+      config: { ...CONFIG_BLOCO_PADRAO, toleranciaMin: 3 },
       agora: AGORA,
     },
     agora: AGORA,
@@ -306,21 +307,21 @@ describe('InterceptScreen', () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
     });
 
-    it('oferta pendente: mostra "Tempo esgotado" e "+2 min para finalizar"', async () => {
+    it('oferta pendente: mostra "Tempo esgotado" e "+3 min para finalizar"', async () => {
       configurarSaldo({ fase: 'TOLERANCIA', toleranciaAtiva: false });
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('Tempo esgotado')).toBeTruthy();
-      expect(screen.getByText('+2 min para finalizar')).toBeTruthy();
+      expect(screen.getByText('+3 min para finalizar')).toBeTruthy();
     });
 
-    it('"+2 min" concede a tolerância, reabre o app e sai', async () => {
+    it('"+3 min" concede a tolerância, reabre o app e sai', async () => {
       const saldo = configurarSaldo({ fase: 'TOLERANCIA' });
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
       await act(async () => {
-        await fireEvent.press(screen.getByText('+2 min para finalizar'));
+        await fireEvent.press(screen.getByText('+3 min para finalizar'));
       });
 
       expect(saldo.aceitarTolerancia).toHaveBeenCalledTimes(1);
@@ -345,7 +346,7 @@ describe('InterceptScreen', () => {
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.queryByText('+2 min para finalizar')).toBeNull();
+      expect(screen.queryByText('+3 min para finalizar')).toBeNull();
       expect(screen.getByText('Sair')).toBeTruthy();
     });
 

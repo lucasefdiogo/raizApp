@@ -19,7 +19,8 @@ function visao(sobrescrita: Partial<VisaoBloqueio['estado']> = {}): VisaoBloquei
       saldo: 4,
       ...sobrescrita,
     },
-    config: CONFIG_BLOCO_PADRAO,
+    // Tolerância 3 explícita (2 é o padrão antigo, que o resolver descarta): o padrão novo é sem tolerância; a TASK-07/08 reescreve este teste.
+    config: { ...CONFIG_BLOCO_PADRAO, toleranciaMin: 3 },
     agora: 1_700_000_000_000,
   };
 }
@@ -37,7 +38,7 @@ describe('useBloqueioSaldo', () => {
       useBloqueioSaldo('uid-1', visao({ blocosUsados: 2 })),
     );
 
-    expect(result.current.pausaIntencaoSeg).toBe(20);
+    expect(result.current.pausaIntencaoSeg).toBe(30);
     expect(result.current.visao?.estado.fase).toBe('AGUARDANDO_LIBERACAO');
   });
 

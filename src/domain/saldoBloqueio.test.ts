@@ -84,9 +84,16 @@ function valorObservado(
 describe('saldoBloqueio — fixtures compartilhadas com o Kotlin', () => {
   fixtures.casos.forEach(caso => {
     it(caso.nome, () => {
-      const cfg = resolverConfigBloco(
-        (caso as { config?: Partial<ConfigBloco> }).config,
-      );
+      // As fixtures ainda descrevem a máquina antiga (tolerância 2, cooldown 30,
+      // 4 blocos); a TASK-02 as reescreve para o padrão novo. Por isso o padrão
+      // antigo entra explícito, sem passar por resolverConfigBloco.
+      const cfg: ConfigBloco = {
+        ...CONFIG_BLOCO_PADRAO,
+        toleranciaMin: 2,
+        cooldownMin: 30,
+        blocosDiarios: 4,
+        ...(caso as { config?: Partial<ConfigBloco> }).config,
+      };
       let estado = estadoInicialSaldo(fixtures.dia);
       (caso.passos as Passo[]).forEach((passo, i) => {
         const resultado = executar(passo, estado, cfg);
@@ -113,27 +120,58 @@ describe('saldoBloqueio — fixtures compartilhadas com o Kotlin', () => {
 });
 
 describe('duracaoPausaIntencaoSeg', () => {
-  it('cresce 5, 10, 20, 40 e fica em 60 (teto)', () => {
-    expect([0, 1, 2, 3, 4, 5, 9].map(duracaoPausaIntencaoSeg)).toEqual([
-      5, 10, 20, 40, 60, 60, 60,
-    ]);
+  it('CA-01: a primeira sessão do dia tem pausa de intenção de 10 segundos', () => {
+    expect(duracaoPausaIntencaoSeg(0)).toBe(10);
   });
 
-  it('valor negativo cai no primeiro degrau', () => {
-    expect(duracaoPausaIntencaoSeg(-3)).toBe(5);
+  it('CA-04: a segunda sessão do dia tem pausa de intenção de 20 segundos', () => {
+    expect(duracaoPausaIntencaoSeg(1)).toBe(20);
+  });
+
+  it('CA-05: a sexta sessão em diante fica no teto de 60 segundos', () => {
+    expect([2, 3, 4].map(duracaoPausaIntencaoSeg)).toEqual([30, 40, 50]);
+    expect([5, 6, 9].map(duracaoPausaIntencaoSeg)).toEqual([60, 60, 60]);
+  });
+
+  it('CA-01: valor negativo cai na primeira sessão', () => {
+    expect(duracaoPausaIntencaoSeg(-3)).toBe(10);
   });
 });
 
 describe('resolverConfigBloco / extrairConfigBloco', () => {
-  it('sem regras ou sem os campos: padrão (15, 2, 30, 4, 1)', () => {
-    expect(resolverConfigBloco(null)).toEqual(CONFIG_BLOCO_PADRAO);
-    expect(resolverConfigBloco({})).toEqual({
+  it('CA-05: sem blocosDiarios configurado o padrão resolvido é sem limite', () => {
+    const padrao = {
       duracaoBlocoMin: 15,
-      toleranciaMin: 2,
-      cooldownMin: 30,
-      blocosDiarios: 4,
+      toleranciaMin: 0,
+      cooldownMin: 45,
+      blocosDiarios: null,
       blocoPorTarefaExtra: 1,
+    };
+    expect(CONFIG_BLOCO_PADRAO).toEqual(padrao);
+    expect(resolverConfigBloco(null)).toEqual(padrao);
+    expect(resolverConfigBloco({})).toEqual(padrao);
+  });
+
+  it('CA-06: blocosDiarios inválido ou negativo cai em sem limite, não em zero', () => {
+    [NaN, -1, Infinity, 2.5].forEach(invalido => {
+      expect(
+        resolverConfigBloco({ blocosDiarios: invalido }).blocosDiarios,
+      ).toBeNull();
     });
+    expect(resolverConfigBloco({ blocosDiarios: 2 }).blocosDiarios).toBe(2);
+  });
+
+  it('CA-01: regras antigas com duracaoBlocoMin 15 e cooldownMin 30 salvos passam a valer 15 e 45', () => {
+    const r = resolverConfigBloco({
+      duracaoBlocoMin: 15,
+      cooldownMin: 30,
+      toleranciaMin: 2,
+      blocosDiarios: 4,
+    });
+    expect(r.duracaoBlocoMin).toBe(15);
+    expect(r.cooldownMin).toBe(45);
+    expect(r.toleranciaMin).toBe(0);
+    expect(r.blocosDiarios).toBeNull();
   });
 
   it('usa os campos válidos e ignora inválidos', () => {
@@ -186,7 +224,8 @@ describe('helpers de tarefas', () => {
 });
 
 describe('derivados de exibição', () => {
-  const cfg = CONFIG_BLOCO_PADRAO;
+  // Tolerância explícita: o padrão novo é sem tolerância (TASK-02 remove este derivado).
+  const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, toleranciaMin: 2 };
   const t0 = 1_700_000_000_000;
 
   function blocoRodando(): EstadoSaldo {
