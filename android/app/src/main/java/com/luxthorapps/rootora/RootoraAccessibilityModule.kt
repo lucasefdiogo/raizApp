@@ -24,7 +24,7 @@ import java.io.ByteArrayOutputStream
  *
  * isAccessibilityServiceEnabled/openAccessibilitySettings + as gravações em
  * SharedPreferences (regrasBloqueio, snapshot do dia, sessão ativa) e as
- * ações do saldo diário de blocos (liberar, tolerância) — mais a emissão de eventos de troca de app, via
+ * ações do saldo diário de blocos (liberar sessão) — mais a emissão de eventos de troca de app, via
  * RootoraAccessibilityService.
  */
 class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
@@ -156,18 +156,6 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun liberarBloco(promise: Promise) = transicionar(promise) { s, cfg, agora, dia ->
     SaldoBloqueioMaquina.liberarBloco(s, cfg, agora, dia)
-  }
-
-  /** "+2 min para finalizar". Resolve false se já usada neste bloco ou fora da oferta. */
-  @ReactMethod
-  fun usarTolerancia(promise: Promise) = transicionar(promise) { s, cfg, agora, dia ->
-    SaldoBloqueioMaquina.usarTolerancia(s, cfg, agora, dia)
-  }
-
-  /** "Agora não" na oferta de tolerância: o cooldown começa já. */
-  @ReactMethod
-  fun recusarTolerancia(promise: Promise) = transicionar(promise) { s, cfg, agora, dia ->
-    SaldoBloqueioMaquina.recusarTolerancia(s, cfg, agora, dia)
   }
 
   private fun transicionar(

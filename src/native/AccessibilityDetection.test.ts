@@ -8,8 +8,6 @@ import {
   liberarBloco,
   obterEstadoBloqueio,
   parseVisaoBloqueio,
-  recusarTolerancia,
-  usarTolerancia,
   salvarRegrasBloqueio,
   salvarRegrasBloqueioPendentes,
   salvarSessaoAtiva,
@@ -22,8 +20,6 @@ const moduloMock = {
   openAccessibilitySettings: jest.fn(),
   obterEstadoBloqueio: jest.fn(),
   liberarBloco: jest.fn(),
-  usarTolerancia: jest.fn(),
-  recusarTolerancia: jest.fn(),
   abrirApp: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
@@ -226,7 +222,7 @@ describe('AccessibilityDetection', () => {
     });
   });
 
-  describe('saldo de blocos (estado, liberar, tolerância)', () => {
+  describe('saldo de sessões (estado, liberar)', () => {
     const visao = {
       estado: { dia: '2026-10-11', fase: 'AGUARDANDO_LIBERACAO', saldo: 4 },
       config: { duracaoBlocoMin: 15 },
@@ -249,18 +245,67 @@ describe('AccessibilityDetection', () => {
       expect(parseVisaoBloqueio(JSON.stringify({ estado: {} }))).toBeNull();
     });
 
-    it.each([
-      ['liberarBloco', liberarBloco],
-      ['usarTolerancia', usarTolerancia],
-      ['recusarTolerancia', recusarTolerancia],
-    ] as const)('%s repassa o resultado do nativo e resolve false sem o módulo', async (nome, acao) => {
-      moduloMock[nome].mockResolvedValueOnce(true);
-      await expect(acao()).resolves.toBe(true);
-      expect(moduloMock[nome]).toHaveBeenCalledTimes(1);
+    it('liberarBloco repassa o resultado do nativo e resolve false sem o módulo', async () => {
+      moduloMock.liberarBloco.mockResolvedValueOnce(true);
+      await expect(liberarBloco()).resolves.toBe(true);
+      expect(moduloMock.liberarBloco).toHaveBeenCalledTimes(1);
 
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
-      await expect(acao()).resolves.toBe(false);
+      await expect(liberarBloco()).resolves.toBe(false);
     });
+
+    it('CA-03: o wrapper TS expõe sessão ativa, aviso de 1 minuto e cooldown sem campos de tolerância', async () => {
+      const sessao = {
+        estado: { dia: '2026-10-11', fase: 'SESSAO_ATIVA', fgDesde: 1700000000000 },
+        config: { duracaoBlocoMin: 15, cooldownMin: 45 },
+        agora: 1700000000000,
+        msRestantes: 50000,
+        avisoUmMinutoAtivo: true,
+        msAteAviso: 0,
+      };
+      const v = parseVisaoBloqueio(JSON.stringify(sessao));
+      expect(v?.estado.fase).toBe('SESSAO_ATIVA');
+      expect(v?.msRestantes).toBe(50000);
+      expect(v?.avisoUmMinutoAtivo).toBe(true);
+      expect(v?.msAteAviso).toBe(0);
+      expect(v?.config).not.toHaveProperty('toleranciaMin');
+
+      const cooldown = {
+        estado: { dia: '2026-10-11', fase: 'COOLDOWN', fimCooldownEm: 1700002700000 },
+        config: { duracaoBlocoMin: 15, cooldownMin: 45 },
+        agora: 1700000000000,
+        msRestantes: 0,
+        avisoUmMinutoAtivo: false,
+      };
+      const c = parseVisaoBloqueio(JSON.stringify(cooldown));
+      expect(c?.estado.fase).toBe('COOLDOWN');
+      expect(c?.estado.fimCooldownEm).toBe(1700002700000);
+      expect(c?.avisoUmMinutoAtivo).toBe(false);
+      expect(c?.msAteAviso).toBeUndefined();
+      expect(c?.estado).not.toHaveProperty('toleranciaAtiva');
+    });
+
+    it('CA-06: o wrapper TS aceita blocosDiarios ausente como sem limite', () => {
+      const v = parseVisaoBloqueio(
+        JSON.stringify({
+          estado: { dia: '2026-10-11', fase: 'AGUARDANDO_LIBERACAO' },
+          config: { duracaoBlocoMin: 15, cooldownMin: 45 },
+          agora: 1700000000000,
+        }),
+      );
+      expect(v).not.toBeNull();
+      expect(v?.config.blocosDiarios ?? null).toBeNull();
+
+      const comLimite = parseVisaoBloqueio(
+        JSON.stringify({
+          estado: { dia: '2026-10-11', fase: 'AGUARDANDO_LIBERACAO' },
+          config: { blocosDiarios: 3 },
+          agora: 1700000000000,
+        }),
+      );
+      expect(comLimite?.config.blocosDiarios).toBe(3);
+    });
+
   });
 
   describe('abrirApp', () => {

@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
@@ -37,6 +38,8 @@ class RootoraAccessibilityService : AccessibilityService() {
   private val handler = Handler(Looper.getMainLooper())
   private val aoEstourarBloco = Runnable { aoBlocoEstourar() }
 
+  private val aoChegarAviso = Runnable { aoAvisarUmMinuto() }
+
   private val receiverTela =
     object : BroadcastReceiver() {
       override fun onReceive(context: Context?, intent: Intent?) {
@@ -64,6 +67,7 @@ class RootoraAccessibilityService : AccessibilityService() {
 
   override fun onDestroy() {
     handler.removeCallbacks(aoEstourarBloco)
+    handler.removeCallbacks(aoChegarAviso)
     try {
       unregisterReceiver(receiverTela)
     } catch (erro: Exception) {
@@ -111,11 +115,13 @@ class RootoraAccessibilityService : AccessibilityService() {
       }
       pacoteBloqueadoEmFoco = pacote
       agendarEstouro()
+      agendarAviso()
     }
   }
 
   private fun pausarRelogio() {
     handler.removeCallbacks(aoEstourarBloco)
+    handler.removeCallbacks(aoChegarAviso)
     if (pacoteBloqueadoEmFoco != null) {
       SaldoBloqueioPrefs.transicionar(applicationContext) { s, cfg, agora, dia ->
         SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
@@ -132,10 +138,30 @@ class RootoraAccessibilityService : AccessibilityService() {
     handler.postDelayed(aoEstourarBloco, faltam + 50L)
   }
 
-  /** Bloco (ou tolerância) esgotou com o app ainda em primeiro plano: reabre a interceptação por cima dele. */
+  /** RN-04: agenda o toast de "1 minuto restante" (uma vez por sessão) enquanto o app bloqueado segue em primeiro plano. */
+  private fun agendarAviso() {
+    handler.removeCallbacks(aoChegarAviso)
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    val cfg = SaldoBloqueioPrefs.configAtual(applicationContext)
+    val jaExibido =
+      SaldoBloqueioPrefs.avisoSessaoExibido(applicationContext, SaldoBloqueioMaquina.chaveAvisoSessao(estado))
+    val faltam =
+      SaldoBloqueioMaquina.msParaAgendarAviso(estado, cfg, System.currentTimeMillis(), jaExibido) ?: return
+    handler.postDelayed(aoChegarAviso, faltam)
+  }
+
+  private fun aoAvisarUmMinuto() {
+    if (pacoteBloqueadoEmFoco == null) return
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    if (!SaldoBloqueioMaquina.permiteUso(estado)) return
+    SaldoBloqueioPrefs.marcarAvisoSessaoExibido(applicationContext, SaldoBloqueioMaquina.chaveAvisoSessao(estado))
+    Toast.makeText(applicationContext, "1 minuto restante", Toast.LENGTH_SHORT).show()
+  }
+
+  /** Sessão esgotou com o app ainda em primeiro plano: entra em cooldown e reabre a interceptação por cima dele. */
   private fun aoBlocoEstourar() {
     val pacote = pacoteBloqueadoEmFoco ?: return
-    // reconciliar (dentro de estadoAtual) move pra TOLERANCIA/COOLDOWN e zera o trecho em aberto.
+    // reconciliar (dentro de estadoAtual) move pra COOLDOWN e zera o trecho em aberto.
     SaldoBloqueioPrefs.estadoAtual(applicationContext)
     avaliarIntercept(pacote)
   }

@@ -1,34 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
-import { EstadoTela, EstadoTravado } from '../../domain/types';
-import {
-  DURACAO_SEG_FAZER_2_MINUTOS,
-  DURACAO_SEG_SESSAO_BLOQUEIO,
-  SnapshotDia,
-  selecionarTarefaIntercept,
-} from '../../domain/intercept';
-import { resolverConfigBloco } from '../../domain/saldoBloqueio';
+import { EstadoTravado } from '../../domain/types';
+import { DURACAO_SEG_SESSAO_BLOQUEIO, SnapshotDia } from '../../domain/intercept';
+import { resolverConfigBloco, saldoDisponivel } from '../../domain/saldoBloqueio';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
 import { useIntercept } from '../../hooks/useIntercept';
 import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
-import { logInterceptShown } from '../../services/analytics';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
-import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { SecondaryButton } from '../../components/SecondaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
-import { TravadoFlowScreen } from './TravadoFlowScreen';
+import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { PausaIntencaoScreen } from './PausaIntencaoScreen';
-import { TempoEsgotadoScreen } from './TempoEsgotadoScreen';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
 import { TarefasExtrasScreen } from './TarefasExtrasScreen';
 
 /**
  * Sessão de foco já em andamento (Etapa 4 — "sessão ativa" em
  * SharedPreferences, ver useFocusSession) que o AccessibilityService
- * detectou ao reabrir o pacote — pula a decisão A/B/C direto pra
+ * detectou ao reabrir o pacote — pula a pausa direto pra
  * SessaoFocoScreen, retomando com o tempo restante (não a duração original).
  */
 export interface SessaoAtivaResumida {
@@ -48,13 +39,13 @@ interface InterceptScreenProps {
    * que montar.
    */
   visaoInicial?: VisaoBloqueio | null;
-  /** Ausente/duracaoRestanteSeg <= 0 = mostra a decisão A/B/C normalmente. */
+  /** Ausente/duracaoRestanteSeg <= 0 = segue a fase do saldo normalmente. */
   sessaoAtivaResumida?: SessaoAtivaResumida | null;
   /** "Sair"/"Agora não"/fim de qualquer sub-fluxo — real: BackHandler.exitApp; debug: volta pra tela de debug (ver InterceptRoot). */
   onSair: () => void;
 }
 
-type Modo = 'decisao' | 'sessao' | 'travado' | 'extras';
+type Modo = 'principal' | 'sessao' | 'extras';
 
 interface ParametrosSessao {
   tarefaId: string | null;
@@ -63,17 +54,12 @@ interface ParametrosSessao {
 }
 
 /**
- * InterceptScreen — estados A/B/C (seção 3 da spec 09-ponte-fuga-tarefa) +
- * saldo diário de blocos. Enquanto o essencial não foi cumprido
- * (BLOQUEADO_SEM_ESSENCIAL) vale a decisão A/B/C de sempre; depois dele, a
- * fase vinda do nativo (pausa de intenção, tempo esgotado, cooldown, saldo
- * zerado) decide a tela.
- * `snapshot` (prop, veio do SharedPreferences via initialProps — Etapa 4)
- * decide o estado exibido INSTANTANEAMENTE, sem esperar o Firestore — a
- * meta é aparecer em <300ms. useDailyTasks(uid) roda em paralelo e assume
- * assim que resolve (tarefasParaExibir troca sozinho), pra toda ação que
- * de fato grava (criar tarefa do estado C, "Estou travado", etc.) usar
- * dado ao vivo, não o snapshot potencialmente desatualizado.
+ * InterceptScreen — a fase vinda do nativo decide a tela: pausa de intenção
+ * (AGUARDANDO_LIBERACAO, também o padrão enquanto o nativo não respondeu),
+ * cooldown e saldo zerado (espera com sessão de foco e tarefas extras) ou
+ * sessão já ativa. Nenhuma tarefa precisa estar cumprida para liberar.
+ * `snapshot` (prop, veio do SharedPreferences via initialProps) cobre a lista
+ * de tarefas extras até o useDailyTasks(uid) resolver.
  */
 export function InterceptScreen({
   uid,
@@ -86,37 +72,19 @@ export function InterceptScreen({
 }: InterceptScreenProps) {
   const dailyTasks = useDailyTasks(uid);
   const saldo = useBloqueioSaldo(uid, visaoInicial);
-  const fase = saldo.visao?.estado.fase ?? 'BLOQUEADO_SEM_ESSENCIAL';
+  const fase = saldo.visao?.estado.fase ?? 'AGUARDANDO_LIBERACAO';
   const configBloco = resolverConfigBloco(saldo.visao?.config);
   const [sessaoLivre, setSessaoLivre] = useState(false);
   const { registrarAcao } = useIntercept(uid, packageName);
   const temSessaoResumida =
     !!sessaoAtivaResumida && sessaoAtivaResumida.duracaoRestanteSeg > 0;
   const [modo, setModo] = useState<Modo>(
-    temSessaoResumida ? 'sessao' : 'decisao',
+    temSessaoResumida ? 'sessao' : 'principal',
   );
-  const [rascunhoTarefaC, setRascunhoTarefaC] = useState('');
 
   const tarefasParaExibir = dailyTasks.carregando
     ? snapshot.tarefas
     : dailyTasks.tarefas;
-  const resultado = selecionarTarefaIntercept(
-    { tarefas: tarefasParaExibir },
-    new Date(),
-  );
-
-  const ultimoEstadoLogado = useRef<EstadoTela | null>(null);
-  useEffect(() => {
-    // Retomando uma sessão ativa, a decisão A/B/C nunca chega a aparecer —
-    // não faz sentido logar "estado exibido" pra ela.
-    if (temSessaoResumida) {
-      return;
-    }
-    if (ultimoEstadoLogado.current !== resultado.estado) {
-      ultimoEstadoLogado.current = resultado.estado;
-      logInterceptShown(resultado.estado);
-    }
-  }, [resultado.estado, temSessaoResumida]);
 
   const parametrosSessao: ParametrosSessao | null = sessaoLivre
     ? {
@@ -130,28 +98,7 @@ export function InterceptScreen({
         estadoTravado: sessaoAtivaResumida!.estadoTravado,
         duracaoInicialSeg: sessaoAtivaResumida!.duracaoRestanteSeg,
       }
-    : resultado.estado === 'A'
-      ? {
-          tarefaId: resultado.tarefa.id,
-          estadoTravado: null,
-          duracaoInicialSeg: DURACAO_SEG_FAZER_2_MINUTOS,
-        }
-      : null;
-
-  function handleFazer2Minutos() {
-    registrarAcao(resultado.estado, 'sessao');
-    setModo('sessao');
-  }
-
-  function handleEstouTravado() {
-    registrarAcao(resultado.estado, 'travado');
-    setModo('travado');
-  }
-
-  function handleSair() {
-    registrarAcao(resultado.estado, 'saiu');
-    onSair();
-  }
+    : null;
 
   async function abrirAppEFechar() {
     await abrirApp(packageName);
@@ -171,16 +118,10 @@ export function InterceptScreen({
     onSair();
   }
 
-  async function handleTolerancia() {
-    if (await saldo.aceitarTolerancia()) {
-      await abrirAppEFechar();
-    }
-  }
-
   /** Fim da sessão de foco: o "Liberar" leva à pausa de intenção do próximo bloco, não libera direto. */
   function handleLiberarNaSessao() {
     setSessaoLivre(false);
-    setModo('decisao');
+    setModo('principal');
   }
 
   function handleSessaoDeFoco() {
@@ -191,15 +132,6 @@ export function InterceptScreen({
   function handleFecharSessao() {
     setSessaoLivre(false);
     onSair();
-  }
-
-  function handleContinuarEstadoC() {
-    const titulo = rascunhoTarefaC.trim();
-    if (titulo.length === 0) {
-      return;
-    }
-    dailyTasks.adicionarTarefa(titulo, true);
-    setRascunhoTarefaC('');
   }
 
   function handleTarefaConcluida(tarefaId: string | null) {
@@ -235,22 +167,6 @@ export function InterceptScreen({
     );
   }
 
-  if (modo === 'travado' && resultado.estado === 'A') {
-    return (
-      <TravadoFlowScreen
-        uid={uid}
-        tarefaContexto={resultado.tarefa}
-        tarefas={tarefasParaExibir}
-        origem="travado"
-        criarSubtarefa={dailyTasks.criarSubtarefa}
-        editarTarefa={dailyTasks.editarTarefa}
-        moverTarefaParaAmanha={dailyTasks.moverTarefaParaAmanha}
-        alternarTarefa={dailyTasks.alternarTarefa}
-        onFechar={onSair}
-      />
-    );
-  }
-
   if (modo === 'extras') {
     const extrasPendentes = tarefasParaExibir.filter(
       tarefa => !tarefa.essencial && !tarefa.concluida && !tarefa.tarefaPaiId,
@@ -262,7 +178,7 @@ export function InterceptScreen({
           blocoPorTarefaExtra={configBloco.blocoPorTarefaExtra}
           onConcluir={dailyTasks.alternarTarefa}
           onAdicionar={titulo => dailyTasks.adicionarTarefa(titulo, false)}
-          onVoltar={() => setModo('decisao')}
+          onVoltar={() => setModo('principal')}
         />
       </SafeAreaView>
     );
@@ -274,22 +190,13 @@ export function InterceptScreen({
         <PausaIntencaoScreen
           appLabel={appLabel}
           duracaoSeg={saldo.pausaIntencaoSeg}
-          saldo={saldo.visao?.estado.saldo ?? 0}
+          saldo={
+            saldo.visao
+              ? saldoDisponivel(saldo.visao.estado, configBloco)
+              : null
+          }
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (fase === 'TOLERANCIA' && !saldo.visao?.estado.toleranciaAtiva) {
-    return (
-      <SafeAreaView style={styles.container} testID="intercept-screen">
-        <TempoEsgotadoScreen
-          toleranciaMin={configBloco.toleranciaMin}
-          podeTolerancia={saldo.podeTolerancia}
-          onTolerancia={handleTolerancia}
-          onAgoraNao={saldo.recusarTolerancia}
         />
       </SafeAreaView>
     );
@@ -299,7 +206,6 @@ export function InterceptScreen({
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <EsperaBloqueioScreen
-          appLabel={appLabel}
           variante={fase === 'COOLDOWN' ? 'cooldown' : 'zerado'}
           restanteMs={
             fase === 'COOLDOWN'
@@ -309,7 +215,6 @@ export function InterceptScreen({
                 )
               : 0
           }
-          saldo={saldo.visao?.estado.saldo ?? 0}
           blocoPorTarefaExtra={configBloco.blocoPorTarefaExtra}
           onSessaoFoco={handleSessaoDeFoco}
           onTarefasExtras={() => setModo('extras')}
@@ -319,74 +224,19 @@ export function InterceptScreen({
     );
   }
 
-  // Bloco ou tolerância já em andamento (o Service não deveria interceptar,
-  // mas a tela pode ter ficado aberta enquanto o estado virou).
-  if (fase === 'BLOCO_ATIVO' || fase === 'TOLERANCIA') {
-    return (
-      <SafeAreaView style={styles.container} testID="intercept-screen">
-        <View style={styles.conteudo}>
-          <Text style={styles.titulo}>Seu bloco está em andamento.</Text>
-          <PrimaryButton
-            titulo={`Abrir o ${appLabel}`}
-            onPress={abrirAppEFechar}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // BLOQUEADO_SEM_ESSENCIAL: decisão A/B/C de sempre.
+  // Sessão já em andamento (o Service não intercepta nesta fase, mas a tela
+  // pode ter ficado aberta enquanto o estado virou): tempo restante e aviso.
   return (
     <SafeAreaView style={styles.container} testID="intercept-screen">
       <View style={styles.conteudo}>
-        {resultado.estado === 'A' && (
-          <>
-            <Text style={styles.titulo}>
-              Você ia abrir o {appLabel}. A tarefa de hoje é{' '}
-              {resultado.tarefa.titulo}. Topa só 2 minutos dela?
-            </Text>
-            <View style={styles.acoes}>
-              <PrimaryButton
-                titulo="Fazer 2 minutos"
-                onPress={handleFazer2Minutos}
-              />
-              <SecondaryButton
-                titulo="Estou travado"
-                onPress={handleEstouTravado}
-              />
-              <SecondaryButton titulo="Sair" onPress={handleSair} />
-            </View>
-          </>
-        )}
-
-        {resultado.estado === 'B' && (
-          <>
-            <Text style={styles.titulo}>
-              Você já cumpriu o essencial de hoje. Estamos contando seus blocos.
-            </Text>
-            <SecondaryButton titulo="Sair" onPress={handleSair} />
-          </>
-        )}
-
-        {resultado.estado === 'C' && (
-          <>
-            <Text style={styles.titulo}>
-              Você ia abrir o {appLabel}. Antes: qual é uma coisa pequena para
-              hoje?
-            </Text>
-            <TextField
-              label="Uma coisa pequena para hoje"
-              value={rascunhoTarefaC}
-              onChangeText={setRascunhoTarefaC}
-              returnKeyType="done"
-            />
-            <PrimaryButton
-              titulo="Continuar"
-              onPress={handleContinuarEstadoC}
-              desabilitado={rascunhoTarefaC.trim().length === 0}
-            />
-          </>
-        )}
+        <SessaoAtivaAviso
+          msRestantes={saldo.msRestantesSessao}
+          avisoUmMinuto={saldo.avisoUmMinuto}
+        />
+        <PrimaryButton
+          titulo={`Abrir o ${appLabel}`}
+          onPress={abrirAppEFechar}
+        />
       </View>
     </SafeAreaView>
   );
@@ -402,14 +252,5 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.lg,
     justifyContent: 'center',
-  },
-  titulo: {
-    fontSize: theme.typography.fontSize.xl,
-    fontFamily: theme.typography.fontFamily.headingBold,
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-  },
-  acoes: {
-    gap: theme.spacing.md,
   },
 });

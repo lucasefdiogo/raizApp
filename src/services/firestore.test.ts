@@ -270,7 +270,7 @@ describe('services/firestore', () => {
   });
 
   describe('registrarResumoBloqueioNoDia', () => {
-    it('acumula contadores e intenções sem apagar o resto do dia', async () => {
+    it('CA-02: ao liberar a sessão registrarResumoBloqueioNoDia incrementa sessoesUsadas e acrescenta a intenção', async () => {
       await salvarDailyLog('uid-1', '2026-09-15', {
         data: '2026-09-15',
         tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
@@ -279,21 +279,17 @@ describe('services/firestore', () => {
       });
 
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        blocosUsados: 1,
+        sessoesUsadas: 1,
         intencao: 'ver mensagens',
       });
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        blocosUsados: 1,
+        sessoesUsadas: 1,
         intencao: 'assistir um video',
-      });
-      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        toleranciasUsadas: 1,
       });
 
       const log = await buscarDailyLog('uid-1', '2026-09-15');
       expect(log?.resumoBloqueio).toEqual({
-        blocosUsados: 2,
-        toleranciasUsadas: 1,
+        sessoesUsadas: 2,
         intencoes: ['ver mensagens', 'assistir um video'],
       });
       expect(log?.statusDia).toBe('cumprido');
@@ -892,7 +888,7 @@ describe('services/firestore', () => {
       });
     });
 
-    it('CA-08: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado', async () => {
+    it('HU-03 critério 8: gravarAcessibilidadeNoDia não envia tarefas, statusDia nem escudoUsado', async () => {
       await salvarDailyLog('uid-1', '2026-10-19', {
         data: '2026-10-19',
         tarefas: [{ id: '1', titulo: 'Estudar', essencial: true, concluida: true }],
@@ -915,7 +911,7 @@ describe('services/firestore', () => {
       expect(log?.statusDia).toBe('cumprido');
     });
 
-    it('CA-08: gravarAcessibilidadeNoDia sem eventos não grava nada', async () => {
+    it('HU-03 critério 8: gravarAcessibilidadeNoDia sem eventos não grava nada', async () => {
       firestoreMock.setDoc.mockClear();
       await gravarAcessibilidadeNoDia('uid-1', '2026-10-19', {
         desligadoEm: [],

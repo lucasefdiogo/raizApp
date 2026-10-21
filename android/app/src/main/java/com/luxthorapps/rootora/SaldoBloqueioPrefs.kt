@@ -16,6 +16,9 @@ import org.json.JSONObject
 object SaldoBloqueioPrefs {
   private const val PREFS_NOME = "rootora_saldo_bloqueio"
   private const val CHAVE_ESTADO = "estado"
+  private const val CHAVE_AVISO_EXIBIDO = "avisoSessaoExibido"
+  private const val COOLDOWN_MIN_PADRAO_ANTIGO = 30
+  private const val BLOCOS_DIARIOS_PADRAO_ANTIGO = 4
 
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS_NOME, Context.MODE_PRIVATE)
@@ -39,15 +42,20 @@ object SaldoBloqueioPrefs {
     }
     return try {
       val r = JSONObject(regrasJson)
-      fun campo(nome: String, padraoValor: Int): Int {
+      // Valor igual ao padrão antigo (cooldown 30, blocos 4) foi gravado sem escolha do usuário: vale o padrão novo (RN-10).
+      fun campo(nome: String, padraoValor: Int, padraoAntigo: Int? = null): Int {
         val valor = r.optInt(nome, -1)
-        return if (r.has(nome) && valor >= 0) valor else padraoValor
+        return if (r.has(nome) && valor >= 0 && valor != padraoAntigo) valor else padraoValor
       }
       ConfigBloco(
         duracaoBlocoMin = campo("duracaoBlocoMin", padrao.duracaoBlocoMin),
-        toleranciaMin = campo("toleranciaMin", padrao.toleranciaMin),
-        cooldownMin = campo("cooldownMin", padrao.cooldownMin),
-        blocosDiarios = campo("blocosDiarios", padrao.blocosDiarios),
+        cooldownMin = campo("cooldownMin", padrao.cooldownMin, COOLDOWN_MIN_PADRAO_ANTIGO),
+        blocosDiarios =
+          if (r.has("blocosDiarios") && r.optInt("blocosDiarios", -1) >= 0 && r.getInt("blocosDiarios") != BLOCOS_DIARIOS_PADRAO_ANTIGO) {
+            r.getInt("blocosDiarios")
+          } else {
+            null
+          },
         blocoPorTarefaExtra = campo("blocoPorTarefaExtra", padrao.blocoPorTarefaExtra),
       )
     } catch (erro: Exception) {
@@ -61,12 +69,8 @@ object SaldoBloqueioPrefs {
       put("fase", s.fase.name)
       put("saldo", s.saldo)
       put("blocosUsados", s.blocosUsados)
-      put("toleranciasUsadas", s.toleranciasUsadas)
-      put("essencialCreditado", s.essencialCreditado)
       put("extrasCreditadas", JSONArray(s.extrasCreditadas))
       put("consumidoMs", s.consumidoMs)
-      put("toleranciaUsada", s.toleranciaUsada)
-      put("toleranciaAtiva", s.toleranciaAtiva)
       put("fimCooldownEm", s.fimCooldownEm)
       put("fgDesde", s.fgDesde)
     }
@@ -77,15 +81,11 @@ object SaldoBloqueioPrefs {
       val extras = o.optJSONArray("extrasCreditadas") ?: JSONArray()
       EstadoSaldo(
         dia = o.optString("dia", diaPadrao),
-        fase = FaseBloqueio.valueOf(o.optString("fase", FaseBloqueio.BLOQUEADO_SEM_ESSENCIAL.name)),
+        fase = SaldoBloqueioMaquina.faseDeNomeSalvo(o.optString("fase", "")),
         saldo = o.optInt("saldo", 0),
         blocosUsados = o.optInt("blocosUsados", 0),
-        toleranciasUsadas = o.optInt("toleranciasUsadas", 0),
-        essencialCreditado = o.optBoolean("essencialCreditado", false),
         extrasCreditadas = (0 until extras.length()).map { extras.optString(it) },
         consumidoMs = o.optLong("consumidoMs", 0L),
-        toleranciaUsada = o.optBoolean("toleranciaUsada", false),
-        toleranciaAtiva = o.optBoolean("toleranciaAtiva", false),
         fimCooldownEm = o.optLong("fimCooldownEm", 0L),
         fgDesde = o.optLong("fgDesde", 0L),
       )
@@ -140,23 +140,42 @@ object SaldoBloqueioPrefs {
   @Synchronized
   fun visaoJson(context: Context): String {
     val estado = estadoAtual(context)
-    val cfg = config(context)
-    return JSONObject()
+    return visaoParaJson(estado, config(context), System.currentTimeMillis())
+  }
+
+  /**
+   * Visão pura (testável): além de estado/config/agora, traz o que a sessão
+   * precisa mostrar — `msRestantes`, `avisoUmMinutoAtivo` e `msAteAviso`
+   * (ausente quando o relógio está parado, ou seja, fora de primeiro plano).
+   */
+  fun visaoParaJson(estado: EstadoSaldo, cfg: ConfigBloco, agora: Long): String =
+    JSONObject()
       .apply {
         put("estado", paraJson(estado))
         put(
           "config",
           JSONObject().apply {
             put("duracaoBlocoMin", cfg.duracaoBlocoMin)
-            put("toleranciaMin", cfg.toleranciaMin)
             put("cooldownMin", cfg.cooldownMin)
-            put("blocosDiarios", cfg.blocosDiarios)
+            cfg.blocosDiarios?.let { put("blocosDiarios", it) }
             put("blocoPorTarefaExtra", cfg.blocoPorTarefaExtra)
           },
         )
-        put("agora", System.currentTimeMillis())
+        put("agora", agora)
+        put("msRestantes", SaldoBloqueioMaquina.msRestantes(estado, cfg, agora))
+        put("avisoUmMinutoAtivo", SaldoBloqueioMaquina.avisoUmMinutoAtivo(estado, cfg, agora))
+        SaldoBloqueioMaquina.msAteAviso(estado, cfg, agora)?.let { put("msAteAviso", it) }
       }
       .toString()
+
+  /** O aviso de 1 minuto da sessão `chave` (ver chaveAvisoSessao) já foi exibido? */
+  @Synchronized
+  fun avisoSessaoExibido(context: Context, chave: String): Boolean =
+    prefs(context).getString(CHAVE_AVISO_EXIBIDO, null) == chave
+
+  @Synchronized
+  fun marcarAvisoSessaoExibido(context: Context, chave: String) {
+    prefs(context).edit().putString(CHAVE_AVISO_EXIBIDO, chave).apply()
   }
 
   /** Reinício do Service/processo: o trecho em primeiro plano em aberto é descartado (não dá pra saber quando acabou). */
@@ -165,7 +184,7 @@ object SaldoBloqueioPrefs {
     transicionar(context) { s, _, _, _ -> ResultadoTransicao(s.copy(fgDesde = 0L), true) }
   }
 
-  /** Snapshot do dia (JSON de domain/intercept.ts SnapshotDia) -> essencial cumprido + extras concluídas. */
+  /** Snapshot do dia (JSON de domain/intercept.ts SnapshotDia) -> só as extras concluídas rendem crédito. */
   @Synchronized
   fun aplicarSnapshotJson(context: Context, snapshotJson: String): EstadoSaldo? {
     val tarefas =
@@ -175,23 +194,20 @@ object SaldoBloqueioPrefs {
         return null
       }
 
-    var totalEssenciais = 0
-    var essenciaisConcluidas = 0
     val extras = mutableListOf<String>()
     for (i in 0 until tarefas.length()) {
       val t = tarefas.optJSONObject(i) ?: continue
-      val concluida = t.optBoolean("concluida", false)
-      if (t.optBoolean("essencial", false)) {
-        totalEssenciais++
-        if (concluida) essenciaisConcluidas++
-      } else if (concluida && (!t.has("tarefaPaiId") || t.isNull("tarefaPaiId"))) {
+      if (
+        !t.optBoolean("essencial", false) &&
+          t.optBoolean("concluida", false) &&
+          (!t.has("tarefaPaiId") || t.isNull("tarefaPaiId"))
+      ) {
         extras.add(t.optString("id"))
       }
     }
-    val essencialCumprido = totalEssenciais > 0 && essenciaisConcluidas == totalEssenciais
 
     return transicionar(context) { s, cfg, agora, dia ->
-      SaldoBloqueioMaquina.aplicarSnapshot(s, essencialCumprido, extras, cfg, agora, dia)
+      SaldoBloqueioMaquina.aplicarSnapshot(s, extras, cfg, agora, dia)
     }.estado
   }
 }

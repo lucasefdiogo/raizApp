@@ -4,15 +4,15 @@ import { InterceptScreen } from './InterceptScreen';
 import { Tarefa } from '../../domain/types';
 import {
   CONFIG_BLOCO_PADRAO,
+  ConfigBloco,
   EstadoSaldo,
-  estadoInicialSaldo,
+  estadoInicialDia,
 } from '../../domain/saldoBloqueio';
 
 jest.mock('../../hooks/useDailyTasks');
 jest.mock('../../hooks/useIntercept');
 jest.mock('../../hooks/useBloqueioSaldo');
 jest.mock('../../native/AccessibilityDetection');
-jest.mock('../../services/analytics');
 jest.mock('./SessaoFocoScreen', () => ({
   SessaoFocoScreen: (props: Record<string, unknown>) => {
     const { Text, Pressable } = require('react-native');
@@ -55,18 +55,11 @@ jest.mock('./TarefasExtrasScreen', () => ({
     );
   },
 }));
-jest.mock('./TravadoFlowScreen', () => ({
-  TravadoFlowScreen: (props: Record<string, unknown>) => {
-    const { Text } = require('react-native');
-    return <Text testID="travado-flow-mock">{JSON.stringify(props)}</Text>;
-  },
-}));
 
 const { useDailyTasks } = require('../../hooks/useDailyTasks');
 const { useIntercept } = require('../../hooks/useIntercept');
 const { useBloqueioSaldo } = require('../../hooks/useBloqueioSaldo');
 const { abrirApp } = require('../../native/AccessibilityDetection');
-const { logInterceptShown } = require('../../services/analytics');
 
 const TAREFA_ESSENCIAL_PENDENTE: Tarefa = {
   id: 'tarefa-1',
@@ -104,24 +97,35 @@ const AGORA = 1_700_000_000_000;
 function configurarSaldo(
   estado: Partial<EstadoSaldo> = {},
   sobrescritas: Record<string, unknown> = {},
+  config: Partial<ConfigBloco> = {},
 ) {
   const retorno = {
     visao: {
-      estado: { ...estadoInicialSaldo('2026-10-11'), ...estado },
-      config: CONFIG_BLOCO_PADRAO,
+      estado: { ...estadoInicialDia('2026-10-11'), ...estado },
+      config: { ...CONFIG_BLOCO_PADRAO, ...config },
       agora: AGORA,
     },
     agora: AGORA,
     pausaIntencaoSeg: 5,
-    podeTolerancia: true,
+    msRestantesSessao: 0,
+    avisoUmMinuto: false,
     recarregar: jest.fn(),
     liberar: jest.fn().mockResolvedValue(true),
-    aceitarTolerancia: jest.fn().mockResolvedValue(true),
-    recusarTolerancia: jest.fn().mockResolvedValue(true),
     ...sobrescritas,
   };
   useBloqueioSaldo.mockReturnValue(retorno);
   return retorno;
+}
+
+/** Nativo ainda sem responder e sem visão inicial: a tela cai na pausa, nunca nos estados A/C. */
+function configurarSaldoSemVisao() {
+  useBloqueioSaldo.mockReturnValue({
+    visao: null,
+    agora: AGORA,
+    pausaIntencaoSeg: 10,
+    recarregar: jest.fn(),
+    liberar: jest.fn().mockResolvedValue(true),
+  });
 }
 
 const props = {
@@ -143,78 +147,33 @@ describe('InterceptScreen', () => {
     configurarSaldo();
   });
 
-  describe('estado A (essencial pendente)', () => {
-    beforeEach(() => {
+  describe('abertura sem sessão nem cooldown (RN-01, RN-07)', () => {
+    it('CA-01: sem sessão nem cooldown ativos a interceptação mostra a pausa de intenção, não os estados A/C', async () => {
+      configurarSaldoSemVisao();
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
-    });
-
-    it('mostra o texto interpolado com o app e a tarefa, e as 3 ações', async () => {
       await render(<InterceptScreen {...props} />);
 
-      expect(
-        screen.getByText(
-          'Você ia abrir o Instagram. A tarefa de hoje é Abrir o material de estudo. Topa só 2 minutos dela?',
-        ),
-      ).toBeTruthy();
-      expect(screen.getByText('Fazer 2 minutos')).toBeTruthy();
-      expect(screen.getByText('Estou travado')).toBeTruthy();
-      expect(screen.getByText('Sair')).toBeTruthy();
-      expect(logInterceptShown).toHaveBeenCalledWith('A');
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.queryByText('Fazer 2 minutos')).toBeNull();
+      expect(screen.queryByText(/Topa só 2 minutos/)).toBeNull();
     });
 
-    it('"Fazer 2 minutos" registra a ação e abre a SessaoFocoScreen com 120s/interceptacao', async () => {
+    it('CA-01: sem nenhuma tarefa cadastrada a pausa de intenção também aparece, sem pedir uma tarefa', async () => {
+      configurarSaldoSemVisao();
+      configurarDailyTasks({ tarefas: [] });
       await render(<InterceptScreen {...props} />);
 
-      await fireEvent.press(screen.getByText('Fazer 2 minutos'));
-
-      expect(registrarAcao).toHaveBeenCalledWith('A', 'sessao');
-      const mock = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
-      expect(mock).toMatchObject({
-        duracaoInicialSeg: 120,
-        tarefaId: 'tarefa-1',
-        origem: 'interceptacao',
-        estadoTravado: null,
-        appLabel: 'Instagram',
-      });
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.queryByText(/qual é uma coisa pequena/)).toBeNull();
     });
 
-    it('"Estou travado" registra a ação e abre a TravadoFlowScreen com origem travado', async () => {
+    it('CA-01: a interceptação não oferece mais o botão Estou travado', async () => {
+      configurarSaldoSemVisao();
+      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
       await render(<InterceptScreen {...props} />);
 
-      await fireEvent.press(screen.getByText('Estou travado'));
-
-      expect(registrarAcao).toHaveBeenCalledWith('A', 'travado');
-      const mock = JSON.parse(screen.getByTestId('travado-flow-mock').props.children);
-      expect(mock).toMatchObject({
-        origem: 'travado',
-        tarefaContexto: TAREFA_ESSENCIAL_PENDENTE,
-      });
-    });
-
-    it('"Sair" registra a ação e chama onSair', async () => {
-      const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
-
-      await fireEvent.press(screen.getByText('Sair'));
-
-      expect(registrarAcao).toHaveBeenCalledWith('A', 'saiu');
-      expect(onSair).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('essencial cumprido, saldo ainda não creditado pelo nativo', () => {
-    it('mostra um aviso curto e só oferece sair — nunca libera sem o nativo', async () => {
-      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
-      const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
-
-      expect(screen.getByText(/Estamos contando seus blocos/)).toBeTruthy();
-      expect(screen.queryByText('Liberar')).toBeNull();
-      expect(logInterceptShown).toHaveBeenCalledWith('B');
-
-      await fireEvent.press(screen.getByText('Sair'));
-      expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
-      expect(onSair).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.queryByText('Estou travado')).toBeNull();
     });
   });
 
@@ -223,16 +182,24 @@ describe('InterceptScreen', () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
     });
 
-    it('mostra a pausa com a duração e o saldo vindos do estado', async () => {
+    it('CA-04: mostra a pausa com a duração vinda do hook e, com limite diário, o saldo restante', async () => {
       configurarSaldo(
-        { fase: 'AGUARDANDO_LIBERACAO', saldo: 3, blocosUsados: 2 },
+        { fase: 'AGUARDANDO_LIBERACAO', saldo: 0, blocosUsados: 1 },
         { pausaIntencaoSeg: 20 },
+        { blocosDiarios: 6 },
       );
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
       expect(screen.getByText('Liberar em 20s')).toBeTruthy();
-      expect(screen.getByText(/Restam 3 blocos hoje/)).toBeTruthy();
+      expect(screen.getByText(/Restam 5 sessões hoje/)).toBeTruthy();
+    });
+
+    it('sem limite diário a pausa não mostra saldo restante', async () => {
+      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 3 });
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.queryByText(/Rest/)).toBeNull();
     });
 
     it('"Liberar" (com a pausa zerada): registra a ação, libera com a intenção, reabre o app e sai', async () => {
@@ -301,63 +268,6 @@ describe('InterceptScreen', () => {
     });
   });
 
-  describe('TOLERANCIA (tempo esgotado)', () => {
-    beforeEach(() => {
-      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
-    });
-
-    it('oferta pendente: mostra "Tempo esgotado" e "+2 min para finalizar"', async () => {
-      configurarSaldo({ fase: 'TOLERANCIA', toleranciaAtiva: false });
-      await render(<InterceptScreen {...props} />);
-
-      expect(screen.getByText('Tempo esgotado')).toBeTruthy();
-      expect(screen.getByText('+2 min para finalizar')).toBeTruthy();
-    });
-
-    it('"+2 min" concede a tolerância, reabre o app e sai', async () => {
-      const saldo = configurarSaldo({ fase: 'TOLERANCIA' });
-      const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
-
-      await act(async () => {
-        await fireEvent.press(screen.getByText('+2 min para finalizar'));
-      });
-
-      expect(saldo.aceitarTolerancia).toHaveBeenCalledTimes(1);
-      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
-      expect(onSair).toHaveBeenCalledTimes(1);
-    });
-
-    it('"Agora não" recusa a tolerância (cooldown começa) sem reabrir o app', async () => {
-      const saldo = configurarSaldo({ fase: 'TOLERANCIA' });
-      await render(<InterceptScreen {...props} />);
-
-      await fireEvent.press(screen.getByText('Agora não'));
-
-      expect(saldo.recusarTolerancia).toHaveBeenCalledTimes(1);
-      expect(abrirApp).not.toHaveBeenCalled();
-    });
-
-    it('tolerância já usada: só oferece sair', async () => {
-      configurarSaldo(
-        { fase: 'TOLERANCIA', toleranciaUsada: true },
-        { podeTolerancia: false },
-      );
-      await render(<InterceptScreen {...props} />);
-
-      expect(screen.queryByText('+2 min para finalizar')).toBeNull();
-      expect(screen.getByText('Sair')).toBeTruthy();
-    });
-
-    it('tolerância correndo (toleranciaAtiva): não mostra "Tempo esgotado", só o bloco em andamento', async () => {
-      configurarSaldo({ fase: 'TOLERANCIA', toleranciaAtiva: true });
-      await render(<InterceptScreen {...props} />);
-
-      expect(screen.queryByText('Tempo esgotado')).toBeNull();
-      expect(screen.getByText('Seu bloco está em andamento.')).toBeTruthy();
-    });
-  });
-
   describe('COOLDOWN e SALDO_ZERADO', () => {
     beforeEach(() => {
       configurarDailyTasks({
@@ -370,26 +280,37 @@ describe('InterceptScreen', () => {
       });
     });
 
-    it('cooldown: contagem regressiva até fimCooldownEm e os atalhos', async () => {
+    it('CA-03: cooldown: minutos até fimCooldownEm e os atalhos', async () => {
       configurarSaldo(
         { fase: 'COOLDOWN', saldo: 2, fimCooldownEm: AGORA + 125_000 },
         { agora: AGORA },
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Próximo bloco em')).toBeTruthy();
-      expect(screen.getByTestId('espera-contagem').props.children).toBe('02:05');
+      expect(screen.getByText('Próximo acesso em 3 min')).toBeTruthy();
       expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
       expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
     });
 
-    it('saldo zerado: bloqueio até amanhã, mesmos atalhos', async () => {
+    it('CA-06: com saldo zerado mostra os atalhos de sessão de foco e tarefas extras, sem pausa', async () => {
       configurarSaldo({ fase: 'SALDO_ZERADO', saldo: 0 });
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Os blocos de hoje acabaram')).toBeTruthy();
-      expect(screen.getByText(/volta a ficar disponível amanhã/)).toBeTruthy();
+      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
+      expect(screen.queryByText(/amanhã/)).toBeNull();
+      expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
       expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
+      expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
+    });
+
+    it('CA-07: depois de uma tarefa extra concluída a próxima abertura mostra a pausa, não o saldo zerado', async () => {
+      // A extra concluída virou crédito no nativo: a abertura seguinte lê AGUARDANDO_LIBERACAO.
+      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 1 });
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.queryByText('Você usou as sessões de hoje')).toBeNull();
+      expect(screen.queryByText('Ver tarefas extras')).toBeNull();
     });
 
     it('"Iniciar uma sessão de foco" abre a SessaoFocoScreen de 5 min sem tarefa e sem botão de seguir pro app', async () => {
@@ -432,19 +353,19 @@ describe('InterceptScreen', () => {
       expect(adicionarTarefa).toHaveBeenCalledWith('Nova extra', false);
 
       await fireEvent.press(screen.getByText('mock-voltar'));
-      expect(screen.getByText('Os blocos de hoje acabaram')).toBeTruthy();
+      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
     });
   });
 
   describe('fim de uma sessão de foco', () => {
-    it('só oferece "liberar" quando há bloco a liberar (AGUARDANDO_LIBERACAO); ele leva à pausa de intenção, não libera direto', async () => {
-      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
-      const sem = configurarSaldo({ fase: 'BLOQUEADO_SEM_ESSENCIAL' });
+    it('só oferece "liberar" quando há sessão a liberar (AGUARDANDO_LIBERACAO); ele leva à pausa de intenção, não libera direto', async () => {
+      configurarDailyTasks({ tarefas: [] });
+      const sem = configurarSaldo({ fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 });
       const { rerender } = await render(<InterceptScreen {...props} />);
-      await fireEvent.press(screen.getByText('Fazer 2 minutos'));
+      await fireEvent.press(screen.getByText('Iniciar uma sessão de foco'));
       expect(screen.queryByText('mock-liberar-app')).toBeNull();
 
-      // O nativo creditou o saldo enquanto a sessão rodava.
+      // O cooldown acabou enquanto a sessão de foco rodava.
       configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
       await rerender(<InterceptScreen {...props} />);
       expect(screen.getByTestId('sessao-foco-mock')).toBeTruthy();
@@ -457,55 +378,38 @@ describe('InterceptScreen', () => {
     });
   });
 
-  describe('estado C (nenhuma essencial cadastrada)', () => {
-    beforeEach(() => {
-      configurarDailyTasks({ tarefas: [] });
-    });
-
-    it('mostra o texto e o campo, com "Continuar" desabilitado até digitar', async () => {
-      await render(<InterceptScreen {...props} />);
-
-      expect(
-        screen.getByText(
-          'Você ia abrir o Instagram. Antes: qual é uma coisa pequena para hoje?',
-        ),
-      ).toBeTruthy();
-      const botao = screen.getByRole('button', { name: 'Continuar' });
-      expect(botao.props.accessibilityState?.disabled).toBe(true);
-      expect(logInterceptShown).toHaveBeenCalledWith('C');
-    });
-
-    it('preenchido: cria a tarefa essencial via adicionarTarefa', async () => {
-      const adicionarTarefa = jest.fn();
-      configurarDailyTasks({ tarefas: [], adicionarTarefa });
-      await render(<InterceptScreen {...props} />);
-
-      await fireEvent.changeText(
-        screen.getByLabelText('Uma coisa pequena para hoje'),
-        'Separar o material',
+  describe('SESSAO_ATIVA', () => {
+    it('CA-03: mostra o tempo restante e o aviso 1 minuto restante quando o hook sinaliza', async () => {
+      configurarDailyTasks();
+      configurarSaldo(
+        { fase: 'SESSAO_ATIVA' },
+        { msRestantesSessao: 45_000, avisoUmMinuto: true },
       );
-      await fireEvent.press(screen.getByText('Continuar'));
+      await render(<InterceptScreen {...props} />);
 
-      expect(adicionarTarefa).toHaveBeenCalledWith('Separar o material', true);
+      expect(screen.getByText('00:45')).toBeTruthy();
+      expect(screen.getByText('1 minuto restante')).toBeTruthy();
+      expect(screen.queryByText('Sua sessão está em andamento.')).toBeNull();
+      await fireEvent.press(screen.getByText('Abrir o Instagram'));
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
     });
 
-    it('depois de criada (tarefas ao vivo atualizam): transita sozinho pro estado A', async () => {
-      const { rerender } = await render(<InterceptScreen {...props} />);
+    it('CA-03: fora do último minuto não há aviso', async () => {
+      configurarDailyTasks();
+      configurarSaldo(
+        { fase: 'SESSAO_ATIVA' },
+        { msRestantesSessao: 5 * 60_000, avisoUmMinuto: false },
+      );
+      await render(<InterceptScreen {...props} />);
 
-      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
-      await rerender(<InterceptScreen {...props} />);
-
-      expect(
-        screen.getByText(
-          'Você ia abrir o Instagram. A tarefa de hoje é Abrir o material de estudo. Topa só 2 minutos dela?',
-        ),
-      ).toBeTruthy();
+      expect(screen.getByText('05:00')).toBeTruthy();
+      expect(screen.queryByText('1 minuto restante')).toBeNull();
     });
   });
 
-  describe('sessaoAtivaResumida (Etapa 4 — reabrir com o timer em andamento)', () => {
-    it('com duracaoRestanteSeg > 0: pula a decisão A/B/C e abre a SessaoFocoScreen direto, retomando o tempo restante', async () => {
-      configurarDailyTasks({ tarefas: [] }); // estaria em C se não fosse a retomada
+  describe('sessaoAtivaResumida (reabrir com o timer em andamento)', () => {
+    it('com duracaoRestanteSeg > 0: abre a SessaoFocoScreen direto, retomando o tempo restante', async () => {
+      configurarDailyTasks({ tarefas: [] });
       await render(
         <InterceptScreen
           {...props}
@@ -517,7 +421,7 @@ describe('InterceptScreen', () => {
         />,
       );
 
-      expect(screen.queryByText(/qual é uma coisa pequena/)).toBeNull();
+      expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
       const mock = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
       expect(mock).toMatchObject({
         duracaoInicialSeg: 42,
@@ -525,10 +429,9 @@ describe('InterceptScreen', () => {
         estadoTravado: 'confusao',
         origem: 'interceptacao',
       });
-      expect(logInterceptShown).not.toHaveBeenCalled();
     });
 
-    it('com duracaoRestanteSeg <= 0: ignora e mostra a decisão A/B/C normalmente', async () => {
+    it('com duracaoRestanteSeg <= 0: ignora e mostra a pausa de intenção', async () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
       await render(
         <InterceptScreen
@@ -541,27 +444,8 @@ describe('InterceptScreen', () => {
         />,
       );
 
-      expect(screen.getByText('Fazer 2 minutos')).toBeTruthy();
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
       expect(screen.queryByTestId('sessao-foco-mock')).toBeNull();
     });
-
-    it('ausente: comportamento normal (decisão A/B/C)', async () => {
-      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
-      await render(<InterceptScreen {...props} />);
-
-      expect(screen.getByText('Fazer 2 minutos')).toBeTruthy();
-    });
-  });
-
-  it('enquanto useDailyTasks ainda carrega, usa o snapshot pra decidir o estado instantaneamente', async () => {
-    configurarDailyTasks({ tarefas: [], carregando: true });
-    await render(
-      <InterceptScreen
-        {...props}
-        snapshot={{ tarefas: [TAREFA_ESSENCIAL_PENDENTE] }}
-      />,
-    );
-
-    expect(screen.getByText('Fazer 2 minutos')).toBeTruthy();
   });
 });

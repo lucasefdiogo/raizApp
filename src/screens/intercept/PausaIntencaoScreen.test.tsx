@@ -6,7 +6,7 @@ async function montar(sobrescritas: Partial<React.ComponentProps<typeof PausaInt
   const props = {
     appLabel: 'Instagram',
     duracaoSeg: 5,
-    saldo: 4,
+    saldo: null as number | null,
     onLiberar: jest.fn(),
     onAgoraNao: jest.fn(),
     ...sobrescritas,
@@ -18,6 +18,47 @@ async function montar(sobrescritas: Partial<React.ComponentProps<typeof PausaInt
 describe('PausaIntencaoScreen', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
+
+  it('CA-01: estado normal mostra o campo de intenção e o botão Liberar desabilitado durante a pausa', async () => {
+    await montar({ duracaoSeg: 10 });
+
+    expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+    expect(screen.getByLabelText('Se quiser, escreva (opcional)')).toBeTruthy();
+    const botao = screen.getByRole('button', { name: 'Liberar em 10s' });
+    expect(botao.props.accessibilityState?.disabled).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(9000);
+    });
+    expect(
+      screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
+    ).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(
+      screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
+    ).toBeFalsy();
+  });
+
+  it('CA-04: estado normal da segunda sessão mantém o Liberar desabilitado por 20 segundos', async () => {
+    await montar({ duracaoSeg: 20 });
+
+    expect(
+      screen.getByRole('button', { name: 'Liberar em 20s' }).props.accessibilityState?.disabled,
+    ).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(19000);
+    });
+    expect(
+      screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
+    ).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(
+      screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
+    ).toBeFalsy();
+  });
 
   it('mostra a pergunta, o campo opcional e o botão desabilitado com a contagem', async () => {
     await montar({ duracaoSeg: 10 });
@@ -89,13 +130,19 @@ describe('PausaIntencaoScreen', () => {
     expect(screen.getByText('Liberar em 5s')).toBeTruthy();
   });
 
-  it('texto do saldo no singular e no plural, sem ponto de exclamação', async () => {
+  it('sem limite diário (saldo null) não fala em sessões restantes', async () => {
+    await montar({ saldo: null });
+    expect(screen.queryByText(/Rest/)).toBeNull();
+    expect(screen.getByText(/Um respiro antes de abrir o Instagram/)).toBeTruthy();
+  });
+
+  it('com limite numérico mostra o saldo restante no singular e no plural, sem exclamação', async () => {
     const um = await montar({ saldo: 1 });
-    expect(screen.getByText(/Resta 1 bloco hoje/)).toBeTruthy();
+    expect(screen.getByText(/Resta 1 sessão hoje/)).toBeTruthy();
     await um.unmount();
 
     await montar({ saldo: 3 });
-    expect(screen.getByText(/Restam 3 blocos hoje/)).toBeTruthy();
+    expect(screen.getByText(/Restam 3 sessões hoje/)).toBeTruthy();
     expect(screen.queryByText(/!/)).toBeNull();
   });
 });

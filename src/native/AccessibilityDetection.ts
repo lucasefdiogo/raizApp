@@ -38,8 +38,6 @@ interface RootoraAccessibilityNative {
   openAccessibilitySettings(): void;
   obterEstadoBloqueio(): Promise<string>;
   liberarBloco(): Promise<boolean>;
-  usarTolerancia(): Promise<boolean>;
-  recusarTolerancia(): Promise<boolean>;
   abrirApp(packageName: string): Promise<boolean>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
@@ -104,15 +102,23 @@ export function subscribeToForegroundApp(
 }
 
 /**
- * Estado do saldo diário de blocos como o nativo calculou — `agora` é o
+ * Estado do saldo diário de sessões como o nativo calculou — `agora` é o
  * relógio do aparelho no momento da leitura (a contagem regressiva do JS
  * parte dele). Mesmo formato do extra `estadoBloqueioJson` da
- * InterceptActivity (ver SaldoBloqueioPrefs.visaoJson).
+ * InterceptActivity (ver SaldoBloqueioPrefs.visaoParaJson). `blocosDiarios`
+ * ausente/null em `config` = sem limite de sessões por dia. O fim do
+ * cooldown vem em `estado.fimCooldownEm`.
  */
 export interface VisaoBloqueio {
   estado: EstadoSaldo;
   config: ConfigBloco;
   agora: number;
+  /** Ms de sessão que ainda restam (0 fora de SESSAO_ATIVA). */
+  msRestantes?: number;
+  /** true quando falta 1 minuto ou menos para o fim da sessão ativa. */
+  avisoUmMinutoAtivo?: boolean;
+  /** Ms até o aviso de 1 minuto (0 se já passou); ausente com o relógio parado (app fora de primeiro plano). */
+  msAteAviso?: number;
 }
 
 export function parseVisaoBloqueio(json: string | undefined | null): VisaoBloqueio | null {
@@ -140,7 +146,7 @@ export async function obterEstadoBloqueio(): Promise<VisaoBloqueio | null> {
 }
 
 /**
- * Fim da pausa de intenção: abre o bloco (consome 1 do saldo). Resolve false
+ * Fim da pausa de intenção: abre a sessão (consome 1 do saldo). Resolve false
  * se não havia nada a liberar no estado atual ou sem o módulo nativo.
  */
 export async function liberarBloco(): Promise<boolean> {
@@ -148,21 +154,8 @@ export async function liberarBloco(): Promise<boolean> {
   return modulo ? modulo.liberarBloco() : false;
 }
 
-/** "+2 min para finalizar" — resolve false se já usada neste bloco. */
-export async function usarTolerancia(): Promise<boolean> {
-  const modulo = moduloNativo();
-  return modulo ? modulo.usarTolerancia() : false;
-}
-
-/** "Agora não" na oferta de tolerância — o cooldown começa neste instante. */
-export async function recusarTolerancia(): Promise<boolean> {
-  const modulo = moduloNativo();
-  return modulo ? modulo.recusarTolerancia() : false;
-}
-
 /**
- * Reabre packageName depois de liberar um bloco (fim da pausa de intenção)
- * ou de aceitar a tolerância — pra o usuário não precisar sair do Rootora
+ * Reabre packageName depois de liberar uma sessão (fim da pausa de intenção) — pra o usuário não precisar sair do Rootora
  * manualmente. Resolve false (nunca rejeita) se o app não puder ser reaberto (ex:
  * desinstalado nesse meio tempo) ou sem o módulo nativo — quem chama não
  * deve travar nem mostrar erro nesse caso, já que a liberação em si já

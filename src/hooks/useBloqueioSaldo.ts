@@ -1,28 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EstadoSaldo,
+  avisoUmMinutoAtivo,
   duracaoPausaIntencaoSeg,
+  msRestantes,
   resolverConfigBloco,
-  toleranciaDisponivel,
 } from '../domain/saldoBloqueio';
 import { hojeISOLocal } from '../domain/data';
 import {
   VisaoBloqueio,
   liberarBloco,
   obterEstadoBloqueio,
-  recusarTolerancia as recusarToleranciaNativo,
-  usarTolerancia,
 } from '../native/AccessibilityDetection';
 import { registrarResumoBloqueioNoDia } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
 
 /**
  * Fases em que o estado pode mudar sozinho por causa de algo fora desta tela
- * (essencial/tarefa extra concluída → snapshot → nativo credita; cooldown
- * vencendo) — só nelas vale reler o nativo a cada tick.
+ * (tarefa extra concluída → snapshot → nativo credita; cooldown vencendo) —
+ * só nelas vale reler o nativo a cada tick. A sessão ativa só relê quando o
+ * tempo acaba (ver o tick abaixo).
  */
 const FASES_COM_POLLING: EstadoSaldo['fase'][] = [
-  'BLOQUEADO_SEM_ESSENCIAL',
   'SALDO_ZERADO',
   'COOLDOWN',
 ];
@@ -32,22 +31,25 @@ interface UseBloqueioSaldoResultado {
   visao: VisaoBloqueio | null;
   /** Relógio do aparelho, atualizado a cada segundo — base das contagens regressivas. */
   agora: number;
-  /** Duração da pausa de intenção do PRÓXIMO bloco (5/10/20/40/60s). */
+  /** Duração da pausa de intenção da PRÓXIMA sessão (10/20/30/40/50/60s). */
   pausaIntencaoSeg: number;
-  podeTolerancia: boolean;
+  /** false em SALDO_ZERADO (e fora de AGUARDANDO_LIBERACAO): não há pausa nem sessão a oferecer. */
+  podeLiberar: boolean;
+  /** Ms que faltam à sessão ativa (0 fora de SESSAO_ATIVA). */
+  msRestantesSessao: number;
+  /** Ms que faltam ao cooldown (0 fora de COOLDOWN). */
+  msRestantesCooldown: number;
+  /** Sessão ativa com 1 minuto ou menos restante. */
+  avisoUmMinuto: boolean;
   recarregar: () => Promise<void>;
   /** Fim da pausa: abre o bloco e grava o resumo do dia (bloco + intenção, se digitada). Resolve se abriu. */
   liberar: (intencao: string) => Promise<boolean>;
-  /** "+N min para finalizar". Resolve se foi concedida. */
-  aceitarTolerancia: () => Promise<boolean>;
-  /** "Agora não" na oferta de tolerância. */
-  recusarTolerancia: () => Promise<boolean>;
 }
 
 /**
  * Ponte da InterceptScreen com o saldo diário de blocos. A regra vive no
  * nativo (SaldoBloqueioMaquina.kt) — aqui só lê o estado, dispara as ações e
- * grava o resumo do dia no Firestore (blocos, tolerâncias, intenções) pra
+ * grava o resumo do dia no Firestore (sessões, intenções) pra
  * estatísticas futuras. `visaoInicial` vem dos extras da InterceptActivity,
  * pra a primeira renderização não esperar o bridge.
  */
@@ -58,6 +60,8 @@ export function useBloqueioSaldo(
   const [visao, setVisao] = useState<VisaoBloqueio | null>(visaoInicial);
   const [agora, setAgora] = useState(() => Date.now());
   const montado = useRef(true);
+  const visaoRef = useRef(visao);
+  visaoRef.current = visao;
 
   useEffect(() => {
     montado.current = true;
@@ -87,7 +91,12 @@ export function useBloqueioSaldo(
   useEffect(() => {
     const intervalo = setInterval(() => {
       setAgora(Date.now());
-      if (fase && FASES_COM_POLLING.includes(fase)) {
+      const atual = visaoRef.current;
+      const sessaoAcabou =
+        fase === 'SESSAO_ATIVA' &&
+        !!atual &&
+        msRestantes(atual.estado, resolverConfigBloco(atual.config), Date.now()) === 0;
+      if (sessaoAcabou || (fase && FASES_COM_POLLING.includes(fase))) {
         recarregar();
       }
     }, 1000);
@@ -111,7 +120,7 @@ export function useBloqueioSaldo(
     async (intencao: string) => {
       const ok = await liberarBloco();
       if (ok) {
-        gravarResumo({ blocosUsados: 1, intencao: intencao.trim() });
+        gravarResumo({ sessoesUsadas: 1, intencao: intencao.trim() });
       }
       await recarregar();
       return ok;
@@ -119,31 +128,20 @@ export function useBloqueioSaldo(
     [gravarResumo, recarregar],
   );
 
-  const aceitarTolerancia = useCallback(async () => {
-    const ok = await usarTolerancia();
-    if (ok) {
-      gravarResumo({ toleranciasUsadas: 1 });
-    }
-    await recarregar();
-    return ok;
-  }, [gravarResumo, recarregar]);
-
-  const recusarTolerancia = useCallback(async () => {
-    const ok = await recusarToleranciaNativo();
-    await recarregar();
-    return ok;
-  }, [recarregar]);
-
   const config = visao ? resolverConfigBloco(visao.config) : null;
+
+  const estado = visao?.estado;
 
   return {
     visao,
     agora,
-    pausaIntencaoSeg: duracaoPausaIntencaoSeg(visao?.estado.blocosUsados ?? 0),
-    podeTolerancia: !!visao && !!config && toleranciaDisponivel(visao.estado, config),
+    pausaIntencaoSeg: duracaoPausaIntencaoSeg(estado?.blocosUsados ?? 0),
+    podeLiberar: estado?.fase === 'AGUARDANDO_LIBERACAO',
+    msRestantesSessao: estado && config ? msRestantes(estado, config, agora) : 0,
+    msRestantesCooldown:
+      estado?.fase === 'COOLDOWN' ? Math.max(0, estado.fimCooldownEm - agora) : 0,
+    avisoUmMinuto: !!estado && !!config && avisoUmMinutoAtivo(estado, config, agora),
     recarregar,
     liberar,
-    aceitarTolerancia,
-    recusarTolerancia,
   };
 }

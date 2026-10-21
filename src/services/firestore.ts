@@ -578,7 +578,7 @@ export async function registrarInterceptacaoNoDia(
 }
 
 /**
- * Acumula no resumo do saldo de blocos do dia (`resumoBloqueio`, só pra
+ * Acumula no resumo de sessões do dia (`resumoBloqueio`, só pra
  * estatísticas futuras): contadores via `increment` e intenções via
  * `arrayUnion`, ambos atômicos — nunca lê antes de gravar, então liberações
  * concorrentes não se pisam. Só grava o que veio em `parcial`.
@@ -586,14 +586,14 @@ export async function registrarInterceptacaoNoDia(
 export async function registrarResumoBloqueioNoDia(
   uid: string,
   data: string,
-  parcial: { blocosUsados?: number; toleranciasUsadas?: number; intencao?: string },
+  parcial: {
+    sessoesUsadas?: number;
+    intencao?: string;
+  },
 ): Promise<void> {
   const resumo: Record<string, unknown> = {};
-  if (parcial.blocosUsados) {
-    resumo.blocosUsados = increment(parcial.blocosUsados);
-  }
-  if (parcial.toleranciasUsadas) {
-    resumo.toleranciasUsadas = increment(parcial.toleranciasUsadas);
+  if (parcial.sessoesUsadas) {
+    resumo.sessoesUsadas = increment(parcial.sessoesUsadas);
   }
   if (parcial.intencao) {
     resumo.intencoes = arrayUnion(parcial.intencao);
