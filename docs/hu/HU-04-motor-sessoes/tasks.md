@@ -47,7 +47,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioMaquina.kt, android/app/src/main/java/com/luxthorapps/rootora/SaldoBloqueioPrefs.kt, android/app/src/test/java/com/luxthorapps/rootora/SaldoBloqueioMaquinaTest.kt
     - Comandos: teste, build
     - Instala: nenhuma
-- [ ] TASK-05 (CA-03, CA-06, RN-03, RN-04, RN-10): integração nativa da nova máquina: persistência do estado e da config (padrões novos valem imediatamente, sem `regrasBloqueioPendentes`), Service com aviso de 1 minuto no lugar do "Tempo esgotado" e sem tolerância, Activity e wrapper TS sem os estados removidos
+- [x] TASK-05 (CA-03, CA-06, RN-03, RN-04, RN-10): integração nativa da nova máquina: persistência do estado e da config (padrões novos valem imediatamente, sem `regrasBloqueioPendentes`), Service com aviso de 1 minuto no lugar do "Tempo esgotado" e sem tolerância, Activity e wrapper TS sem os estados removidos
   - Teste: `CA-03: o wrapper TS expõe sessão ativa, aviso de 1 minuto e cooldown sem campos de tolerância` (feliz)
   - Teste: `CA-06: o wrapper TS aceita blocosDiarios ausente como sem limite` (exceção)
   - Teste: `CA-03: estado salvo com fase antiga BLOCO_ATIVO ou TOLERANCIA é lido sem quebrar` (exceção)

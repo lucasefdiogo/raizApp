@@ -132,10 +132,10 @@ class RootoraAccessibilityService : AccessibilityService() {
     handler.postDelayed(aoEstourarBloco, faltam + 50L)
   }
 
-  /** Bloco (ou tolerância) esgotou com o app ainda em primeiro plano: reabre a interceptação por cima dele. */
+  /** Sessão esgotou com o app ainda em primeiro plano: entra em cooldown e reabre a interceptação por cima dele. */
   private fun aoBlocoEstourar() {
     val pacote = pacoteBloqueadoEmFoco ?: return
-    // reconciliar (dentro de estadoAtual) move pra TOLERANCIA/COOLDOWN e zera o trecho em aberto.
+    // reconciliar (dentro de estadoAtual) move pra COOLDOWN e zera o trecho em aberto.
     SaldoBloqueioPrefs.estadoAtual(applicationContext)
     avaliarIntercept(pacote)
   }

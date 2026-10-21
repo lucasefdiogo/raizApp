@@ -112,8 +112,8 @@ object BloqueioPrefs {
   /**
    * Único caminho de interceptação — lê `regrasBloqueio` (apps[] + janelas[]
    * com diasSemana) e o estado do saldo diário (SaldoBloqueioPrefs): app
-   * bloqueado, dentro da janela e SEM bloco/tolerância em andamento. Quem
-   * libera o uso é a máquina de estados (liberarBloco/usarTolerancia), não
+   * bloqueado, dentro da janela e SEM sessão ativa. Quem
+   * libera o uso é a máquina de estados (liberarBloco), não
    * mais um desbloqueio temporário por pacote.
    *
    * Simplificação aceita: uma janela que atravessa a meia-noite só "conta"

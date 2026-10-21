@@ -19,14 +19,10 @@ enum class FaseBloqueio {
   SESSAO_ATIVA,
   COOLDOWN,
   SALDO_ZERADO,
-  @Deprecated("compat temporário — removido na TASK-05") BLOQUEADO_SEM_ESSENCIAL,
-  @Deprecated("compat temporário — removido na TASK-05") TOLERANCIA,
-  @Deprecated("compat temporário — removido na TASK-05") BLOCO_ATIVO,
 }
 
 data class ConfigBloco(
   val duracaoBlocoMin: Int = 15,
-  @Deprecated("compat temporário — removido na TASK-05") val toleranciaMin: Int = 0,
   val cooldownMin: Int = 45,
   /** null = sem limite de sessões por dia. */
   val blocosDiarios: Int? = null,
@@ -40,13 +36,9 @@ data class EstadoSaldo(
   /** Créditos de tarefas extras concluídas (soma ao limite diário em saldoDisponivel). */
   val saldo: Int = 0,
   val blocosUsados: Int = 0,
-  @Deprecated("compat temporário — removido na TASK-05") val toleranciasUsadas: Int = 0,
-  @Deprecated("compat temporário — removido na TASK-05") val essencialCreditado: Boolean = false,
   val extrasCreditadas: List<String> = emptyList(),
   /** Tempo em primeiro plano já gasto na sessão, sem contar o trecho aberto de `fgDesde`. */
   val consumidoMs: Long = 0L,
-  @Deprecated("compat temporário — removido na TASK-05") val toleranciaUsada: Boolean = false,
-  @Deprecated("compat temporário — removido na TASK-05") val toleranciaAtiva: Boolean = false,
   /** Epoch ms de quando o cooldown acaba (timestamp absoluto). */
   val fimCooldownEm: Long = 0L,
   /** Epoch ms de quando o app bloqueado entrou em primeiro plano; 0 = fora de primeiro plano. */
@@ -63,6 +55,23 @@ object SaldoBloqueioMaquina {
 
   /** A sessão avisa quando falta este tempo para o fim. */
   const val AVISO_FIM_SESSAO_MS = 60_000L
+
+  /**
+   * Lê o nome de fase gravado em SharedPreferences. Estados salvos antes da
+   * máquina de sessões trazem fases que não existem mais: BLOCO_ATIVO vira
+   * SESSAO_ATIVA (o consumo e o trecho em aberto seguem valendo),
+   * TOLERANCIA vira COOLDOWN (o bloco já tinha acabado; vale o
+   * fimCooldownEm salvo, e 0 reconcilia direto para liberado) e
+   * BLOQUEADO_SEM_ESSENCIAL vira AGUARDANDO_LIBERACAO (nenhuma tarefa
+   * bloqueia mais). Nome ausente ou desconhecido também cai em
+   * AGUARDANDO_LIBERACAO.
+   */
+  fun faseDeNomeSalvo(nome: String?): FaseBloqueio =
+    when (nome) {
+      "BLOCO_ATIVO" -> FaseBloqueio.SESSAO_ATIVA
+      "TOLERANCIA" -> FaseBloqueio.COOLDOWN
+      else -> FaseBloqueio.values().firstOrNull { it.name == nome } ?: FaseBloqueio.AGUARDANDO_LIBERACAO
+    }
 
   fun duracaoPausaIntencaoSeg(blocosUsados: Int): Int =
     SEQUENCIA_PAUSA_INTENCAO_SEG_V2[
@@ -200,27 +209,4 @@ object SaldoBloqueioMaquina {
     val restante = msRestantes(s, cfg, agora)
     return permiteUso(s) && restante > 0L && restante <= AVISO_FIM_SESSAO_MS
   }
-
-  // ---- compat temporário — removido na TASK-05 (usado por Prefs/Module) ----
-
-  @Deprecated("compat temporário — removido na TASK-05")
-  fun aplicarSnapshot(
-    estado: EstadoSaldo,
-    essencialCumprido: Boolean,
-    extrasConcluidas: List<String>,
-    cfg: ConfigBloco,
-    agora: Long,
-    dia: String,
-  ): ResultadoTransicao = aplicarSnapshot(estado, extrasConcluidas, cfg, agora, dia)
-
-  @Deprecated("compat temporário — removido na TASK-05")
-  fun toleranciaDisponivel(s: EstadoSaldo, cfg: ConfigBloco): Boolean = false
-
-  @Deprecated("compat temporário — removido na TASK-05")
-  fun usarTolerancia(estado: EstadoSaldo, cfg: ConfigBloco, agora: Long, dia: String): ResultadoTransicao =
-    ResultadoTransicao(reconciliar(estado, cfg, agora, dia), false)
-
-  @Deprecated("compat temporário — removido na TASK-05")
-  fun recusarTolerancia(estado: EstadoSaldo, cfg: ConfigBloco, agora: Long, dia: String): ResultadoTransicao =
-    ResultadoTransicao(reconciliar(estado, cfg, agora, dia), false)
 }
