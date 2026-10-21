@@ -47,3 +47,4 @@ Correção da tentativa 1: MainActivity.onNewIntent emite o evento destino-notif
 Task ativa: nenhuma
 Validação (tentativa 2): verify 8/8 verde; lux-revisor APROVADO (achado do CA-04 resolvido); /security-review sem achados (confiança < 8; manifesto, PendingIntents, extra destino, SharedPreferences, módulo nativo, Firestore e logs verificados). Pendente de teste manual em aparelho: disparo do alarme (Doze), reagendamento após reboot, notificação real, toque em primeiro plano / segundo plano / app fechado, ausência de POST_NOTIFICATIONS. Melhorias do revisor não aplicadas: decisão agendar/cancelar sem função pura, montagem de CondicoesExibicao no Receiver sem teste, default nativo notificacoesAtivas=true até o JS espelhar, testes de manifesto com ID de CA, ícone da notificação = ic_launcher, checagem do serviço duplicada.
 Entrega: validação aprovada
+Entrega: merge feito, aguardando push
