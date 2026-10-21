@@ -27,3 +27,5 @@ Task ativa: TASK-08
 TASK-08: InterceptScreen liga EsperaBloqueioScreen ao hook; acesso rápido chama liberarAcessoRapido() e abre o app se aceito; emergência mostra a respiração de 60 s e chama concluirEmergencia(); recusa do nativo na emergência volta ao modo principal (robustez, fora da spec). InterceptRoot não mudou.
 Task ativa: nenhuma
 Entrega: tasks concluídas
+Validação: verify 7/7 verde; lux-revisor APROVADO. E2E: sem executor configurado. Melhorias não bloqueantes do revisor: teste de tela para "em 15 min" e "em 30 min" (CA-03), saída de primeiro plano no meio da emergência (RN-07), e manter registrado o JUnit (38 testes, 0 falhas; não roda no CI). Doc a atualizar: definition/schema-firebase.md (resumoBloqueio.acessosRapidos/.emergencias) e definition/regras-de-negocio.md (acesso rápido e emergência).
+Entrega: validação aprovada
