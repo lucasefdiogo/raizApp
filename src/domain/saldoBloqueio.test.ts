@@ -8,20 +8,19 @@ import {
   duracaoPausaIntencaoSeg,
   entrouEmPrimeiroPlano,
   essencialCumpridoNoDia,
-  estadoInicialSaldo,
+  estadoInicialDia,
   extrairConfigBloco,
   extrasConcluidasDoDia,
   formatarContagemMs,
+  avisoUmMinutoAtivo,
   liberarBloco,
+  msAteAviso,
   msAteEsgotar,
   msRestantes,
   permiteUso,
   reconciliar,
-  recusarTolerancia,
   resolverConfigBloco,
   saiuDePrimeiroPlano,
-  toleranciaDisponivel,
-  usarTolerancia,
 } from './saldoBloqueio';
 import { Tarefa } from './types';
 
@@ -31,7 +30,7 @@ interface Passo {
   evento: string;
   agoraMin: number;
   dia?: string;
-  args?: { essencialCumprido: boolean; extrasConcluidas: string[] };
+  args?: { extrasConcluidas: string[] };
   esperado: Record<string, unknown>;
 }
 
@@ -51,10 +50,6 @@ function executar(
       return entrouEmPrimeiroPlano(estado, cfg, agora, dia);
     case 'saiuDePrimeiroPlano':
       return saiuDePrimeiroPlano(estado, cfg, agora, dia);
-    case 'usarTolerancia':
-      return usarTolerancia(estado, cfg, agora, dia);
-    case 'recusarTolerancia':
-      return recusarTolerancia(estado, cfg, agora, dia);
     case 'reconciliar':
       return { estado: reconciliar(estado, cfg, agora, dia), ok: true };
     default:
@@ -65,6 +60,8 @@ function executar(
 function valorObservado(
   chave: string,
   r: ResultadoTransicao,
+  cfg: ConfigBloco,
+  agora: number,
 ): unknown {
   const e = r.estado;
   switch (chave) {
@@ -76,6 +73,14 @@ function valorObservado(
       return e.consumidoMs / 1000;
     case 'fimCooldownEmMin':
       return (e.fimCooldownEm - fixtures.base) / MIN;
+    case 'restanteSeg':
+      return msRestantes(e, cfg, agora) / 1000;
+    case 'avisoUmMinuto':
+      return avisoUmMinutoAtivo(e, cfg, agora);
+    case 'msAteAvisoSeg': {
+      const ms = msAteAviso(e, cfg, agora);
+      return ms === null ? null : ms / 1000;
+    }
     default:
       return (e as unknown as Record<string, unknown>)[chave];
   }
@@ -84,22 +89,17 @@ function valorObservado(
 describe('saldoBloqueio — fixtures compartilhadas com o Kotlin', () => {
   fixtures.casos.forEach(caso => {
     it(caso.nome, () => {
-      // As fixtures ainda descrevem a máquina antiga (tolerância 2, cooldown 30,
-      // 4 blocos); a TASK-02 as reescreve para o padrão novo. Por isso o padrão
-      // antigo entra explícito, sem passar por resolverConfigBloco.
       const cfg: ConfigBloco = {
         ...CONFIG_BLOCO_PADRAO,
-        toleranciaMin: 2,
-        cooldownMin: 30,
-        blocosDiarios: 4,
         ...(caso as { config?: Partial<ConfigBloco> }).config,
       };
-      let estado = estadoInicialSaldo(fixtures.dia);
+      let estado = estadoInicialDia(fixtures.dia);
       (caso.passos as Passo[]).forEach((passo, i) => {
         const resultado = executar(passo, estado, cfg);
         estado = resultado.estado;
+        const agora = fixtures.base + passo.agoraMin * MIN;
         Object.entries(passo.esperado).forEach(([chave, esperado]) => {
-          const obtido = valorObservado(chave, resultado);
+          const obtido = valorObservado(chave, resultado, cfg, agora);
           if (typeof esperado === 'number') {
             expect({ passo: i, chave, obtido }).toEqual({
               passo: i,
@@ -116,6 +116,84 @@ describe('saldoBloqueio — fixtures compartilhadas com o Kotlin', () => {
         });
       });
     });
+  });
+});
+
+describe('motor de sessões', () => {
+  const cfg: ConfigBloco = CONFIG_BLOCO_PADRAO;
+  const dia = fixtures.dia;
+  const t0 = fixtures.base;
+
+  function sessaoEmPrimeiroPlano(): EstadoSaldo {
+    const liberada = liberarBloco(estadoInicialDia(dia), cfg, t0, dia).estado;
+    return entrouEmPrimeiroPlano(liberada, cfg, t0, dia).estado;
+  }
+
+  it('CA-02: apagar a tela por 2 minutos não avança o tempo da sessão', () => {
+    const emUso = sessaoEmPrimeiroPlano();
+    const apagou = saiuDePrimeiroPlano(emUso, cfg, t0 + 3 * MIN, dia).estado;
+    expect(msRestantes(apagou, cfg, t0 + 3 * MIN)).toBe(12 * MIN);
+    // tela apagada por 2 minutos: nada corre
+    const voltou = entrouEmPrimeiroPlano(apagou, cfg, t0 + 5 * MIN, dia).estado;
+    expect(voltou.fase).toBe('SESSAO_ATIVA');
+    expect(msRestantes(voltou, cfg, t0 + 5 * MIN)).toBe(12 * MIN);
+  });
+
+  it('CA-03: faltando 1 minuto para o fim a sessão sinaliza o aviso', () => {
+    const emUso = sessaoEmPrimeiroPlano();
+    expect(avisoUmMinutoAtivo(emUso, cfg, t0 + 13 * MIN)).toBe(false);
+    expect(msAteAviso(emUso, cfg, t0)).toBe(14 * MIN);
+    expect(msAteAviso(emUso, cfg, t0 + 14 * MIN)).toBe(0);
+    expect(avisoUmMinutoAtivo(emUso, cfg, t0 + 14 * MIN)).toBe(true);
+    expect(avisoUmMinutoAtivo(emUso, cfg, t0 + 14.5 * MIN)).toBe(true);
+    // fora da sessão não há aviso, nem depois que ela acabou
+    expect(avisoUmMinutoAtivo(estadoInicialDia(dia), cfg, t0)).toBe(false);
+    const fim = reconciliar(emUso, cfg, t0 + 15 * MIN, dia);
+    expect(avisoUmMinutoAtivo(fim, cfg, t0 + 15 * MIN)).toBe(false);
+  });
+
+  it('CA-03: ao completar 15 minutos a sessão termina e o cooldown de 45 minutos começa', () => {
+    const emUso = sessaoEmPrimeiroPlano();
+    const antes = reconciliar(emUso, cfg, t0 + 15 * MIN - 1, dia);
+    expect(antes.fase).toBe('SESSAO_ATIVA');
+    const fim = reconciliar(emUso, cfg, t0 + 15 * MIN, dia);
+    expect(fim.fase).toBe('COOLDOWN');
+    expect(permiteUso(fim)).toBe(false);
+    expect(fim.fimCooldownEm).toBe(t0 + 60 * MIN);
+  });
+
+  it('CA-03: o cooldown diminui com o tempo e sobrevive a reiniciar, por timestamp absoluto', () => {
+    const emCooldown = reconciliar(sessaoEmPrimeiroPlano(), cfg, t0 + 15 * MIN, dia);
+    // "reiniciar": o estado volta do disco só com o que foi persistido
+    const reaberto: EstadoSaldo = JSON.parse(JSON.stringify(emCooldown));
+    const meio = reconciliar(reaberto, cfg, t0 + 30 * MIN, dia);
+    expect(meio.fase).toBe('COOLDOWN');
+    expect(meio.fimCooldownEm - (t0 + 30 * MIN)).toBe(30 * MIN);
+    const quase = reconciliar(reaberto, cfg, t0 + 60 * MIN - 1, dia);
+    expect(quase.fase).toBe('COOLDOWN');
+    expect(quase.fimCooldownEm).toBe(emCooldown.fimCooldownEm);
+    const depois = reconciliar(reaberto, cfg, t0 + 60 * MIN, dia);
+    expect(depois.fase).toBe('AGUARDANDO_LIBERACAO');
+  });
+
+  it('CA-02: liberar fora de AGUARDANDO_LIBERACAO não abre sessão', () => {
+    const emUso = sessaoEmPrimeiroPlano();
+    const emSessao = liberarBloco(emUso, cfg, t0 + MIN, dia);
+    expect(emSessao.ok).toBe(false);
+    expect(emSessao.estado.blocosUsados).toBe(1);
+    const emCooldown = reconciliar(emUso, cfg, t0 + 15 * MIN, dia);
+    const noCooldown = liberarBloco(emCooldown, cfg, t0 + 20 * MIN, dia);
+    expect(noCooldown.ok).toBe(false);
+    expect(noCooldown.estado.fase).toBe('COOLDOWN');
+    expect(noCooldown.estado.blocosUsados).toBe(1);
+  });
+
+  it('CA-03: sem tolerância, o fim da sessão vai direto para o cooldown', () => {
+    const emUso = sessaoEmPrimeiroPlano();
+    const fim = reconciliar(emUso, cfg, t0 + 15 * MIN, dia);
+    // nenhuma fase intermediária de oferta de tempo extra
+    expect(fim.fase).toBe('COOLDOWN');
+    expect(Object.keys(fim)).not.toContain('toleranciaAtiva');
   });
 });
 
@@ -224,37 +302,26 @@ describe('helpers de tarefas', () => {
 });
 
 describe('derivados de exibição', () => {
-  // Tolerância explícita: o padrão novo é sem tolerância (TASK-02 remove este derivado).
-  const cfg: ConfigBloco = { ...CONFIG_BLOCO_PADRAO, toleranciaMin: 2 };
+  const cfg: ConfigBloco = CONFIG_BLOCO_PADRAO;
   const t0 = 1_700_000_000_000;
 
-  function blocoRodando(): EstadoSaldo {
+  function sessaoRodando(): EstadoSaldo {
     return {
-      ...estadoInicialSaldo('2026-10-11'),
-      fase: 'BLOCO_ATIVO',
+      ...estadoInicialDia('2026-10-11'),
+      fase: 'SESSAO_ATIVA',
       consumidoMs: 5 * MIN,
       fgDesde: t0,
     };
   }
 
   it('msAteEsgotar: null com o relógio parado, restante com ele correndo', () => {
-    expect(msAteEsgotar({ ...blocoRodando(), fgDesde: 0 }, cfg, t0)).toBeNull();
-    expect(msAteEsgotar(blocoRodando(), cfg, t0 + 2 * MIN)).toBe(8 * MIN);
+    expect(msAteEsgotar({ ...sessaoRodando(), fgDesde: 0 }, cfg, t0)).toBeNull();
+    expect(msAteEsgotar(sessaoRodando(), cfg, t0 + 2 * MIN)).toBe(8 * MIN);
   });
 
-  it('msRestantes considera o trecho em curso e vale 0 fora de bloco', () => {
-    expect(msRestantes(blocoRodando(), cfg, t0 + MIN)).toBe(9 * MIN);
-    expect(msRestantes(estadoInicialSaldo('2026-10-11'), cfg, t0)).toBe(0);
-  });
-
-  it('toleranciaDisponivel só na oferta pendente e ainda não usada', () => {
-    const oferta: EstadoSaldo = {
-      ...estadoInicialSaldo('2026-10-11'),
-      fase: 'TOLERANCIA',
-    };
-    expect(toleranciaDisponivel(oferta, cfg)).toBe(true);
-    expect(toleranciaDisponivel({ ...oferta, toleranciaUsada: true }, cfg)).toBe(false);
-    expect(toleranciaDisponivel({ ...oferta, toleranciaAtiva: true }, cfg)).toBe(false);
+  it('msRestantes considera o trecho em curso e vale 0 fora de sessão', () => {
+    expect(msRestantes(sessaoRodando(), cfg, t0 + MIN)).toBe(9 * MIN);
+    expect(msRestantes(estadoInicialDia('2026-10-11'), cfg, t0)).toBe(0);
   });
 
   it('formatarContagemMs arredonda pra cima', () => {

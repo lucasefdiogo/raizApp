@@ -16,20 +16,28 @@ import { Tarefa } from './types';
  * PAUSA_INTENCAO não aparece aqui de propósito: é um estado só de tela
  * (ver FaseTela) — se o usuário sai, ela reinicia, então não há nada pra
  * persistir. O estado persistido fica em AGUARDANDO_LIBERACAO até o
- * "Liberar" valer.
+ * "Liberar" valer. A sessão está disponível desde o início do dia: nenhuma
+ * tarefa precisa ser feita para liberar. SALDO_ZERADO só passa a ser
+ * produzido pela regra do saldo (blocosDiarios numérico), fora desta máquina
+ * básica.
  */
 export type FaseBloqueio =
-  | 'BLOQUEADO_SEM_ESSENCIAL'
   | 'AGUARDANDO_LIBERACAO'
-  | 'BLOCO_ATIVO'
-  | 'TOLERANCIA'
+  | 'SESSAO_ATIVA'
   | 'COOLDOWN'
-  | 'SALDO_ZERADO';
+  | 'SALDO_ZERADO'
+  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
+  | 'BLOQUEADO_SEM_ESSENCIAL'
+  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
+  | 'TOLERANCIA'
+  /** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não produz. */
+  | 'BLOCO_ATIVO';
 
 export type FaseTela = FaseBloqueio | 'PAUSA_INTENCAO';
 
 export interface ConfigBloco {
   duracaoBlocoMin: number;
+  /** Legado: a tolerância deixou de existir na máquina; o campo só segue aceito nas regras já salvas. */
   toleranciaMin: number;
   cooldownMin: number;
   /** null = sem limite de sessões por dia. */
@@ -55,6 +63,9 @@ const PADRAO_ANTIGO: Partial<ConfigBloco> = {
 /** Duração da pausa de intenção por bloco já liberado no dia; o último valor é o teto. Fixa no código por enquanto. */
 export const SEQUENCIA_PAUSA_INTENCAO_SEG_V2 = [10, 20, 30, 40, 50, 60];
 
+/** A sessão avisa quando falta este tempo para o fim. */
+export const AVISO_FIM_SESSAO_MS = 60_000;
+
 const MS_POR_MIN = 60_000;
 
 export interface EstadoSaldo {
@@ -63,17 +74,16 @@ export interface EstadoSaldo {
   fase: FaseBloqueio;
   saldo: number;
   blocosUsados: number;
-  toleranciasUsadas: number;
-  /** Já recebeu os `blocosDiarios` do essencial hoje (sem estorno se o usuário desmarcar depois). */
-  essencialCreditado: boolean;
   /** Ids das tarefas extras que já renderam bloco — impede marcar/desmarcar/marcar de novo pra farmar. */
   extrasCreditadas: string[];
-  /** Tempo em primeiro plano já gasto no bloco (ou na tolerância) em curso, sem contar o trecho aberto de `fgDesde`. */
+  /** Tempo em primeiro plano já gasto na sessão em curso, sem contar o trecho aberto de `fgDesde`. */
   consumidoMs: number;
-  /** A tolerância deste bloco já foi aceita (1 por bloco). */
-  toleranciaUsada: boolean;
-  /** Fase TOLERANCIA: false = oferta "+2 min" ainda pendente ("Tempo esgotado"), true = os 2 min correndo. */
-  toleranciaAtiva: boolean;
+  /** @deprecated compat temporário — removido na TASK-07/08. */
+  toleranciasUsadas?: number;
+  /** @deprecated compat temporário — removido na TASK-07/08. */
+  toleranciaUsada?: boolean;
+  /** @deprecated compat temporário — removido na TASK-07/08. */
+  toleranciaAtiva?: boolean;
   /** Epoch ms de quando o cooldown acaba (timestamp absoluto, nunca timer em memória). */
   fimCooldownEm: number;
   /** Epoch ms de quando o app bloqueado entrou em primeiro plano agora; 0 = fora de primeiro plano. */
@@ -87,26 +97,30 @@ export interface ResultadoTransicao {
 }
 
 export interface SnapshotParaSaldo {
-  essencialCumprido: boolean;
   /** Ids das tarefas extras (não essenciais, não subtarefas) concluídas hoje. */
   extrasConcluidas: string[];
 }
 
-export function estadoInicialSaldo(dia: string): EstadoSaldo {
+export function estadoInicialDia(dia: string): EstadoSaldo {
   return {
     dia,
-    fase: 'BLOQUEADO_SEM_ESSENCIAL',
+    fase: 'AGUARDANDO_LIBERACAO',
     saldo: 0,
     blocosUsados: 0,
-    toleranciasUsadas: 0,
-    essencialCreditado: false,
     extrasCreditadas: [],
     consumidoMs: 0,
-    toleranciaUsada: false,
-    toleranciaAtiva: false,
     fimCooldownEm: 0,
     fgDesde: 0,
   };
+}
+
+/**
+ * @deprecated compat temporário — removido na TASK-07/08. Devolve o dia no
+ * estado antigo (BLOQUEADO_SEM_ESSENCIAL) só para os testes de hook/tela que
+ * ainda o assumem; a máquina nova usa estadoInicialDia.
+ */
+export function estadoInicialSaldo(dia: string): EstadoSaldo {
+  return { ...estadoInicialDia(dia), fase: 'BLOQUEADO_SEM_ESSENCIAL' };
 }
 
 /** Campos ausentes ou inválidos (usuário que configurou antes desta regra existir) caem no padrão. */
@@ -171,10 +185,7 @@ export function essencialCumpridoNoDia(tarefas: Tarefa[]): boolean {
 }
 
 export function permiteUso(estado: EstadoSaldo): boolean {
-  return (
-    estado.fase === 'BLOCO_ATIVO' ||
-    (estado.fase === 'TOLERANCIA' && estado.toleranciaAtiva)
-  );
+  return estado.fase === 'SESSAO_ATIVA';
 }
 
 function entrarEmCooldown(
@@ -187,16 +198,16 @@ function entrarEmCooldown(
     fase: 'COOLDOWN',
     fimCooldownEm: instante + cfg.cooldownMin * MS_POR_MIN,
     consumidoMs: 0,
-    toleranciaAtiva: false,
     fgDesde: 0,
   };
 }
 
 /**
- * Aplica o que o passar do tempo já decidiu: virada do dia, bloco/tolerância
- * que se esgotou em primeiro plano, cooldown que acabou. Toda transição
- * chama isto antes de agir — assim o estado é sempre derivável só de
- * timestamps absolutos, mesmo que o app/aparelho tenha ficado parado.
+ * Aplica o que o passar do tempo já decidiu: virada do dia, sessão que se
+ * esgotou em primeiro plano (vai direto ao cooldown), cooldown que acabou
+ * (volta a AGUARDANDO_LIBERACAO). Toda transição chama isto antes de agir —
+ * assim o estado é sempre derivável só de timestamps absolutos, mesmo que o
+ * app/aparelho tenha ficado parado.
  */
 export function reconciliar(
   estadoAtual: EstadoSaldo,
@@ -205,42 +216,30 @@ export function reconciliar(
   dia: string,
 ): EstadoSaldo {
   let s: EstadoSaldo =
-    estadoAtual.dia !== dia ? estadoInicialSaldo(dia) : { ...estadoAtual };
+    estadoAtual.dia !== dia ? estadoInicialDia(dia) : { ...estadoAtual };
 
-  const emBloco = s.fase === 'BLOCO_ATIVO';
-  if (emBloco || (s.fase === 'TOLERANCIA' && s.toleranciaAtiva)) {
-    const limite = (emBloco ? cfg.duracaoBlocoMin : cfg.toleranciaMin) * MS_POR_MIN;
+  if (s.fase === 'SESSAO_ATIVA') {
+    const limite = cfg.duracaoBlocoMin * MS_POR_MIN;
     const emCurso = s.fgDesde > 0 ? Math.max(0, agora - s.fgDesde) : 0;
     if (s.consumidoMs + emCurso >= limite) {
       const instanteFim =
         s.fgDesde > 0 ? s.fgDesde + (limite - s.consumidoMs) : agora;
-      if (emBloco && cfg.toleranciaMin > 0) {
-        s = {
-          ...s,
-          fase: 'TOLERANCIA',
-          toleranciaAtiva: false,
-          consumidoMs: 0,
-          fgDesde: 0,
-        };
-      } else {
-        s = entrarEmCooldown(s, cfg, instanteFim);
-      }
+      s = entrarEmCooldown(s, cfg, instanteFim);
     }
   }
 
   if (s.fase === 'COOLDOWN' && agora >= s.fimCooldownEm) {
-    s.fase = s.saldo > 0 ? 'AGUARDANDO_LIBERACAO' : 'SALDO_ZERADO';
-  }
-  if (s.fase === 'SALDO_ZERADO' && s.saldo > 0) {
     s.fase = 'AGUARDANDO_LIBERACAO';
   }
   return s;
 }
 
 /**
- * Chamada a cada mudança em tarefas[] (snapshot do dia). Credita o essencial
- * (uma vez por dia) e cada tarefa extra nova (uma vez por id). Extras feitas
- * antes do essencial já ficam no saldo — só o desbloqueio espera o essencial.
+ * Chamada a cada mudança em tarefas[] (snapshot do dia). Credita cada tarefa
+ * extra nova (uma vez por id). O essencial não credita nada e nenhum crédito
+ * muda a fase nem é necessário para liberar a sessão.
+ *
+ * compat: a TASK-03 redefine este crédito para o CA-07 (extra tira de SALDO_ZERADO)
  */
 export function aplicarSnapshot(
   estado: EstadoSaldo,
@@ -259,18 +258,10 @@ export function aplicarSnapshot(
     s.saldo += novas.length * cfg.blocoPorTarefaExtra;
   }
 
-  if (snapshot.essencialCumprido && !s.essencialCreditado) {
-    s.essencialCreditado = true;
-    s.saldo += cfg.blocosDiarios ?? 0;
-    if (s.fase === 'BLOQUEADO_SEM_ESSENCIAL') {
-      s.fase = 'AGUARDANDO_LIBERACAO';
-    }
-  }
-
   return { estado: reconciliar(s, cfg, agora, dia), ok: true };
 }
 
-/** Fim da pausa de intenção: consome 1 do saldo e abre o bloco. */
+/** Fim da pausa de intenção: abre a sessão. Só vale em AGUARDANDO_LIBERACAO. */
 export function liberarBloco(
   estado: EstadoSaldo,
   cfg: ConfigBloco,
@@ -278,25 +269,22 @@ export function liberarBloco(
   dia: string,
 ): ResultadoTransicao {
   const s = reconciliar(estado, cfg, agora, dia);
-  if (s.fase !== 'AGUARDANDO_LIBERACAO' || s.saldo <= 0) {
+  if (s.fase !== 'AGUARDANDO_LIBERACAO') {
     return { estado: s, ok: false };
   }
   return {
     estado: {
       ...s,
-      fase: 'BLOCO_ATIVO',
-      saldo: s.saldo - 1,
+      fase: 'SESSAO_ATIVA',
       blocosUsados: s.blocosUsados + 1,
       consumidoMs: 0,
-      toleranciaUsada: false,
-      toleranciaAtiva: false,
       fgDesde: 0,
     },
     ok: true,
   };
 }
 
-/** App bloqueado voltou ao primeiro plano — o relógio do bloco volta a correr. */
+/** App bloqueado voltou ao primeiro plano — o relógio da sessão volta a correr. */
 export function entrouEmPrimeiroPlano(
   estado: EstadoSaldo,
   cfg: ConfigBloco,
@@ -324,56 +312,25 @@ export function saiuDePrimeiroPlano(
   return { estado: s, ok: true };
 }
 
-/** "+2 min para finalizar" — uma vez por bloco, só enquanto a oferta está pendente. */
-export function usarTolerancia(
+/** Ms de sessão ainda disponíveis (relógio parado ou não) — pra exibir. */
+export function msRestantes(
   estado: EstadoSaldo,
   cfg: ConfigBloco,
   agora: number,
-  dia: string,
-): ResultadoTransicao {
-  const s = reconciliar(estado, cfg, agora, dia);
-  const disponivel =
-    s.fase === 'TOLERANCIA' &&
-    !s.toleranciaAtiva &&
-    !s.toleranciaUsada &&
-    cfg.toleranciaMin > 0;
-  if (!disponivel) {
-    return { estado: s, ok: false };
+): number {
+  if (!permiteUso(estado)) {
+    return 0;
   }
-  return {
-    estado: {
-      ...s,
-      toleranciaAtiva: true,
-      toleranciaUsada: true,
-      toleranciasUsadas: s.toleranciasUsadas + 1,
-      consumidoMs: 0,
-      fgDesde: 0,
-    },
-    ok: true,
-  };
-}
-
-/** "Agora não" na oferta de tolerância — o cooldown começa neste instante. */
-export function recusarTolerancia(
-  estado: EstadoSaldo,
-  cfg: ConfigBloco,
-  agora: number,
-  dia: string,
-): ResultadoTransicao {
-  const s = reconciliar(estado, cfg, agora, dia);
-  if (s.fase !== 'TOLERANCIA' || s.toleranciaAtiva) {
-    return { estado: s, ok: false };
-  }
-  return {
-    estado: reconciliar(entrarEmCooldown(s, cfg, agora), cfg, agora, dia),
-    ok: true,
-  };
+  const emCurso = estado.fgDesde > 0 ? agora - estado.fgDesde : 0;
+  return Math.max(
+    0,
+    cfg.duracaoBlocoMin * MS_POR_MIN - estado.consumidoMs - emCurso,
+  );
 }
 
 /**
- * Quantos ms faltam pro bloco/tolerância esgotar contando só primeiro plano;
- * null se o relógio não está correndo agora. Usado pra agendar o aviso
- * "Tempo esgotado" no Service.
+ * Quantos ms faltam pra sessão esgotar contando só primeiro plano; null se o
+ * relógio não está correndo agora. Usado pra agendar o fim no Service.
  */
 export function msAteEsgotar(
   estado: EstadoSaldo,
@@ -383,28 +340,33 @@ export function msAteEsgotar(
   if (!permiteUso(estado) || estado.fgDesde === 0) {
     return null;
   }
-  const limite =
-    (estado.fase === 'BLOCO_ATIVO' ? cfg.duracaoBlocoMin : cfg.toleranciaMin) *
-    MS_POR_MIN;
-  return Math.max(0, limite - estado.consumidoMs - (agora - estado.fgDesde));
+  return msRestantes(estado, cfg, agora);
 }
 
-/** Ms de bloco/tolerância ainda disponíveis (relógio parado ou não) — pra exibir. */
-export function msRestantes(
+/**
+ * Quantos ms faltam pro aviso de "1 minuto restante" (0 se já passou do
+ * ponto); null se o relógio não está correndo. Usado pra agendar o aviso.
+ */
+export function msAteAviso(
   estado: EstadoSaldo,
   cfg: ConfigBloco,
   agora: number,
-): number {
-  if (!permiteUso(estado)) {
-    return 0;
-  }
-  const limite =
-    (estado.fase === 'BLOCO_ATIVO' ? cfg.duracaoBlocoMin : cfg.toleranciaMin) *
-    MS_POR_MIN;
-  const emCurso = estado.fgDesde > 0 ? agora - estado.fgDesde : 0;
-  return Math.max(0, limite - estado.consumidoMs - emCurso);
+): number | null {
+  const faltam = msAteEsgotar(estado, cfg, agora);
+  return faltam === null ? null : Math.max(0, faltam - AVISO_FIM_SESSAO_MS);
 }
 
+/** O aviso de "1 minuto restante" vale: sessão ativa, faltando 1 minuto ou menos e ainda não acabou. */
+export function avisoUmMinutoAtivo(
+  estado: EstadoSaldo,
+  cfg: ConfigBloco,
+  agora: number,
+): boolean {
+  const restante = msRestantes(estado, cfg, agora);
+  return permiteUso(estado) && restante > 0 && restante <= AVISO_FIM_SESSAO_MS;
+}
+
+/** @deprecated compat temporário — removido na TASK-07/08. A máquina nova não tem tolerância. */
 export function toleranciaDisponivel(
   estado: EstadoSaldo,
   cfg: ConfigBloco,

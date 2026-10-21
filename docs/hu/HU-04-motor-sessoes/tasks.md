@@ -13,7 +13,7 @@ Spec: v1
     - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts, src/domain/appBlock.ts, src/domain/appBlock.test.ts, src/domain/types.ts, src/hooks/useBloqueioSaldo.test.ts, src/screens/intercept/InterceptScreen.test.tsx
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-02 (CA-02, CA-03, RN-03, RN-04, RN-05, RN-11): máquina de estados `AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → SESSAO_ATIVA → COOLDOWN` em `domain/saldoBloqueio.ts`, sem `BLOQUEADO_SEM_ESSENCIAL`, `TOLERANCIA` nem ganho de bloco por tarefa; tempo só corre em primeiro plano, aviso 1 min antes do fim, cooldown por timestamp absoluto; fixtures compartilhadas atualizadas
+- [x] TASK-02 (CA-02, CA-03, RN-03, RN-04, RN-05, RN-11): máquina de estados `AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → SESSAO_ATIVA → COOLDOWN` em `domain/saldoBloqueio.ts`, sem `BLOQUEADO_SEM_ESSENCIAL`, `TOLERANCIA` nem ganho de bloco por tarefa; tempo só corre em primeiro plano, aviso 1 min antes do fim, cooldown por timestamp absoluto; fixtures compartilhadas atualizadas
   - Teste: `CA-02: apagar a tela por 2 minutos não avança o tempo da sessão` (feliz)
   - Teste: `CA-03: faltando 1 minuto para o fim a sessão sinaliza o aviso` (feliz)
   - Teste: `CA-03: ao completar 15 minutos a sessão termina e o cooldown de 45 minutos começa` (feliz)
