@@ -270,7 +270,7 @@ describe('services/firestore', () => {
   });
 
   describe('registrarResumoBloqueioNoDia', () => {
-    it('acumula contadores e intenções sem apagar o resto do dia', async () => {
+    it('CA-02: ao liberar a sessão registrarResumoBloqueioNoDia incrementa sessoesUsadas e acrescenta a intenção', async () => {
       await salvarDailyLog('uid-1', '2026-09-15', {
         data: '2026-09-15',
         tarefas: [{ id: '1', titulo: 't', essencial: true, concluida: true }],
@@ -279,25 +279,35 @@ describe('services/firestore', () => {
       });
 
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        blocosUsados: 1,
+        sessoesUsadas: 1,
         intencao: 'ver mensagens',
       });
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
-        blocosUsados: 1,
+        sessoesUsadas: 1,
         intencao: 'assistir um video',
+      });
+
+      const log = await buscarDailyLog('uid-1', '2026-09-15');
+      expect(log?.resumoBloqueio).toEqual({
+        sessoesUsadas: 2,
+        intencoes: ['ver mensagens', 'assistir um video'],
+      });
+      expect(log?.statusDia).toBe('cumprido');
+      expect(log?.tarefas).toHaveLength(1);
+    });
+
+    it('CA-02: registrarResumoBloqueioNoDia não grava toleranciasUsadas', async () => {
+      await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
+        sessoesUsadas: 1,
+        toleranciasUsadas: 1,
       });
       await registrarResumoBloqueioNoDia('uid-1', '2026-09-15', {
         toleranciasUsadas: 1,
       });
 
       const log = await buscarDailyLog('uid-1', '2026-09-15');
-      expect(log?.resumoBloqueio).toEqual({
-        blocosUsados: 2,
-        toleranciasUsadas: 1,
-        intencoes: ['ver mensagens', 'assistir um video'],
-      });
-      expect(log?.statusDia).toBe('cumprido');
-      expect(log?.tarefas).toHaveLength(1);
+      expect(log?.resumoBloqueio).toEqual({ sessoesUsadas: 1 });
+      expect(log?.resumoBloqueio).not.toHaveProperty('toleranciasUsadas');
     });
 
     it('sem nada a gravar (intenção vazia, contadores zerados): não escreve', async () => {

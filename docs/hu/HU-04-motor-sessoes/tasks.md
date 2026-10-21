@@ -56,7 +56,7 @@ Spec: v1
     - Arquivos: android/app/src/main/java/com/luxthorapps/rootora/**, android/app/src/test/java/com/luxthorapps/rootora/**, src/native/AccessibilityDetection.ts, src/native/AccessibilityDetection.test.ts
     - Comandos: teste, lint, tipos, build
     - Instala: nenhuma
-- [ ] TASK-06 (CA-02, RN-09): `registrarResumoBloqueioNoDia` grava `sessoesUsadas` e `intencoes`, não grava mais `toleranciasUsadas`, e mantém os demais campos de `resumoBloqueio`
+- [x] TASK-06 (CA-02, RN-09): `registrarResumoBloqueioNoDia` grava `sessoesUsadas` e `intencoes`, não grava mais `toleranciasUsadas`, e mantém os demais campos de `resumoBloqueio`
   - Teste: `CA-02: ao liberar a sessão registrarResumoBloqueioNoDia incrementa sessoesUsadas e acrescenta a intenção` (feliz)
   - Teste: `CA-02: registrarResumoBloqueioNoDia não grava toleranciasUsadas` (exceção)
   - Escopo:

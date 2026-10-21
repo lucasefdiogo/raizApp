@@ -409,7 +409,6 @@ export function formatarContagemMs(ms: number): string {
 
 /** Resumo do dia gravado no Firestore (dailyLogs/{hoje}.resumoBloqueio) pra estatísticas futuras. */
 export interface ResumoBloqueioDia {
-  blocosUsados: number;
-  toleranciasUsadas: number;
+  sessoesUsadas: number;
   intencoes: string[];
 }
