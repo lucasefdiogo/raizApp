@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acesso rápido e emergência</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --casca: #EFEAE0;
+    --areia: #E3DACB;
+    --terra-escura: #2B2318;
+    --terra-suave: #6B5E45;
+    --cobre: #B5772E;
+    --musgo: #3E4A34;
+    --border: #E3D8C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: #D9D2C4;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+  }
+  .estados { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+  .estado-rotulo {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .tela {
+    width: 340px;
+    max-width: 100%;
+    min-height: 620px;
+    background: var(--casca);
+    border-radius: 18px;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  h1 {
+    font-family: "Zilla Slab", serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 12px 0 8px;
+  }
+  .corpo { font-size: 14px; line-height: 1.5; color: var(--terra-suave); margin: 0 0 20px; }
+  .timer {
+    font-family: "Space Mono", monospace;
+    font-size: 36px;
+    color: var(--terra-escura);
+    margin: 4px 0 20px;
+  }
+  .timer-label {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: -12px 0 24px;
+  }
+  .acoes { width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  button {
+    width: 100%;
+    border-radius: 14px;
+    padding: 14px;
+    font: 600 15px "IBM Plex Sans", sans-serif;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--cobre); outline-offset: 2px; }
+  .primario { border: 0; background: var(--cobre); color: var(--casca); }
+  .secundario { background: transparent; border: 1px solid var(--terra-suave); color: var(--terra-suave); }
+  .atalho {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--terra-suave);
+    font: 500 13px "IBM Plex Sans", sans-serif;
+    padding: 10px;
+  }
+  .nota {
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--terra-suave);
+    margin-bottom: 16px;
+  }
+  .respiro {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: var(--areia);
+    border: 2px solid var(--musgo);
+    margin: 12px 0 24px;
+    animation: respirar 4s ease-in-out infinite;
+  }
+  @keyframes respirar { 50% { transform: scale(1.15); } }
+</style>
+</head>
+<body>
+<div class="estados">
+
+  <!-- Estado: normal (cooldown com acesso rápido disponível) -->
+  <div>
+    <p class="estado-rotulo">normal · acesso rápido disponível</p>
+    <section class="tela" data-estado="normal" aria-label="Próximo acesso, com acesso rápido disponível">
+      <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="#6B5E45" stroke-width="3" stroke-dasharray="4 4"/>
+      </svg>
+      <h1>Próximo acesso em</h1>
+      <p class="timer-label">Sessão completa</p>
+      <p class="timer" role="timer" aria-live="polite">32:08</p>
+      <p class="corpo">Se for rápido, dá pra usar os 2 minutos de acesso rápido agora.</p>
+      <div class="acoes">
+        <button class="primario" type="button">Acesso rápido (2 min)</button>
+        <button class="atalho" type="button">Sessão de foco de 5 min</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: carregando (respiração da emergência) -->
+  <div>
+    <p class="estado-rotulo">carregando · respiração</p>
+    <section class="tela" data-estado="carregando" aria-label="Respiração antes do acesso de emergência">
+      <h1>Respire um instante</h1>
+      <p class="corpo">Em 60 segundos, os 2 minutos liberam.</p>
+      <div class="respiro" aria-hidden="true"></div>
+      <p class="timer" role="timer" aria-live="polite">0:42</p>
+    </section>
+  </div>
+
+  <!-- Estado: vazio (acesso rápido indisponível, oferece emergência) -->
+  <div>
+    <p class="estado-rotulo">vazio · acesso rápido indisponível</p>
+    <section class="tela" data-estado="vazio" aria-label="Próximo acesso, acesso rápido indisponível">
+      <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="none" stroke="#6B5E45" stroke-width="3" stroke-dasharray="4 4"/>
+      </svg>
+      <h1>Próximo acesso em</h1>
+      <p class="timer-label">Sessão completa</p>
+      <p class="timer" role="timer" aria-live="polite">32:08</p>
+      <p class="nota" role="status">Próximo acesso rápido em 42 min.</p>
+      <div class="acoes">
+        <button class="secundario" type="button">Preciso agora (respiração de 1 min)</button>
+        <button class="atalho" type="button">Sessão de foco de 5 min</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>

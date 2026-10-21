@@ -1,0 +1,43 @@
+{
+  "algoritmo": 1,
+  "hu": "HU-05",
+  "versao": 1,
+  "spec": "2d7d1930c369a9e99a79ddf189ce74f78124d015257b042e87dd3e71a6a04e67",
+  "criterios": {
+    "CA-01": {
+      "status": "ativo",
+      "criterio": "1d28eea6dfdf030e9647f8556767a4d51db26799c772c3a0963bf8b96ad91d06",
+      "cenario": "33e3460aee8979e604d657d74602bbb718104ced615e4b8046aef5b73afc53ec"
+    },
+    "CA-02": {
+      "status": "ativo",
+      "criterio": "bf0c5c51cbaade33a20766b1612652a53f42e0ede30c0a35299508942169998a",
+      "cenario": "86c1262166f62e4f26f403969a218c0e13d9eec069ae5c218cca91a8763323dd"
+    },
+    "CA-03": {
+      "status": "ativo",
+      "criterio": "7a7d1bd4dc8563ace1a6363d9a7218c4f0c724eff502887753a08d334d0c7f9b",
+      "cenario": "49a0d47d6bd8da349108b6d7e81aeb86ff079e3a2b50d69e57c1416a15eee5e8"
+    },
+    "CA-04": {
+      "status": "ativo",
+      "criterio": "530ebb722833954d6bf8cb7e48878cdd98f58e1efb32e2559828ae7ed4090e31",
+      "cenario": "1c985007852c037667a1bfadd37b9bf63a1808db7aca2a19aa2d720b4d23d456"
+    },
+    "CA-05": {
+      "status": "ativo",
+      "criterio": "0362c5a940536b3f1d2cbc05421ca23e613a9301ab1954c39f93d3ccc8d1bccd",
+      "cenario": "02956c588b545db46d2f2ae3646cc69d23647cc4e2e49e34f8b5e8ea4ee90e07"
+    },
+    "CA-06": {
+      "status": "ativo",
+      "criterio": "94a4899f07380c553c8e6ffb04242c0595c5eafba39853cf14e0edc24fbf4237",
+      "cenario": "1e66473fc390a5c65bf95fa2523c37c13fb56e3e42ed065275ec9c8dcd98874d"
+    },
+    "CA-07": {
+      "status": "ativo",
+      "criterio": "02b7beff1a6a735be171a31f6735e4cf2a9d79d5717a6d172835223f878e803f",
+      "cenario": "ff9307312c3e4b70c12ed51157ea4e7bb5119807e5c52a95e9bb02fe46e5e33c"
+    }
+  }
+}
