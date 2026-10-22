@@ -20,6 +20,14 @@ Histórico das HUs antigas (formato lux kit, abandonado): `docs/historico/`.
       `PerfilStack` (já existem em `src/navigation/HojeStack.tsx` e `PerfilStack.tsx`).
       Origem: `docs/historico/HU-06/progress.md`.
 
+## Build nativo
+
+- [ ] **Pergunta pro Lucas:** o `RootoraUsoAppsModule.kt` já foi compilado fora do
+      sandbox? O log da HU-02 registra que ele nunca tinha sido compilado (o gradle
+      falhava no ksp do async-storage dentro do sandbox). Confirmar com
+      `npx react-native run-android` (ou `./gradlew :app:compileDebugKotlin`) no
+      terminal WSL e fechar este item. Origem: `docs/historico/HU-02/progress.md`.
+
 ## Ambiente local
 
 - [ ] Acrescentar `.bash_profile` ao `.git/info/exclude` (nó `/dev/null` criado pelo
