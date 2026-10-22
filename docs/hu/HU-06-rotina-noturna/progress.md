@@ -35,3 +35,6 @@ Task ativa: nenhuma
 Task ativa: TASK-07
 TASK-07: duracaoPausaIntencaoNoturnaSeg em domain/saldoBloqueio.ts (dobro da sequencia, teto 120 s); Kotlin e fixtures intocados. Suite verde (1299).
 Task ativa: nenhuma
+Task ativa: TASK-08
+TASK-08: banco noturno (9 mensagens) e proximaMensagemNoturna em domain/mensagensNoturnas.ts; documentado em definition/banco-de-frases.md (secao 7, frases proibidas virou 8). Suite verde (1303).
+Task ativa: nenhuma

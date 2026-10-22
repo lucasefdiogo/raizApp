@@ -71,7 +71,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/domain/saldoBloqueio.ts, src/domain/saldoBloqueio.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-08 (CA-04, CA-05, RN-09, RN-13): banco `noturno` e rotação sequencial sem repetir a anterior
+- [x] TASK-08 (CA-04, CA-05, RN-09, RN-13): banco `noturno` e rotação sequencial sem repetir a anterior
   - Teste: `CA-05: duas escolhas seguidas devolvem mensagens diferentes do banco noturno` (feliz)
   - Teste: `CA-04: nenhuma mensagem do banco tem exclamação nem a palavra proteção` (exceção)
   - Teste: `CA-05: índice anterior inválido ou ausente começa do início do banco` (exceção)
