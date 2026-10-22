@@ -1,0 +1,7 @@
+{
+  "defaultMode": "bypassPermissions",
+  "sandbox": {
+    "allowedNetworkDomains": ["*.github.com", "*.npmjs.com", "*.pypi.org"],
+    "denyWrite": [".claude/", ".git/hooks/"]
+  }
+}
