@@ -1,8 +1,8 @@
 # Schema de Dados — Firebase (Firestore) + React Native
 
 > Documento vivo — reflete o estado real do Firestore, não só o planejamento original.
-> Última revisão: consolidação pós-auditoria do design system + features de bloqueio de
-> apps, desafios e tarefas recorrentes.
+> Última revisão: motor de sessões/válvulas de escape/rotina noturna (substitui o
+> saldo de blocos por tarefa), coleta de uso e lista curada de redes sociais.
 
 Stack confirmada: **React Native CLI (bare workflow), TypeScript** no front, **Firebase**
 no backend (Auth + Firestore + Cloud Messaging reservado para reengajamento futuro; sem Cloud
@@ -38,7 +38,7 @@ arrays que crescem indefinidamente no documento do usuário.
 | `focoProcrastinacao` | string | chip selecionado: `redes_sociais` \| `estudos` \| `trabalho` \| `organizacao_pessoal` \| `outro` (`OPCOES_FOCO_PROCRASTINACAO`, `domain/onboarding.ts`) |
 | `tempoTelaEstimado` | number | minutos/dia |
 | `porqueTexto` | string | Texto livre — reexibido na tela de retorno após pausa |
-| `onboardingConcluido` | boolean | **Campo novo.** Gate real de saída do onboarding (substituiu a checagem antiga por `porqueTexto`). Setado como `true` só ao final do último passo (Primeira Tarefa), seja criando a tarefa ou pulando |
+| `onboardingConcluido` | boolean | Gate real de saída do onboarding. Setado como `true` só ao final do último passo (Primeira Tarefa), seja criando a tarefa ou pulando |
 | **Streak** | | |
 | `streakAtual` | number | |
 | `diasTotaisAtivos` | number | Nunca reseta |
@@ -51,11 +51,20 @@ arrays que crescem indefinidamente no documento do usuário.
 | `notificacoesAtivas` | boolean | |
 | `horarioLembreteDiario` | string (`HH:mm`) | |
 | **Bloqueio de apps** *(ÚNICO schema — `bloqueioApps`/custo crescente removidos, sem migração de dado)* | | |
-| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. Gravado pela tela "Bloqueio de apps" (Perfil). Opcionais, ausente = padrão: `duracaoBlocoMin` (15), `toleranciaMin` (2), `cooldownMin` (30), `blocosDiarios` (4), `blocoPorTarefaExtra` (1) — saldo diário de blocos, ver `regras-de-negocio.md` seção 5. Ausente = usuário nunca configurou |
+| `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{ inicio: string (HH:mm), fim: string (HH:mm), diasSemana: number[] (0 = domingo) }] }`. `apps` só aceita pacotes da lista curada de redes sociais (`src/domain/`, ver seção "Lista curada" abaixo) — pacotes fora dela são removidos na primeira abertura após a atualização. Gravado pela tela "Bloqueio de apps" (Perfil). Opcionais, ausente = padrão: `duracaoBlocoMin` (15), `cooldownMin` (45), `blocosDiarios` ("sem limite") — motor de sessões com cooldown, ver `regras-de-negocio.md` seção 5. Ausente = usuário nunca configurou |
 | `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: string (YYYY-MM-DD)` — qualquer alteração feita depois da primeira configuração (regra única, sem distinguir afrouxar/endurecer), só promovida a partir de `efetivaEm` (`aplicarRegrasBloqueioPendentesSeVencidas`/`decidirGravacaoRegrasBloqueio`, domain/appBlock.ts). `null` explícito = sem pendência no momento |
 | `consentimentoAcessibilidade` | string (`YYYY-MM-DD`) \| ausente | Data em que o usuário concordou com a divulgação em destaque do Accessibility Service (`DivulgacaoAcessibilidadeScreen`). Ausente = nunca concordou |
-| **Rotina noturna** *(HU-06)* | | |
-| `rotina` | map \| ausente | `{ dormirEstimado: string (HH:mm), acordarEstimado: string (HH:mm), confirmadoEm?: string (YYYY-MM-DD), alternativaNoturna?: string, modoManual?: boolean }` (tipo `Rotina`, `domain/types.ts`). Ausente = sem rotina. `confirmadoEm` ausente = estimativa ainda não confirmada. Gravado por `confirmarRotina` (três primeiros campos), `salvarAlternativaNoturna` (texto livre, dado pessoal), `editarHorarioRotinaManual` (horários informados + `modoManual: true`) e `recalcularRotinaAutomatica` (`modoManual: false`), sempre como objeto aninhado com merge. Apagado junto com `users/{uid}` na exclusão de conta |
+| `consentimentoAcessoUso` | string (`YYYY-MM-DD`) \| ausente | Data em que o usuário concordou em conceder o acesso de uso (`UsageStatsManager`) na `DivulgacaoAcessoUsoScreen`. Ausente = nunca concordou; sem isso, nada é coletado em `dailyLogs.usoApps` |
+| `rotina` | map \| ausente | `{ dormirEstimado: string (HH:mm), acordarEstimado: string (HH:mm), confirmadoEm: string (YYYY-MM-DD) \| null, alternativaNoturna: string \| null, modoManual: boolean }`. Estimado a partir de `dailyLogs.usoApps.primeiroUsoDia`/`.ultimoUsoAntesPausaLonga` com 5+ dias de histórico; sem `confirmadoEm`, a janela noturna não é aplicada. `modoManual: true` pausa a reestimativa automática até "Recalcular automaticamente" ser usado. Ver `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5 |
+
+### Lista curada de redes sociais (`src/domain/`)
+Constante única usada pela tela de bloqueio e pelo `<queries>` do manifesto (nunca
+`QUERY_ALL_PACKAGES`): Instagram (`com.instagram.android`), TikTok
+(`com.zhiliaoapp.musically`, `com.ss.android.ugc.trill`), Kwai (`com.kwai.video`),
+Facebook (`com.facebook.katana`, `com.facebook.lite`), X (`com.twitter.android`),
+Threads (`com.instagram.barcelona`), Reddit (`com.reddit.frontpage`), Pinterest
+(`com.pinterest`), Snapchat (`com.snapchat.android`) e YouTube
+(`com.google.android.youtube`).
 
 > Nota de segurança já registrada: `streakAtual`/`escudosDisponiveis` continuam
 > graváveis diretamente pelo client (dívida técnica original, ainda não endurecida).
@@ -70,9 +79,10 @@ arrays que crescem indefinidamente no documento do usuário.
 | `tarefas` | array\<map\> | ver estrutura abaixo |
 | `statusDia` | string | `pendente` \| `cumprido` \| `protegido_escudo` \| `perdido` |
 | `escudoUsado` | boolean | |
-| `sessoesFoco` | array\<map\> \| ausente | Sessões de foco do dia (TravadoFlow/InterceptScreen) — ver estrutura abaixo. Gravado via `arrayUnion` (atômico, não lê+regrava o array inteiro). Ausente = nenhuma ainda |
-| `interceptacoes` | array\<map\> \| ausente | Decisões tomadas na InterceptScreen — ver estrutura abaixo. Gravado via `arrayUnion`, mesmo racional. Ausente = nenhuma ainda |
-| `resumoBloqueio` | map \| ausente | Resumo do saldo de blocos do dia, só pra estatísticas futuras: `{ blocosUsados: number, toleranciasUsadas: number, intencoes: string[] }`. Gravado via `increment`/`arrayUnion` (`registrarResumoBloqueioNoDia`). **`intencoes` é texto livre digitado pelo usuário na pausa de intenção — dado pessoal, descrito na seção 2.3 da política de privacidade (versão de 12/10/2026).** Ausente = nenhum bloco liberado ainda |
+| `sessoesFoco` | array\<map\> \| ausente | Sessões de foco do dia (TravadoFlow e o atalho neutro do cooldown) — ver estrutura abaixo. Gravado via `arrayUnion` (atômico, não lê+regrava o array inteiro). Ausente = nenhuma ainda |
+| `resumoBloqueio` | map \| ausente | Resumo do motor de bloqueio do dia, pra estatísticas futuras: `{ sessoesUsadas: number, intencoes: string[], acessosRapidos: number, emergencias: number }`. Gravado via `increment`/`arrayUnion` (`registrarResumoBloqueioNoDia`). **`intencoes` é texto livre digitado pelo usuário na pausa de intenção — dado pessoal, descrito na seção 2.3 da política de privacidade (versão de 12/10/2026).** Ausente = nenhuma sessão/válvula usada ainda |
+| `usoApps` | map \| ausente | `{ [packageName]: { segundos: number, aberturas: number }, primeiroUsoDia: string (ISO 8601), ultimoUsoAntesPausaLonga: string (ISO 8601) }`. Medido via `UsageStatsManager`, só pra pacotes da lista curada instalados — fonte independente do Accessibility Service. `primeiroUsoDia`/`ultimoUsoAntesPausaLonga` são a base da estimativa de `rotina` (seção 2). Gravar este campo nunca altera `tarefas`, `statusDia`, `escudoUsado` nem o streak. Ausente = acesso de uso nunca concedido ou sem uso coletado ainda |
+| `acessibilidade` | map \| ausente | `{ desligadoEm: string[] (ISO 8601), religadoEm: string[] (ISO 8601) }` — histórico de desligamentos/religamentos do Accessibility Service, sincronizado do nativo via `arrayUnion` na abertura do app (idempotente, reenviar não duplica). Gravar este campo nunca altera `tarefas`, `statusDia`, `escudoUsado` nem o streak. Ausente = nenhum evento ainda |
 | `criadoEm` / `atualizadoEm` | timestamp | |
 
 **Estrutura de cada item em `tarefas[]`:**
@@ -86,12 +96,12 @@ arrays que crescem indefinidamente no documento do usuário.
   tipo?: 'padrao' | 'exercicio',        // default 'padrao' se ausente (retrocompat)
   duracaoMinutos?: number,               // só relevante quando tipo === 'exercicio'
   origemRecorrenteId?: string,           // presente quando a tarefa nasceu de essentialTasks
-  tarefaPaiId?: string,                  // novo — presente quando nasceu do passo "confusão" do TravadoFlow
-  quando?: string                        // novo — "HH:mm", intenção de implementação (se-então)
+  tarefaPaiId?: string,                  // presente quando nasceu do passo "confusão" do TravadoFlow
+  quando?: string                        // "HH:mm", intenção de implementação (se-então)
 }
 ```
 
-**Estrutura de cada item em `sessoesFoco[]`** (novo, spec `09-ponte-fuga-tarefa`):
+**Estrutura de cada item em `sessoesFoco[]`** (spec `09-ponte-fuga-tarefa`):
 ```
 {
   id: string,
@@ -100,32 +110,30 @@ arrays que crescem indefinidamente no documento do usuário.
   estadoTravado: 'confusao' | 'medo' | 'tedio' | 'energia' | null,  // dado emocional — nunca sai pro Analytics com identificador
   duracaoPlanejadaSeg: number,
   duracaoRealSeg: number,
-  resultado: 'continuou' | 'concluiu_tarefa' | 'parou' | 'liberou_app',
+  resultado: 'continuou' | 'concluiu_tarefa' | 'parou',
   criadoEm: string  // ISO 8601
 }
 ```
+> `origem: 'interceptacao'` mudou de sentido: antes era o "Fazer 2 minutos" do extinto
+> estado A (ligado à tarefa essencial, com o botão "Liberar o app" no fim); hoje é só o
+> atalho neutro de 5 min sem tarefa oferecido na tela de cooldown/saldo zerado
+> (`EsperaBloqueioScreen`, ver `09-ponte-fuga-tarefa-e-estou-travado.md` seção 3).
+> `resultado: 'liberou_app'` foi removido — nenhuma sessão de foco libera app algum ao
+> terminar, qualquer que seja a origem (ver spec 09, seção 7).
 
-**Estrutura de cada item em `interceptacoes[]`** (novo, idem):
-```
-{
-  app: string,       // package name
-  hora: string,      // ISO 8601
-  estadoTela: 'A' | 'B' | 'C',
-  acao: 'sessao' | 'travado' | 'desafio' | 'liberou' | 'saiu'
-}
-```
-> `'desafio'` continua no tipo `AcaoIntercept`, mas nenhum fluxo o grava mais: o
-> "Desbloquear com desafio" foi removido do produto (ver `roadmap-e-status.md`).
+> **Removido:** o array `interceptacoes[]` (log por evento com `estadoTela: 'A'|'B'|'C'`)
+> não existe mais — os estados A/B/C da InterceptScreen foram extintos (motor de
+> sessões) e nada o substitui; os contadores de `resumoBloqueio` bastam.
 
 Ao CRIAR um `dailyLog` novo (primeira leitura do dia, `garantirDailyLogDoDia`), o array
 `tarefas[]` já nasce pré-populado com as `essentialTasks` ativas do usuário (ver seção 4)
 — não é mais criado vazio por padrão.
 
-> Nota técnica: `salvarDailyLog` grava com `merge: true` (corrigido junto da spec
-> `09-ponte-fuga-tarefa`) — antes disso, qualquer toque numa tarefa sobrescrevia o
-> documento inteiro e apagava `sessoesFoco`/`interceptacoes` gravados por outra via.
-> `registrarSessaoFocoNoDia`/`registrarInterceptacaoNoDia` usam `arrayUnion` (não
-> ler+regravar o array inteiro) — corrige uma condição de corrida real em gravações
+> Nota técnica: `salvarDailyLog` grava com `merge: true` — qualquer toque numa tarefa
+> não sobrescreve o documento inteiro, preservando `sessoesFoco`/`resumoBloqueio`/
+> `usoApps`/`acessibilidade` gravados por outra via.
+> `registrarSessaoFocoNoDia`/`registrarResumoBloqueioNoDia` usam `arrayUnion`/`increment`
+> (não ler+regravar o array/mapa inteiro) — corrige condição de corrida em gravações
 > concorrentes.
 
 ---
@@ -175,9 +183,12 @@ escrever aqui, regra de segurança bloqueia).
 | Campo | Tipo |
 |---|---|
 | `texto` | string |
-| `tema` | `disciplina` \| `foco` \| `recomeco` \| `identidade` \| `desconforto` \| `pequenos_passos` |
+| `tema` | `disciplina` \| `foco` \| `recomeco` \| `identidade` \| `desconforto` \| `pequenos_passos` \| `noturno` |
 | `contexto` | `home` \| `pos_recaida` \| `retorno` \| `marco` |
 | `ativa` | boolean |
+
+> `tema: 'noturno'` é usado pela pausa de intenção e pelo acesso rápido dentro da
+> janela noturna (ver `banco-de-frases.md` seção 7 e `regras-de-negocio.md` seção 5).
 
 ---
 
@@ -269,10 +280,11 @@ A exclusão client-side em si é dívida técnica (`stack-tecnico.md`).
 | Home | `users/{uid}`, `dailyLogs/{hoje}`, `essentialTasks` (ativas), `phrases` | `dailyLogs/{hoje}.tarefas[]`, `essentialTasks` (ao criar/parar recorrente) |
 | RecoveryStateScreen / ReturnAfterPauseScreen | `systemMessages`, `dailyLogs/{ontem}` | `users/{uid}.statusStreak` (retorno após pausa) |
 | ProgressoScreen | `dailyLogs` (últimos 7 dias), `users/{uid}` (streak/dias ativos), `challenges` | — |
-| BloqueioAppsScreen | `users/{uid}.regrasBloqueio`/`.regrasBloqueioPendentes` | `users/{uid}.regrasBloqueio` (1ª configuração) ou `.regrasBloqueioPendentes` (qualquer alteração depois) |
+| BloqueioAppsScreen | `users/{uid}.regrasBloqueio`/`.regrasBloqueioPendentes`/`.rotina` | `users/{uid}.regrasBloqueio` (1ª configuração) ou `.regrasBloqueioPendentes` (qualquer alteração depois), `.rotina` (confirmação/edição manual) |
 | DivulgacaoAcessibilidadeScreen | — | `users/{uid}.consentimentoAcessibilidade` (só ao tocar "Concordo e quero ativar") |
+| DivulgacaoAcessoUsoScreen | — | `users/{uid}.consentimentoAcessoUso` (só ao tocar "Permitir acesso de uso") |
 | TravadoFlowScreen / SessaoFocoScreen | `dailyLogs/{hoje}` (tarefas, via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (subtarefa/edição/move pra amanhã), `dailyLogs/{hoje}.sessoesFoco[]` |
-| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (estado C), `dailyLogs/{hoje}.interceptacoes[]`, `dailyLogs/{hoje}.resumoBloqueio` |
+| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`), `users/{uid}.rotina` | `dailyLogs/{hoje}.resumoBloqueio`, `dailyLogs/{hoje}.sessoesFoco[]` (atalho de 5 min sem tarefa) |
 | PerfilScreen | `users/{uid}` | `users/{uid}` (porquê, notificações, horário), exclusão completa via `apagarTodosOsDadosDoUsuario` |
 
 ---
@@ -280,15 +292,15 @@ A exclusão client-side em si é dívida técnica (`stack-tecnico.md`).
 ## 11. Próximo passo sugerido
 
 Schema, regras de negócio e navegação (`regras-de-negocio.md`, `navegacao-componentes.md`)
-estão alinhados com o código real após a remoção do bloqueio antigo e a chegada da
-configuração mínima de `regrasBloqueio`. Próximo ponto de atenção: nenhuma tela de
-Progresso ainda lê `interceptacoes`/`sessoesFoco` de volta — os dados são gravados mas
-não aparecem em nenhuma visualização pro usuário.
+estão alinhados com o motor de sessões/válvulas/rotina noturna. Próximo ponto de
+atenção: nenhuma tela de Progresso ainda lê `resumoBloqueio`/`usoApps` de volta — os
+dados são gravados mas ainda não aparecem em nenhuma visualização pro usuário (ver
+`roadmap-e-status.md` pro resumo de bloqueio planejado no Progresso).
 
-## Estado do saldo de blocos (só nativo, fora do Firestore)
+## Estado do motor de sessões (só nativo, fora do Firestore)
 
-O estado do saldo diário (saldo, blocos usados, tempo consumido, tolerância, fim do
-cooldown, `fgDesde`) vive em SharedPreferences (`rootora_saldo_bloqueio`, chave
-`estado`, JSON) — sobrevive a fechar o app e reiniciar o aparelho, mas **não é
-sincronizado nem restaurado** (reinstalar zera). No Firestore vai só o resumo
-(`resumoBloqueio`).
+O estado do motor (sessão ativa, cooldown, saldo diário quando configurado, acessos
+rápidos e emergências usados no dia, `fgDesde`) vive em SharedPreferences
+(`rootora_saldo_bloqueio`, chave `estado`, JSON) — sobrevive a fechar o app e
+reiniciar o aparelho, mas **não é sincronizado nem restaurado** (reinstalar zera). No
+Firestore vai só o resumo (`resumoBloqueio`).

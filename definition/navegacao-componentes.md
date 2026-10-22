@@ -59,17 +59,21 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │     └── PerfilStack
 │           ├── PerfilScreen
 │           ├── BloqueioApps                  (BloqueioAppsScreen — configuração de
-│           │     regrasBloqueio: status do serviço, apps, janela, resumo)
+│           │     regrasBloqueio: status do serviço, apps (lista curada de redes
+│           │     sociais), janela, seção "Rotina", resumo)
 │           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
 │           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
 │           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
+│           ├── DivulgacaoAcessoUso           (DivulgacaoAcessoUsoScreen — aberta a
+│           │     partir da entrada "Medir tempo nas redes" de BloqueioApps; grava
+│           │     consentimentoAcessoUso)
 │           ├── AccessibilityDebug            (condicional a `__DEV__ ||
 │           │     MOSTRAR_DEBUG_ACESSIBILIDADE` de `config/debugFlags.ts` — a flag
 │           │     fica `false` no repositório e só é ligada à mão pra gerar APK de
 │           │     teste; temporária por design, não remover sem avisar, ainda é
 │           │     usada pra validar a detecção em dispositivo físico)
 │           └── InterceptDebug                (idem, mesma condição — abre a
-│                 InterceptScreen de verdade com props mockadas, spec 09)
+│                 InterceptScreen de verdade com estado mockado, spec 09)
 ```
 
 Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
@@ -84,20 +88,31 @@ componente registrado no `AppRegistry`** (`index.js`), montado por uma Activity 
 diferente da `MainActivity` (`InterceptRoot.tsx`: `SafeAreaProvider` + `ToastProvider`
 próprios, sem `RootNavigator`/`MainTabNavigator`). Pensado pra abrir em <300ms sem
 carregar a navegação inteira. **Único caminho de interceptação** —
-`regrasBloqueio` → `AccessibilityService.deveInterceptar` → `InterceptActivity`.
+`regrasBloqueio` → `AccessibilityService.deveInterceptar` → `InterceptActivity`. Não
+monta `TravadoFlowScreen` (os chips do TravadoFlow só existem no root principal, via
+Home/TaskCard) — monta, no máximo, uma `SessaoFocoScreen` sem tarefa, pelo atalho
+neutro do cooldown.
 
 ```
-InterceptRoot (packageName, appLabel, snapshotJson, estadoBloqueioJson?, sessaoAtivaJson? via initialProps)
-└── InterceptScreen — fase do saldo de blocos (nativo) decide a tela
-      ├── BLOQUEADO_SEM_ESSENCIAL → decisão A / C (seção 3 da spec)
-      │     ├── "Fazer 2 minutos" → SessaoFocoScreen (origem 'interceptacao')
-      │     └── "Estou travado"   → TravadoFlowScreen (mesmo componente da Home/TaskCard)
-      ├── AGUARDANDO_LIBERACAO → PausaIntencaoScreen ("Liberar" → abre o bloco e o app)
-      ├── TOLERANCIA (oferta)  → TempoEsgotadoScreen ("+N min para finalizar" / "Agora não")
+InterceptRoot (packageName, appLabel, estadoBloqueioJson, rotinaJson? via initialProps)
+└── InterceptScreen — fase da máquina de estados (nativo) decide a tela
+      ├── AGUARDANDO_LIBERACAO → PausaIntencaoScreen
+      │     (espera pela posição da sessão no dia — 10/20/30/40/50/60s, dobrada e com
+      │     mensagem do banco `noturno` se dentro da janela noturna — "Liberar" após a
+      │     espera abre a sessão e o app)
+      ├── SESSAO_ATIVA → aviso "sessão em andamento" + abre o app direto
       ├── COOLDOWN | SALDO_ZERADO → EsperaBloqueioScreen
-      │     ├── "Iniciar uma sessão de foco" → SessaoFocoScreen (5 min, sem tarefa)
-      │     └── "Ver tarefas extras" → TarefasExtrasScreen (concluir/adicionar → +bloco)
-      └── BLOCO_ATIVO | TOLERANCIA em curso → aviso "bloco em andamento" + abrir o app
+      │     ├── "Acesso rápido (2 min)" — se cota/intervalo permitirem (espera 5s, ou
+      │     │     30s + mensagem noturna dentro da janela); senão mostra "próximo
+      │     │     acesso rápido em X min"
+      │     ├── "Saída de emergência" — só quando o acesso rápido não está disponível
+      │     │     (respiração guiada de 60s, sem limite de usos)
+      │     ├── "Iniciar uma sessão de foco" → SessaoFocoScreen (5 min, sem tarefa,
+      │     │     origem 'interceptacao' — não libera o app ao terminar)
+      │     └── "Ver tarefas extras" → TarefasExtrasScreen (só relevante com
+      │           `blocosDiarios` configurado como número)
+      └── (nenhum alvo nesta tela para "Estou travado" — o TravadoFlow com os 4 chips
+            só é aberto pela Home/TaskCard, fora deste root)
 ```
 
 ### Lógica de decisão do `RootNavigator`
@@ -221,12 +236,18 @@ decide o layout é o status real do serviço, não qual das duas foi tocada):
 
 Nenhum dos dois abre as configurações do Android direto — isso só acontece de
 dentro da divulgação. Lista de `AppListItem` (checkbox customizado, não Switch
-nativo — quebra em testes Jest no mesmo arquivo de um `LoadingIndicator`) com
+nativo — quebra em testes Jest no mesmo arquivo de um `LoadingIndicator`), restrita à
+lista curada de redes sociais instalada (HU-01 — nunca todo app do aparelho), com
 busca por nome, `SeletorDiasSemana` (7 chips de toque único) e os dois seletores
-de horário início/fim (`DateTimePicker`). Resumo em texto (`resumoRegrasBloqueio`,
-`domain/appBlock.ts`) + "Salvar". Edita a partir da regra PENDENTE quando existe
-uma (o que vai valer amanhã), senão da vigente. Com uma pendência: banner "Nova
-regra começa amanhã: [resumo]" + "Cancelar alteração".
+de horário início/fim (`DateTimePicker`). Entrada "Medir tempo nas redes" (abre
+`DivulgacaoAcessoUsoScreen`), visível enquanto esse acesso estiver desligado. Seção
+"Rotina" (horário estimado/confirmado de dormir e acordar, alternativa noturna,
+"Recalcular automaticamente" — ver `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
+mostrando o progresso da coleta enquanto não houver 5 dias de dados suficientes.
+Resumo em texto (`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a
+partir da regra PENDENTE quando existe uma (o que vai valer amanhã), senão da
+vigente. Com uma pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar
+alteração".
 
 Tocar "Salvar" quando `regrasVigentes` já existe (qualquer alteração depois da
 primeira configuração) não grava nada na hora — renderiza
@@ -252,7 +273,7 @@ mecanismo e mostra `resumoRegrasBloqueio` de antes ("Hoje continua") e depois
 ### `AppListItem`
 | Prop | Tipo |
 |---|---|
-| `app` | `{ packageName, nome, iconeBase64 }` — vem de `listarAppsInstalados()`, resolvido via `<queries>` (MAIN/LAUNCHER), não `QUERY_ALL_PACKAGES` |
+| `app` | `{ packageName, nome, iconeBase64 }` — vem de `listarAppsInstalados()`, restrito à lista curada de redes sociais (HU-01), resolvido via `<queries>` (pacotes explícitos), nunca `QUERY_ALL_PACKAGES` |
 | `selecionado` | boolean |
 | `onToggle` | function |
 
@@ -285,47 +306,65 @@ VÊ" / "O QUE FICA REGISTRADO". Texto exato em `regras-de-negocio.md` seção 4.
   `consentimentoAcessibilidade` neste estado — só a primeira vez que o usuário
   concorda é que isso é gravado.
 
+### DivulgacaoAcessoUsoScreen
+Mesmo padrão da `DivulgacaoAcessibilidadeScreen`, pro acesso de uso
+(`UsageStatsManager`) em vez do Accessibility Service — aberta a partir da entrada
+"Medir tempo nas redes" de `BloqueioAppsScreen`, visível enquanto esse acesso estiver
+desligado. Texto exato em `regras-de-negocio.md` seção 4. `PrimaryButton` "Permitir
+acesso de uso" (grava `consentimentoAcessoUso` e abre as configurações de acesso de
+uso do Android) + `SecondaryButton` "Agora não". Ao voltar das configurações sem
+conceder, mostra "Acesso de uso desligado. O bloqueio continua funcionando, só sem
+medir o tempo."
+
 ### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
-Componente único, reutilizado sem diferença nas 3 entradas (botão da Home, toque longo
-em `TaskItem`, e o "Estou travado" da `InterceptScreen`). Máquina de passos interna —
-mesmo espírito do `OnboardingScreen` — não uma sequência de rotas:
+Componente único, reutilizado sem diferença nas 2 entradas (botão da Home e toque longo
+em `TaskItem` — o antigo terceiro caminho, pelo "Estou travado" da `InterceptScreen`,
+não existe mais desde a HU-04). Máquina de passos interna — mesmo espírito do
+`OnboardingScreen` — não uma sequência de rotas:
 
 | Prop | Tipo | Descrição |
 |---|---|---|
 | `tarefaContexto` | `Tarefa \| null` | A tarefa que estava travando — `null` quando não há essencial pendente hoje |
 | `tarefas` | `Tarefa[]` | Lista do dia, pra checar se já foi concluída por outro caminho enquanto o fluxo estava aberto |
-| `origem` | `OrigemSessaoFoco` | Sempre `'travado'` nas 3 entradas hoje — `'interceptacao'` é reservado pro "Fazer 2 minutos" direto da `InterceptScreen` (não passa por aqui) |
+| `origem` | `OrigemSessaoFoco` | `'travado'` nas 2 entradas do TravadoFlow (Home, toque longo) — `'interceptacao'` é usado só pelo atalho neutro de 5 min sem tarefa do cooldown/saldo zerado, que não passa por este componente |
 | `criarSubtarefa` / `editarTarefa` / `moverTarefaParaAmanha` / `alternarTarefa` | function | Vêm de `useDailyTasks` — o componente nunca fala com Firestore direto |
-| `onFechar` | function | Volta pra Home/pro app de origem |
+| `onFechar` | function | Volta pra Home |
 
 Passos: `escolha` (4 chips) → `resposta` (texto + ação por estado) → `sessao`
 (`SessaoFocoScreen`) ou `concluido` (energia → versão menor/amanhã, sem timer).
 
 ### SessaoFocoScreen
-Timer + FimSessao, usada tanto pelo `TravadoFlowScreen` quanto direto pela
-`InterceptScreen` ("Fazer 2 minutos"). Botão "Seguir para o [app]" só aparece com
-`origem === 'interceptacao'` e `onLiberarApp` passado — o que a `InterceptScreen` só faz
-quando há bloco a liberar (`AGUARDANDO_LIBERACAO`); o toque leva à pausa de intenção, não
-libera direto.
+Timer + FimSessao, usada pelo `TravadoFlowScreen` (origem `'travado'`/`'home'`) e
+também, direto, pela `EsperaBloqueioScreen` do root `Intercept` (origem
+`'interceptacao'`, atalho neutro de 5 min sem tarefa, oferecido em COOLDOWN/
+SALDO_ZERADO). Nenhuma sessão libera app bloqueado algum ao terminar — o botão
+"Seguir para o [app]"/"Liberar o [App] por 15 minutos" que existia antes da HU-04 foi
+removido junto dos estados A/C: quem quiser acesso ao app passa pela pausa de
+intenção ou pelas válvulas de escape (seção "Root separado — `Intercept`" acima),
+nunca pelo fim de uma sessão de foco.
 
 ### InterceptScreen (root `Intercept`, spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 Ver "Root separado — `Intercept`" na seção 1 acima pra árvore completa. A fase vem do
-nativo (`useBloqueioSaldo`; `visaoInicial` = extra `estadoBloqueioJson`, relida ao montar
-e a cada segundo em COOLDOWN/SALDO_ZERADO/BLOQUEADO). Sem essencial cumprido, decide A/C
-na hora a partir do `snapshot` (prop, veio do nativo) e troca sozinha pro dado ao vivo
-(`useDailyTasks`) assim que ele resolve. `sessaoAtivaResumida` (prop opcional) pula
-a decisão inteira e abre a `SessaoFocoScreen` já retomando o tempo restante.
+nativo (`useBloqueioSaldo`; `estadoBloqueioJson` relido ao montar e a cada segundo em
+COOLDOWN/SALDO_ZERADO) — não decide mais nenhum estado a partir de tarefas essenciais
+(os antigos estados A/C e o snapshot de tarefas que eles exigiam não existem mais).
+`rotinaJson` (prop opcional, espelho de `users/{uid}.rotina`) diz se a janela noturna
+está ativa agora, pra dobrar a pausa de intenção e trocar o texto padrão pela mensagem
+do banco `noturno` (seção 5 da spec 09).
 
 ### InterceptDebugScreen
-Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) — 3
-botões que abrem o `InterceptRoot` de verdade com snapshot mockado pra cada estado. O
-estado B mostra o saldo REAL do aparelho (a fase vem do nativo, não do snapshot mockado).
+Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) —
+botões que abrem o `InterceptRoot` de verdade com estado mockado pra cada fase
+(`AGUARDANDO_LIBERACAO`/pausa de intenção, `COOLDOWN`, `SALDO_ZERADO`, e uma variante
+com a janela noturna ativa). O estado real de sessão/cooldown do aparelho só é
+mostrado quando nenhum mock é passado (a fase vem do nativo, não do estado mockado).
 
 ### Telas de permissão
-`DivulgacaoAcessibilidadeScreen` (ver acima — Perfil, antes de abrir as configurações
-de acessibilidade do Android) e `NotificationPrimingScreen` (antes do primeiro pedido
-de permissão de notificação, pós-onboarding) — conteúdo fixo de explicação, sem
-lógica de negócio própria além de gravar o consentimento/decisão do usuário.
+`DivulgacaoAcessibilidadeScreen`, `DivulgacaoAcessoUsoScreen` (ambas no Perfil, antes
+de abrir as respectivas configurações do Android) e `NotificationPrimingScreen` (antes
+do primeiro pedido de permissão de notificação, pós-onboarding) — conteúdo fixo de
+explicação, sem lógica de negócio própria além de gravar o consentimento/decisão do
+usuário.
 
 ### Tour de funcionalidades (pós-onboarding)
 Diferente do Tutorial Inicial (conceitual, pré-login, carrossel de 4 slides) — este
@@ -375,6 +414,6 @@ chama `useFeatureTour().reiniciar()` — reseta a flag e navega de volta pra aba
 
 ## 4. Próximo passo sugerido
 
-Este documento e o `schema-firebase.md` agora refletem o estado real, incluindo a
-remoção do bloqueio antigo e a chegada de `BloqueioAppsScreen`/
-`DivulgacaoAcessibilidadeScreen`. Ver `stack-tecnico.md` pra dívida técnica e libs.
+Este documento e o `schema-firebase.md` agora refletem o motor de sessões/válvulas de
+escape/rotina noturna e a lista curada de redes sociais (HU-01 a HU-06). Ver
+`stack-tecnico.md` pra dívida técnica e libs.
