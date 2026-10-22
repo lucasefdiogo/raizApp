@@ -196,7 +196,7 @@ export function AddTaskForm({
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'flex-end',
   },
   // maxHeight evita que o sheet ultrapasse a tela em telas pequenas ou com
