@@ -40,7 +40,9 @@ NotificationPriming (uma vez) → Main.
   de ontem) · ReturnAfterPauseScreen (condicional, streak pausado) · RotinaConfirmacaoScreen
   (condicional, estimativa de rotina calculada) · AlternativaNoturnaScreen (condicional, uma
   vez, após confirmar rotina)
-- **ProgressoStack:** ProgressoScreen
+- **ProgressoStack:** ProgressoScreen (HU-08: `ResumoRedesCard`, bloco "Nas redes" no
+  `DayDetailSheet`, `ReflexaoSemanalSheet` às segundas) · DivulgacaoAcessoUsoScreen
+  (via link "Medir tempo", HU-08)
 - **PerfilStack:** PerfilScreen · BloqueioAppsScreen · RotinaPerfilScreen ·
   DivulgacaoAcessibilidadeScreen · DivulgacaoAcessoUsoScreen
 
