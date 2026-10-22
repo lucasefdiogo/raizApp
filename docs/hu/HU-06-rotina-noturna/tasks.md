@@ -80,7 +80,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/domain/mensagensNoturnas.ts, src/domain/mensagensNoturnas.test.ts, definition/banco-de-frases.md
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-09 (CA-03, CA-04, CA-05, CA-06, RN-05, RN-08 a RN-11): hook `usePausaNoturna(uid)` junta rotina, janela, duração, mensagem rotativa (índice guardado no AsyncStorage) e alternativa
+- [x] TASK-09 (CA-03, CA-04, CA-05, CA-06, RN-05, RN-08 a RN-11): hook `usePausaNoturna(uid)` junta rotina, janela, duração, mensagem rotativa (índice guardado no AsyncStorage) e alternativa
   - Teste: `CA-04: dentro da janela devolve 40 s na 2ª sessão e uma mensagem noturna` (feliz)
   - Teste: `CA-05: duas aberturas seguidas devolvem mensagens diferentes` (feliz)
   - Teste: `CA-03: com alternativa cadastrada devolve o texto dela` (feliz)

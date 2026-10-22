@@ -38,3 +38,6 @@ Task ativa: nenhuma
 Task ativa: TASK-08
 TASK-08: banco noturno (9 mensagens) e proximaMensagemNoturna em domain/mensagensNoturnas.ts; documentado em definition/banco-de-frases.md (secao 7, frases proibidas virou 8). Suite verde (1303).
 Task ativa: nenhuma
+Task ativa: TASK-09
+TASK-09: hook usePausaNoturna(uid, blocosUsados) devolve {carregando, noturna, duracaoSeg, mensagem, alternativa}; indice da mensagem em utils/storage (rootora.mensagemNoturna.indice); falha cai na pausa padrao. Suite verde (1311).
+Task ativa: nenhuma
