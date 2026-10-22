@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -13,15 +13,23 @@ import { useProgressoSemanal } from '../../hooks/useProgressoSemanal';
 import { useDesafios } from '../../hooks/useDesafios';
 import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
 import { useDayDetail } from '../../hooks/useDayDetail';
+import { useResumoRedes } from '../../hooks/useResumoRedes';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
 import { DayDetailSheet } from '../../components/progress/DayDetailSheet';
+import { ResumoRedesCard } from '../../components/progress/ResumoRedesCard';
+import { ReflexaoSemanalSheet } from '../../components/progress/ReflexaoSemanalSheet';
 import { ChallengeCard } from '../../components/challenges/ChallengeCard';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { EmptyState } from '../../components/common/EmptyState';
-import { dataLocalDeISO } from '../../domain/data';
+import { dataLocalDeISO, paraISOLocal } from '../../domain/data';
+import { inicioDaSemana } from '../../domain/streak';
+import { STORAGE_KEYS, lerItem, salvarItem } from '../../utils/storage';
+import { logReflexaoSemanalExibida, logReflexaoSemanalFechada } from '../../services/analytics';
 
 interface ProgressoScreenProps {
   uid: string;
+  /** Abre a divulgação do acesso de uso (HU-08, RN04) a partir do link "Medir tempo". */
+  aoTocarMedirTempo: () => void;
 }
 
 const LABEL_DIA_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -46,7 +54,7 @@ function labelCompletoParaData(dataISO: string): string {
   return LABEL_DIA_SEMANA_COMPLETO[diaSemana];
 }
 
-export function ProgressoScreen({ uid }: ProgressoScreenProps) {
+export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps) {
   useVoltarParaAbaHoje();
 
   const { historico, streakAtual, diasTotaisAtivos, carregando, recarregar } =
@@ -57,13 +65,23 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
     recarregar: recarregarDesafios,
   } = useDesafios(uid);
   const {
+    resumoCard,
+    reflexao,
+    comAcessoDeUso,
+    carregando: carregandoResumoRedes,
+    recarregar: recarregarResumoRedes,
+  } = useResumoRedes(uid);
+  const {
     dataSelecionada,
     tarefasDoDia,
     statusDoDia,
+    detalheRedes,
     buscarDia,
     limparSelecao,
-  } = useDayDetail(uid);
+  } = useDayDetail(uid, comAcessoDeUso);
   const [atualizando, setAtualizando] = useState(false);
+  const [mostrarReflexao, setMostrarReflexao] = useState(false);
+  const avaliouReflexaoRef = useRef(false);
 
   const handleTocarDia = useCallback(
     (data: string, status: string) => {
@@ -78,13 +96,41 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
   const aoAtualizar = useCallback(async () => {
     setAtualizando(true);
     try {
-      // as duas releituras já tratam a própria falha (toast) e resolvem sem
-      // rejeitar — o gesto só espera as duas terminarem.
-      await Promise.all([recarregar(), recarregarDesafios()]);
+      // as releituras já tratam a própria falha (toast) e resolvem sem
+      // rejeitar — o gesto só espera todas terminarem.
+      await Promise.all([recarregar(), recarregarDesafios(), recarregarResumoRedes()]);
     } finally {
       setAtualizando(false);
     }
-  }, [recarregar, recarregarDesafios]);
+  }, [recarregar, recarregarDesafios, recarregarResumoRedes]);
+
+  // Reflexão semanal (HU-08, RN10/RN12): avalia uma única vez por abertura
+  // da tela — se já não foi mostrada nesta semana (AsyncStorage) e há dados
+  // suficientes (reflexao não nulo, já considera consentimento + base de
+  // dias em useResumoRedes).
+  useEffect(() => {
+    if (avaliouReflexaoRef.current || carregandoResumoRedes) {
+      return;
+    }
+    avaliouReflexaoRef.current = true;
+    if (!reflexao) {
+      return;
+    }
+    (async () => {
+      const semanaAtualISO = paraISOLocal(inicioDaSemana(new Date()));
+      const vistaEm = await lerItem<string>(STORAGE_KEYS.reflexaoSemanalVista);
+      if (vistaEm !== semanaAtualISO) {
+        setMostrarReflexao(true);
+        logReflexaoSemanalExibida();
+      }
+    })();
+  }, [carregandoResumoRedes, reflexao]);
+
+  const fecharReflexao = useCallback(async (acao: 'entendi' | 'agora_nao') => {
+    await salvarItem(STORAGE_KEYS.reflexaoSemanalVista, paraISOLocal(inicioDaSemana(new Date())));
+    logReflexaoSemanalFechada(acao);
+    setMostrarReflexao(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,6 +187,14 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
               ))}
             </View>
 
+            {!carregandoResumoRedes && (
+              <ResumoRedesCard
+                comAcessoDeUso={comAcessoDeUso}
+                resumo={resumoCard}
+                onMedirTempo={aoTocarMedirTempo}
+              />
+            )}
+
             {(desafioSemanal || desafioMensal) && (
               <>
                 <Text style={styles.secaoTitulo}>Desafios</Text>
@@ -172,7 +226,17 @@ export function ProgressoScreen({ uid }: ProgressoScreenProps) {
           label={labelCompletoParaData(dataSelecionada)}
           status={statusDoDia}
           tarefas={tarefasDoDia}
+          detalheRedes={detalheRedes}
           onClose={limparSelecao}
+        />
+      )}
+
+      {mostrarReflexao && reflexao && (
+        <ReflexaoSemanalSheet
+          visible
+          dados={reflexao}
+          onEntendi={() => fecharReflexao('entendi')}
+          onAgoraNao={() => fecharReflexao('agora_nao')}
         />
       )}
     </SafeAreaView>

@@ -2,6 +2,7 @@ import {
   PACOTES_REDES_SOCIAIS,
   appsIniciaisSelecionados,
   filtrarRedesSociaisInstaladas,
+  nomeDoApp,
 } from './redesSociais';
 
 describe('lista curada de redes sociais', () => {
@@ -65,5 +66,32 @@ describe('appsIniciaisSelecionados', () => {
 
   it('CA-03: regra salva sem apps não pré-marca nada', () => {
     expect(appsIniciaisSelecionados({ apps: [], janelas: [] }, instalados)).toEqual([]);
+  });
+});
+
+describe('HU-08 · nomeDoApp', () => {
+  it('Cenário 7: agrupa os 2 pacotes do TikTok sob o mesmo nome', () => {
+    expect(nomeDoApp('com.zhiliaoapp.musically')).toBe('TikTok');
+    expect(nomeDoApp('com.ss.android.ugc.trill')).toBe('TikTok');
+  });
+
+  it('Cenário 7: agrupa Facebook e Facebook Lite sob o mesmo nome', () => {
+    expect(nomeDoApp('com.facebook.katana')).toBe('Facebook');
+    expect(nomeDoApp('com.facebook.lite')).toBe('Facebook');
+  });
+
+  it('dá o nome certo pros demais pacotes da lista curada', () => {
+    expect(nomeDoApp('com.instagram.android')).toBe('Instagram');
+    expect(nomeDoApp('com.instagram.barcelona')).toBe('Threads');
+    expect(nomeDoApp('com.twitter.android')).toBe('X');
+    expect(nomeDoApp('com.kwai.video')).toBe('Kwai');
+    expect(nomeDoApp('com.reddit.frontpage')).toBe('Reddit');
+    expect(nomeDoApp('com.pinterest')).toBe('Pinterest');
+    expect(nomeDoApp('com.snapchat.android')).toBe('Snapchat');
+    expect(nomeDoApp('com.google.android.youtube')).toBe('YouTube');
+  });
+
+  it('pacote fora da lista curada devolve o próprio pacote', () => {
+    expect(nomeDoApp('com.whatsapp')).toBe('com.whatsapp');
   });
 });

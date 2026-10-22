@@ -4,9 +4,11 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { ProgressoScreen } from '../screens/progress/ProgressoScreen';
+import { DivulgacaoAcessoUsoScreen } from '../screens/perfil/DivulgacaoAcessoUsoScreen';
 
 export type ProgressoStackParamList = {
   Progresso: undefined;
+  DivulgacaoAcessoUso: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProgressoStackParamList>();
@@ -23,7 +25,17 @@ export function ProgressoStack({ uid }: ProgressoStackProps) {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen name="Progresso">
-        {() => <ProgressoScreen uid={uid} />}
+        {({ navigation }) => (
+          <ProgressoScreen
+            uid={uid}
+            aoTocarMedirTempo={() => navigation.navigate('DivulgacaoAcessoUso')}
+          />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="DivulgacaoAcessoUso">
+        {({ navigation }) => (
+          <DivulgacaoAcessoUsoScreen uid={uid} onVoltar={() => navigation.goBack()} />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

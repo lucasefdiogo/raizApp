@@ -10,6 +10,8 @@ import {
   logOnboardingConcluido,
   logPermissaoAccessibility,
   logPermissaoNotificacao,
+  logReflexaoSemanalExibida,
+  logReflexaoSemanalFechada,
   logTarefaConcluida,
   logTarefaCriada,
   logTourFuncionalidadesConcluido,
@@ -199,6 +201,35 @@ describe('services/analytics', () => {
       expect.anything(),
       'focus_session_end',
       { duracao_planejada: 120, resultado: 'concluiu_tarefa' },
+    );
+  });
+
+  it('logReflexaoSemanalExibida envia o evento sem parâmetros', () => {
+    logReflexaoSemanalExibida();
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'reflexao_semanal_exibida',
+    );
+  });
+
+  it('Cenário 13: logReflexaoSemanalFechada envia só a ação, sem dado de uso/app/intenção', () => {
+    logReflexaoSemanalFechada('entendi');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'reflexao_semanal_fechada',
+      { acao: 'entendi' },
+    );
+  });
+
+  it('logReflexaoSemanalFechada aceita "agora_nao"', () => {
+    logReflexaoSemanalFechada('agora_nao');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'reflexao_semanal_fechada',
+      { acao: 'agora_nao' },
     );
   });
 });

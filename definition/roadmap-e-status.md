@@ -68,6 +68,7 @@
 |---|---|
 | Histórico de 7 dias + 2 números de resumo | ✅ |
 | Ver detalhe de um dia passado (`DayDetailSheet`) | ✅ |
+| HU-08 · Tempo nas redes e reflexão da semana (`ResumoRedesCard`, bloco "Nas redes" no `DayDetailSheet`, `ReflexaoSemanalSheet` às segundas) | ✅ (`docs/hu/hu-08-progresso-redes.md`) — proposta de redução como desafio (RN11) fora do escopo, decisão pendente |
 
 ## 7. Desafios semanais/mensais
 

@@ -125,6 +125,73 @@ describe('DayDetailSheet', () => {
     expect(screen.queryByText('Ler 5 páginas')).toBeNull();
   });
 
+  describe('HU-08 · bloco "Nas redes"', () => {
+    it('Cenário 7/8: mostra duração, contadores, apps e intenções entre aspas', async () => {
+      await render(
+        <DayDetailSheet
+          visible
+          label="Quarta-feira"
+          status="protegido_escudo"
+          tarefas={TAREFAS}
+          detalheRedes={{
+            duracao: '52 min',
+            textoContadores: '4 sessões · 1 acesso rápido',
+            topAppsTexto: 'Instagram 31 min · TikTok 21 min',
+            intencoes: ['responder a turma', 'ver o story da Bia'],
+            intencoesExcedente: 0,
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Nas redes')).toBeTruthy();
+      expect(screen.getByText('52 min')).toBeTruthy();
+      expect(screen.getByText('4 sessões · 1 acesso rápido')).toBeTruthy();
+      expect(screen.getByText('Instagram 31 min · TikTok 21 min')).toBeTruthy();
+      expect(screen.getByText('O que você escreveu na pausa')).toBeTruthy();
+      expect(
+        screen.getByText('“responder a turma” · “ver o story da Bia”'),
+      ).toBeTruthy();
+    });
+
+    it('mostra o excedente quando há mais de 5 intenções', async () => {
+      await render(
+        <DayDetailSheet
+          visible
+          label="Quarta-feira"
+          status="cumprido"
+          tarefas={[]}
+          detalheRedes={{
+            duracao: null,
+            textoContadores: '1 sessões · 0 acesso rápido',
+            topAppsTexto: null,
+            intencoes: ['a', 'b', 'c', 'd', 'e'],
+            intencoesExcedente: 2,
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByText('“a” · “b” · “c” · “d” · “e” · +2')).toBeTruthy();
+    });
+
+    it('Cenário 9: sem detalheRedes, não mostra o bloco', async () => {
+      await render(
+        <DayDetailSheet
+          visible
+          label="Terça-feira"
+          status="sem_registro"
+          tarefas={[]}
+          detalheRedes={null}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(screen.queryByTestId('day-detail-nas-redes')).toBeNull();
+      expect(screen.queryByText('Nas redes')).toBeNull();
+    });
+  });
+
   it('"Fechar" chama onClose', async () => {
     const onClose = jest.fn();
     await render(

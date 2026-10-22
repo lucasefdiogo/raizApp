@@ -22,6 +22,32 @@ export const PACOTES_REDES_SOCIAIS: readonly string[] = [
   PACOTE_YOUTUBE,
 ];
 
+/**
+ * Nome de exibição por pacote (HU-08, RN08) — mesmo agrupamento documentado
+ * em schema.md/spec.md: os 2 pacotes do TikTok e os 2 do Facebook caem sob
+ * um único nome. `com.instagram.barcelona` é Threads, não Instagram
+ * (codinome interno da Meta pro app).
+ */
+const NOME_APP_POR_PACOTE: Record<string, string> = {
+  'com.instagram.android': 'Instagram',
+  'com.zhiliaoapp.musically': 'TikTok',
+  'com.ss.android.ugc.trill': 'TikTok',
+  'com.kwai.video': 'Kwai',
+  'com.facebook.katana': 'Facebook',
+  'com.facebook.lite': 'Facebook',
+  'com.twitter.android': 'X',
+  'com.instagram.barcelona': 'Threads',
+  'com.reddit.frontpage': 'Reddit',
+  'com.pinterest': 'Pinterest',
+  'com.snapchat.android': 'Snapchat',
+  [PACOTE_YOUTUBE]: 'YouTube',
+};
+
+/** Nome de exibição do pacote; pacote fora da lista curada devolve o próprio pacote. */
+export function nomeDoApp(packageName: string): string {
+  return NOME_APP_POR_PACOTE[packageName] ?? packageName;
+}
+
 /** Mantém só os apps instalados que pertencem à lista curada (RN-02). */
 export function filtrarRedesSociaisInstaladas<T extends { packageName: string }>(
   instalados: T[],

@@ -122,3 +122,15 @@ export function logFocusSessionEnd(
     resultado,
   });
 }
+
+export function logReflexaoSemanalExibida(): void {
+  logEvent(analytics(), 'reflexao_semanal_exibida');
+}
+
+/**
+ * RN12: só a ação de fechamento — nenhum tempo de uso, nome de app ou texto
+ * de intenção (dado pessoal) sai desta tela pro Analytics.
+ */
+export function logReflexaoSemanalFechada(acao: 'entendi' | 'agora_nao'): void {
+  logEvent(analytics(), 'reflexao_semanal_fechada', { acao });
+}

@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { StatusHistoricoDia } from '../../domain/progress';
+import { DetalheRedesDoDia } from '../../domain/resumoRedes';
 import { Tarefa } from '../../domain/types';
 
 interface DayDetailSheetProps {
@@ -11,6 +12,8 @@ interface DayDetailSheetProps {
   label: string;
   status: StatusHistoricoDia;
   tarefas: Tarefa[];
+  /** Bloco "Nas redes" (HU-08, RN07) — ausente/null não mostra o bloco. */
+  detalheRedes?: DetalheRedesDoDia | null;
   onClose: () => void;
 }
 
@@ -33,6 +36,7 @@ export function DayDetailSheet({
   label,
   status,
   tarefas,
+  detalheRedes,
   onClose,
 }: DayDetailSheetProps) {
   const insets = useSafeAreaInsets();
@@ -83,6 +87,31 @@ export function DayDetailSheet({
                   </Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          {detalheRedes && (
+            <View testID="day-detail-nas-redes" style={styles.blocoRedes}>
+              <Text style={styles.eyebrowRedes}>Nas redes</Text>
+              <View style={styles.linhaRedes}>
+                {detalheRedes.duracao && (
+                  <Text style={styles.duracaoRedes}>{detalheRedes.duracao}</Text>
+                )}
+                <Text style={styles.contadoresRedes}>{detalheRedes.textoContadores}</Text>
+              </View>
+              {detalheRedes.topAppsTexto && (
+                <Text style={styles.topAppsRedes}>{detalheRedes.topAppsTexto}</Text>
+              )}
+              {detalheRedes.intencoes.length > 0 && (
+                <>
+                  <View style={styles.divisorRedes} />
+                  <Text style={styles.eyebrowRedes}>O que você escreveu na pausa</Text>
+                  <Text style={styles.intencoesRedes}>
+                    {detalheRedes.intencoes.map(texto => `“${texto}”`).join(' · ')}
+                    {detalheRedes.intencoesExcedente > 0 ? ` · +${detalheRedes.intencoesExcedente}` : ''}
+                  </Text>
+                </>
+              )}
             </View>
           )}
 
@@ -151,6 +180,49 @@ const styles = StyleSheet.create({
   tarefaTituloConcluida: {
     color: theme.colors.textSecondary,
     textDecorationLine: 'line-through',
+  },
+  blocoRedes: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  eyebrowRedes: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.mono,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: theme.colors.textSecondary,
+  },
+  linhaRedes: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  duracaoRedes: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.headingBold,
+    color: theme.colors.textPrimary,
+  },
+  contadoresRedes: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  topAppsRedes: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  divisorRedes: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing.xs,
+  },
+  intencoesRedes: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
   },
   fechar: {
     alignSelf: 'center',
