@@ -42,12 +42,12 @@ Task ativa: TASK-09
 TASK-09: hook usePausaNoturna(uid, blocosUsados) devolve {carregando, noturna, duracaoSeg, mensagem, alternativa}; indice da mensagem em utils/storage (rootora.mensagemNoturna.indice); falha cai na pausa padrao. Suite verde (1311).
 Task ativa: nenhuma
 Task ativa: TASK-10
-TASK-10: telas RotinaConfirmacao, AlternativaNoturna e pausa noturna (PausaIntencaoNoturna na fase AGUARDANDO_LIBERACAO, com PausaIntencaoScreen estendida por props opcionais); wiring em HojeStack. Pendente de doc: definition/navegacao-componentes.md precisa das duas telas novas na aba Hoje (fora do escopo desta task). **[Ainda aberto: movido para /TODO.md]** Suite verde (1335).
+TASK-10: telas RotinaConfirmacao, AlternativaNoturna e pausa noturna (PausaIntencaoNoturna na fase AGUARDANDO_LIBERACAO, com PausaIntencaoScreen estendida por props opcionais); wiring em HojeStack. Pendente de doc: definition/navegacao-componentes.md precisa das duas telas novas na aba Hoje (fora do escopo desta task). **[Resolvido em 2026-10-22: incorporado em definition/navegacao-componentes.md]** Suite verde (1335).
 Task ativa: nenhuma
 Task ativa: TASK-11
 TASK-11: RotinaPerfilScreen (horarios com Alterar, Recalcular automaticamente, alternativa noturna) e linha Rotina noturna no Perfil; rota RotinaPerfil. Suite verde (1345).
 Task ativa: nenhuma
 Entrega: tasks concluídas
-Validação: verify 8/8 critérios verdes; lux-revisor APROVADO (achados só de melhoria: horários calculados em horariosUsoPorDia e não em agregarUsoPorDia, filtro pela lista curada, Recalcular automaticamente só limpa modoManual, useRotina sem try/catch no carregamento, UsoApps tipado sem as chaves de horário); security-review sem achados. Pendente de doc: definition/navegacao-componentes.md (telas RotinaConfirmacao, AlternativaNoturna e rota RotinaPerfil). **[Ainda aberto: movido para /TODO.md]** E2E: sem executor configurado.
+Validação: verify 8/8 critérios verdes; lux-revisor APROVADO (achados só de melhoria: horários calculados em horariosUsoPorDia e não em agregarUsoPorDia, filtro pela lista curada, Recalcular automaticamente só limpa modoManual, useRotina sem try/catch no carregamento, UsoApps tipado sem as chaves de horário); security-review sem achados. Pendente de doc: definition/navegacao-componentes.md (telas RotinaConfirmacao, AlternativaNoturna e rota RotinaPerfil). **[Resolvido em 2026-10-22: incorporado em definition/navegacao-componentes.md]** E2E: sem executor configurado.
 Entrega: validação aprovada
 Entrega: merge feito, aguardando push — **[Arquivado em 2026-10-22: o fluxo de HU do lux kit foi abandonado; push confirmado: main e origin/main em ac8b7ef.]**

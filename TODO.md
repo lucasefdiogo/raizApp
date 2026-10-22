@@ -13,13 +13,6 @@ Histórico das HUs antigas (formato lux kit, abandonado): `docs/historico/`.
   - [ ] toque na notificação com o app em primeiro plano, em segundo plano e fechado
   - [ ] comportamento sem a permissão `POST_NOTIFICATIONS`
 
-## Documentação
-
-- [ ] `definition/navegacao-componentes.md`: incluir `RotinaConfirmacao` e
-      `AlternativaNoturna` na árvore do `HojeStack` e a rota `RotinaPerfil` no
-      `PerfilStack` (já existem em `src/navigation/HojeStack.tsx` e `PerfilStack.tsx`).
-      Origem: `docs/historico/HU-06/progress.md`.
-
 ## Build nativo
 
 - [ ] **Pergunta pro Lucas:** o `RootoraUsoAppsModule.kt` já foi compilado fora do
