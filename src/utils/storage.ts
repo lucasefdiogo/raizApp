@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   tutorialVisto: 'tutorial_visto',
   notificationPrimingShown: 'notification_priming_shown',
   tourFuncionalidadesVisto: 'tour_funcionalidades_visto',
+  /** Segunda-feira (YYYY-MM-DD) da semana em que a reflexão semanal (HU-08) já foi mostrada. */
+  reflexaoSemanalVista: 'reflexao_semanal_vista',
 } as const;
 
 export async function salvarItem<T>(chave: string, valor: T): Promise<void> {
