@@ -26,6 +26,8 @@ interface UseResumoRedesResultado {
   resumoCard: ResumoCardSemana;
   /** Já considera consentimento + base de dados (RN10) — null quando não deve aparecer. */
   reflexao: ReflexaoSemanalDados | null;
+  /** users/{uid}.consentimentoAcessoUso preenchido — não o status nativo de permissão. */
+  comAcessoDeUso: boolean;
   carregando: boolean;
   recarregar: () => Promise<void>;
 }
@@ -48,6 +50,7 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
   const { showToast } = useToast();
   const [resumoCard, setResumoCard] = useState<ResumoCardSemana>(RESUMO_VAZIO);
   const [reflexao, setReflexao] = useState<ReflexaoSemanalDados | null>(null);
+  const [comAcessoDeUso, setComAcessoDeUso] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const leituraRef = useRef(0);
 
@@ -72,6 +75,7 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
 
     setResumoCard(montarResumoCard(logsSemanaAtual, logsSemanaAnterior, comAcessoDeUso, hoje));
     setReflexao(comAcessoDeUso ? reflexaoSemanal(logsSemanaAnterior, hoje) : null);
+    setComAcessoDeUso(comAcessoDeUso);
     setCarregando(false);
   }, [uid]);
 
@@ -90,5 +94,5 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
 
   useRecarregarAoReganharFoco(recarregar);
 
-  return { resumoCard, reflexao, carregando, recarregar };
+  return { resumoCard, reflexao, comAcessoDeUso, carregando, recarregar };
 }

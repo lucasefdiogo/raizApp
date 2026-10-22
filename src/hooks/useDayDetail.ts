@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { avaliarStatusHistoricoDia, StatusHistoricoDia } from '../domain/progress';
+import { DetalheRedesDoDia, detalheRedesDoDia } from '../domain/resumoRedes';
 import { buscarDailyLog } from '../services/firestore';
 import { Tarefa } from '../domain/types';
 
@@ -8,6 +9,8 @@ interface UseDayDetailResultado {
   dataSelecionada: string | null;
   tarefasDoDia: Tarefa[];
   statusDoDia: StatusHistoricoDia | null;
+  /** Bloco "Nas redes" do dia (HU-08, RN07) — null quando não há nada pra mostrar. */
+  detalheRedes: DetalheRedesDoDia | null;
   carregando: boolean;
   /** Busca o dailyLog daquele dia e passa a exibi-lo — troca a seleção
    * anterior, se houver (só um painel aberto por vez). */
@@ -23,12 +26,13 @@ interface UseDayDetailResultado {
  * (domain/progress.ts), a mesma regra que já monta o histórico da semana,
  * pra não divergir do status já mostrado na própria pastilha.
  */
-export function useDayDetail(uid: string): UseDayDetailResultado {
+export function useDayDetail(uid: string, comAcessoDeUso: boolean): UseDayDetailResultado {
   const [dataSelecionada, setDataSelecionada] = useState<string | null>(null);
   const [tarefasDoDia, setTarefasDoDia] = useState<Tarefa[]>([]);
   const [statusDoDia, setStatusDoDia] = useState<StatusHistoricoDia | null>(
     null,
   );
+  const [detalheRedes, setDetalheRedes] = useState<DetalheRedesDoDia | null>(null);
   const [carregando, setCarregando] = useState(false);
   // Token da leitura em curso: tocar noutra pastilha antes da anterior
   // resolver descarta o resultado desatualizado.
@@ -55,9 +59,10 @@ export function useDayDetail(uid: string): UseDayDetailResultado {
           avaliarHojeAoVivo: true,
         }),
       );
+      setDetalheRedes(detalheRedesDoDia(log, comAcessoDeUso));
       setCarregando(false);
     },
-    [uid],
+    [uid, comAcessoDeUso],
   );
 
   const limparSelecao = useCallback(() => {
@@ -65,6 +70,7 @@ export function useDayDetail(uid: string): UseDayDetailResultado {
     setDataSelecionada(null);
     setTarefasDoDia([]);
     setStatusDoDia(null);
+    setDetalheRedes(null);
     setCarregando(false);
   }, []);
 
@@ -72,6 +78,7 @@ export function useDayDetail(uid: string): UseDayDetailResultado {
     dataSelecionada,
     tarefasDoDia,
     statusDoDia,
+    detalheRedes,
     carregando,
     buscarDia,
     limparSelecao,

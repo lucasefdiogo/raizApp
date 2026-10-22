@@ -85,6 +85,7 @@ describe('HU-08 · useResumoRedes', () => {
     expect(result.current.resumoCard.duracaoTotal).toBe('1h');
     expect(result.current.reflexao).not.toBeNull();
     expect(result.current.reflexao?.duracaoTotal).toBe('4h');
+    expect(result.current.comAcessoDeUso).toBe(true);
   });
 
   it('recarregar() refaz a mesma busca sob demanda', async () => {

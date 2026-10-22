@@ -16,11 +16,12 @@ describe('useDayDetail', () => {
   });
 
   it('começa sem nenhum dia selecionado', async () => {
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     expect(result.current.dataSelecionada).toBeNull();
     expect(result.current.tarefasDoDia).toEqual([]);
     expect(result.current.statusDoDia).toBeNull();
+    expect(result.current.detalheRedes).toBeNull();
     expect(result.current.carregando).toBe(false);
   });
 
@@ -34,7 +35,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       await result.current.buscarDia(DATA_PASSADA);
@@ -57,7 +58,7 @@ describe('useDayDetail', () => {
       }),
     );
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       // Sem await na chamada em si (senão ficaria pendurado esperando
@@ -83,7 +84,7 @@ describe('useDayDetail', () => {
   it('dia sem dailyLog (buscarDailyLog resolve null): tarefas vazias e status sem_registro', async () => {
     buscarDailyLog.mockResolvedValue(null);
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       await result.current.buscarDia(DATA_PASSADA);
@@ -104,7 +105,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       await result.current.buscarDia('2026-09-23');
@@ -125,7 +126,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       await result.current.buscarDia('2026-09-23');
@@ -150,7 +151,7 @@ describe('useDayDetail', () => {
         escudoUsado: false,
       });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1'));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
     await act(async () => {
       await result.current.buscarDia('2020-01-10');
@@ -168,20 +169,22 @@ describe('useDayDetail', () => {
   });
 
   describe('limparSelecao', () => {
-    it('fecha o painel, limpando seleção, tarefas e status', async () => {
+    it('fecha o painel, limpando seleção, tarefas, status e detalheRedes', async () => {
       buscarDailyLog.mockResolvedValue({
         data: DATA_PASSADA,
         tarefas: [{ id: '1', titulo: 'A', essencial: true, concluida: true }],
         statusDia: 'cumprido',
         escudoUsado: false,
+        resumoBloqueio: { sessoesUsadas: 1, intencoes: [] },
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1'));
+      const { result } = await renderHook(() => useDayDetail('uid-1', false));
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
       });
       expect(result.current.dataSelecionada).not.toBeNull();
+      expect(result.current.detalheRedes).not.toBeNull();
 
       await act(async () => {
         result.current.limparSelecao();
@@ -190,6 +193,70 @@ describe('useDayDetail', () => {
       expect(result.current.dataSelecionada).toBeNull();
       expect(result.current.tarefasDoDia).toEqual([]);
       expect(result.current.statusDoDia).toBeNull();
+      expect(result.current.detalheRedes).toBeNull();
+    });
+  });
+
+  describe('HU-08 · detalheRedes (RN07)', () => {
+    it('Cenário 9: dia sem resumoBloqueio nem usoApps não expõe o bloco', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: DATA_PASSADA,
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      });
+
+      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+
+      await act(async () => {
+        await result.current.buscarDia(DATA_PASSADA);
+      });
+
+      expect(result.current.detalheRedes).toBeNull();
+    });
+
+    it('dia com resumoBloqueio e usoApps, com acesso de uso: expõe duração e apps', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: DATA_PASSADA,
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+        resumoBloqueio: { sessoesUsadas: 4, intencoes: ['responder a turma'], acessosRapidos: 1 },
+        usoApps: {
+          'com.instagram.android': { segundos: 31 * 60, aberturas: 2 },
+          'com.zhiliaoapp.musically': { segundos: 21 * 60, aberturas: 1 },
+        },
+      });
+
+      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+
+      await act(async () => {
+        await result.current.buscarDia(DATA_PASSADA);
+      });
+
+      expect(result.current.detalheRedes?.duracao).toBe('52 min');
+      expect(result.current.detalheRedes?.topAppsTexto).toBe('Instagram 31 min · TikTok 21 min');
+      expect(result.current.detalheRedes?.textoContadores).toBe('4 sessões · 1 acesso rápido');
+      expect(result.current.detalheRedes?.intencoes).toEqual(['responder a turma']);
+    });
+
+    it('sem acesso de uso, não expõe duração nem apps mesmo com usoApps no log', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: DATA_PASSADA,
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+        usoApps: { 'com.instagram.android': { segundos: 100, aberturas: 1 } },
+      });
+
+      const { result } = await renderHook(() => useDayDetail('uid-1', false));
+
+      await act(async () => {
+        await result.current.buscarDia(DATA_PASSADA);
+      });
+
+      expect(result.current.detalheRedes?.duracao).toBeNull();
+      expect(result.current.detalheRedes?.topAppsTexto).toBeNull();
     });
   });
 });
