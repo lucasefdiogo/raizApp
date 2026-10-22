@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotina e janela noturna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono&family=Zilla+Slab:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --casca: #EFEAE0;
+    --areia: #E3DACB;
+    --terra-escura: #2B2318;
+    --terra-suave: #6B5E45;
+    --cobre: #B5772E;
+    --musgo: #3E4A34;
+    --border: #E3D8C3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px;
+    background: #D9D2C4;
+    font-family: "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+  }
+  .estados { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+  .estado-rotulo {
+    font-family: "Space Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--terra-suave);
+    margin: 0 0 8px;
+  }
+  .tela {
+    width: 340px;
+    max-width: 100%;
+    min-height: 620px;
+    background: var(--casca);
+    border-radius: 18px;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  h1 {
+    font-family: "Zilla Slab", serif;
+    font-weight: 600;
+    font-size: 22px;
+    margin: 12px 0 8px;
+  }
+  .corpo { font-size: 14px; line-height: 1.5; color: var(--terra-suave); margin: 0 0 20px; }
+  .horario {
+    font-family: "Space Mono", monospace;
+    font-size: 32px;
+    color: var(--terra-escura);
+    margin: 4px 0 20px;
+  }
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    font: 400 14px "IBM Plex Sans", sans-serif;
+    color: var(--terra-escura);
+    resize: none;
+    margin-bottom: 20px;
+  }
+  textarea::placeholder, input::placeholder { color: var(--terra-suave); }
+  .acoes { width: 100%; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+  button {
+    width: 100%;
+    border-radius: 14px;
+    padding: 14px;
+    font: 600 15px "IBM Plex Sans", sans-serif;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--cobre); outline-offset: 2px; }
+  .primario { border: 0; background: var(--cobre); color: var(--casca); }
+  .primario:disabled { background: var(--border); color: var(--terra-suave); cursor: not-allowed; }
+  .secundario { background: transparent; border: 1px solid var(--terra-suave); color: var(--terra-suave); }
+  .nota {
+    background: var(--areia);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--terra-suave);
+    margin-bottom: 16px;
+  }
+  .lua {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--musgo);
+    box-shadow: inset -14px -6px 0 0 var(--areia);
+    margin: 8px 0 16px;
+  }
+  .mensagem-noturna {
+    font-family: "Zilla Slab", serif;
+    font-size: 17px;
+    line-height: 1.4;
+    color: var(--terra-escura);
+    margin: 0 0 24px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div class="estados">
+
+  <!-- Estado: normal (confirmação da rotina estimada) -->
+  <div>
+    <p class="estado-rotulo">normal · confirmar rotina estimada</p>
+    <section class="tela" data-estado="normal" aria-label="Confirmar rotina estimada">
+      <div class="lua" aria-hidden="true"></div>
+      <h1>Notamos um padrão</h1>
+      <p class="corpo">Parece que você costuma dormir perto desse horário. Isso ajuda a ajustar a janela noturna.</p>
+      <p class="horario" role="text">23:00</p>
+      <div class="acoes">
+        <button class="primario" type="button">Confirmar</button>
+        <button class="secundario" type="button">Ajustar horário</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: carregando (pergunta única sobre alternativa noturna) -->
+  <div>
+    <p class="estado-rotulo">carregando · alternativa noturna (uma vez)</p>
+    <section class="tela" data-estado="carregando" aria-label="Alternativa para a janela noturna">
+      <h1>O que você gostaria de fazer à noite?</h1>
+      <p class="corpo">No lugar das redes, perto da hora de dormir. Opcional — pode responder depois, no Perfil.</p>
+      <input type="text" placeholder="Ex.: ler, ouvir um podcast" aria-label="Alternativa noturna (opcional)">
+      <div class="acoes">
+        <button class="primario" type="button">Salvar</button>
+        <button class="secundario" type="button">Agora não</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Estado: erro (usado como pausa de intenção estendida dentro da janela noturna) -->
+  <div>
+    <p class="estado-rotulo">erro · pausa estendida (janela noturna)</p>
+    <section class="tela" data-estado="erro" aria-label="Pausa de intenção na janela noturna">
+      <div class="lua" aria-hidden="true"></div>
+      <p class="nota" role="status">Você está perto do seu horário de dormir.</p>
+      <p class="mensagem-noturna" aria-live="polite">"O descanso de hoje é o foco de amanhã."</p>
+      <div class="acoes">
+        <button class="primario" type="button" disabled aria-live="polite">Liberar (20s)</button>
+        <button class="secundario" type="button">Ler um pouco em vez disso</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+</body>
+</html>
