@@ -1,8 +1,8 @@
 {
   "algoritmo": 1,
   "hu": "HU-06",
-  "versao": 1,
-  "spec": "8f1d1d2d4e875640b2c0eb8ac857fd33af1715675105cfdd04a9074d57c2aae8",
+  "versao": 2,
+  "spec": "61bb46b1feeeddeda3dfb426a40c8d523f36b5d463da6c01920e2f0c4e615768",
   "criterios": {
     "CA-01": {
       "status": "ativo",
