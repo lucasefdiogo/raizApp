@@ -1,4 +1,10 @@
-import { estimarRotina, dentroDaJanelaNoturna, resumoRotina, DiaRotina } from './rotina';
+import {
+  estimarRotina,
+  dentroDaJanelaNoturna,
+  horarioPausaMaior,
+  resumoRotina,
+  DiaRotina,
+} from './rotina';
 import { Rotina } from './types';
 
 function dia(primeiro: string, ultimo: string): DiaRotina {
@@ -99,6 +105,16 @@ describe('dentroDaJanelaNoturna', () => {
   it('CA-06: fora da janela, com rotina confirmada, devolve falso', () => {
     expect(dentroDaJanelaNoturna(confirmada, as(12, 0))).toBe(false);
     expect(dentroDaJanelaNoturna(confirmada, as(22, 0))).toBe(false);
+  });
+});
+
+describe('horarioPausaMaior', () => {
+  it('HU-09 Cenário 8: 30 min antes de dormirEstimado', () => {
+    expect(horarioPausaMaior('23:30')).toBe('23:00');
+  });
+
+  it('HU-09 RN07: dormir pós-meia-noite cruza pro dia anterior', () => {
+    expect(horarioPausaMaior('00:10')).toBe('23:40');
   });
 });
 

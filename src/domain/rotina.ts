@@ -98,6 +98,13 @@ export function estimarRotina(
   };
 }
 
+/** Início da janela noturna (RN07): 30 min antes de dormirEstimado, em HH:mm. */
+export function horarioPausaMaior(dormirEstimado: string): string {
+  const inicio =
+    (minutosDeHora(dormirEstimado) - ANTECEDENCIA_JANELA_MIN + MIN_POR_DIA) % MIN_POR_DIA;
+  return formatar(inicio);
+}
+
 /** "longa" aparece no Bloqueio de apps, "curta" no Perfil (RN11). */
 export type FormaResumoRotina = 'longa' | 'curta';
 
