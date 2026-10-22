@@ -29,4 +29,4 @@ Task ativa: nenhuma
 Entrega: tasks concluídas
 Validação: verify 7/7 verde; lux-revisor APROVADO. E2E: sem executor configurado. Melhorias não bloqueantes do revisor: teste de tela para "em 15 min" e "em 30 min" (CA-03), saída de primeiro plano no meio da emergência (RN-07), e manter registrado o JUnit (38 testes, 0 falhas; não roda no CI). Doc a atualizar: definition/schema-firebase.md (resumoBloqueio.acessosRapidos/.emergencias) e definition/regras-de-negocio.md (acesso rápido e emergência).
 Entrega: validação aprovada
-Entrega: merge feito, aguardando push
+Entrega: merge feito, aguardando push — **[Arquivado em 2026-10-22: o fluxo de HU do lux kit foi abandonado; push confirmado: main e origin/main em ac8b7ef.]**
