@@ -279,7 +279,7 @@ export function HomeScreen({
   // relativas ao pai — measureInWindow, não onLayout, ver racional da
   // tarefa). Alvos 1-3 vivem dentro do ScrollView e podem estar fora da
   // faixa visível quando o passo começa (ex: lista de tarefas longa empurra
-  // o botão "Adicionar tarefa" pra baixo) — nesse caso rola até uma posição
+  // o botão "Adicionar alternativa" pra baixo) — nesse caso rola até uma posição
   // previsível antes de remedir. O tour bloqueia toque no resto da tela
   // (ver FeatureTourOverlay), então não existe scroll "ao vivo" pra
   // acompanhar durante um passo, só essa correção pontual ao entrar nele.

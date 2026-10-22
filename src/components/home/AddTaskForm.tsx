@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { TextField } from '../TextField';
@@ -90,13 +90,14 @@ export function AddTaskForm({
     >
       <Pressable style={styles.fundo} onPress={fechar}>
         {/* trava a propagação do toque no cartão pro fundo não fechar */}
-        <Pressable
-          style={[
-            styles.cartao,
-            { paddingBottom: theme.spacing.xl + insets.bottom },
-          ]}
-          onPress={() => {}}
-        >
+        <Pressable style={styles.cartao} onPress={() => {}}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.conteudo,
+              { paddingBottom: theme.spacing.xl + insets.bottom },
+            ]}
+          >
           <TextField
             label="Nova alternativa"
             placeholder="O que você faria em vez de abrir o feed?"
@@ -185,6 +186,7 @@ export function AddTaskForm({
           >
             <Text style={styles.cancelarTexto}>Cancelar</Text>
           </Pressable>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -197,10 +199,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
+  // maxHeight evita que o sheet ultrapasse a tela em telas pequenas ou com
+  // o teclado aberto — o ScrollView interno garante que "Adicionar"/
+  // "Cancelar" continuem alcançáveis mesmo com todos os campos abertos
+  // (sugestões + essencial + tipo/duração + repetir).
   cartao: {
     backgroundColor: theme.colors.casca,
     borderTopLeftRadius: theme.radius.lg,
     borderTopRightRadius: theme.radius.lg,
+    maxHeight: '85%',
+  },
+  conteudo: {
     padding: theme.spacing.lg,
     gap: theme.spacing.sm,
   },
