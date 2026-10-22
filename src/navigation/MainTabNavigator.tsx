@@ -102,6 +102,10 @@ export function MainTabNavigator({
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
+          // Sair de uma aba descarta as telas empurradas nela — voltar à aba
+          // sempre cai na raiz, nunca numa tela de meio de fluxo (ex.:
+          // Bloqueio de apps) sem contexto de como se chegou lá.
+          popToTopOnBlur: true,
           // Cobre é a única cor de destaque por tela (mesma regra do botão
           // primário e do ponto de crescimento do RootProgressIcon) — Musgo
           // não entra aqui porque já carrega o significado de
