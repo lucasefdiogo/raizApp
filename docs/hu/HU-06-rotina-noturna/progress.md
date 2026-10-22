@@ -10,6 +10,6 @@ Planejamento: HU pronta, branch feature/HU-06-rotina-noturna
   - (b) Abrir uma HU nova de coleta de horários de uso (pré-requisito) e deixar a HU-06 depender dela.
   O "Então" dos CA-01 e CA-07 não muda; só a origem do dado na RN-01 e a seção "Dados e LGPD" (novo dado derivado de horário de uso).
 - **Impacto em tasks:** plano não escrito. A parte que não depende da mudança (janela noturna RN-05, dobro da sequência RN-06 com teto de 120 s, banco `noturno` e rotação RN-07, botão da alternativa RN-08, fora da janela RN-09, CA-04, CA-05, CA-06) poderia seguir, mas sem a estimativa nada grava `rotina.*` em produção; recomendo decidir antes de planejar.
-- **Estado:** aguardando decisão
+- **Estado:** decidida — opção (a), spec v2 importada
 
-Entrega: proposta de mudança aguardando decisão
+Entrega: plano aprovado
