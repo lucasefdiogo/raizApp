@@ -858,6 +858,37 @@ describe('services/firestore', () => {
   describe('gravarUsoAppsNoDia', () => {
     const instagram = { 'com.instagram.android': { segundos: 1200, aberturas: 3 } };
 
+    it('CA-01: coleta grava primeiroUsoDia e ultimoUsoAntesPausaLonga junto do usoApps do dia', async () => {
+      const horarios = {
+        primeiroUsoDia: '2026-10-19T07:10:00',
+        ultimoUsoAntesPausaLonga: '2026-10-19T23:40:00',
+      };
+
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', instagram, horarios);
+
+      const log = await buscarDailyLog('uid-1', '2026-10-19');
+      expect(log?.usoApps).toEqual({ ...instagram, ...horarios });
+      expect(log?.usoApps?.['com.instagram.android']).toEqual({
+        segundos: 1200,
+        aberturas: 3,
+      });
+    });
+
+    it('CA-07: dia sem horários grava só os pacotes, sem os campos novos', async () => {
+      await gravarUsoAppsNoDia('uid-1', '2026-10-19', instagram);
+      await gravarUsoAppsNoDia('uid-1', '2026-10-20', instagram, {
+        primeiroUsoDia: '2026-10-20T08:00:00',
+      });
+
+      const sem = await buscarDailyLog('uid-1', '2026-10-19');
+      expect(sem?.usoApps).toEqual(instagram);
+      expect(Object.keys(sem?.usoApps ?? {})).not.toContain('primeiroUsoDia');
+      const parcial = await buscarDailyLog('uid-1', '2026-10-20');
+      expect(Object.keys(parcial?.usoApps ?? {})).not.toContain(
+        'ultimoUsoAntesPausaLonga',
+      );
+    });
+
     it('CA-01: grava usoApps do Instagram no dailyLog do dia sem mexer nas tarefas', async () => {
       await salvarDailyLog('uid-1', '2026-10-19', {
         data: '2026-10-19',

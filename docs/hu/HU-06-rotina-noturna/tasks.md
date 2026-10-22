@@ -16,7 +16,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/domain/usoApps.ts, src/domain/usoApps.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-02 (CA-01, CA-07, RN-02): gravar os dois campos em `dailyLogs/{data}.usoApps` sem alterar `segundos`/`aberturas`, e a coleta passar a gravá-los
+- [x] TASK-02 (CA-01, CA-07, RN-02): gravar os dois campos em `dailyLogs/{data}.usoApps` sem alterar `segundos`/`aberturas`, e a coleta passar a gravá-los
   - Teste: `CA-01: coleta grava primeiroUsoDia e ultimoUsoAntesPausaLonga junto do usoApps do dia` (feliz)
   - Teste: `CA-07: dia sem horários grava só os pacotes, sem os campos novos` (exceção)
   - Escopo:

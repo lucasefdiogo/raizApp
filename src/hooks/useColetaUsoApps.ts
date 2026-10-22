@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { agregarUsoPorDia } from '../domain/usoApps';
+import { agregarUsoPorDia, horariosUsoPorDia } from '../domain/usoApps';
 import { buscarUsuario, gravarUsoAppsNoDia } from '../services/firestore';
 import { lerEventosUso, temAcessoUso } from '../native/UsoApps';
 import { registrarErro } from '../services/crashlytics';
@@ -53,11 +53,12 @@ export function useColetaUsoApps(uid: string): void {
         }
 
         const porDia = agregarUsoPorDia(eventos, inicioMs, fimMs);
+        const horarios = horariosUsoPorDia(eventos, inicioMs, fimMs);
         for (const [dia, uso] of Object.entries(porDia)) {
           if (cancelado) {
             return;
           }
-          await gravarUsoAppsNoDia(uid, dia, uso);
+          await gravarUsoAppsNoDia(uid, dia, uso, horarios[dia]);
         }
       } catch (erro) {
         registrarErro(erro as Error, 'useColetaUsoApps');

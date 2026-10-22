@@ -28,6 +28,7 @@ import {
   Tarefa,
   TipoTarefa,
   UsoApps,
+  HorariosUsoDia,
 } from '../domain/types';
 import { dataLocalDeISO, paraISOLocal } from '../domain/data';
 
@@ -532,9 +533,18 @@ export async function gravarUsoAppsNoDia(
   uid: string,
   data: string,
   usoApps: UsoApps,
+  horarios?: Partial<HorariosUsoDia>,
 ): Promise<void> {
   const referencia = doc(getFirestore(), 'users', uid, 'dailyLogs', data);
-  await setDoc(referencia, { usoApps }, { merge: true });
+  // HU-06 (RN-02): os horários são chaves irmãs dos pacotes; ausente não é gravado.
+  const corpo: Record<string, unknown> = { ...usoApps };
+  if (horarios?.primeiroUsoDia !== undefined) {
+    corpo.primeiroUsoDia = horarios.primeiroUsoDia;
+  }
+  if (horarios?.ultimoUsoAntesPausaLonga !== undefined) {
+    corpo.ultimoUsoAntesPausaLonga = horarios.ultimoUsoAntesPausaLonga;
+  }
+  await setDoc(referencia, { usoApps: corpo }, { merge: true });
 }
 
 /**

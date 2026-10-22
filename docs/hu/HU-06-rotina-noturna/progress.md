@@ -16,3 +16,6 @@ Entrega: plano aprovado
 Task ativa: TASK-01
 TASK-01: horariosUsoPorDia em domain/usoApps.ts (pausa longa de 3h, ISO local sem fuso, ultimoUsoAntesPausaLonga ausente sem pausa); agregarUsoPorDia intacto. Suite verde; um timeout isolado em OnboardingScreen passou ao rodar sozinho.
 Task ativa: nenhuma
+Task ativa: TASK-02
+TASK-02: gravarUsoAppsNoDia aceita horarios opcionais e grava primeiroUsoDia/ultimoUsoAntesPausaLonga como chaves irmas dos pacotes em usoApps; useColetaUsoApps passa horariosUsoPorDia. Leitores futuros de usoApps devem ignorar essas duas chaves. Suite verde (1272).
+Task ativa: nenhuma
