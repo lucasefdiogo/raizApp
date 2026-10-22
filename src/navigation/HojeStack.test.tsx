@@ -125,14 +125,14 @@ describe('HojeStack', () => {
     await renderHojeStack();
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
-    expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+    expect(screen.queryByText('Nada planejado ainda')).toBeNull();
     expect(screen.queryByText('Voltar a começar')).toBeNull();
   });
 
   it('statusStreak ativo e deveExibir false: mostra a Home', async () => {
     await renderHojeStack();
 
-    expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+    expect(screen.getByText('Nada planejado ainda')).toBeTruthy();
   });
 
   it('deveExibir true: mostra RecoveryStateScreen, e marcarComoExibido navega pra Home', async () => {
@@ -147,7 +147,7 @@ describe('HojeStack', () => {
     await renderHojeStack();
 
     expect(screen.getByText('Ver tarefas de hoje')).toBeTruthy();
-    expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+    expect(screen.queryByText('Nada planejado ainda')).toBeNull();
 
     await fireEvent.press(screen.getByText('Ver tarefas de hoje'));
     expect(marcarComoExibido).toHaveBeenCalledTimes(1);
@@ -166,7 +166,7 @@ describe('HojeStack', () => {
 
     expect(screen.getByText('Voltar a começar')).toBeTruthy();
     expect(screen.queryByText('Ver tarefas de hoje')).toBeNull();
-    expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+    expect(screen.queryByText('Nada planejado ainda')).toBeNull();
   });
 
   it('retorno após pausa: navega pra Home só depois que enviarTarefaInicial resolve com sucesso', async () => {
@@ -290,7 +290,7 @@ describe('HojeStack', () => {
 
       expect(screen.getByText('Notamos um padrão')).toBeTruthy();
       expect(screen.getByText('23:00')).toBeTruthy();
-      expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+      expect(screen.queryByText('Nada planejado ainda')).toBeNull();
     });
 
     it('CA-02: Confirmar leva à pergunta da alternativa noturna', async () => {
@@ -348,7 +348,7 @@ describe('HojeStack', () => {
 
       await renderHojeStack();
 
-      expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+      expect(screen.getByText('Nada planejado ainda')).toBeTruthy();
       expect(screen.queryByText('Notamos um padrão')).toBeNull();
     });
 

@@ -39,6 +39,11 @@ const { buscarSystemMessage } = require('../services/firestore');
 jest.mock('../hooks/useNomeUsuario');
 const { useNomeUsuario } = require('../hooks/useNomeUsuario');
 
+// HU-07, RN07: só interessa aqui que o valor chega ao primeiro chip do
+// AddTaskForm — o hook em si tem teste próprio (useAlternativaNoturna.test.ts).
+jest.mock('../hooks/useAlternativaNoturna');
+const { useAlternativaNoturna } = require('../hooks/useAlternativaNoturna');
+
 // Só interessa aqui que a Home chama o hook (ver racional no próprio
 // HomeScreen.tsx) — o comportamento dele tem teste próprio
 // (useSincronizarRegrasBloqueio.test.ts).
@@ -182,6 +187,7 @@ beforeEach(() => {
     corpo: 'Uma semana inteira sustentando o combinado com você mesmo.',
   });
   useNomeUsuario.mockReturnValue('Ana');
+  useAlternativaNoturna.mockReturnValue(null);
   useFeatureTour.mockReturnValue({
     tourAtivo: false,
     passoAtual: 0,
@@ -207,17 +213,59 @@ describe('HomeScreen', () => {
     expect(useAbrirDestinoDaNotificacao).toHaveBeenCalled();
   });
 
-  it('mostra a mensagem de dia pendente antes de qualquer tarefa concluída', async () => {
-    await render(<HomeScreen {...PROPS_PADRAO} />);
-    expect(screen.getByText('O dia ainda está começando.')).toBeTruthy();
-  });
+  describe('HU-07 · headline e placar (RN01/RN03/RN04)', () => {
+    it('Cenário 1: com 1 essencial pendente, mostra o headline e o placar de essenciais', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      expect(
+        screen.getByText('O que você vai fazer no lugar da rolagem hoje?'),
+      ).toBeTruthy();
+      expect(screen.getByText('ESSENCIAIS · 0 DE 1 FEITAS')).toBeTruthy();
+    });
 
-  it('mostra a mensagem de dia cumprido ao concluir a tarefa essencial', async () => {
-    await render(<HomeScreen {...PROPS_PADRAO} />);
-    await fireEvent.press(
-      screen.getByText('Abrir o material de estudo por 5 minutos'),
-    );
-    expect(screen.getByText('Dia cumprido. Isso já conta.')).toBeTruthy();
+    it('Cenário 3 e 4: concluir a essencial troca o headline, desmarcar volta ao anterior', async () => {
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      const essencial = screen.getByText(
+        'Abrir o material de estudo por 5 minutos',
+      );
+
+      await fireEvent.press(essencial);
+      expect(screen.getByText('Hoje já conta. O resto é bônus.')).toBeTruthy();
+      expect(
+        screen.getByText('Se a vontade de abrir o feed aparecer, escolha uma daqui.'),
+      ).toBeTruthy();
+      expect(screen.queryByText('ESSENCIAIS · 1 DE 1 FEITAS')).toBeNull();
+
+      await fireEvent.press(essencial);
+      expect(
+        screen.getByText('O que você vai fazer no lugar da rolagem hoje?'),
+      ).toBeTruthy();
+      expect(screen.getByText('ESSENCIAIS · 0 DE 1 FEITAS')).toBeTruthy();
+    });
+
+    it('Cenário 2: sem nenhuma essencial no dia, pede pra marcar', async () => {
+      useDailyTasks.mockReturnValueOnce({
+        tarefas: [
+          { id: '1', titulo: 'Tarefa comum 1', essencial: false, concluida: false },
+          { id: '2', titulo: 'Tarefa comum 2', essencial: false, concluida: false },
+        ],
+        alternarTarefa: jest.fn(),
+        adicionarTarefa: jest.fn(),
+        editarTarefa: jest.fn(),
+        removerTarefa: jest.fn(),
+        removerTarefaHoje: jest.fn(),
+        pararDeRepetir: jest.fn(),
+        criarSubtarefa: jest.fn(),
+        moverTarefaParaAmanha: jest.fn(),
+        statusDia: 'pendente',
+        carregando: false,
+        limiteEssenciaisAtingido: false,
+        recarregar: jest.fn().mockResolvedValue(undefined),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      expect(screen.getByText('MARQUE ATÉ 3 COMO ESSENCIAIS')).toBeTruthy();
+    });
   });
 
   it('StreakCard: rodapé pede a essencial antes de cumprir, garante o dia ao concluir', async () => {
@@ -253,11 +301,12 @@ describe('HomeScreen', () => {
   it('adiciona uma tarefa nova pela Home e ela aparece na lista', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
 
+    await fireEvent.press(screen.getByText('Adicionar alternativa'));
     await fireEvent.changeText(
-      screen.getByLabelText('Nova tarefa'),
+      screen.getByLabelText('Nova alternativa'),
       'Revisar o resumo da aula',
     );
-    await fireEvent.press(screen.getByText('Adicionar tarefa'));
+    await fireEvent.press(screen.getByText('Adicionar'));
 
     expect(screen.getByText('Revisar o resumo da aula')).toBeTruthy();
   });
@@ -280,7 +329,7 @@ describe('HomeScreen', () => {
     ).toBeTruthy();
   });
 
-  it('quando todas as tarefas são removidas, mostra o EmptyState — sem CTA redundante, só o campo do AddTaskForm', async () => {
+  it('Cenário 9: quando todas as tarefas são removidas, mostra o EmptyState com a única ação', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.queryByTestId('empty-state')).toBeNull();
 
@@ -295,12 +344,15 @@ describe('HomeScreen', () => {
     }
 
     expect(screen.getByTestId('empty-state')).toBeTruthy();
-    expect(screen.getByText('Nenhuma tarefa ainda')).toBeTruthy();
-    // o EmptyState não tem botão de adicionar — o AddTaskForm logo abaixo já é
-    // o caminho, ter os dois era redundante
-    expect(screen.queryByText('+ adicionar tarefa')).toBeNull();
-    expect(screen.getByLabelText('Nova tarefa')).toBeTruthy();
-    expect(screen.getByText('Adicionar tarefa')).toBeTruthy();
+    expect(screen.getByText('Nada planejado ainda')).toBeTruthy();
+    // única ação: nem o headline/placar, nem "Estou travado" aparecem aqui.
+    expect(
+      screen.queryByText('O que você vai fazer no lugar da rolagem hoje?'),
+    ).toBeNull();
+    expect(screen.queryByTestId('botao-estou-travado')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Adicionar alternativa'));
+    expect(screen.getByLabelText('Nova alternativa')).toBeTruthy();
   });
 
   it('quando o teclado abre, cria espaço no fim da lista e rola até lá (campo acima do teclado)', async () => {
@@ -349,20 +401,20 @@ describe('HomeScreen', () => {
 
   it('ao atingir 3 essenciais pela Home, mostra o aviso do teto (antes não aparecia)', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
-    const aviso = 'Só dá pra marcar até 3 tarefas essenciais por dia';
-
-    expect(screen.queryByText(aviso)).toBeNull();
 
     // TAREFAS_MOCK já tem 1 essencial; adiciona mais 2 (teto = 3)
     for (const titulo of ['Essencial dois', 'Essencial três']) {
-      await fireEvent.changeText(screen.getByLabelText('Nova tarefa'), titulo);
+      await fireEvent.press(screen.getByText('Adicionar alternativa'));
+      await fireEvent.changeText(screen.getByLabelText('Nova alternativa'), titulo);
       await fireEvent.press(screen.getByText('Marcar como essencial'));
-      await fireEvent.press(screen.getByText('Adicionar tarefa'));
+      await fireEvent.press(screen.getByText('Adicionar'));
     }
 
-    expect(screen.getByText(aviso)).toBeTruthy();
     expect(screen.getByText('Essencial dois')).toBeTruthy();
     expect(screen.getByText('Essencial três')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Adicionar alternativa'));
+    expect(screen.getByText('Você já tem 3 essenciais hoje.')).toBeTruthy();
   });
 
   it('mostra o overlay com a mensagem de reforço ao concluir uma tarefa', async () => {
@@ -482,12 +534,12 @@ describe('HomeScreen', () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
-    // o header (streak + título) já aparece — variante inline
-    expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+    // o header (saudação + StreakCard) já aparece — variante inline
+    expect(screen.getByText('4')).toBeTruthy();
     expect(
       screen.queryByText('Abrir o material de estudo por 5 minutos'),
     ).toBeNull();
-    expect(screen.queryByText('Adicionar tarefa')).toBeNull();
+    expect(screen.queryByText('Adicionar alternativa')).toBeNull();
   });
 
   it('tem RefreshControl e o puxar-pra-atualizar aciona recarregar() das tarefas e do streak', async () => {
@@ -562,6 +614,23 @@ describe('HomeScreen', () => {
       expect(chamada.passoAtual).toBe(0);
       expect(chamada.totalPassos).toBe(4);
       expect(chamada.texto).toBe(TOUR_PASSOS[0].texto);
+    });
+
+    it('Cenário 10: no passo 2, o alvo é o botão "Adicionar alternativa" e o texto usa esse nome', async () => {
+      useFeatureTour.mockReturnValue({
+        tourAtivo: true,
+        passoAtual: 1,
+        avancar: jest.fn(),
+        pular: jest.fn(),
+        reiniciar: jest.fn(),
+      });
+
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+
+      const chamada = ultimaChamada();
+      expect(chamada.texto).toBe(TOUR_PASSOS[1].texto);
+      expect(chamada.texto).toContain('Adicionar alternativa');
+      expect(screen.getByText('Adicionar alternativa')).toBeTruthy();
     });
 
     it('onPular repassado chama pular() do useFeatureTour', async () => {
@@ -644,7 +713,9 @@ describe('HomeScreen', () => {
       await fireEvent.press(screen.getByText('Fechar'));
 
       expect(screen.queryByText('O que está pegando agora?')).toBeNull();
-      expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+      expect(
+        screen.getByText('O que você vai fazer no lugar da rolagem hoje?'),
+      ).toBeTruthy();
     });
   });
 });
