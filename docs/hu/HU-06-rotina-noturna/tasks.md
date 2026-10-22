@@ -24,7 +24,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/hooks/useColetaUsoApps.ts, src/hooks/useColetaUsoApps.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-03 (CA-01, CA-07, CA-08, RN-03, RN-12): `estimarRotina(dias, modoManual)` em `domain/rotina.ts`
+- [x] TASK-03 (CA-01, CA-07, CA-08, RN-03, RN-12): `estimarRotina(dias, modoManual)` em `domain/rotina.ts`
   - Teste: `CA-01: 5 dias com os dois campos estimam dormir e acordar pela mediana` (feliz)
   - Teste: `CA-07: com menos de 5 dias com os dois campos não estima` (exceção)
   - Teste: `CA-08: com modoManual verdadeiro a estimativa automática não roda` (exceção)

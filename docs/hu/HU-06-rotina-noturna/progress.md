@@ -19,3 +19,6 @@ Task ativa: nenhuma
 Task ativa: TASK-02
 TASK-02: gravarUsoAppsNoDia aceita horarios opcionais e grava primeiroUsoDia/ultimoUsoAntesPausaLonga como chaves irmas dos pacotes em usoApps; useColetaUsoApps passa horariosUsoPorDia. Leitores futuros de usoApps devem ignorar essas duas chaves. Suite verde (1272).
 Task ativa: nenhuma
+Task ativa: TASK-03
+TASK-03: estimarRotina em domain/rotina.ts (mediana de minutos, minimo 5 dias com os dois campos, null em modoManual, virada da meia-noite); tipo Rotina em types.ts. Suite verde (1276). Construtor escreveu teste e codigo juntos, sem vermelho observado.
+Task ativa: nenhuma

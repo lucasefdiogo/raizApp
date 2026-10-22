@@ -232,3 +232,15 @@ export interface EstadoAcessoRapido {
   /** Epoch ms de quando o último acesso rápido terminou; 0 = nenhum uso hoje. */
   fimUltimoEm: number;
 }
+
+/**
+ * Rotina noturna da pessoa (HU-06, RN-03, RN-12). Horários em "HH:mm".
+ * `confirmadoEm` ausente = ainda não confirmada.
+ */
+export interface Rotina {
+  dormirEstimado: string;
+  acordarEstimado: string;
+  confirmadoEm?: string;
+  alternativaNoturna?: string;
+  modoManual?: boolean;
+}
