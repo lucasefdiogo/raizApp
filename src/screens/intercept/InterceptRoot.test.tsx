@@ -132,7 +132,7 @@ describe('InterceptRoot', () => {
     );
   });
 
-  it('sem aoSairOverride: onSair é BackHandler.exitApp', async () => {
+  it('onSair é BackHandler.exitApp', async () => {
     useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
     const exitApp = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
     await render(<InterceptRoot {...props} />);
@@ -141,20 +141,6 @@ describe('InterceptRoot', () => {
     onSair();
 
     expect(exitApp).toHaveBeenCalledTimes(1);
-    exitApp.mockRestore();
-  });
-
-  it('com aoSairOverride: é ele quem vira onSair, BackHandler.exitApp nunca é chamado', async () => {
-    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
-    const exitApp = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
-    const aoSairOverride = jest.fn();
-    await render(<InterceptRoot {...props} aoSairOverride={aoSairOverride} />);
-
-    const { onSair } = mockCapturarProps.mock.calls[0][0];
-    onSair();
-
-    expect(aoSairOverride).toHaveBeenCalledTimes(1);
-    expect(exitApp).not.toHaveBeenCalled();
     exitApp.mockRestore();
   });
 });

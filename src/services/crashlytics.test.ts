@@ -80,7 +80,6 @@ describe('services/crashlytics', () => {
       __DEV__ = false;
       jest.resetModules();
       jest.doMock('../config/debugFlags', () => ({
-        MOSTRAR_DEBUG_ACESSIBILIDADE: false,
         MOSTRAR_TESTAR_CRASHLYTICS: true,
       }));
 

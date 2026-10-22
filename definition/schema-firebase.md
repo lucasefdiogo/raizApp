@@ -284,7 +284,7 @@ A exclusão client-side em si é dívida técnica (`stack-tecnico.md`).
 | DivulgacaoAcessibilidadeScreen | — | `users/{uid}.consentimentoAcessibilidade` (só ao tocar "Concordo e quero ativar") |
 | DivulgacaoAcessoUsoScreen | — | `users/{uid}.consentimentoAcessoUso` (só ao tocar "Permitir acesso de uso") |
 | TravadoFlowScreen / SessaoFocoScreen | `dailyLogs/{hoje}` (tarefas, via `useDailyTasks`) | `dailyLogs/{hoje}.tarefas[]` (subtarefa/edição/move pra amanhã), `dailyLogs/{hoje}.sessoesFoco[]` |
-| InterceptScreen (+ InterceptDebugScreen) | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`), `users/{uid}.rotina` | `dailyLogs/{hoje}.resumoBloqueio`, `dailyLogs/{hoje}.sessoesFoco[]` (atalho de 5 min sem tarefa) |
+| InterceptScreen | `dailyLogs/{hoje}` (snapshot local + ao vivo via `useDailyTasks`), `users/{uid}.rotina` | `dailyLogs/{hoje}.resumoBloqueio`, `dailyLogs/{hoje}.sessoesFoco[]` (atalho de 5 min sem tarefa) |
 | PerfilScreen | `users/{uid}` | `users/{uid}` (porquê, notificações, horário), exclusão completa via `apagarTodosOsDadosDoUsuario` |
 
 ---

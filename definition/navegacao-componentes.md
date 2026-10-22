@@ -79,16 +79,9 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
 │           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
 │           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
-│           ├── DivulgacaoAcessoUso           (DivulgacaoAcessoUsoScreen — aberta a
-│           │     partir da entrada "Medir tempo nas redes" de BloqueioApps; grava
-│           │     consentimentoAcessoUso)
-│           ├── AccessibilityDebug            (condicional a `__DEV__ ||
-│           │     MOSTRAR_DEBUG_ACESSIBILIDADE` de `config/debugFlags.ts` — a flag
-│           │     fica `false` no repositório e só é ligada à mão pra gerar APK de
-│           │     teste; temporária por design, não remover sem avisar, ainda é
-│           │     usada pra validar a detecção em dispositivo físico)
-│           └── InterceptDebug                (idem, mesma condição — abre a
-│                 InterceptScreen de verdade com estado mockado, spec 09)
+│           └── DivulgacaoAcessoUso           (DivulgacaoAcessoUsoScreen — aberta a
+│                 partir da entrada "Medir tempo nas redes" de BloqueioApps; grava
+│                 consentimentoAcessoUso)
 ```
 
 Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
@@ -260,7 +253,7 @@ abre `BloqueioAppsScreen`) → "Rotina" (link "Rotina noturna", abre
 `RotinaPerfilScreen`; só aparece quando `aoAbrirRotina` é passado) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
 funcionalidades — ver seção própria abaixo — + links legais: Política de Privacidade /
 Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
-`ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
+`ConfirmDeleteAccountModal`) → "Sair" → link "Testar Crashlytics" (só em dev ou com `MOSTRAR_TESTAR_CRASHLYTICS`).
 
 ### BloqueioAppsScreen
 Status do `isAccessibilityServiceEnabled()` (via `useAccessibilityPermission`) +
@@ -411,13 +404,6 @@ COOLDOWN/SALDO_ZERADO) — não decide mais nenhum estado a partir de tarefas es
 `rotinaJson` (prop opcional, espelho de `users/{uid}.rotina`) diz se a janela noturna
 está ativa agora, pra dobrar a pausa de intenção e trocar o texto padrão pela mensagem
 do banco `noturno` (seção 5 da spec 09).
-
-### InterceptDebugScreen
-Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) —
-botões que abrem o `InterceptRoot` de verdade com estado mockado pra cada fase
-(`AGUARDANDO_LIBERACAO`/pausa de intenção, `COOLDOWN`, `SALDO_ZERADO`, e uma variante
-com a janela noturna ativa). O estado real de sessão/cooldown do aparelho só é
-mostrado quando nenhum mock é passado (a fase vem do nativo, não do estado mockado).
 
 ### Telas de permissão
 `DivulgacaoAcessibilidadeScreen`, `DivulgacaoAcessoUsoScreen` (ambas no Perfil, antes
