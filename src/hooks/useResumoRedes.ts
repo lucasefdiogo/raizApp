@@ -69,13 +69,13 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
       return;
     }
 
-    const comAcessoDeUso = !!usuario?.consentimentoAcessoUso;
+    const temConsentimento = !!usuario?.consentimentoAcessoUso;
     const logsSemanaAtual = logs.filter(log => log.data >= inicioAtualISO);
     const logsSemanaAnterior = logs.filter(log => log.data < inicioAtualISO);
 
-    setResumoCard(montarResumoCard(logsSemanaAtual, logsSemanaAnterior, comAcessoDeUso, hoje));
-    setReflexao(comAcessoDeUso ? reflexaoSemanal(logsSemanaAnterior, hoje) : null);
-    setComAcessoDeUso(comAcessoDeUso);
+    setResumoCard(montarResumoCard(logsSemanaAtual, logsSemanaAnterior, temConsentimento, hoje));
+    setReflexao(temConsentimento ? reflexaoSemanal(logsSemanaAnterior, hoje) : null);
+    setComAcessoDeUso(temConsentimento);
     setCarregando(false);
   }, [uid]);
 
