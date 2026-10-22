@@ -12,6 +12,7 @@ import {
 jest.mock('../../hooks/useDailyTasks');
 jest.mock('../../hooks/useIntercept');
 jest.mock('../../hooks/useBloqueioSaldo');
+jest.mock('../../hooks/usePausaNoturna');
 jest.mock('../../native/AccessibilityDetection');
 jest.mock('./SessaoFocoScreen', () => ({
   SessaoFocoScreen: (props: Record<string, unknown>) => {
@@ -59,6 +60,7 @@ jest.mock('./TarefasExtrasScreen', () => ({
 const { useDailyTasks } = require('../../hooks/useDailyTasks');
 const { useIntercept } = require('../../hooks/useIntercept');
 const { useBloqueioSaldo } = require('../../hooks/useBloqueioSaldo');
+const { usePausaNoturna } = require('../../hooks/usePausaNoturna');
 const { abrirApp } = require('../../native/AccessibilityDetection');
 
 const TAREFA_ESSENCIAL_PENDENTE: Tarefa = {
@@ -128,6 +130,17 @@ function configurarSaldoSemVisao() {
   });
 }
 
+function configurarPausaNoturna(sobrescritas: Record<string, unknown> = {}) {
+  usePausaNoturna.mockReturnValue({
+    carregando: false,
+    noturna: false,
+    duracaoSeg: 20,
+    mensagem: null,
+    alternativa: null,
+    ...sobrescritas,
+  });
+}
+
 const props = {
   uid: 'uid-1',
   packageName: 'com.instagram.android',
@@ -145,6 +158,8 @@ describe('InterceptScreen', () => {
     useIntercept.mockReturnValue({ registrarAcao });
     abrirApp.mockResolvedValue(true);
     configurarSaldo();
+    // Outside the night window by default: the HU-04 pause, duration from the saldo.
+    configurarPausaNoturna();
   });
 
   describe('abertura sem sessão nem cooldown (RN-01, RN-07)', () => {
@@ -565,6 +580,93 @@ describe('InterceptScreen', () => {
 
       expect(abrirApp).not.toHaveBeenCalled();
       expect(onSair).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('janela noturna (HU-06)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_CUMPRIDA] });
+    });
+    afterEach(() => jest.useRealTimers());
+
+    const NOTURNA = {
+      noturna: true,
+      duracaoSeg: 40,
+      mensagem: 'O descanso de hoje é o foco de amanhã.',
+      alternativa: 'Ler um pouco',
+    };
+
+    it('CA-04: dentro da janela a pausa mostra a mensagem noturna e liberar só depois de 40 segundos', async () => {
+      configurarSaldo(
+        { fase: 'AGUARDANDO_LIBERACAO', saldo: 0, blocosUsados: 1 },
+        { pausaIntencaoSeg: 20 },
+      );
+      configurarPausaNoturna(NOTURNA);
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByText('O descanso de hoje é o foco de amanhã.')).toBeTruthy();
+      expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
+      expect(usePausaNoturna).toHaveBeenCalledWith('uid-1', 1);
+      expect(
+        screen.getByRole('button', { name: 'Liberar em 40s' }).props.accessibilityState?.disabled,
+      ).toBe(true);
+      await act(async () => {
+        jest.advanceTimersByTime(39000);
+      });
+      expect(
+        screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
+      ).toBe(true);
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(
+        screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
+      ).toBeFalsy();
+    });
+
+    it('CA-03: dentro da janela a pausa mostra o botão com a alternativa, que fecha sem liberar a sessão', async () => {
+      const saldo = configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
+      configurarPausaNoturna(NOTURNA);
+      const onSair = jest.fn();
+      await render(<InterceptScreen {...props} onSair={onSair} />);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco' }));
+
+      expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
+      expect(saldo.liberar).not.toHaveBeenCalled();
+      expect(abrirApp).not.toHaveBeenCalled();
+      expect(onSair).toHaveBeenCalledTimes(1);
+    });
+
+    it('CA-04: enquanto a rotina carrega mostra o carregando e não monta a pausa', async () => {
+      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
+      configurarPausaNoturna({ carregando: true });
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByTestId('loading-indicator')).toBeTruthy();
+      expect(screen.queryByTestId('pausa-intencao')).toBeNull();
+    });
+
+    it('CA-06: fora da janela a pausa mostra o texto padrão da HU-04, sem botão de alternativa', async () => {
+      configurarSaldo(
+        { fase: 'AGUARDANDO_LIBERACAO', saldo: 4 },
+        { pausaIntencaoSeg: 20 },
+      );
+      configurarPausaNoturna({ noturna: false, duracaoSeg: 20, alternativa: 'Ler um pouco' });
+      await render(<InterceptScreen {...props} />);
+
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+      expect(screen.queryByText('Ler um pouco')).toBeNull();
+      expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
+    });
+
+    it('CA-06: fora da fase de pausa o hook noturno nem é consultado (a rotação não avança)', async () => {
+      configurarSaldo({ fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 });
+      await render(<InterceptScreen {...props} />);
+
+      expect(usePausaNoturna).not.toHaveBeenCalled();
     });
   });
 });

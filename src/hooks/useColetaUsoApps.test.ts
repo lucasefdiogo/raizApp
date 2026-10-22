@@ -60,9 +60,22 @@ describe('useColetaUsoApps', () => {
     await renderHook(() => useColetaUsoApps('uid-1'));
 
     await waitFor(() =>
-      expect(gravarUsoAppsNoDia).toHaveBeenCalledWith('uid-1', hojeISOLocal(), {
-        [INSTAGRAM]: { segundos: 1200, aberturas: 1 },
-      }),
+      expect(gravarUsoAppsNoDia).toHaveBeenCalledWith(
+        'uid-1',
+        hojeISOLocal(),
+        { [INSTAGRAM]: { segundos: 1200, aberturas: 1 } },
+        expect.anything(),
+      ),
+    );
+  });
+
+  it('CA-01: a coleta passa o primeiroUsoDia do dia à gravação', async () => {
+    await renderHook(() => useColetaUsoApps('uid-1'));
+
+    await waitFor(() => expect(gravarUsoAppsNoDia).toHaveBeenCalled());
+    const horarios = gravarUsoAppsNoDia.mock.calls[0][3];
+    expect(horarios.primeiroUsoDia).toMatch(
+      new RegExp(`^${hojeISOLocal()}T00:10`),
     );
   });
 
@@ -141,9 +154,12 @@ describe('useColetaUsoApps', () => {
       .sort();
     const ontemISO = paraISOLocal(ontem);
     expect(dias).toEqual([ontemISO, hojeISOLocal()].sort());
-    expect(gravarUsoAppsNoDia).toHaveBeenCalledWith('uid-1', ontemISO, {
-      [INSTAGRAM]: { segundos: 600, aberturas: 1 },
-    });
+    expect(gravarUsoAppsNoDia).toHaveBeenCalledWith(
+      'uid-1',
+      ontemISO,
+      { [INSTAGRAM]: { segundos: 600, aberturas: 1 } },
+      expect.anything(),
+    );
   });
 
   it('CA-06: ao voltar ao primeiro plano com acesso concedido a coleta roda de novo', async () => {

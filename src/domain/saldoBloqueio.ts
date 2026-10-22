@@ -175,6 +175,17 @@ export function duracaoPausaIntencaoSeg(blocosUsados: number): number {
   return SEQUENCIA_PAUSA_INTENCAO_SEG_V2[indice];
 }
 
+/** Teto da pausa de intenção dentro da janela noturna. */
+export const TETO_PAUSA_INTENCAO_NOTURNA_SEG = 120;
+
+/** Pausa de intenção dentro da janela noturna: o dobro da duração padrão, limitado ao teto. */
+export function duracaoPausaIntencaoNoturnaSeg(blocosUsados: number): number {
+  return Math.min(
+    duracaoPausaIntencaoSeg(blocosUsados) * 2,
+    TETO_PAUSA_INTENCAO_NOTURNA_SEG,
+  );
+}
+
 /** Tarefas extras que rendem bloco: concluídas, não essenciais e que não são subtarefa de outra. */
 export function extrasConcluidasDoDia(tarefas: Tarefa[]): string[] {
   return tarefas

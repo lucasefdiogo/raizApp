@@ -13,6 +13,12 @@ interface PausaIntencaoScreenProps {
   saldo: number | null;
   onLiberar: (intencao: string) => void;
   onAgoraNao: () => void;
+  /** Mensagem da janela noturna (HU-06, RN-09); ausente = texto padrão da HU-04. */
+  mensagemNoturna?: string;
+  /** Alternativa noturna da pessoa (RN-10); só aparece junto de `mensagemNoturna`. */
+  alternativa?: string;
+  /** Fecha a interceptação sem liberar a sessão. */
+  onAlternativa?: () => void;
 }
 
 /**
@@ -28,6 +34,9 @@ export function PausaIntencaoScreen({
   saldo,
   onLiberar,
   onAgoraNao,
+  mensagemNoturna,
+  alternativa,
+  onAlternativa,
 }: PausaIntencaoScreenProps) {
   const [restante, setRestante] = useState(duracaoSeg);
   const [intencao, setIntencao] = useState('');
@@ -43,7 +52,18 @@ export function PausaIntencaoScreen({
 
   return (
     <View style={styles.conteudo} testID="pausa-intencao">
-      <Text style={styles.titulo}>O que você vai fazer agora?</Text>
+      {mensagemNoturna ? (
+        <>
+          <Text accessibilityRole="status" style={styles.nota}>
+            Você está perto do seu horário de dormir.
+          </Text>
+          <Text accessibilityLiveRegion="polite" style={styles.titulo}>
+            {mensagemNoturna}
+          </Text>
+        </>
+      ) : (
+        <Text style={styles.titulo}>O que você vai fazer agora?</Text>
+      )}
       <Text style={styles.apoio}>
         Um respiro antes de abrir o {appLabel}. Escrever é opcional.
         {saldo === null
@@ -64,6 +84,9 @@ export function PausaIntencaoScreen({
           onPress={() => onLiberar(intencao)}
           desabilitado={!liberado}
         />
+        {mensagemNoturna && alternativa && onAlternativa && (
+          <SecondaryButton titulo={alternativa} onPress={onAlternativa} />
+        )}
         <SecondaryButton titulo="Agora não" onPress={onAgoraNao} />
       </View>
     </View>
@@ -82,6 +105,17 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
     textAlign: 'center',
+  },
+  nota: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
   },
   apoio: {
     fontSize: theme.typography.fontSize.md,

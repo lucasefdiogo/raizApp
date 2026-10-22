@@ -1,4 +1,4 @@
-import { agregarUsoPorDia, EventoUso } from './usoApps';
+import { agregarUsoPorDia, EventoUso, horariosUsoPorDia } from './usoApps';
 
 const INSTAGRAM = 'com.instagram.android';
 const TIKTOK = 'com.zhiliaoapp.musically';
@@ -132,5 +132,81 @@ describe('agregarUsoPorDia', () => {
   it('CA-04: eventos fora da janela não entram no resultado', () => {
     const eventos = [entra(TIKTOK, ts(5, 20, 0)), sai(TIKTOK, ts(5, 20, 10))];
     expect(agregarUsoPorDia(eventos, JANELA_INICIO, JANELA_FIM)).toEqual({});
+  });
+});
+
+describe('horariosUsoPorDia', () => {
+  it('CA-01: primeiro uso do dia e último uso antes de pausa de 3h saem dos eventos', () => {
+    const eventos = [
+      entra(INSTAGRAM, ts(14, 7, 30)),
+      sai(INSTAGRAM, ts(14, 7, 40)),
+      entra(TIKTOK, ts(14, 22, 0)),
+      sai(TIKTOK, ts(14, 23, 40)),
+      // Pausa de 3h ou mais atravessa a meia-noite: 23:40 do dia 14 até 07:10 do dia 15.
+      entra(INSTAGRAM, ts(15, 7, 10)),
+      sai(INSTAGRAM, ts(15, 7, 15)),
+    ];
+
+    const r = horariosUsoPorDia(eventos, JANELA_INICIO, JANELA_FIM);
+
+    expect(r['2026-10-14']).toEqual({
+      primeiroUsoDia: '2026-10-14T07:30:00',
+      ultimoUsoAntesPausaLonga: '2026-10-14T23:40:00',
+    });
+    expect(r['2026-10-15'].primeiroUsoDia).toBe('2026-10-15T07:10:00');
+  });
+
+  it('CA-01: pausa de exatamente 3h conta, inclusive até o fim da janela', () => {
+    const eventos = [
+      entra(INSTAGRAM, ts(14, 20, 0)),
+      sai(INSTAGRAM, ts(14, 21, 0)),
+    ];
+
+    const r = horariosUsoPorDia(eventos, JANELA_INICIO, ts(14, 24, 0));
+
+    expect(r['2026-10-14'].ultimoUsoAntesPausaLonga).toBe(
+      '2026-10-14T21:00:00',
+    );
+  });
+
+  it('CA-01: uso depois da meia-noite pertence ao dia em que ocorreu', () => {
+    const eventos = [
+      entra(TIKTOK, ts(14, 23, 30)),
+      sai(TIKTOK, ts(14, 23, 50)),
+      entra(TIKTOK, ts(15, 0, 20)),
+      sai(TIKTOK, ts(15, 0, 40)),
+    ];
+
+    const r = horariosUsoPorDia(eventos, JANELA_INICIO, JANELA_FIM);
+
+    expect(r['2026-10-14'].ultimoUsoAntesPausaLonga).toBeUndefined();
+    expect(r['2026-10-15'].ultimoUsoAntesPausaLonga).toBe(
+      '2026-10-15T00:40:00',
+    );
+  });
+
+  it('CA-07: dia sem pausa de 3h não grava ultimoUsoAntesPausaLonga', () => {
+    const eventos = [
+      entra(INSTAGRAM, ts(14, 10, 0)),
+      sai(INSTAGRAM, ts(14, 10, 30)),
+      entra(INSTAGRAM, ts(14, 11, 30)),
+      sai(INSTAGRAM, ts(14, 11, 45)),
+    ];
+
+    // A janela termina menos de 3h depois do último evento.
+    const r = horariosUsoPorDia(eventos, ts(14, 0), ts(14, 12, 0));
+
+    expect(r['2026-10-14'].primeiroUsoDia).toBe('2026-10-14T10:00:00');
+    expect('ultimoUsoAntesPausaLonga' in r['2026-10-14']).toBe(false);
+  });
+
+  it('CA-07: eventos de apps fora da lista e fora da janela não geram horário', () => {
+    const eventos = [
+      entra(CHROME, ts(14, 8, 0)),
+      sai(CHROME, ts(14, 8, 5)),
+      entra(INSTAGRAM, ts(5, 9, 0)),
+    ];
+
+    expect(horariosUsoPorDia(eventos, JANELA_INICIO, JANELA_FIM)).toEqual({});
   });
 });

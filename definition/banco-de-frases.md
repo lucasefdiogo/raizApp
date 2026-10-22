@@ -11,7 +11,7 @@
 | Campo no Firestore | Valor |
 |---|---|
 | `texto` | a frase |
-| `tema` | `disciplina` \| `foco` \| `recomeco` \| `identidade` \| `desconforto` \| `pequenos_passos` |
+| `tema` | `disciplina` \| `foco` \| `recomeco` \| `identidade` \| `desconforto` \| `pequenos_passos` \| `noturno` |
 | `contexto` | `home` \| `pos_recaida` \| `retorno` \| `marco` (define onde pode aparecer) |
 | `ativa` | boolean |
 
@@ -100,7 +100,24 @@ Regra de exibição: frases de tema `recomeco` e `desconforto` **nunca** aparece
 
 ---
 
-## 7. Frases proibidas — o que nunca entra no banco
+## 7. Noturno
+*Base teórica: sono e uso de tela à noite — a janela é um padrão identificado no uso da pessoa, apresentado como observação e não como regra imposta; a fricção da pausa maior já existe, então o texto só acompanha.*
+
+- "O descanso de hoje é o foco de amanhã."
+- "Esta hora costuma ser de tela. Dá para escolher outra coisa."
+- "Noites mais calmas deixam as manhãs mais leves."
+- "Respirar fundo antes de abrir também é uma escolha."
+- "O que pode esperar até amanhã costuma esperar bem."
+- "Quem dorme melhor começa o dia com menos esforço."
+- "Fechar o dia devagar ajuda a mente a descer."
+- "Um gesto pequeno agora: água, luz baixa, silêncio."
+- "O feed continua lá amanhã. O seu descanso é agora."
+
+> Estas mensagens vivem no código (`src/domain/mensagensNoturnas.ts`), não no Firestore, e aparecem só na janela noturna, na pausa de intenção de app bloqueado, em rotação sequencial sem repetir a anterior. Nunca entram na Home.
+
+---
+
+## 8. Frases proibidas — o que nunca entra no banco
 
 Estas violam os princípios do produto e não devem ser adicionadas mesmo que soem motivadoras:
 

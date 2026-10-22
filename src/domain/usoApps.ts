@@ -1,6 +1,6 @@
 import { paraISOLocal } from './data';
 import { PACOTES_REDES_SOCIAIS } from './redesSociais';
-import { UsoApps } from './types';
+import { HorariosUsoDia, UsoApps } from './types';
 
 /**
  * Evento do UsageStatsManager (HU-02, RN-01). `ts` é epoch ms; primeiro_plano
@@ -114,5 +114,54 @@ export function agregarUsoPorDia(
       resultado[dia][pacote] = { segundos: Math.floor(ms / 1000), aberturas };
     }
   }
+  return resultado;
+}
+
+// Pausa longa (HU-06, RN-01): 3 horas ou mais sem nenhum evento.
+const PAUSA_LONGA_MS = 3 * 60 * 60 * 1000;
+
+const doisDigitos = (n: number) => String(n).padStart(2, '0');
+
+// ISO 8601 em horário local, sem fuso: YYYY-MM-DDTHH:mm:ss.
+function paraISOLocalComHora(ms: number): string {
+  const d = new Date(ms);
+  const hora = `${doisDigitos(d.getHours())}:${doisDigitos(
+    d.getMinutes(),
+  )}:${doisDigitos(d.getSeconds())}`;
+  return `${paraISOLocal(d)}T${hora}`;
+}
+
+/**
+ * Horários de uso por dia local (HU-06, RN-01): `primeiroUsoDia` é o primeiro
+ * evento do dia e `ultimoUsoAntesPausaLonga` o último evento do dia seguido
+ * de uma pausa de 3h ou mais (até o próximo evento, mesmo no dia seguinte, ou
+ * até `fimMs`). Só conta evento de pacote da lista curada; eventos fora da
+ * janela são ignorados. Pura e independente de `agregarUsoPorDia`.
+ */
+export function horariosUsoPorDia(
+  eventos: EventoUso[],
+  inicioMs: number,
+  fimMs: number,
+): Record<string, HorariosUsoDia> {
+  const tempos = eventos
+    .filter(
+      e =>
+        e.ts >= inicioMs &&
+        e.ts <= fimMs &&
+        PACOTES_REDES_SOCIAIS.includes(e.pacote),
+    )
+    .map(e => e.ts)
+    .sort((a, b) => a - b);
+
+  const resultado: Record<string, HorariosUsoDia> = {};
+  tempos.forEach((t, i) => {
+    const dia = paraISOLocal(new Date(t));
+    resultado[dia] ??= { primeiroUsoDia: paraISOLocalComHora(t) };
+    const proximo = i + 1 < tempos.length ? tempos[i + 1] : fimMs;
+    // O último evento do dia seguido de pausa longa sobrescreve os anteriores.
+    if (proximo - t >= PAUSA_LONGA_MS) {
+      resultado[dia].ultimoUsoAntesPausaLonga = paraISOLocalComHora(t);
+    }
+  });
   return resultado;
 }

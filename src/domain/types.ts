@@ -66,6 +66,16 @@ export interface UsoApp {
 /** Uso por pacote; chave = nome do pacote Android. */
 export type UsoApps = Record<string, UsoApp>;
 
+/**
+ * Horários de uso do dia (HU-06, RN-01), ISO 8601 em horário local do
+ * aparelho. `ultimoUsoAntesPausaLonga` ausente = nenhuma pausa de 3h ou mais
+ * depois do último uso do dia.
+ */
+export interface HorariosUsoDia {
+  primeiroUsoDia: string;
+  ultimoUsoAntesPausaLonga?: string;
+}
+
 export interface DailyLog {
   data: string;
   tarefas: Tarefa[];
@@ -221,4 +231,16 @@ export interface EstadoAcessoRapido {
   usosHoje: number;
   /** Epoch ms de quando o último acesso rápido terminou; 0 = nenhum uso hoje. */
   fimUltimoEm: number;
+}
+
+/**
+ * Rotina noturna da pessoa (HU-06, RN-03, RN-12). Horários em "HH:mm".
+ * `confirmadoEm` ausente = ainda não confirmada.
+ */
+export interface Rotina {
+  dormirEstimado: string;
+  acordarEstimado: string;
+  confirmadoEm?: string;
+  alternativaNoturna?: string;
+  modoManual?: boolean;
 }

@@ -5,10 +5,13 @@ import {
 } from '@react-navigation/native-stack';
 import { useStreak } from '../hooks/useStreak';
 import { useRecoveryState } from '../hooks/useRecoveryState';
+import { useRotina } from '../hooks/useRotina';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { HomeScreen } from '../screens/HomeScreen';
 import { RecoveryStateScreen } from '../screens/home/RecoveryStateScreen';
 import { ReturnAfterPauseScreen } from '../screens/home/ReturnAfterPauseScreen';
+import { RotinaConfirmacaoScreen } from '../screens/rotina/RotinaConfirmacaoScreen';
+import { AlternativaNoturnaScreen } from '../screens/rotina/AlternativaNoturnaScreen';
 import {
   FeatureTourOverlayProps,
   RefAlvoTour,
@@ -18,6 +21,8 @@ export type HojeStackParamList = {
   Home: undefined;
   RecoveryState: undefined;
   ReturnAfterPause: undefined;
+  RotinaConfirmacao: undefined;
+  AlternativaNoturna: undefined;
 };
 
 const Stack = createNativeStackNavigator<HojeStackParamList>();
@@ -69,6 +74,10 @@ export function HojeStack({
     streak.diasTotaisAtivos,
   );
 
+  // Não bloqueia a Home: enquanto carrega, mostrarConfirmacao e
+  // perguntarAlternativa são falsos e a Home aparece normalmente.
+  const rotina = useRotina(uid);
+
   if (streak.carregando) {
     return <LoadingIndicator variant="fullscreen" />;
   }
@@ -91,6 +100,25 @@ export function HojeStack({
               tipo={recovery.tipo!}
               corpo={recovery.corpo!}
               onConcluir={recovery.marcarComoExibido}
+            />
+          )}
+        </Stack.Screen>
+      ) : rotina.mostrarConfirmacao && rotina.estimativa ? (
+        <Stack.Screen name="RotinaConfirmacao">
+          {() => (
+            <RotinaConfirmacaoScreen
+              dormirEstimado={rotina.estimativa!.dormirEstimado}
+              acordarEstimado={rotina.estimativa!.acordarEstimado}
+              onConfirmar={rotina.confirmar}
+            />
+          )}
+        </Stack.Screen>
+      ) : rotina.perguntarAlternativa ? (
+        <Stack.Screen name="AlternativaNoturna">
+          {() => (
+            <AlternativaNoturnaScreen
+              onSalvar={rotina.salvarAlternativa}
+              onAgoraNao={rotina.dispensarAlternativa}
             />
           )}
         </Stack.Screen>
