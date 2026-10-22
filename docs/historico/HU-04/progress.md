@@ -17,6 +17,6 @@ Task ativa: nenhuma
 Entrega: tasks concluídas
 Entrega: validação reprovada (1/3)
 verify: RASTREABILIDADE, 6 testes herdados da HU-03 citavam CA-08, inexistente na spec da HU-04 (7 CAs). Correção: rótulo dos 6 testes trocado para "HU-03 critério 8:" (só o nome, sem mudar asserção). Observação do kit: o verify lê todo "CA-nn" da suíte inteira, então testes de HUs anteriores com CA-01..07 contam como cobertura falsa da HU-04.
-Validação: verify 7/7 critérios verdes (2ª tentativa, após renomear testes herdados da HU-03); lux-revisor APROVADO (melhorias não bloqueantes: roteiro manual do Toast em aparelho, heurística de padrão antigo na RN-10 sem teste de "não cria pendente", rótulos CA nos testes de RN-10, doc definition/schema-firebase.md desatualizada). E2E não se aplica (sem executor). Segurança: dados_sensiveis nao.
+Validação: verify 7/7 critérios verdes (2ª tentativa, após renomear testes herdados da HU-03); lux-revisor APROVADO (melhorias não bloqueantes: roteiro manual do Toast em aparelho, heurística de padrão antigo na RN-10 sem teste de "não cria pendente", rótulos CA nos testes de RN-10, doc definition/schema-firebase.md desatualizada — **[resolvido: incorporado ao /definition]**). E2E não se aplica (sem executor). Segurança: dados_sensiveis nao.
 Entrega: validação aprovada
-Entrega: merge feito, aguardando push
+Entrega: merge feito, aguardando push — **[Arquivado em 2026-10-22: o fluxo de HU do lux kit foi abandonado; push confirmado: main e origin/main em ac8b7ef.]**

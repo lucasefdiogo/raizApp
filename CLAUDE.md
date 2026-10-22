@@ -15,22 +15,34 @@ diferencial competitivo.
 Este arquivo é deliberadamente enxuto. Antes de qualquer decisão de escopo, regra de
 negócio, cor, componente ou dado do Firestore, **consultar `/definition`**:
 
-| Arquivo | Quando consultar |
-|---|---|
-| `roadmap-e-status.md` | O que já existe, o que está em andamento, o que é planejado — sempre checar antes de assumir que algo não foi feito |
-| `regras-de-negocio.md` | Streak/proteção, desafios, bloqueio de apps — mecânica e textos exatos |
-| `schema-firebase.md` | Toda a estrutura de dados do Firestore, campos, regras de segurança |
-| `navegacao-componentes.md` | Árvore de navegação real e composição de cada tela |
-| `design-system-rootora.md` | Tokens de cor, tipografia, biblioteca de componentes com caminho de arquivo |
-| `02-identidade-visual.md` | Conceito de marca — fonte de verdade dos hex (design-system-rootora.md documenta a implementação, este documenta a intenção) |
-| `stack-tecnico.md` | Bibliotecas, ambiente de dev, dívida técnica |
-| `procedimento-loja.md` | Publicação, assinatura — nada disso é escopo de código ainda |
-| `00-instrucoes-do-projeto.md` | Estilo de trabalho preferido do Lucas |
+| Arquivo                                   | Quando consultar                                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `roadmap-e-status.md`                     | O que já existe, o que está em andamento, o que é planejado — sempre checar antes de assumir que algo não foi feito          |
+| `regras-de-negocio.md`                    | Streak/proteção, desafios, bloqueio de apps — mecânica e textos exatos                                                       |
+| `schema-firebase.md`                      | Toda a estrutura de dados do Firestore, campos, regras de segurança                                                          |
+| `navegacao-componentes.md`                | Árvore de navegação real e composição de cada tela                                                                           |
+| `design-system-rootora.md`                | Tokens de cor, tipografia, biblioteca de componentes com caminho de arquivo                                                  |
+| `02-identidade-visual.md`                 | Conceito de marca — fonte de verdade dos hex (design-system-rootora.md documenta a implementação, este documenta a intenção) |
+| `stack-tecnico.md`                        | Bibliotecas, ambiente de dev, dívida técnica                                                                                 |
+| `procedimento-loja.md`                    | Publicação, assinatura — nada disso é escopo de código ainda                                                                 |
+| `00-instrucoes-do-projeto.md`             | Estilo de trabalho preferido do Lucas                                                                                        |
+| `09-ponte-fuga-tarefa-e-estou-travado.md` | Bloqueio de apps, motor de sessões/cooldown, acesso rápido/emergência, rotina noturna, coleta de uso                         |
 
 `03-mvp.md`, `04-fase2.md`, `05-fase3.md` e `regras-streak-e-textos-mvp.md` foram
 **aposentados** — não existem mais / não devem ser recriados. O projeto não é mais
 organizado por fase burocrática (MVP/Fase2/Fase3); é organizado por domínio funcional,
 refletido em `roadmap-e-status.md`.
+
+**`/definition` é a fonte única de verdade** para especificação de produto e regras de
+negócio. Funcionalidade nova ou mudança de regra é descrita direto no documento de
+domínio correspondente (`regras-de-negocio.md`, `schema-firebase.md`,
+`navegacao-componentes.md`, `09-ponte-fuga-tarefa-e-estou-travado.md`...), antes ou
+junto do código.
+
+O fluxo de HU do lux kit (`/lux-especificar`, pacotes `docs/hu/` com `spec.md`,
+`criteria.lock`, cenários `.feature` e zips `lux-HU-*`) **não é mais usado**. Não criar
+pacotes de HU novos. O histórico das HU-01 a HU-06 fica em `docs/historico/` (só
+leitura), e as pendências abertas ficam em `TODO.md`.
 
 ## Princípios inegociáveis (aplicam-se a QUALQUER código, texto ou mecânica nova)
 
@@ -56,6 +68,7 @@ RootNavigator (Stack.Navigator ÚNICO, não stacks separados por arquivo)
 └── Interceptação de apps bloqueados: root RN separado ('Intercept', InterceptActivity nativa),
     fora do RootNavigator — o AppBlockedScreen antigo foi removido
 ```
+
 Detalhe completo em `navegacao-componentes.md`.
 
 ## Separação de camadas
@@ -138,8 +151,12 @@ de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
       relevante mencionada
 - [ ] Se o código divergiu de algo documentado em `/definition`: sinalizado no resumo
 
-## Regras do kit de verificação (lux)
+## Verificação
 
 - Instalar: `npm install`. Tipos: `npx tsc --noEmit`.
-- Teste de critério leva o ID no nome: `it('CA-01: ...')` (é o que o verify procura).
-- Relatório de testes em `reports/junit/*.xml` (ignorado pelo git).
+- Relatório de testes em `reports/junit/*.xml` (ignorado pelo git). O
+  `verify.config.json` do lux kit continua no repositório como ferramenta opcional,
+  sem uso obrigatório no fluxo.
+- Teste novo **não** leva prefixo `CA-nn:` no nome nem referencia HU/CA de forma
+  alguma (nome, comentário ou `describe`): o nome descreve o comportamento testado.
+  Testes antigos com `CA-nn:` vêm das HUs arquivadas — não renomear em massa.

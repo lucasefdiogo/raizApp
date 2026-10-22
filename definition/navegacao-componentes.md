@@ -50,8 +50,19 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │     │     ├── RecoveryStateScreen      (condicional — statusDia de ontem
 │     │     │     protegido_escudo/perdido, ainda não exibido hoje; back físico
 │     │     │     bloqueado enquanto em foco)
-│     │     └── ReturnAfterPauseScreen   (condicional — statusStreak === 'pausado';
-│     │           back físico bloqueado enquanto em foco)
+│     │     ├── ReturnAfterPauseScreen   (condicional — statusStreak === 'pausado';
+│     │     │     back físico bloqueado enquanto em foco)
+│     │     ├── RotinaConfirmacaoScreen  (condicional — `useRotina.mostrarConfirmacao`:
+│     │     │     estimativa calculada (5+ dias de dailyLogs.usoApps com
+│     │     │     primeiroUsoDia/ultimoUsoAntesPausaLonga, fora de modoManual) e
+│     │     │     rotina.confirmadoEm ainda vazio; "Confirmar" / "Ajustar horário")
+│     │     └── AlternativaNoturnaScreen (condicional — `useRotina.perguntarAlternativa`:
+│     │           uma única vez, logo depois da confirmação gravar; estado só em
+│     │           memória, não volta depois de "Salvar" nem de "Agora não")
+│     │
+│     │     Todas são rota única do stack (ternário em HojeStack.tsx, sem
+│     │     empilhar sobre a Home), nesta prioridade: ReturnAfterPause →
+│     │     RecoveryState → RotinaConfirmacao → AlternativaNoturna → Home.
 │     │
 │     ├── ProgressoStack
 │     │     └── ProgressoScreen
@@ -60,7 +71,11 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │           ├── PerfilScreen
 │           ├── BloqueioApps                  (BloqueioAppsScreen — configuração de
 │           │     regrasBloqueio: status do serviço, apps (lista curada de redes
-│           │     sociais), janela, seção "Rotina", resumo)
+│           │     sociais), janela, resumo)
+│           ├── RotinaPerfil                  (RotinaPerfilScreen — aberta pelo link
+│           │     "Rotina noturna" da seção "Rotina" de PerfilScreen; edição manual
+│           │     de dormir/acordar, "Recalcular automaticamente" e alternativa
+│           │     noturna)
 │           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
 │           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
 │           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
@@ -200,6 +215,29 @@ importa o componente).
 | `corpoComTexto` | string (systemMessages com `{{porqueTexto}}` já substituído) |
 | `onSubmitTarefa` | function |
 
+### RotinaConfirmacaoScreen
+Confirmação única da rotina estimada (spec `09-ponte-fuga-tarefa-e-estou-travado.md`
+seção 5). `LuaDecorativa` + título "Notamos um padrão" + horário estimado de dormir
+em destaque. "Ajustar horário" (`SecondaryButton`) revela as linhas "Dormir" e
+"Acordar", cada uma com "Alterar" (`DateTimePicker`); o ajuste fica em estado local
+até "Confirmar" (`PrimaryButton`). Tom de padrão identificado, nunca de regra imposta.
+
+| Prop | Tipo |
+|---|---|
+| `dormirEstimado` / `acordarEstimado` | string (HH:mm) — de `useRotina.estimativa` |
+| `onConfirmar` | `(horarios?) => void` — `useRotina.confirmar`: grava `rotina.dormirEstimado`, `rotina.acordarEstimado` e `rotina.confirmadoEm` (data local AAAA-MM-DD). Sem argumento = estimativa como veio; com argumento = horários ajustados. Ao gravar, liga `perguntarAlternativa` |
+
+### AlternativaNoturnaScreen
+Pergunta única e opcional "O que você gostaria de fazer à noite?", mostrada logo
+depois da confirmação da rotina. `TextField` "Alternativa noturna (opcional)" +
+"Salvar" (`PrimaryButton`) + "Agora não" (`SecondaryButton`). "Salvar" com o campo
+vazio age como "Agora não". Editável depois em `RotinaPerfilScreen`.
+
+| Prop | Tipo |
+|---|---|
+| `onSalvar` | `(texto: string) => void` — `useRotina.salvarAlternativa`: grava `rotina.alternativaNoturna` (texto já sem espaços nas pontas) |
+| `onAgoraNao` | function — `useRotina.dispensarAlternativa`: não grava nada, só desliga `perguntarAlternativa` (a pergunta não volta) |
+
 ### ProgressoScreen
 1. 2 `statbox` (streakAtual, diasTotaisAtivos)
 2. Faixa de 7 `DayStatusPill` — toque abre `DayDetailSheet` (exceto status
@@ -218,7 +256,8 @@ importa o componente).
 ### PerfilScreen
 Seções, em ordem: "Seu porquê" (campo + botão Salvar explícito) → Notificações
 (toggle + `DateTimePicker`) → "Bloqueio de apps" (link "Configurar bloqueio de apps",
-abre `BloqueioAppsScreen`) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
+abre `BloqueioAppsScreen`) → "Rotina" (link "Rotina noturna", abre
+`RotinaPerfilScreen`; só aparece quando `aoAbrirRotina` é passado) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
 funcionalidades — ver seção própria abaixo — + links legais: Política de Privacidade /
 Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
 `ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
@@ -240,11 +279,9 @@ nativo — quebra em testes Jest no mesmo arquivo de um `LoadingIndicator`), res
 lista curada de redes sociais instalada (HU-01 — nunca todo app do aparelho), com
 busca por nome, `SeletorDiasSemana` (7 chips de toque único) e os dois seletores
 de horário início/fim (`DateTimePicker`). Entrada "Medir tempo nas redes" (abre
-`DivulgacaoAcessoUsoScreen`), visível enquanto esse acesso estiver desligado. Seção
-"Rotina" (horário estimado/confirmado de dormir e acordar, alternativa noturna,
-"Recalcular automaticamente" — ver `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
-mostrando o progresso da coleta enquanto não houver 5 dias de dados suficientes.
-Resumo em texto (`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a
+`DivulgacaoAcessoUsoScreen`), visível enquanto esse acesso estiver desligado. A
+rotina noturna **não** fica nesta tela: tem rota própria (`RotinaPerfilScreen`),
+aberta pela seção "Rotina" de `PerfilScreen`. Resumo em texto (`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a
 partir da regra PENDENTE quando existe uma (o que vai valer amanhã), senão da
 vigente. Com uma pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar
 alteração".
@@ -315,6 +352,29 @@ acesso de uso" (grava `consentimentoAcessoUso` e abre as configurações de aces
 uso do Android) + `SecondaryButton` "Agora não". Ao voltar das configurações sem
 conceder, mostra "Acesso de uso desligado. O bloqueio continua funcionando, só sem
 medir o tempo."
+
+### RotinaPerfilScreen
+Rotina noturna no Perfil (spec `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
+rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. Link "Voltar" +
+título "Rotina noturna". Com `rotina` existente: linhas "Dormir: HH:mm" e "Acordar:
+HH:mm", cada uma com "Alterar" (`DateTimePicker`, grava ao escolher); com
+`rotina.modoManual`, nota "Horários ajustados por você" + link "Recalcular
+automaticamente"; `TextField` "Alternativa noturna" + "Salvar" (feedback "Salvo" por
+2 s). Sem `rotina` ainda: só o texto "A rotina aparece aqui depois de alguns dias de
+uso. Não precisa fazer nada por enquanto." (sem progresso da coleta).
+
+| Prop | Tipo |
+|---|---|
+| `uid` | string |
+| `onVoltar` | function — `navigation.goBack()` |
+
+Ações (via `useRotina`, não props):
+
+| Ação | Grava |
+|---|---|
+| "Alterar" dormir/acordar | `useRotina.editarHorarioManual` → `rotina.dormirEstimado` ou `rotina.acordarEstimado` + `rotina.modoManual = true` (com `modoManual`, `estimarRotina` devolve null) |
+| "Recalcular automaticamente" | `useRotina.recalcularAutomaticamente` → `rotina.modoManual = false` — só isso; não regrava `dormirEstimado`/`acordarEstimado` |
+| "Salvar" (alternativa) | `useRotina.salvarAlternativa` → `rotina.alternativaNoturna` |
 
 ### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 Componente único, reutilizado sem diferença nas 2 entradas (botão da Home e toque longo
