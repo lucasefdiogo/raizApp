@@ -369,7 +369,7 @@ medir o tempo."
 
 ### RotinaPerfilScreen
 Rotina noturna no Perfil (spec `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
-rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. Link "Voltar" +
+rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. `BackButton` +
 título "Rotina noturna". Com `rotina` existente: linhas "Dormir: HH:mm" e "Acordar:
 HH:mm", cada uma com "Alterar" (`DateTimePicker`, grava ao escolher); com
 `rotina.modoManual`, nota "Horários ajustados por você" + link "Recalcular
