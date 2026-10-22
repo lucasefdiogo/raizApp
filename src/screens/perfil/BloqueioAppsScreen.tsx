@@ -9,9 +9,12 @@ import { theme } from '../../theme';
 import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
 import { useAcessoUso } from '../../hooks/useAcessoUso';
+import { useToast } from '../../hooks/useToast';
+import { useVoltarFisico } from '../../hooks/useVoltarFisico';
 import {
   decidirGravacaoRegrasBloqueio,
   janelaBloqueioValida,
+  mesmasRegrasBloqueio,
   resumoRegrasBloqueio,
 } from '../../domain/appBlock';
 import { hojeISOLocal } from '../../domain/data';
@@ -21,6 +24,7 @@ import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { BackButton } from '../../components/common/BackButton';
 import { AppListItem } from '../../components/bloqueio/AppListItem';
 import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
 import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
@@ -31,6 +35,8 @@ const SEM_BLOQUEIO: RegrasBloqueio = { apps: [], janelas: [] };
 const DICA_YOUTUBE = 'Usa para estudar? Pode deixar livre.';
 
 const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSemana: [] };
+
+const MENSAGEM_ALTERACOES_NAO_SALVAS = 'Suas alterações não foram salvas.';
 
 interface BloqueioAppsScreenProps {
   uid: string;
@@ -43,6 +49,11 @@ interface BloqueioAppsScreenProps {
   aoTocarSaibaOQueE: () => void;
   /** Abre a divulgação do acesso de uso (HU-02); só aparece com o acesso desligado. */
   aoTocarMedirTempo: () => void;
+  onVoltar: () => void;
+}
+
+function regrasDoFormulario(apps: string[], janela: JanelaBloqueio): RegrasBloqueio {
+  return { apps, janelas: apps.length > 0 ? [janela] : [] };
 }
 
 function horarioParaDate(horario: string): Date {
@@ -72,6 +83,7 @@ export function BloqueioAppsScreen({
   aoTocarAtivar,
   aoTocarSaibaOQueE,
   aoTocarMedirTempo,
+  onVoltar,
 }: BloqueioAppsScreenProps) {
   const {
     carregando,
@@ -83,6 +95,7 @@ export function BloqueioAppsScreen({
   } = useRegrasBloqueio(uid);
   const { ativo: servicoAtivo, carregando: statusCarregando } = useAccessibilityPermission();
   const { concedido: acessoUsoConcedido, carregando: acessoUsoCarregando } = useAcessoUso();
+  const { showToast } = useToast();
 
   const handleAtivar = () => {
     logAcessibilidadeSaibaMais('ativar', servicoAtivo ? 'ativo' : 'desativado');
@@ -147,11 +160,33 @@ export function BloqueioAppsScreen({
     appsSelecionados.length === 0 ||
     (janelaBloqueioValida(janela.inicio, janela.fim) && janela.diasSemana.length > 0);
 
-  const regrasEmEdicao = {
-    apps: appsSelecionados,
-    janelas: appsSelecionados.length > 0 ? [janela] : [],
-  };
+  const regrasEmEdicao = regrasDoFormulario(appsSelecionados, janela);
   const resumo = resumoRegrasBloqueio(regrasEmEdicao);
+
+  // Mesmo ponto de partida do formulário (ver useEffect de inicialização) —
+  // a pré-marcação da primeira configuração não conta como alteração. Depois
+  // de salvar, o hook atualiza vigente/pendente e a edição volta a bater.
+  const regrasSalvas = regrasPendentes ?? regrasVigentes;
+  const regrasIniciais = regrasDoFormulario(
+    appsIniciaisSelecionados(regrasSalvas, appsInstalados),
+    regrasSalvas?.janelas[0] ?? JANELA_PADRAO,
+  );
+  const alteracaoNaoSalva = !carregando && !mesmasRegrasBloqueio(regrasIniciais, regrasEmEdicao);
+
+  // Sair sem salvar não pede confirmação — só avisa, sem bloquear a saída.
+  // No aviso de alteração pendente, voltar é o mesmo que "Voltar e revisar".
+  const handleVoltar = () => {
+    if (mostrarAvisoPendente) {
+      setMostrarAvisoPendente(false);
+      return;
+    }
+    if (alteracaoNaoSalva) {
+      showToast(MENSAGEM_ALTERACOES_NAO_SALVAS);
+    }
+    onVoltar();
+  };
+
+  useVoltarFisico(handleVoltar);
 
   // Sempre que já existe regrasVigentes, QUALQUER salvar vira pendente
   // (regra única — ver decidirGravacaoRegrasBloqueio). Esse é exatamente o
@@ -207,6 +242,7 @@ export function BloqueioAppsScreen({
         keyExtractor={app => app.packageName}
         ListHeaderComponent={
           <>
+            <BackButton onPress={handleVoltar} />
             <Text style={styles.titulo}>Bloqueio de apps</Text>
 
             <Text style={styles.secaoTitulo}>Serviço de acessibilidade</Text>

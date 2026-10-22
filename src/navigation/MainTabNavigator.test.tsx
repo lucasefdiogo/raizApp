@@ -51,12 +51,35 @@ jest.mock('./ProgressoStack', () => ({
     return <Text>ProgressoStack uid={uid}</Text>;
   },
 }));
-jest.mock('./PerfilStack', () => ({
-  PerfilStack: ({ uid }: { uid: string }) => {
-    const { Text } = require('react-native');
-    return <Text>PerfilStack uid={uid}</Text>;
-  },
-}));
+// Stack real de 2 telas (raiz + uma empurrada) — o suficiente pra testar
+// o que acontece com a pilha da aba ao trocar de aba.
+jest.mock('./PerfilStack', () => {
+  const { Text, Pressable } = require('react-native');
+  const {
+    createNativeStackNavigator,
+  } = require('@react-navigation/native-stack');
+  const Stack = createNativeStackNavigator();
+
+  return {
+    PerfilStack: ({ uid }: { uid: string }) => (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Perfil">
+          {({ navigation }: { navigation: { navigate: (rota: string) => void } }) => (
+            <>
+              <Text>PerfilStack uid={uid}</Text>
+              <Pressable onPress={() => navigation.navigate('Empurrada')}>
+                <Text>abrir tela empurrada</Text>
+              </Pressable>
+            </>
+          )}
+        </Stack.Screen>
+        <Stack.Screen name="Empurrada">
+          {() => <Text>tela empurrada do Perfil</Text>}
+        </Stack.Screen>
+      </Stack.Navigator>
+    ),
+  };
+});
 
 function renderMainTabNavigator(uid = 'uid-teste') {
   return render(
@@ -133,6 +156,20 @@ describe('MainTabNavigator', () => {
     await fireEvent.press(screen.getByText('Hoje'));
 
     expect(screen.getByText('HojeStack uid=uid-teste')).toBeTruthy();
+  });
+
+  it('sair de uma aba com tela empurrada e voltar a ela mostra a raiz da aba', async () => {
+    await renderMainTabNavigator();
+
+    await fireEvent.press(screen.getByText('Perfil'));
+    await fireEvent.press(screen.getByText('abrir tela empurrada'));
+    expect(screen.getByText('tela empurrada do Perfil')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Hoje'));
+    await fireEvent.press(screen.getByText('Perfil'));
+
+    expect(screen.getByText('PerfilStack uid=uid-teste')).toBeTruthy();
+    expect(screen.queryByText('tela empurrada do Perfil')).toBeNull();
   });
 
   describe('tour de funcionalidades', () => {

@@ -106,6 +106,30 @@ export function resumoRegrasBloqueio(regras: RegrasBloqueio): string {
   return `${textoApps}, ${resumoJanela(janela)}.`;
 }
 
+function mesmosItens<T>(a: T[], b: T[]): boolean {
+  return a.length === b.length && a.every(item => b.includes(item));
+}
+
+/**
+ * Compara só o que a tela de Bloqueio de apps edita (apps marcados e
+ * janelas), sem depender de ordem — config de blocos e `efetivaEm` ficam de
+ * fora. Usado pra saber se há alteração não salva ao sair da tela.
+ */
+export function mesmasRegrasBloqueio(a: RegrasBloqueio, b: RegrasBloqueio): boolean {
+  return (
+    mesmosItens(a.apps, b.apps) &&
+    a.janelas.length === b.janelas.length &&
+    a.janelas.every((janela, indice) => {
+      const outra = b.janelas[indice];
+      return (
+        janela.inicio === outra.inicio &&
+        janela.fim === outra.fim &&
+        mesmosItens(janela.diasSemana, outra.diasSemana)
+      );
+    })
+  );
+}
+
 export type DecisaoRegrasBloqueio =
   | { tipo: 'imediata'; regras: RegrasBloqueio }
   | { tipo: 'pendente'; pendente: RegrasBloqueioPendentes };

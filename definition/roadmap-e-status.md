@@ -159,7 +159,7 @@ caminho, com tela de configuração própria.
 | TravadoFlow (4 estados: confusão/medo/tédio/energia) — mesmo componente nas 3 entradas (Home, toque longo, InterceptScreen) | ✅ |
 | SessaoFocoScreen (timer + FimSessao) — sessões de foco não alteram `streakAtual` | ✅ |
 | InterceptScreen (A/C + fases do saldo de blocos) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
-| Tela de debug da InterceptScreen (Perfil → dev) | ✅ |
+| Telas de debug (detecção de apps e InterceptScreen, Perfil → dev) | ❌ removidas — validação em device passa a ser pelo fluxo real |
 | AccessibilityService: único gatilho de interceptação (`regrasBloqueio` → `deveInterceptar` → `InterceptActivity`) + "sessão ativa" (reabrir com o timer em andamento) + promoção de `regrasBloqueioPendentes` vencida (roda com o app fechado) | 🚧 implementado, não confirmado em device físico |
 | Tela de configuração de `regrasBloqueio` (`BloqueioAppsScreen`, Perfil) | ✅ |
 | "Desbloquear com desafio" (ação secundária do estado A) | ❌ removido do fluxo — mecanismo de desbloqueio-por-desafio não existe no produto |

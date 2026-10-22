@@ -79,17 +79,24 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │           ├── DivulgacaoAcessibilidade      (DivulgacaoAcessibilidadeScreen — aberta
 │           │     a partir do botão "Ativar" de BloqueioApps, ANTES das configurações
 │           │     de acessibilidade do Android; grava consentimentoAcessibilidade)
-│           ├── DivulgacaoAcessoUso           (DivulgacaoAcessoUsoScreen — aberta a
-│           │     partir da entrada "Medir tempo nas redes" de BloqueioApps; grava
-│           │     consentimentoAcessoUso)
-│           ├── AccessibilityDebug            (condicional a `__DEV__ ||
-│           │     MOSTRAR_DEBUG_ACESSIBILIDADE` de `config/debugFlags.ts` — a flag
-│           │     fica `false` no repositório e só é ligada à mão pra gerar APK de
-│           │     teste; temporária por design, não remover sem avisar, ainda é
-│           │     usada pra validar a detecção em dispositivo físico)
-│           └── InterceptDebug                (idem, mesma condição — abre a
-│                 InterceptScreen de verdade com estado mockado, spec 09)
+│           └── DivulgacaoAcessoUso           (DivulgacaoAcessoUsoScreen — aberta a
+│                 partir da entrada "Medir tempo nas redes" de BloqueioApps; grava
+│                 consentimentoAcessoUso)
 ```
+
+### Voltar
+
+- **Telas empurradas** numa stack de aba (`BloqueioApps`, `RotinaPerfil`) e no fluxo
+  de auth (`SignUp`, `ForgotPassword`) têm `BackButton` (chevron) no topo. As
+  divulgações (`DivulgacaoAcessibilidade`/`DivulgacaoAcessoUso`) não têm: voltam
+  pelo "Agora não"/"Entendi", que já são a recusa explícita exigida pela Play Store.
+- **Trocar de aba volta a aba de origem pra raiz** (`popToTopOnBlur` no
+  `MainTabNavigator`): voltar ao Perfil nunca cai no meio de um fluxo. Tocar de novo
+  na aba já ativa também volta pra raiz (padrão do React Navigation).
+- **Voltar físico na raiz de Progresso/Perfil** vai pra aba Hoje
+  (`useVoltarParaAbaHoje`); na aba Hoje, sai do app.
+- **Lembrete "bloqueio desligado"** abre `PerfilTab` → `BloqueioApps` com
+  `initial: false`, pra ter o Perfil embaixo mesmo com a aba ainda não montada.
 
 Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
 (`AppBlockedScreen`, disparado por evento nativo por cima de tudo) foi removido por
@@ -260,9 +267,16 @@ abre `BloqueioAppsScreen`) → "Rotina" (link "Rotina noturna", abre
 `RotinaPerfilScreen`; só aparece quando `aoAbrirRotina` é passado) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
 funcionalidades — ver seção própria abaixo — + links legais: Política de Privacidade /
 Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
-`ConfirmDeleteAccountModal`) → "Sair" → link de debug (condicional).
+`ConfirmDeleteAccountModal`) → "Sair" → link "Testar Crashlytics" (só em dev ou com `MOSTRAR_TESTAR_CRASHLYTICS`).
 
 ### BloqueioAppsScreen
+`BackButton` no topo (`onVoltar` → `navigation.goBack()`). Voltar — pelo botão ou pelo
+voltar físico (`useVoltarFisico`) — nunca pede confirmação: se a edição difere do que
+está salvo (`mesmasRegrasBloqueio`, `domain/appBlock.ts`; a pré-marcação da primeira
+configuração não conta), sai e mostra o toast "Suas alterações não foram salvas.".
+Com `AvisoAlteracaoPendenteScreen` aberto, o voltar físico equivale a "Voltar e
+revisar".
+
 Status do `isAccessibilityServiceEnabled()` (via `useAccessibilityPermission`) +
 **duas entradas pra `DivulgacaoAcessibilidadeScreen`**, sempre a mesma rota (quem
 decide o layout é o status real do serviço, não qual das duas foi tocada):
@@ -355,7 +369,7 @@ medir o tempo."
 
 ### RotinaPerfilScreen
 Rotina noturna no Perfil (spec `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
-rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. Link "Voltar" +
+rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. `BackButton` +
 título "Rotina noturna". Com `rotina` existente: linhas "Dormir: HH:mm" e "Acordar:
 HH:mm", cada uma com "Alterar" (`DateTimePicker`, grava ao escolher); com
 `rotina.modoManual`, nota "Horários ajustados por você" + link "Recalcular
@@ -411,13 +425,6 @@ COOLDOWN/SALDO_ZERADO) — não decide mais nenhum estado a partir de tarefas es
 `rotinaJson` (prop opcional, espelho de `users/{uid}.rotina`) diz se a janela noturna
 está ativa agora, pra dobrar a pausa de intenção e trocar o texto padrão pela mensagem
 do banco `noturno` (seção 5 da spec 09).
-
-### InterceptDebugScreen
-Só validação manual (Perfil → dev, mesmo padrão de `AccessibilityDebugScreen`) —
-botões que abrem o `InterceptRoot` de verdade com estado mockado pra cada fase
-(`AGUARDANDO_LIBERACAO`/pausa de intenção, `COOLDOWN`, `SALDO_ZERADO`, e uma variante
-com a janela noturna ativa). O estado real de sessão/cooldown do aparelho só é
-mostrado quando nenhum mock é passado (a fase vem do nativo, não do estado mockado).
 
 ### Telas de permissão
 `DivulgacaoAcessibilidadeScreen`, `DivulgacaoAcessoUsoScreen` (ambas no Perfil, antes

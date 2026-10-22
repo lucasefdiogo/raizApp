@@ -4,6 +4,7 @@ import {
   formatarDiasSemana,
   janelaBloqueioValida,
   limparAppsForaDaListaCurada,
+  mesmasRegrasBloqueio,
   resumoRegrasBloqueio,
 } from './appBlock';
 import { RegrasBloqueio, RegrasBloqueioPendentes } from './types';
@@ -276,5 +277,60 @@ describe('limparAppsForaDaListaCurada', () => {
     };
 
     expect(limparAppsForaDaListaCurada(vigente, null).mudou).toBe(false);
+  });
+});
+
+describe('mesmasRegrasBloqueio', () => {
+  const base: RegrasBloqueio = {
+    apps: ['com.instagram.android', 'com.whatsapp'],
+    janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3] }],
+  };
+
+  it('considera iguais as mesmas regras com apps e dias em outra ordem', () => {
+    expect(
+      mesmasRegrasBloqueio(base, {
+        apps: ['com.whatsapp', 'com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [3, 1, 2] }],
+      }),
+    ).toBe(true);
+  });
+
+  it('ignora o que não é apps/janelas (config de blocos, efetivaEm)', () => {
+    const pendente: RegrasBloqueioPendentes = {
+      ...base,
+      cooldownMin: 30,
+      efetivaEm: '2026-10-23',
+    };
+
+    expect(mesmasRegrasBloqueio(pendente, base)).toBe(true);
+  });
+
+  it('detecta app marcado ou desmarcado', () => {
+    expect(mesmasRegrasBloqueio(base, { ...base, apps: ['com.whatsapp'] })).toBe(false);
+    expect(
+      mesmasRegrasBloqueio(base, { ...base, apps: [...base.apps, 'com.zhiliaoapp.musically'] }),
+    ).toBe(false);
+  });
+
+  it('detecta horário diferente', () => {
+    expect(
+      mesmasRegrasBloqueio(base, {
+        ...base,
+        janelas: [{ inicio: '09:00', fim: '17:00', diasSemana: [1, 2, 3] }],
+      }),
+    ).toBe(false);
+  });
+
+  it('detecta dias da semana diferentes', () => {
+    expect(
+      mesmasRegrasBloqueio(base, {
+        ...base,
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2] }],
+      }),
+    ).toBe(false);
+  });
+
+  it('detecta janela adicionada ou removida', () => {
+    expect(mesmasRegrasBloqueio(base, { ...base, janelas: [] })).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import { useRotina } from '../../hooks/useRotina';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { BackButton } from '../../components/common/BackButton';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 
@@ -86,15 +87,7 @@ export function RotinaPerfilScreen({ uid, onVoltar }: RotinaPerfilScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={onVoltar}
-          hitSlop={8}
-          style={styles.alvo}
-        >
-          <Text style={styles.link}>Voltar</Text>
-        </Pressable>
+        <BackButton onPress={onVoltar} />
         <Text accessibilityRole="header" style={styles.titulo}>
           Rotina noturna
         </Text>

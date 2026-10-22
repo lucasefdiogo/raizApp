@@ -32,16 +32,6 @@ interface PerfilScreenProps {
   aoAbrirBloqueioApps: () => void;
   /** Abre a rotina noturna (HU-06, RN-12). Ausente = a linha não aparece. */
   aoAbrirRotina?: () => void;
-  /**
-   * Só em dev: abre a tela temporária de debug da detecção de apps (Fase 3,
-   * parte 1). Ausente = o botão não aparece.
-   */
-  aoAbrirDebugAcessibilidade?: () => void;
-  /**
-   * Só em dev: abre a tela temporária de debug da InterceptScreen (Etapa 3
-   * da spec 09-ponte-fuga-tarefa). Ausente = o botão não aparece.
-   */
-  aoAbrirDebugIntercept?: () => void;
 }
 
 function horarioParaDate(horario: string | null): Date {
@@ -61,8 +51,6 @@ export function PerfilScreen({
   uid,
   aoAbrirBloqueioApps,
   aoAbrirRotina,
-  aoAbrirDebugAcessibilidade,
-  aoAbrirDebugIntercept,
 }: PerfilScreenProps) {
   useVoltarParaAbaHoje();
   const { reiniciar: reiniciarTourFuncionalidades } = useFeatureTour();
@@ -240,28 +228,6 @@ export function PerfilScreen({
             Apaga sua conta e todo o progresso. Não dá pra desfazer.
           </Text>
         </View>
-
-        {aoAbrirDebugAcessibilidade && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={aoAbrirDebugAcessibilidade}
-            style={styles.debugLink}
-            hitSlop={8}
-          >
-            <Text style={styles.debugTexto}>🔧 Debug: detecção de apps</Text>
-          </Pressable>
-        )}
-
-        {aoAbrirDebugIntercept && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={aoAbrirDebugIntercept}
-            style={styles.debugLink}
-            hitSlop={8}
-          >
-            <Text style={styles.debugTexto}>🔧 Debug: InterceptScreen</Text>
-          </Pressable>
-        )}
 
         {(__DEV__ || MOSTRAR_TESTAR_CRASHLYTICS) && (
           <Pressable

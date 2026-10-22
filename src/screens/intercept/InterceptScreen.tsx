@@ -42,7 +42,7 @@ interface InterceptScreenProps {
   visaoInicial?: VisaoBloqueio | null;
   /** Ausente/duracaoRestanteSeg <= 0 = segue a fase do saldo normalmente. */
   sessaoAtivaResumida?: SessaoAtivaResumida | null;
-  /** "Sair"/"Agora não"/fim de qualquer sub-fluxo — real: BackHandler.exitApp; debug: volta pra tela de debug (ver InterceptRoot). */
+  /** "Sair"/"Agora não"/fim de qualquer sub-fluxo — BackHandler.exitApp (ver InterceptRoot). */
   onSair: () => void;
 }
 

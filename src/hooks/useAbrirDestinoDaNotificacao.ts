@@ -46,7 +46,9 @@ export function useAbrirDestinoDaNotificacao(): void {
         navigation.dispatch(
           CommonActions.navigate({
             name: 'PerfilTab',
-            params: { screen: 'BloqueioApps' },
+            // initial: false keeps Perfil below BloqueioApps even when the
+            // Perfil tab was never opened, so going back lands on Perfil.
+            params: { screen: 'BloqueioApps', initial: false },
           }),
         );
       } catch (erro) {

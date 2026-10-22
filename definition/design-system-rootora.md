@@ -134,7 +134,7 @@ nesse link, não de código quebrado.
 (`Tutorial`, `SignIn`, `SignUp`, `ForgotPassword`, `Onboarding`, `NotificationPriming`,
 `Main`) no mesmo `RootStackParamList`; "AuthStack", "OnboardingStack" etc. são só
 agrupamento lógico, não arquivos. A árvore completa (abas, `HojeStack`, `ProgressoStack`,
-`PerfilStack`, rotas de debug e o root separado `Intercept`) vive em
+`PerfilStack` e o root separado `Intercept`) vive em
 `navegacao-componentes.md` seção 1 — fonte única, não duplicada aqui.
 
 Não existe overlay global de bloqueio no `RootNavigator`: a interceptação acontece fora
@@ -146,7 +146,7 @@ Resumo de composição por tela (detalhe em `navegacao-componentes.md` seção 2
 - Home: `HomeHeader` → `StreakCard` → headline → `TaskList` + `AddTaskForm` → overlays
 - Progresso: 2 statbox, 7 `DayStatusPill` (abre `DayDetailSheet`), `ChallengeCard` semanal + mensal
 - Perfil: porquê, notificações+horário, entrada "Bloqueio de apps", links legais,
-  "Excluir conta" (neutro), "Sair", link de debug (condicional)
+  "Excluir conta" (neutro), "Sair", link "Testar Crashlytics" (só dev)
 
 `SignUpScreen` tem 4 campos (Nome, E-mail, Senha, Confirmar senha), não 3.
 

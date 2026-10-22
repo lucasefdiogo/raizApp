@@ -27,14 +27,6 @@ export interface InterceptRootProps {
   sessaoAtivaJson?: string;
   /** Estado do saldo de blocos (extra `estadoBloqueioJson` da InterceptActivity). Ausente = a tela lê do nativo. */
   estadoBloqueioJson?: string;
-  /**
-   * Só pra a tela de debug (ver screens/debug/InterceptDebugScreen) — o
-   * root real (AppRegistry.registerComponent('Intercept', ...)) nunca passa
-   * isso, e "Sair"/fim de fluxo chama BackHandler.exitApp() (fecha a
-   * InterceptActivity, devolvendo o controle pro Android — não existe
-   * NavigationContainer nem stack pra voltar aqui, é um root separado).
-   */
-  aoSairOverride?: () => void;
 }
 
 function parseSnapshot(snapshotJson: string): SnapshotDia {
@@ -101,7 +93,6 @@ export function InterceptRoot({
   snapshotJson,
   sessaoAtivaJson,
   estadoBloqueioJson,
-  aoSairOverride,
 }: InterceptRootProps) {
   const { user, carregando } = useAuth();
 
@@ -118,7 +109,7 @@ export function InterceptRoot({
             snapshot={parseSnapshot(snapshotJson)}
             visaoInicial={parseVisaoBloqueio(estadoBloqueioJson)}
             sessaoAtivaResumida={parseSessaoAtiva(sessaoAtivaJson)}
-            onSair={aoSairOverride ?? (() => BackHandler.exitApp())}
+            onSair={() => BackHandler.exitApp()}
           />
         )}
       </ToastProvider>
