@@ -3,7 +3,8 @@ import { useDayDetail } from './useDayDetail';
 
 jest.mock('../services/firestore');
 
-const { buscarDailyLog } = require('../services/firestore');
+const firestoreMock = require('../services/firestore');
+const { buscarDailyLog } = firestoreMock;
 
 // Data bem no passado — não depende de fake timers pra garantir "não é hoje
 // nem futuro" (o cálculo exaustivo de status por data já é coberto em
@@ -257,6 +258,29 @@ describe('useDayDetail', () => {
 
       expect(result.current.detalheRedes?.duracao).toBeNull();
       expect(result.current.detalheRedes?.topAppsTexto).toBeNull();
+    });
+
+    it('Cenário 14: abrir o detalhe do dia nunca escreve nada no Firestore', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: DATA_PASSADA,
+        tarefas: [{ id: '1', titulo: 'A', essencial: true, concluida: true }],
+        statusDia: 'cumprido',
+        escudoUsado: false,
+        resumoBloqueio: { sessoesUsadas: 4, intencoes: ['oi'] },
+        usoApps: { 'com.instagram.android': { segundos: 100, aberturas: 1 } },
+      });
+
+      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+
+      await act(async () => {
+        await result.current.buscarDia(DATA_PASSADA);
+      });
+
+      expect(firestoreMock.atualizarEstadoStreak).not.toHaveBeenCalled();
+      expect(firestoreMock.atualizarStatusStreak).not.toHaveBeenCalled();
+      expect(firestoreMock.salvarDailyLog).not.toHaveBeenCalled();
+      expect(firestoreMock.gravarUsoAppsNoDia).not.toHaveBeenCalled();
+      expect(firestoreMock.registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
     });
   });
 });

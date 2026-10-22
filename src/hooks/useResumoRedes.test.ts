@@ -4,7 +4,8 @@ import { useResumoRedes } from './useResumoRedes';
 jest.mock('../services/firestore');
 jest.mock('../services/crashlytics');
 jest.mock('./useToast');
-const { buscarDailyLogsNoIntervalo, buscarUsuario } = require('../services/firestore');
+const firestoreMock = require('../services/firestore');
+const { buscarDailyLogsNoIntervalo, buscarUsuario } = firestoreMock;
 const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('./useToast');
 
@@ -111,6 +112,22 @@ describe('HU-08 · useResumoRedes', () => {
     });
 
     expect(buscarDailyLogsNoIntervalo).toHaveBeenCalledTimes(2);
+  });
+
+  it('Cenário 14: ler o resumo da semana nunca escreve nada no Firestore', async () => {
+    buscarUsuario.mockResolvedValue({ consentimentoAcessoUso: '2026-01-01' });
+    buscarDailyLogsNoIntervalo.mockResolvedValue(
+      diasComUso(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-19']),
+    );
+
+    const { result } = await renderHook(() => useResumoRedes('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(firestoreMock.atualizarEstadoStreak).not.toHaveBeenCalled();
+    expect(firestoreMock.atualizarStatusStreak).not.toHaveBeenCalled();
+    expect(firestoreMock.salvarDailyLog).not.toHaveBeenCalled();
+    expect(firestoreMock.gravarUsoAppsNoDia).not.toHaveBeenCalled();
+    expect(firestoreMock.registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
   });
 
   it('recarregar() com falha de rede dispara o toast de atualização', async () => {
