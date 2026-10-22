@@ -1,5 +1,12 @@
 import React, { forwardRef } from 'react';
-import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TextInputProps,
+  TextStyle,
+  View,
+} from 'react-native';
 import { theme } from '../theme';
 
 export type TextFieldRef = React.ComponentRef<typeof TextInput>;
@@ -12,13 +19,18 @@ const ALTURA_MINIMA_MULTILINHA = 120;
 interface TextFieldProps extends TextInputProps {
   label: string;
   erro?: string;
+  /** Sobrescreve o estilo do label — usado quando ele faz vez de título de sheet (ex: AddTaskForm, HU-07). */
+  labelStyle?: TextStyle;
 }
 
 export const TextField = forwardRef<TextFieldRef, TextFieldProps>(
-  function TextFieldBase({ label, erro, style, multiline, ...resto }, ref) {
+  function TextFieldBase(
+    { label, erro, labelStyle, style, multiline, ...resto },
+    ref,
+  ) {
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, labelStyle]}>{label}</Text>
       <TextInput
         ref={ref}
         style={[
