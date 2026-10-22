@@ -32,3 +32,6 @@ Task ativa: TASK-06
 Task ativa: TASK-06
 TASK-06: dentroDaJanelaNoturna(rotina, agora) em domain/rotina.ts (30 min antes de dormir ate acordar, inicio inclusivo, fim exclusivo, virada da meia-noite; falso sem confirmadoEm). Suite verde (1296).
 Task ativa: nenhuma
+Task ativa: TASK-07
+TASK-07: duracaoPausaIntencaoNoturnaSeg em domain/saldoBloqueio.ts (dobro da sequencia, teto 120 s); Kotlin e fixtures intocados. Suite verde (1299).
+Task ativa: nenhuma

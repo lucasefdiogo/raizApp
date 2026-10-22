@@ -62,7 +62,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/domain/rotina.ts, src/domain/rotina.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-07 (CA-04, CA-06, RN-08, RN-11): `duracaoPausaIntencaoNoturnaSeg(blocosUsados)` dobra a posição atual da sequência, com teto de 120 s
+- [x] TASK-07 (CA-04, CA-06, RN-08, RN-11): `duracaoPausaIntencaoNoturnaSeg(blocosUsados)` dobra a posição atual da sequência, com teto de 120 s
   - Teste: `CA-04: na 2ª sessão do dia a pausa noturna é de 40 segundos` (feliz)
   - Teste: `CA-04: o dobro nunca passa de 120 segundos` (exceção)
   - Teste: `CA-06: a duração padrão fora da janela continua a da sequência da HU-04` (exceção)

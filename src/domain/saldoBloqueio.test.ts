@@ -7,6 +7,9 @@ import {
   acessoRapidoLiberado,
   aplicarSnapshot,
   concluirEmergencia,
+  SEQUENCIA_PAUSA_INTENCAO_SEG_V2,
+  TETO_PAUSA_INTENCAO_NOTURNA_SEG,
+  duracaoPausaIntencaoNoturnaSeg,
   duracaoPausaIntencaoSeg,
   entrouEmPrimeiroPlano,
   essencialCumpridoNoDia,
@@ -621,5 +624,27 @@ describe('acesso rápido e emergência no motor de saldo (HU-05)', () => {
     expect(s.fimCooldownEm).toBe(t0 + 60 * MIN);
     expect(liberarAcessoRapido(antigo, cfg, t0 + 20 * MIN, dia).ok).toBe(true);
     expect(concluirEmergencia(antigo, cfg, t0 + 20 * MIN, dia).ok).toBe(true);
+  });
+});
+
+describe('duracaoPausaIntencaoNoturnaSeg', () => {
+  it('CA-04: na 2ª sessão do dia a pausa noturna é de 40 segundos', () => {
+    expect(duracaoPausaIntencaoNoturnaSeg(1)).toBe(40);
+    expect(duracaoPausaIntencaoNoturnaSeg(0)).toBe(20);
+  });
+
+  it('CA-04: o dobro nunca passa de 120 segundos', () => {
+    expect(TETO_PAUSA_INTENCAO_NOTURNA_SEG).toBe(120);
+    expect(duracaoPausaIntencaoNoturnaSeg(5)).toBe(120);
+    [-3, 0, 1, 2, 3, 4, 5, 6, 9, 1000].forEach(n => {
+      expect(duracaoPausaIntencaoNoturnaSeg(n)).toBeLessThanOrEqual(120);
+    });
+    expect(duracaoPausaIntencaoNoturnaSeg(-3)).toBe(20);
+    expect(duracaoPausaIntencaoNoturnaSeg(1000)).toBe(120);
+  });
+
+  it('CA-06: a duração padrão fora da janela continua a da sequência da HU-04', () => {
+    expect(duracaoPausaIntencaoSeg(1)).toBe(20);
+    expect(SEQUENCIA_PAUSA_INTENCAO_SEG_V2).toEqual([10, 20, 30, 40, 50, 60]);
   });
 });
