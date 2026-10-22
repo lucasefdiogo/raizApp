@@ -406,7 +406,7 @@ describe('HomeScreen', () => {
     for (const titulo of ['Essencial dois', 'Essencial três']) {
       await fireEvent.press(screen.getByText('Adicionar alternativa'));
       await fireEvent.changeText(screen.getByLabelText('Nova alternativa'), titulo);
-      await fireEvent.press(screen.getByText('Marcar como essencial'));
+      await fireEvent.press(screen.getByRole('switch', { name: 'Essencial' }));
       await fireEvent.press(screen.getByText('Adicionar'));
     }
 

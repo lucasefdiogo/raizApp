@@ -100,6 +100,7 @@ export function AddTaskForm({
           >
           <TextField
             label="Nova alternativa"
+            labelStyle={styles.tituloSheet}
             placeholder="O que você faria em vez de abrir o feed?"
             value={titulo}
             onChangeText={setTitulo}
@@ -124,7 +125,8 @@ export function AddTaskForm({
           </View>
 
           <Pressable
-            accessibilityRole="checkbox"
+            accessibilityRole="switch"
+            accessibilityLabel="Essencial"
             accessibilityState={{
               checked: essencialEfetivo,
               disabled: !podeMarcarEssencial,
@@ -133,24 +135,27 @@ export function AddTaskForm({
             onPress={() => setEssencial(atual => !atual)}
             style={styles.linhaEssencial}
           >
-            <View
-              style={[styles.checkbox, essencialEfetivo && styles.checkboxMarcado]}
-            />
-            <Text
-              style={[
-                styles.rotuloEssencial,
-                !podeMarcarEssencial && styles.rotuloDesabilitado,
-              ]}
-            >
-              Marcar como essencial
-            </Text>
+            <View style={styles.textoEssencial}>
+              <Text
+                style={[
+                  styles.rotuloEssencial,
+                  !podeMarcarEssencial && styles.rotuloDesabilitado,
+                ]}
+              >
+                Essencial
+              </Text>
+              <Text style={styles.aviso}>
+                {podeMarcarEssencial
+                  ? `${essenciaisUsadas} de 3 usadas hoje`
+                  : 'Você já tem 3 essenciais hoje.'}
+              </Text>
+            </View>
+            <View style={[styles.trilha, essencialEfetivo && styles.trilhaAtiva]}>
+              <View
+                style={[styles.bolinha, essencialEfetivo && styles.bolinhaAtiva]}
+              />
+            </View>
           </Pressable>
-
-          <Text style={styles.aviso}>
-            {podeMarcarEssencial
-              ? `${essenciaisUsadas} de 3 usadas hoje`
-              : 'Você já tem 3 essenciais hoje.'}
-          </Text>
 
           <TaskTypeToggle
             tipo={tipo}
@@ -161,6 +166,7 @@ export function AddTaskForm({
 
           <Pressable
             accessibilityRole="switch"
+            accessibilityLabel="Repetir todos os dias"
             accessibilityState={{ checked: repetirTodosOsDias }}
             onPress={() => setRepetirTodosOsDias(atual => !atual)}
             style={styles.linhaRepetir}
@@ -213,6 +219,13 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.sm,
   },
+  // "Nova alternativa" faz vez de título do sheet (protótipo HU-07, tela
+  // 07.3) — por isso sobrescreve o label padrão do TextField pra ficar no
+  // mesmo peso/tamanho dos outros headlines da Home (ver HomeScreen.styles.headline).
+  tituloSheet: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.headingBold,
+  },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -236,18 +249,12 @@ const styles = StyleSheet.create({
   linhaEssencial: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    justifyContent: 'space-between',
     paddingVertical: theme.spacing.md,
   },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: theme.radius.sm,
-    borderWidth: 2,
-    borderColor: theme.colors.musgo,
-  },
-  checkboxMarcado: {
-    backgroundColor: theme.colors.musgo,
+  textoEssencial: {
+    flex: 1,
+    gap: theme.spacing.xs,
   },
   rotuloEssencial: {
     fontSize: theme.typography.fontSize.sm,

@@ -26,7 +26,7 @@ const propsPadrao = {
 };
 
 const marcadorEssencial = () =>
-  screen.getByRole('checkbox', { name: 'Marcar como essencial' });
+  screen.getByRole('switch', { name: 'Essencial' });
 const marcadorExercicio = () =>
   screen.getByRole('checkbox', { name: 'Isso é exercício?' });
 
@@ -287,7 +287,9 @@ describe('AddTaskForm', () => {
         screen.getByLabelText('Nova alternativa'),
         'Meditar',
       );
-      await fireEvent.press(screen.getByRole('switch'));
+      await fireEvent.press(
+        screen.getByRole('switch', { name: 'Repetir todos os dias' }),
+      );
       await fireEvent.press(screen.getByText('Adicionar'));
 
       expect(onAdicionar).toHaveBeenCalledWith(
