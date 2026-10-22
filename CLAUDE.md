@@ -17,6 +17,7 @@ negócio, cor, componente ou dado do Firestore, **consultar `/definition`**:
 
 | Arquivo                                   | Quando consultar                                                                                                             |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `01-visao-geral-projeto.md`               | O que é o produto, problema, público, princípios e decisões-chave — ponto de partida para escopo                             |
 | `roadmap-e-status.md`                     | O que já existe, o que está em andamento, o que é planejado — sempre checar antes de assumir que algo não foi feito          |
 | `regras-de-negocio.md`                    | Streak/proteção, desafios, bloqueio de apps — mecânica e textos exatos                                                       |
 | `schema-firebase.md`                      | Toda a estrutura de dados do Firestore, campos, regras de segurança                                                          |
@@ -24,6 +25,7 @@ negócio, cor, componente ou dado do Firestore, **consultar `/definition`**:
 | `design-system-rootora.md`                | Tokens de cor, tipografia, biblioteca de componentes com caminho de arquivo                                                  |
 | `02-identidade-visual.md`                 | Conceito de marca — fonte de verdade dos hex (design-system-rootora.md documenta a implementação, este documenta a intenção) |
 | `stack-tecnico.md`                        | Bibliotecas, ambiente de dev, dívida técnica                                                                                 |
+| `arquitetura.md`                          | Tipo de solução, versões da stack, comandos, serviços externos, dependências e estrutura de pastas                           |
 | `procedimento-loja.md`                    | Publicação, assinatura — nada disso é escopo de código ainda                                                                 |
 | `00-instrucoes-do-projeto.md`             | Estilo de trabalho preferido do Lucas                                                                                        |
 | `09-ponte-fuga-tarefa-e-estou-travado.md` | Bloqueio de apps, motor de sessões/cooldown, acesso rápido/emergência, rotina noturna, coleta de uso                         |
