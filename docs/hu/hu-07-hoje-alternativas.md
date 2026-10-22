@@ -127,5 +127,15 @@ Cenário 10: Tour aponta para o botão renomeado
 
 ## 7. Pendências
 
-- Validar o texto final das 4 sugestões fixas (devem ser curtas, físicas e fora do celular).
-- Confirmar se o `AddTaskForm` hoje é inline. Se for, abrir como bottom sheet é uma mudança de comportamento, e o ref do tour continua apontando só para o botão.
+- ~~Validar o texto final das 4 sugestões fixas~~ — confirmado com o Lucas: os 4 textos do RN07
+  ficam como estão.
+- ~~Confirmar se o `AddTaskForm` hoje é inline~~ — confirmado em código: era inline. Virou sheet
+  controlado (Modal, mesmo padrão de `TaskActionsSheet`); o ref do tour passa a apontar pro
+  botão/linha externo "Adicionar alternativa" (trigger), não mais pro botão interno do form.
+- **Descoberta durante a construção:** RN04/RN05 tiram a única exibição de
+  `escudosDisponiveis` (proteções) da Home — o rodapé do `StreakCard` passa a mostrar a
+  mensagem de garantia do dia em vez da contagem. Confirmado com o Lucas: seguir a HU
+  literalmente, sem repor a contagem em outro lugar por ora. `escudosDisponiveis` continua
+  existindo no Firestore (mecânica de streak intacta); só a prop ficou morta na cadeia
+  `HojeStack → HomeScreen → StreakCard` e foi removida. Decisão de onde/se voltar a mostrar
+  proteções fica pra outra HU.
