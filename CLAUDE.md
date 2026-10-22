@@ -25,9 +25,10 @@ negócio, cor, componente ou dado do Firestore, **consultar `docs/projeto/`**:
 | `docs/projeto/prototipo.md`     | Protótipos HTML atuais por tela/estado, lista de telas reais, wireframes históricos (desatualizados)    |
 
 **`docs/projeto/` é a fonte única de verdade** para especificação de produto, arquitetura e
-regras de negócio (migração concluída em 2026-10-22). Funcionalidade nova ou mudança de regra é
-descrita direto no arquivo de domínio correspondente em `docs/projeto/`, antes ou junto do
-código.
+regras de negócio (migração concluída em 2026-10-22). Toda funcionalidade nova ou mudança de
+regra entra por uma HU em `docs/hu/` (ver "Fluxo de desenvolvimento — SDD Leve"). Se a HU
+mudar regra, schema, componente ou tela, o arquivo correspondente de `docs/projeto/` é
+atualizado na mesma branch.
 
 ## `/definition` — origem/histórico do conteúdo migrado
 
@@ -56,10 +57,10 @@ Os demais arquivos de `/definition` (`01-visao-geral-projeto.md`, `00-instrucoes
 organizado por fase burocrática (MVP/Fase2/Fase3); é organizado por domínio funcional,
 refletido em `roadmap-e-status.md`.
 
-O fluxo de HU do lux kit (`/lux-especificar`, pacotes `docs/hu/` com `spec.md`,
-`criteria.lock`, cenários `.feature` e zips `lux-HU-*`) **não é mais usado**. Não criar
-pacotes de HU novos. O histórico das HU-01 a HU-06 fica em `docs/historico/` (só
-leitura), e as pendências abertas ficam em `TODO.md`.
+O formato antigo de HU do lux kit (`/lux-especificar`, `lux importar`, pacotes com
+`spec.md`, `criteria.lock`, cenários `.feature` e zips `lux-HU-*`) foi **aposentado** e não
+deve ser recriado. O histórico das HU-01 a HU-06 fica em `docs/historico/` (só leitura). As
+HUs novas seguem o SDD Leve (seção abaixo) e a numeração continua a partir da HU-07.
 
 ## Princípios inegociáveis (aplicam-se a QUALQUER código, texto ou mecânica nova)
 
@@ -72,6 +73,34 @@ leitura), e as pendências abertas ficam em `TODO.md`.
 5. O "porquê" pessoal do usuário deve poder ser reexibido em telas de recaída/retorno
 
 Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implementar.
+
+## Fluxo de desenvolvimento — SDD Leve
+
+```
+lux-hu (claude.ai) → /lux-build (Claude Code) → lux-revisor → merge local → push (com ok)
+```
+
+- Funcionalidade nova, mudança de regra ou de tela começa por uma HU gerada pela skill
+  `lux-hu` no claude.ai: um arquivo `docs/hu/hu-NN-nome-curto.md` com título, cartão,
+  protótipo, regras de negócio (RNnn) e critérios de aceite em Gherkin.
+- A HU é a especificação da tarefa — não implementar o que não está nela. Se faltar algo,
+  ou se ela conflitar com `docs/projeto/` ou com os 5 princípios, parar e perguntar antes
+  de seguir.
+- Construção: `/lux-build docs/hu/hu-NN-nome.md --no-e2e`. O `/lux-build` mostra o plano e
+  espera o ok, cria a branch `feature/HU-NN-nome`, desenvolve com testes primeiro, roda os
+  testes, faz commit e chama o `lux-revisor`. Usar `--no-e2e` até existir um framework de
+  E2E escolhido e aprovado (é dependência nova, ver "Convenções de código").
+- Depois da aprovação do `lux-revisor`, o `/lux-build` pode fazer o merge local `--no-ff`
+  da branch da HU na `main`. **Push para o remoto só com confirmação explícita do Lucas** —
+  nunca automático.
+- O `lux-revisor` não exige percentual mínimo de cobertura neste projeto: vale a regra de
+  testes da Definição de Pronto (lógica nova coberta e cada cenário Gherkin com teste).
+- Bug, ajuste de build ou dependência sem mudança de regra não precisa de HU: vai em
+  branch `fix/` ou `chore/`, com a mesma Definição de Pronto.
+- Pendências que surgirem durante a HU vão para a seção "Pendências" do próprio arquivo da
+  HU; o `TODO.md` fica para o que não pertence a nenhuma HU.
+- Ao concluir, atualizar o status da HU no `roadmap-e-status.md` e, se a HU mudou regra,
+  schema, componente ou tela, o arquivo correspondente de `docs/projeto/`.
 
 ## Arquitetura real (corrigida após auditoria — não é o que documentos antigos descrevem)
 
@@ -109,15 +138,16 @@ Regra-chave: `components/`/`screens/` nunca importam `services/` direto — só 
 
 ## Tema e ícone
 
-Tema único (Raiz) no MVP. Seleção de tema (Amanhecer/Raiz/Maré) é Fase 2 — ver
+Tema único (Raiz). Seleção de tema (Amanhecer/Raiz/Maré) está pendente de decisão — ver
 `roadmap-e-status.md`. Ícone do app é genérico, paleta própria, não segue tema (ver
 `design-system-rootora.md` seção 1).
 
 ## Notificações
 
-MVP usa **notificação local** (`@notifee/react-native`), não FCM — lembrete diário e
+O app usa **notificação local** (`@notifee/react-native`), não FCM — lembrete diário e
 alerta de risco de streak dependem de horário/estado local, não de evento de servidor.
-FCM fica reservado pra Fase 2 (reengajamento via Cloud Function).
+FCM fica reservado para o reengajamento via Cloud Function (planejado, ver
+`roadmap-e-status.md`).
 
 ## Comandos
 
@@ -139,15 +169,19 @@ de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
   `escudosDisponiveis` — nome interno continua "escudo", texto ao usuário é
   "proteção", ver `regras-de-negocio.md`)
 - Nenhum texto de UI com ponto de exclamação, tom de cobrança, ou pedido de desculpas
-- Commits: `tipo: descrição curta` (`feat:`, `fix:`, `chore:`, `docs:`), em português
+- Commits: `tipo: descrição curta` (`feat:`, `fix:`, `chore:`, `docs:`), em português —
+  vale também para os commits feitos pelo `/lux-build`
 - Novas dependências: propor e validar com o Lucas antes de instalar, não decidir sozinho
 
 ## Fluxo de trabalho preferido
 
-- Mostrar o racional antes de codar mudança de mecânica ou funcionalidade nova
+- Mostrar o racional antes de codar mudança de mecânica ou funcionalidade nova (no
+  `/lux-build`, é o plano que ele apresenta antes de começar)
 - Perguntar antes de assumir escopo quando não estiver claro
-- **Toda funcionalidade/fix começa em branch própria** (`feature/`, `fix/`, `chore/`),
-  nunca commit direto na `main`
+- **Todo trabalho começa em branch própria**: `feature/HU-NN-nome` para HU (criada pelo
+  `/lux-build`), `fix/` ou `chore/` para o resto. Nunca commit direto na `main` — a única
+  escrita permitida na `main` é o merge `--no-ff` feito pelo `/lux-build` depois da
+  aprovação do `lux-revisor`
 - **Toda funcionalidade nova precisa de testes automatizados** — cobrir especialmente
   `domain/` (lógica pura, sem desculpa pra deixar sem teste) e componentes com
   comportamento condicional. Rodar `npm test` antes de finalizar
@@ -158,22 +192,30 @@ de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
 
 ## Definição de Pronto (checklist antes de finalizar qualquer tarefa)
 
-- [ ] Código em branch própria, nada direto na `main`
+- [ ] Código em branch própria, nada direto na `main` (exceto o merge pós-revisor)
+- [ ] Se veio de HU: todas as RNs implementadas e cada cenário Gherkin coberto por teste
+- [ ] Se veio de HU: `lux-revisor` aprovou
 - [ ] Regra de negócio nova vive em `domain/`, não espalhada em componente/hook
 - [ ] Nenhuma cor/fonte hardcoded fora de `theme/`
 - [ ] Testes automatizados cobrindo a lógica nova, `npm test` passando
 - [ ] `npm run lint` sem erros novos
+- [ ] `npx tsc --noEmit` sem erros
 - [ ] Nenhum dos 5 princípios do produto violado
 - [ ] Se mexeu em dado sensível (streak, assinatura, firestore.rules): dívida técnica
       relevante mencionada
-- [ ] Se o código divergiu de algo documentado em `docs/projeto/`: sinalizado no resumo
+- [ ] Se a HU mudou regra, schema, componente ou tela: `docs/projeto/` e
+      `roadmap-e-status.md` atualizados
+- [ ] Push para o remoto só depois do ok do Lucas
 
 ## Verificação
 
 - Instalar: `npm install`. Tipos: `npx tsc --noEmit`.
 - Relatório de testes em `reports/junit/*.xml` (ignorado pelo git). O
-  `verify.config.json` do lux kit continua no repositório como ferramenta opcional,
+  `verify.config.json` do lux kit antigo continua no repositório como ferramenta opcional,
   sem uso obrigatório no fluxo.
-- Teste novo **não** leva prefixo `CA-nn:` no nome nem referencia HU/CA de forma
-  alguma (nome, comentário ou `describe`): o nome descreve o comportamento testado.
-  Testes antigos com `CA-nn:` vêm das HUs arquivadas — não renomear em massa.
+- Testes de HU nova **identificam a HU e o cenário no nome e na descrição**, para o
+  `lux-revisor` ligar cada critério de aceite a um teste:
+  `describe('HU-07 · Hoje como alternativa à rolagem', ...)` e
+  `it('Cenário 3: concluir a essencial garante o dia', ...)`. Teste que não vem de HU
+  (fix/chore, lógica de `domain/` sem cenário) descreve só o comportamento.
+- Testes antigos com prefixo `CA-nn:` vêm das HUs arquivadas — não renomear em massa.
