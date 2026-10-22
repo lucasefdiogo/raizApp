@@ -16,9 +16,14 @@ jest.mock('../services/crashlytics');
 
 const consumirMock = consumirDestinoNotificacao as jest.Mock;
 
+// initial: false — o Perfil fica embaixo do Bloqueio de apps mesmo quando a
+// aba Perfil ainda não tinha sido aberta, então voltar cai no Perfil.
 const ACAO_BLOQUEIO = {
   type: 'NAVIGATE',
-  payload: { name: 'PerfilTab', params: { screen: 'BloqueioApps' } },
+  payload: {
+    name: 'PerfilTab',
+    params: { screen: 'BloqueioApps', initial: false },
+  },
 };
 
 describe('useAbrirDestinoDaNotificacao', () => {
