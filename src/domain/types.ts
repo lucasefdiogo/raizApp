@@ -66,6 +66,16 @@ export interface UsoApp {
 /** Uso por pacote; chave = nome do pacote Android. */
 export type UsoApps = Record<string, UsoApp>;
 
+/**
+ * Horários de uso do dia (HU-06, RN-01), ISO 8601 em horário local do
+ * aparelho. `ultimoUsoAntesPausaLonga` ausente = nenhuma pausa de 3h ou mais
+ * depois do último uso do dia.
+ */
+export interface HorariosUsoDia {
+  primeiroUsoDia: string;
+  ultimoUsoAntesPausaLonga?: string;
+}
+
 export interface DailyLog {
   data: string;
   tarefas: Tarefa[];

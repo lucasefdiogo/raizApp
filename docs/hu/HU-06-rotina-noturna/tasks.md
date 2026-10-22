@@ -8,7 +8,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
 - Estimativa: mediana do horário (minutos do dia) de `primeiroUsoDia` e de `ultimoUsoAntesPausaLonga` dos dias que têm os dois campos; horários de dormir após a meia-noite entram como 24h+ para a mediana não quebrar na virada.
 - A pausa de intenção só existe em JS (estado de tela), então a duração noturna entra em `domain/saldoBloqueio.ts` sem mexer em `SaldoBloqueioMaquina.kt` nem nas fixtures compartilhadas.
 
-- [ ] TASK-01 (CA-01, CA-07, RN-01): `horariosUsoPorDia(eventos, inicioMs, fimMs)` devolve, por dia local, `primeiroUsoDia` e `ultimoUsoAntesPausaLonga` em ISO 8601 local
+- [x] TASK-01 (CA-01, CA-07, RN-01): `horariosUsoPorDia(eventos, inicioMs, fimMs)` devolve, por dia local, `primeiroUsoDia` e `ultimoUsoAntesPausaLonga` em ISO 8601 local
   - Teste: `CA-01: primeiro uso do dia e último uso antes de pausa de 3h saem dos eventos` (feliz)
   - Teste: `CA-07: dia sem pausa de 3h não grava ultimoUsoAntesPausaLonga` (exceção)
   - Escopo:

@@ -13,3 +13,6 @@ Planejamento: HU pronta, branch feature/HU-06-rotina-noturna
 - **Estado:** decidida — opção (a), spec v2 importada
 
 Entrega: plano aprovado
+Task ativa: TASK-01
+TASK-01: horariosUsoPorDia em domain/usoApps.ts (pausa longa de 3h, ISO local sem fuso, ultimoUsoAntesPausaLonga ausente sem pausa); agregarUsoPorDia intacto. Suite verde; um timeout isolado em OnboardingScreen passou ao rodar sozinho.
+Task ativa: nenhuma
