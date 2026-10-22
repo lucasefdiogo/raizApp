@@ -4,6 +4,7 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { PerfilScreen } from '../screens/perfil/PerfilScreen';
+import { RotinaPerfilScreen } from '../screens/perfil/RotinaPerfilScreen';
 import { BloqueioAppsScreen } from '../screens/perfil/BloqueioAppsScreen';
 import { DivulgacaoAcessibilidadeScreen } from '../screens/perfil/DivulgacaoAcessibilidadeScreen';
 import { DivulgacaoAcessoUsoScreen } from '../screens/perfil/DivulgacaoAcessoUsoScreen';
@@ -22,6 +23,7 @@ const EXPOR_DEBUG_INTERCEPT = __DEV__ || MOSTRAR_DEBUG_ACESSIBILIDADE;
 export type PerfilStackParamList = {
   Perfil: undefined;
   BloqueioApps: undefined;
+  RotinaPerfil: undefined;
   DivulgacaoAcessibilidade: undefined;
   DivulgacaoAcessoUso: undefined;
   // Rota temporária de debug (Fase 3, parte 1) — só em dev, some numa tarefa futura.
@@ -48,6 +50,7 @@ export function PerfilStack({ uid }: PerfilStackProps) {
           <PerfilScreen
             uid={uid}
             aoAbrirBloqueioApps={() => navigation.navigate('BloqueioApps')}
+            aoAbrirRotina={() => navigation.navigate('RotinaPerfil')}
             aoAbrirDebugAcessibilidade={
               EXPOR_DEBUG_ACESSIBILIDADE
                 ? () => navigation.navigate('AccessibilityDebug')
@@ -59,6 +62,11 @@ export function PerfilStack({ uid }: PerfilStackProps) {
                 : undefined
             }
           />
+        )}
+      </Stack.Screen>
+      <Stack.Screen name="RotinaPerfil">
+        {({ navigation }) => (
+          <RotinaPerfilScreen uid={uid} onVoltar={() => navigation.goBack()} />
         )}
       </Stack.Screen>
       <Stack.Screen name="BloqueioApps">

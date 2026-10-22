@@ -44,3 +44,7 @@ Task ativa: nenhuma
 Task ativa: TASK-10
 TASK-10: telas RotinaConfirmacao, AlternativaNoturna e pausa noturna (PausaIntencaoNoturna na fase AGUARDANDO_LIBERACAO, com PausaIntencaoScreen estendida por props opcionais); wiring em HojeStack. Pendente de doc: definition/navegacao-componentes.md precisa das duas telas novas na aba Hoje (fora do escopo desta task). Suite verde (1335).
 Task ativa: nenhuma
+Task ativa: TASK-11
+TASK-11: RotinaPerfilScreen (horarios com Alterar, Recalcular automaticamente, alternativa noturna) e linha Rotina noturna no Perfil; rota RotinaPerfil. Suite verde (1345).
+Task ativa: nenhuma
+Entrega: tasks concluídas

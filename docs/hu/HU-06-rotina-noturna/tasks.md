@@ -102,7 +102,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/screens/rotina/**, src/components/rotina/**, src/screens/intercept/PausaIntencaoScreen.tsx, src/screens/intercept/PausaIntencaoScreen.test.tsx, src/screens/intercept/InterceptScreen.tsx, src/screens/intercept/InterceptScreen.test.tsx, src/navigation/HojeStack.tsx, src/navigation/HojeStack.test.tsx
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-11 (CA-03, CA-08, RN-06, RN-12): Perfil com editar horário de dormir e de acordar, "Recalcular automaticamente" e editar a alternativa noturna
+- [x] TASK-11 (CA-03, CA-08, RN-06, RN-12): Perfil com editar horário de dormir e de acordar, "Recalcular automaticamente" e editar a alternativa noturna
   - Teste: `CA-08: editar o horário de dormir no Perfil marca modoManual e mantém o horário` (exceção)
   - Teste: `CA-08: Recalcular automaticamente limpa modoManual` (exceção)
   - Teste: `CA-03: editar a alternativa noturna no Perfil grava rotina.alternativaNoturna` (feliz)

@@ -30,6 +30,8 @@ const HORARIO_PADRAO = '08:00';
 interface PerfilScreenProps {
   uid: string;
   aoAbrirBloqueioApps: () => void;
+  /** Abre a rotina noturna (HU-06, RN-12). Ausente = a linha não aparece. */
+  aoAbrirRotina?: () => void;
   /**
    * Só em dev: abre a tela temporária de debug da detecção de apps (Fase 3,
    * parte 1). Ausente = o botão não aparece.
@@ -58,6 +60,7 @@ function dateParaHorario(data: Date): string {
 export function PerfilScreen({
   uid,
   aoAbrirBloqueioApps,
+  aoAbrirRotina,
   aoAbrirDebugAcessibilidade,
   aoAbrirDebugIntercept,
 }: PerfilScreenProps) {
@@ -189,6 +192,21 @@ export function PerfilScreen({
         >
           <Text style={styles.link}>Configurar bloqueio de apps</Text>
         </Pressable>
+
+        {aoAbrirRotina && (
+          <>
+            <Text style={styles.secaoTitulo}>Rotina</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Rotina noturna"
+              onPress={aoAbrirRotina}
+              hitSlop={8}
+              style={styles.linkToque}
+            >
+              <Text style={styles.link}>Rotina noturna</Text>
+            </Pressable>
+          </>
+        )}
 
         <Text style={styles.secaoTitulo}>Sobre</Text>
         <Pressable

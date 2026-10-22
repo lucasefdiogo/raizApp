@@ -80,6 +80,27 @@ describe('PerfilScreen', () => {
     expect(aoAbrirBloqueioApps).toHaveBeenCalledTimes(1);
   });
 
+  it('mostra a linha "Rotina noturna" que chama aoAbrirRotina ao tocar', async () => {
+    const aoAbrirRotina = jest.fn();
+    await render(
+      <PerfilScreen
+        uid="uid-teste"
+        aoAbrirBloqueioApps={jest.fn()}
+        aoAbrirRotina={aoAbrirRotina}
+      />,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Rotina noturna' }));
+
+    expect(aoAbrirRotina).toHaveBeenCalledTimes(1);
+  });
+
+  it('sem aoAbrirRotina a linha "Rotina noturna" não aparece', async () => {
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Rotina noturna' })).toBeNull();
+  });
+
   it('mostra o porquê atual carregado de usePerfil', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
