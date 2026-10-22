@@ -145,9 +145,6 @@ lê conteúdo de tela.
   individual): início, fim (precisa ser depois do início — a tela rejeita janela que atravessa a
   meia-noite) e dias da semana. O lado nativo (`BloqueioPrefs.kt`) já sabe avaliar
   janela invertida, e o horário de `fim` é inclusivo; só a configuração não permite criar uma.
-- **Seção "Rotina"** — horário estimado/confirmado de dormir e acordar e a janela
-  noturna; ver `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5. Enquanto não houver
-  5 dias de dados suficientes, a seção mostra o progresso da coleta em vez do horário.
 - **Resumo em texto** + botão "Salvar" — ver seção 5 pra regra de quando a mudança
   vale imediatamente vs. no dia seguinte.
 
@@ -316,9 +313,17 @@ Confirmada, a **janela noturna** vai de 30 min antes de `rotina.dormirEstimado` 
 atual (teto 120s) e troca o texto padrão por uma mensagem rotativa do banco `noturno`
 (`banco-de-frases.md`), com um botão extra pra alternativa noturna quando cadastrada;
 o acesso rápido espera 30s em vez de 5 e mostra a mesma mensagem/botão — cota e
-intervalos do acesso rápido não mudam. Fora da janela, tudo segue padrão. Editar os
-horários manualmente no Perfil (`rotina.modoManual`) pausa a reestimativa automática
-até a opção "Recalcular automaticamente" ser usada.
+intervalos do acesso rápido não mudam. Fora da janela, tudo segue padrão.
+
+**Onde se ajusta:** Perfil → seção "Rotina" → "Rotina noturna" (`RotinaPerfilScreen`),
+uma tela própria — não fica dentro de "Bloqueio de apps". Enquanto `rotina` não existe
+no documento do usuário (só é gravada ao confirmar a estimativa), a tela mostra um
+texto fixo, sem indicador de progresso da coleta: "A rotina aparece aqui depois de
+alguns dias de uso. Não precisa fazer nada por enquanto." Com rotina, a tela permite
+editar dormir/acordar e a alternativa noturna. Editar os horários manualmente liga
+`rotina.modoManual`, que pausa a reestimativa automática. "Recalcular automaticamente"
+(visível só com `modoManual` ligado) apenas grava `rotina.modoManual: false` — não
+regrava os horários na hora.
 
 Detalhe completo (regras RN e critérios de aceite) em
 `09-ponte-fuga-tarefa-e-estou-travado.md`, seções 3 a 5.
