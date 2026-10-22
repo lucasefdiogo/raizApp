@@ -22,6 +22,7 @@ import {
   Interceptacao,
   RegrasBloqueio,
   RegrasBloqueioPendentes,
+  Rotina,
   SessaoFoco,
   StatusDesafio,
   StatusStreak,
@@ -73,6 +74,8 @@ export interface UsuarioDocumento {
    * de `usoApps` não roda.
    */
   consentimentoAcessoUso?: string | null;
+  /** Rotina noturna (HU-06, RN-04/RN-06/RN-12). Ausente = sem rotina. */
+  rotina?: Rotina;
   /**
    * Gate real de conclusão do onboarding (ver RootNavigator, via
    * useOnboardingStatus) — não `porqueTexto`. Só vira true ao final do
@@ -706,6 +709,67 @@ export async function registrarConsentimentoAcessoUso(
   await setDoc(
     documentoUsuario(uid),
     { consentimentoAcessoUso: dataISO },
+    { merge: true },
+  );
+}
+
+/**
+ * Confirma a rotina estimada (HU-06, RN-04): grava os dois horários e
+ * `confirmadoEm`. Objeto aninhado com merge — nunca chave com ponto.
+ */
+export async function confirmarRotina(
+  uid: string,
+  horarios: { dormirEstimado: string; acordarEstimado: string },
+  confirmadoEm: string,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    {
+      rotina: {
+        dormirEstimado: horarios.dormirEstimado,
+        acordarEstimado: horarios.acordarEstimado,
+        confirmadoEm,
+      },
+    },
+    { merge: true },
+  );
+}
+
+/** Grava só `rotina.alternativaNoturna` (HU-06, RN-06). */
+export async function salvarAlternativaNoturna(
+  uid: string,
+  texto: string,
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { rotina: { alternativaNoturna: texto } },
+    { merge: true },
+  );
+}
+
+/**
+ * Edição manual de horário no Perfil (HU-06, RN-12): grava só os horários
+ * informados e liga `modoManual`.
+ */
+export async function editarHorarioRotinaManual(
+  uid: string,
+  horarios: { dormirEstimado?: string; acordarEstimado?: string },
+): Promise<void> {
+  const rotina: Partial<Rotina> = { modoManual: true };
+  if (horarios.dormirEstimado !== undefined) {
+    rotina.dormirEstimado = horarios.dormirEstimado;
+  }
+  if (horarios.acordarEstimado !== undefined) {
+    rotina.acordarEstimado = horarios.acordarEstimado;
+  }
+  await setDoc(documentoUsuario(uid), { rotina }, { merge: true });
+}
+
+/** "Recalcular automaticamente" (HU-06, RN-12): limpa `modoManual`. */
+export async function recalcularRotinaAutomatica(uid: string): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { rotina: { modoManual: false } },
     { merge: true },
   );
 }

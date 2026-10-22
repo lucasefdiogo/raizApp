@@ -29,6 +29,10 @@ import {
   marcarOnboardingConcluido,
   gravarUsoAppsNoDia,
   gravarAcessibilidadeNoDia,
+  confirmarRotina,
+  salvarAlternativaNoturna,
+  editarHorarioRotinaManual,
+  recalcularRotinaAutomatica,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -852,6 +856,59 @@ describe('services/firestore', () => {
         email: 'a@a.com',
         consentimentoAcessoUso: '2026-10-19',
       });
+    });
+  });
+
+  describe('rotina noturna (HU-06)', () => {
+    const horarios = { dormirEstimado: '23:30', acordarEstimado: '07:00' };
+
+    it('CA-02: confirmar grava dormirEstimado, acordarEstimado e confirmadoEm', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await confirmarRotina('uid-1', horarios, '2026-10-20');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina).toEqual({ ...horarios, confirmadoEm: '2026-10-20' });
+      expect(usuario?.email).toBe('a@a.com');
+    });
+
+    it('CA-03: salvar alternativa grava rotina.alternativaNoturna sem tocar nos demais campos', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await confirmarRotina('uid-1', horarios, '2026-10-20');
+      await salvarAlternativaNoturna('uid-1', 'Ler um livro');
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina).toEqual({
+        ...horarios,
+        confirmadoEm: '2026-10-20',
+        alternativaNoturna: 'Ler um livro',
+      });
+    });
+
+    it('CA-08: editar horário marca modoManual verdadeiro e recalcular limpa modoManual', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await confirmarRotina('uid-1', horarios, '2026-10-20');
+
+      await editarHorarioRotinaManual('uid-1', { dormirEstimado: '00:15' });
+      let usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina).toEqual({
+        dormirEstimado: '00:15',
+        acordarEstimado: '07:00',
+        confirmadoEm: '2026-10-20',
+        modoManual: true,
+      });
+
+      await recalcularRotinaAutomatica('uid-1');
+      usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina?.modoManual).toBe(false);
+      expect(usuario?.rotina?.dormirEstimado).toBe('00:15');
+    });
+
+    it('CA-08: editar só o horário de acordar não grava dormirEstimado nem undefined', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await editarHorarioRotinaManual('uid-1', { acordarEstimado: '06:30' });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina).toEqual({ acordarEstimado: '06:30', modoManual: true });
     });
   });
 

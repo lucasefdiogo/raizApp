@@ -33,7 +33,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/domain/rotina.ts, src/domain/rotina.test.ts, src/domain/types.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-04 (CA-02, CA-03, CA-08, RN-04, RN-06, RN-12): `users/{uid}.rotina` (tipo `Rotina`) e funções do service para confirmar, salvar alternativa, editar horário manual e recalcular
+- [x] TASK-04 (CA-02, CA-03, CA-08, RN-04, RN-06, RN-12): `users/{uid}.rotina` (tipo `Rotina`) e funções do service para confirmar, salvar alternativa, editar horário manual e recalcular
   - Teste: `CA-02: confirmar grava dormirEstimado, acordarEstimado e confirmadoEm` (feliz)
   - Teste: `CA-03: salvar alternativa grava rotina.alternativaNoturna sem tocar nos demais campos` (feliz)
   - Teste: `CA-08: editar horário marca modoManual verdadeiro e recalcular limpa modoManual` (exceção)
