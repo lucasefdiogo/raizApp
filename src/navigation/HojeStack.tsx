@@ -128,7 +128,6 @@ export function HojeStack({
             <HomeScreen
               uid={uid}
               streakAtual={streak.streakAtual}
-              escudosDisponiveis={streak.escudosDisponiveis}
               marcoAtingido={streak.marcoAtingido}
               avaliarAlertaRisco={avaliarAlertaRisco}
               recarregarStreak={streak.recarregar}

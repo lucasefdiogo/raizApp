@@ -78,7 +78,6 @@ const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
 interface HomeScreenProps {
   uid: string;
   streakAtual: number;
-  escudosDisponiveis: number;
   marcoAtingido: number | null;
   avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
   /**
@@ -105,7 +104,6 @@ interface HomeScreenProps {
 export function HomeScreen({
   uid,
   streakAtual,
-  escudosDisponiveis,
   marcoAtingido,
   avaliarAlertaRisco,
   recarregarStreak,
@@ -400,7 +398,7 @@ export function HomeScreen({
         <HomeHeader nome={nome} streakAtual={streakAtual} />
         <View ref={streakCardRef} collapsable={false}>
           <StreakCard
-            streak={{ streakAtual, escudosDisponiveis }}
+            streak={{ streakAtual }}
             hojeCumprido={statusDia === 'cumprido'}
           />
         </View>

@@ -164,7 +164,6 @@ const { useDailyTasks } = require('../hooks/useDailyTasks');
 const PROPS_PADRAO = {
   uid: 'uid-teste',
   streakAtual: 4,
-  escudosDisponiveis: 1,
   marcoAtingido: null,
   avaliarAlertaRisco: jest.fn(),
   recarregarStreak: jest.fn().mockResolvedValue(undefined),
@@ -221,23 +220,24 @@ describe('HomeScreen', () => {
     expect(screen.getByText('Dia cumprido. Isso já conta.')).toBeTruthy();
   });
 
-  it('StreakCard: sem indicador de dia corrente antes de cumprir a essencial, aparece ao concluir', async () => {
+  it('StreakCard: rodapé pede a essencial antes de cumprir, garante o dia ao concluir', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
-    expect(screen.queryByText('Já garantiu hoje.')).toBeNull();
+    expect(
+      screen.getByText('Conclua 1 essencial para garantir hoje'),
+    ).toBeTruthy();
 
     await fireEvent.press(
       screen.getByText('Abrir o material de estudo por 5 minutos'),
     );
 
-    expect(screen.getByText('Já garantiu hoje.')).toBeTruthy();
-    // O número do streak em si não muda — só o aviso aparece.
+    expect(screen.getByText('Hoje já está garantido')).toBeTruthy();
+    // O número do streak em si não muda — só a mensagem do rodapé troca.
     expect(screen.getByText('4')).toBeTruthy();
   });
 
-  it('mostra o streak e as proteções recebidas via prop', async () => {
+  it('mostra o streak recebido via prop', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
-    expect(screen.getByText('1 proteção disponível')).toBeTruthy();
   });
 
   it('regressão: HomeHeader recebe o nome (useNomeUsuario) e o streakAtual (prop) corretos', async () => {

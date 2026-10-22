@@ -4,7 +4,6 @@ import { StreakCard } from './StreakCard';
 
 const streakBase = {
   streakAtual: 4,
-  escudosDisponiveis: 1,
 };
 
 describe('StreakCard', () => {
@@ -19,33 +18,28 @@ describe('StreakCard', () => {
     expect(screen.getByText('dia seguido')).toBeTruthy();
   });
 
-  it('mostra a quantidade de proteções disponíveis', async () => {
-    await render(<StreakCard streak={streakBase} />);
-    expect(screen.getByText('1 proteção disponível')).toBeTruthy();
-  });
-
-  it('usa plural quando há mais de uma proteção', async () => {
-    await render(
-      <StreakCard streak={{ ...streakBase, escudosDisponiveis: 2 }} />,
-    );
-    expect(screen.getByText('2 proteções disponíveis')).toBeTruthy();
-  });
-
-  describe('indicador de dia corrente', () => {
-    it('hojeCumprido ausente: não mostra o indicador', async () => {
+  describe('HU-07 · rodapé de garantia do dia (RN04/RN05)', () => {
+    it('hojeCumprido ausente: rodapé pede pra concluir 1 essencial', async () => {
       await render(<StreakCard streak={streakBase} />);
-      expect(screen.queryByTestId('streak-card-hoje-cumprido')).toBeNull();
-      expect(screen.queryByText('Já garantiu hoje.')).toBeNull();
+      expect(
+        screen.getByText('Conclua 1 essencial para garantir hoje'),
+      ).toBeTruthy();
+      expect(screen.queryByText('Hoje já está garantido')).toBeNull();
     });
 
-    it('hojeCumprido=false: não mostra o indicador', async () => {
+    it('hojeCumprido=false: rodapé pede pra concluir 1 essencial', async () => {
       await render(<StreakCard streak={streakBase} hojeCumprido={false} />);
-      expect(screen.queryByTestId('streak-card-hoje-cumprido')).toBeNull();
+      expect(
+        screen.getByText('Conclua 1 essencial para garantir hoje'),
+      ).toBeTruthy();
     });
 
-    it('hojeCumprido=true: mostra "Já garantiu hoje." sem mudar o número do streak', async () => {
+    it('hojeCumprido=true: rodapé diz que hoje já está garantido, sem mudar o número do streak', async () => {
       await render(<StreakCard streak={streakBase} hojeCumprido={true} />);
-      expect(screen.getByText('Já garantiu hoje.')).toBeTruthy();
+      expect(screen.getByText('Hoje já está garantido')).toBeTruthy();
+      expect(
+        screen.queryByText('Conclua 1 essencial para garantir hoje'),
+      ).toBeNull();
       expect(screen.getByText('4')).toBeTruthy();
     });
   });
