@@ -1,4 +1,4 @@
-import { estimarRotina, DiaRotina } from './rotina';
+import { estimarRotina, dentroDaJanelaNoturna, DiaRotina } from './rotina';
 
 function dia(primeiro: string, ultimo: string): DiaRotina {
   return { primeiroUsoDia: primeiro, ultimoUsoAntesPausaLonga: ultimo };
@@ -51,5 +51,52 @@ describe('estimarRotina', () => {
       dia(`2026-10-1${i}T07:00:00`, `2026-10-1${i}T23:00:00`),
     );
     expect(estimarRotina(dias, true)).toBeNull();
+  });
+});
+
+describe('dentroDaJanelaNoturna', () => {
+  const rotina = (dormir: string, acordar: string, confirmadoEm?: string) => ({
+    dormirEstimado: dormir,
+    acordarEstimado: acordar,
+    confirmadoEm,
+  });
+  const confirmada = rotina('23:00', '07:00', '2026-10-15');
+  const as = (h: number, m: number) => new Date(2026, 9, 20, h, m, 0);
+
+  it('CA-04: dentro da janela, de 30 min antes de dormir até acordar, devolve verdadeiro', () => {
+    expect(dentroDaJanelaNoturna(confirmada, as(23, 30))).toBe(true);
+    expect(dentroDaJanelaNoturna(confirmada, as(3, 0))).toBe(true);
+    expect(dentroDaJanelaNoturna(confirmada, as(6, 59))).toBe(true);
+  });
+
+  it('CA-04: o início da janela (30 min antes de dormir) é inclusivo e o acordar é exclusivo', () => {
+    expect(dentroDaJanelaNoturna(confirmada, as(22, 29))).toBe(false);
+    expect(dentroDaJanelaNoturna(confirmada, as(22, 30))).toBe(true);
+    expect(dentroDaJanelaNoturna(confirmada, as(7, 0))).toBe(false);
+  });
+
+  it('CA-04: dormir pós-meia-noite começa a janela 30 min antes, inclusive no dia anterior', () => {
+    const r = rotina('00:10', '08:00', '2026-10-15');
+    expect(dentroDaJanelaNoturna(r, as(23, 39))).toBe(false);
+    expect(dentroDaJanelaNoturna(r, as(23, 40))).toBe(true);
+    expect(dentroDaJanelaNoturna(r, as(0, 5))).toBe(true);
+    expect(dentroDaJanelaNoturna(r, as(8, 0))).toBe(false);
+    const r2 = rotina('00:30', '08:00', '2026-10-15');
+    expect(dentroDaJanelaNoturna(r2, as(23, 59))).toBe(false);
+    expect(dentroDaJanelaNoturna(r2, as(0, 0))).toBe(true);
+    expect(dentroDaJanelaNoturna(r2, as(7, 59))).toBe(true);
+  });
+
+  it('CA-06: sem confirmadoEm a janela noturna não se aplica, mesmo às 23h', () => {
+    expect(dentroDaJanelaNoturna(rotina('23:00', '07:00'), as(23, 0))).toBe(
+      false,
+    );
+    expect(dentroDaJanelaNoturna(null, as(23, 0))).toBe(false);
+    expect(dentroDaJanelaNoturna(undefined, as(23, 0))).toBe(false);
+  });
+
+  it('CA-06: fora da janela, com rotina confirmada, devolve falso', () => {
+    expect(dentroDaJanelaNoturna(confirmada, as(12, 0))).toBe(false);
+    expect(dentroDaJanelaNoturna(confirmada, as(22, 0))).toBe(false);
   });
 });

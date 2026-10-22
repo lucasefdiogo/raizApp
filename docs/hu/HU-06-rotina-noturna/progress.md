@@ -28,3 +28,7 @@ Task ativa: nenhuma
 Task ativa: TASK-05
 TASK-05: hook useRotina(uid) (estimativa, mostrarConfirmacao, perguntarAlternativa, confirmar, salvarAlternativa, dispensarAlternativa, editarHorarioManual, recalcularAutomaticamente). confirmadoEm grava so a data local AAAA-MM-DD. Suite verde (1291).
 Task ativa: nenhuma
+Task ativa: TASK-06
+Task ativa: TASK-06
+TASK-06: dentroDaJanelaNoturna(rotina, agora) em domain/rotina.ts (30 min antes de dormir ate acordar, inicio inclusivo, fim exclusivo, virada da meia-noite; falso sem confirmadoEm). Suite verde (1296).
+Task ativa: nenhuma

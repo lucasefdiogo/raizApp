@@ -53,7 +53,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/hooks/useRotina.ts, src/hooks/useRotina.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-06 (CA-04, CA-06, RN-05, RN-07, RN-11): `dentroDaJanelaNoturna(rotina, agora)` em `domain/rotina.ts`, com a virada da meia-noite
+- [x] TASK-06 (CA-04, CA-06, RN-05, RN-07, RN-11): `dentroDaJanelaNoturna(rotina, agora)` em `domain/rotina.ts`, com a virada da meia-noite
   - Teste: `CA-04: dentro da janela, de 30 min antes de dormir até acordar, devolve verdadeiro` (feliz)
   - Teste: `CA-06: sem confirmadoEm a janela noturna não se aplica, mesmo às 23h` (exceção)
   - Teste: `CA-06: fora da janela, com rotina confirmada, devolve falso` (exceção)
