@@ -1,14 +1,18 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { BloqueioAppsScreen } from './BloqueioAppsScreen';
 
 jest.mock('../../hooks/useRegrasBloqueio');
 jest.mock('../../hooks/useAccessibilityPermission');
 jest.mock('../../hooks/useAcessoUso');
+jest.mock('../../hooks/useToast');
+jest.mock('../../hooks/useVoltarFisico');
 
 const { useRegrasBloqueio } = require('../../hooks/useRegrasBloqueio');
 const { useAccessibilityPermission } = require('../../hooks/useAccessibilityPermission');
 const { useAcessoUso } = require('../../hooks/useAcessoUso');
+const { useToast } = require('../../hooks/useToast');
+const { useVoltarFisico } = require('../../hooks/useVoltarFisico');
 
 const APPS_INSTALADOS = [
   { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'a' },
@@ -42,6 +46,7 @@ describe('BloqueioAppsScreen', () => {
     configurarRegrasPadrao();
     configurarAcessibilidadePadrao();
     useAcessoUso.mockReturnValue({ concedido: true, carregando: false });
+    useToast.mockReturnValue({ showToast: jest.fn() });
   });
 
   it('CA-06: sem acesso de uso mostra a entrada "Medir tempo nas redes", que abre a divulgação', async () => {
@@ -52,7 +57,7 @@ describe('BloqueioAppsScreen', () => {
         uid="uid-1"
         aoTocarAtivar={jest.fn()}
         aoTocarSaibaOQueE={jest.fn()}
-        aoTocarMedirTempo={aoTocarMedirTempo}
+        aoTocarMedirTempo={aoTocarMedirTempo} onVoltar={jest.fn()}
       />,
     );
 
@@ -68,7 +73,7 @@ describe('BloqueioAppsScreen', () => {
         uid="uid-1"
         aoTocarAtivar={jest.fn()}
         aoTocarSaibaOQueE={jest.fn()}
-        aoTocarMedirTempo={jest.fn()}
+        aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()}
       />,
     );
 
@@ -77,20 +82,20 @@ describe('BloqueioAppsScreen', () => {
 
   it('mostra o indicador de carregamento enquanto useRegrasBloqueio carrega', async () => {
     configurarRegrasPadrao({ carregando: true });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
   });
 
   it('lista os apps instalados', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(screen.getByText('Instagram')).toBeTruthy();
     expect(screen.getByText('WhatsApp')).toBeTruthy();
   });
 
   it('busca filtra a lista por nome', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     await fireEvent.changeText(screen.getByLabelText('Buscar'), 'insta');
 
@@ -105,7 +110,7 @@ describe('BloqueioAppsScreen', () => {
       <BloqueioAppsScreen
         uid="uid-1"
         aoTocarAtivar={aoTocarAtivar}
-        aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()}
+        aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()}
       />,
     );
 
@@ -117,7 +122,7 @@ describe('BloqueioAppsScreen', () => {
 
   it('status "Ativo" não mostra o botão Ativar', async () => {
     configurarAcessibilidadePadrao({ ativo: true });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(screen.getByText('Ativo')).toBeTruthy();
     expect(screen.queryByText('Ativar')).toBeNull();
@@ -126,7 +131,7 @@ describe('BloqueioAppsScreen', () => {
   it('aviso "Sem ele..." só aparece com o serviço desativado', async () => {
     configurarAcessibilidadePadrao({ ativo: false });
     const { rerender } = await render(
-      <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />,
+      <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
     );
     expect(
       screen.getByText('Sem ele, o Rootora não consegue interceptar os apps abaixo.'),
@@ -134,7 +139,7 @@ describe('BloqueioAppsScreen', () => {
 
     configurarAcessibilidadePadrao({ ativo: true });
     await rerender(
-      <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />,
+      <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
     );
     expect(
       screen.queryByText('Sem ele, o Rootora não consegue interceptar os apps abaixo.'),
@@ -149,7 +154,7 @@ describe('BloqueioAppsScreen', () => {
         uid="uid-1"
         aoTocarAtivar={jest.fn()}
         aoTocarSaibaOQueE={aoTocarSaibaOQueE}
-        aoTocarMedirTempo={jest.fn()}
+        aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()}
       />,
     );
 
@@ -167,7 +172,7 @@ describe('BloqueioAppsScreen', () => {
         uid="uid-1"
         aoTocarAtivar={jest.fn()}
         aoTocarSaibaOQueE={aoTocarSaibaOQueE}
-        aoTocarMedirTempo={jest.fn()}
+        aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()}
       />,
     );
 
@@ -178,7 +183,7 @@ describe('BloqueioAppsScreen', () => {
   });
 
   it('sem pendência: não mostra o aviso de alteração pendente', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(screen.queryByText('Cancelar alteração')).toBeNull();
   });
@@ -194,7 +199,7 @@ describe('BloqueioAppsScreen', () => {
       },
       cancelarAlteracaoPendente,
     });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(
       screen.getByText(
@@ -215,7 +220,7 @@ describe('BloqueioAppsScreen', () => {
         efetivaEm: '2026-09-25',
       },
     });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
       checked: true,
@@ -226,7 +231,7 @@ describe('BloqueioAppsScreen', () => {
   });
 
   it('toggle de um app marca/desmarca a seleção', async () => {
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     // Primeira configuração: a lista já vem pré-marcada (RN-03).
     expect(screen.getByLabelText('Instagram').props.accessibilityState).toMatchObject({
@@ -247,7 +252,7 @@ describe('BloqueioAppsScreen', () => {
   it('com app selecionado mas sem nenhum dia da semana: mostra o aviso e Salvar não faz nada', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     expect(
       screen.getByText('Escolha um horário de fim depois do início e pelo menos um dia da semana.'),
@@ -260,7 +265,7 @@ describe('BloqueioAppsScreen', () => {
   it('selecionar um app + um dia da semana permite Salvar, chamado com apps e janela', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText('segunda'));
     await fireEvent.press(screen.getByText('Salvar'));
@@ -276,7 +281,7 @@ describe('BloqueioAppsScreen', () => {
   it('Salvar com a seleção vazia chama salvar(apps vazio, null)', async () => {
     const salvar = jest.fn().mockResolvedValue(true);
     configurarRegrasPadrao({ salvar });
-    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
     await fireEvent.press(screen.getByLabelText('Instagram'));
     await fireEvent.press(screen.getByLabelText('WhatsApp'));
@@ -294,7 +299,7 @@ describe('BloqueioAppsScreen', () => {
     it('Salvar mostra o aviso em vez de gravar na hora, com o "antes" e o "depois" (cenário do usuário: desmarcar um app)', async () => {
       const salvar = jest.fn().mockResolvedValue(true);
       configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
-      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
       await fireEvent.press(screen.getByLabelText('Instagram'));
       await fireEvent.press(screen.getByText('Salvar'));
@@ -310,7 +315,7 @@ describe('BloqueioAppsScreen', () => {
     it('"Entendi, confirmar" grava de fato e volta pra edição', async () => {
       const salvar = jest.fn().mockResolvedValue(true);
       configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
-      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('Salvar'));
       await fireEvent.press(screen.getByText('Entendi, confirmar'));
@@ -323,7 +328,7 @@ describe('BloqueioAppsScreen', () => {
     it('"Voltar e revisar" volta pra edição sem chamar salvar', async () => {
       const salvar = jest.fn().mockResolvedValue(true);
       configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
-      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
       await fireEvent.press(screen.getByText('Salvar'));
       await fireEvent.press(screen.getByText('Voltar e revisar'));
@@ -336,7 +341,7 @@ describe('BloqueioAppsScreen', () => {
     it('primeira configuração (sem regrasVigentes ainda) não mostra o aviso', async () => {
       const salvar = jest.fn().mockResolvedValue(true);
       configurarRegrasPadrao({ salvar, regrasVigentes: undefined });
-      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />);
+      await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
       await fireEvent.press(screen.getByLabelText('Instagram'));
       await fireEvent.press(screen.getByLabelText('segunda'));
@@ -356,7 +361,7 @@ describe('BloqueioAppsScreen', () => {
 
     async function renderizar() {
       await render(
-        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} />,
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
       );
     }
 
@@ -417,6 +422,127 @@ describe('BloqueioAppsScreen', () => {
       await renderizar();
 
       expect(screen.queryByText('Nenhuma rede social encontrada neste aparelho.')).toBeNull();
+    });
+  });
+
+  describe('voltar', () => {
+    const MENSAGEM_NAO_SALVAS = 'Suas alterações não foram salvas.';
+    const VIGENTE = {
+      apps: ['com.instagram.android'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+
+    async function renderizar(onVoltar = jest.fn()) {
+      const showToast = jest.fn();
+      useToast.mockReturnValue({ showToast });
+      const resultado = await render(
+        <BloqueioAppsScreen
+          uid="uid-1"
+          aoTocarAtivar={jest.fn()}
+          aoTocarSaibaOQueE={jest.fn()}
+          aoTocarMedirTempo={jest.fn()}
+          onVoltar={onVoltar}
+        />,
+      );
+      return { ...resultado, onVoltar, showToast };
+    }
+
+    // O mock de useVoltarFisico guarda o handler da última renderização —
+    // chamá-lo é o mesmo que apertar o voltar físico do Android.
+    function apertarVoltarFisico() {
+      const chamadas = useVoltarFisico.mock.calls;
+      return act(async () => {
+        chamadas[chamadas.length - 1][0]();
+      });
+    }
+
+    it('sem alteração, o botão voltar sai da tela sem nenhum aviso', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE });
+      const { onVoltar, showToast } = await renderizar();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+
+      expect(onVoltar).toHaveBeenCalledTimes(1);
+      expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it('primeira configuração com a pré-marcação intacta não conta como alteração', async () => {
+      configurarRegrasPadrao({ regrasVigentes: undefined });
+      const { onVoltar, showToast } = await renderizar();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+
+      expect(onVoltar).toHaveBeenCalledTimes(1);
+      expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it('com alteração não salva, sai da tela e avisa que não foi salva', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE });
+      const { onVoltar, showToast } = await renderizar();
+
+      await fireEvent.press(screen.getByLabelText('WhatsApp'));
+      await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+
+      expect(onVoltar).toHaveBeenCalledTimes(1);
+      expect(showToast).toHaveBeenCalledWith(MENSAGEM_NAO_SALVAS);
+    });
+
+    it('depois de salvar, a edição deixa de contar como alteração não salva', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE });
+      const { onVoltar, showToast, rerender } = await renderizar();
+
+      await fireEvent.press(screen.getByLabelText('WhatsApp'));
+      // useRegrasBloqueio atualiza a pendente depois de gravar.
+      configurarRegrasPadrao({
+        regrasVigentes: VIGENTE,
+        regrasPendentes: {
+          ...VIGENTE,
+          apps: ['com.instagram.android', 'com.whatsapp'],
+          efetivaEm: '2026-10-23',
+        },
+      });
+      await rerender(
+        <BloqueioAppsScreen
+          uid="uid-1"
+          aoTocarAtivar={jest.fn()}
+          aoTocarSaibaOQueE={jest.fn()}
+          aoTocarMedirTempo={jest.fn()}
+          onVoltar={onVoltar}
+        />,
+      );
+      await fireEvent.press(screen.getByRole('button', { name: 'Voltar' }));
+
+      expect(onVoltar).toHaveBeenCalledTimes(1);
+      expect(showToast).not.toHaveBeenCalled();
+    });
+
+    it('o voltar físico faz o mesmo que o botão voltar', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE });
+      const { onVoltar, showToast } = await renderizar();
+
+      await fireEvent.press(screen.getByLabelText('WhatsApp'));
+      await apertarVoltarFisico();
+
+      expect(onVoltar).toHaveBeenCalledTimes(1);
+      expect(showToast).toHaveBeenCalledWith(MENSAGEM_NAO_SALVAS);
+    });
+
+    it('no aviso de alteração pendente, o voltar físico volta pra edição sem sair nem salvar', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE });
+      const { onVoltar } = await renderizar();
+
+      await fireEvent.press(screen.getByLabelText('WhatsApp'));
+      await fireEvent.press(screen.getByText('Salvar'));
+      expect(screen.getByText('A mudança vale a partir de amanhã')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Voltar' })).toBeNull();
+
+      await apertarVoltarFisico();
+
+      expect(onVoltar).not.toHaveBeenCalled();
+      expect(salvar).not.toHaveBeenCalled();
+      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
     });
   });
 });

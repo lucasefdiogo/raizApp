@@ -9,7 +9,7 @@ interface BackButtonProps {
 
 /**
  * Chevron de voltar — só em telas empurradas numa stack (SignUp,
- * ForgotPassword, AppBlockConfigScreen), nunca em raiz de aba. Alvo de
+ * ForgotPassword, BloqueioApps, RotinaPerfil), nunca em raiz de aba. Alvo de
  * toque de 40px + hitSlop de 12 em cada lado (>48dp), pra não repetir o
  * padrão de link de texto sem área de toque suficiente já corrigido em
  * outras telas.

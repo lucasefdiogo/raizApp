@@ -84,6 +84,20 @@ RootNavigator (Stack.Navigator único — RootStackParamList)
 │                 consentimentoAcessoUso)
 ```
 
+### Voltar
+
+- **Telas empurradas** numa stack de aba (`BloqueioApps`, `RotinaPerfil`) e no fluxo
+  de auth (`SignUp`, `ForgotPassword`) têm `BackButton` (chevron) no topo. As
+  divulgações (`DivulgacaoAcessibilidade`/`DivulgacaoAcessoUso`) não têm: voltam
+  pelo "Agora não"/"Entendi", que já são a recusa explícita exigida pela Play Store.
+- **Trocar de aba volta a aba de origem pra raiz** (`popToTopOnBlur` no
+  `MainTabNavigator`): voltar ao Perfil nunca cai no meio de um fluxo. Tocar de novo
+  na aba já ativa também volta pra raiz (padrão do React Navigation).
+- **Voltar físico na raiz de Progresso/Perfil** vai pra aba Hoje
+  (`useVoltarParaAbaHoje`); na aba Hoje, sai do app.
+- **Lembrete "bloqueio desligado"** abre `PerfilTab` → `BloqueioApps` com
+  `initial: false`, pra ter o Perfil embaixo mesmo com a aba ainda não montada.
+
 Não existe mais overlay global de bloqueio no `RootNavigator` — o sistema antigo
 (`AppBlockedScreen`, disparado por evento nativo por cima de tudo) foi removido por
 completo. Hoje a interceptação acontece inteiramente fora da árvore acima, pelo root
@@ -256,6 +270,13 @@ Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
 `ConfirmDeleteAccountModal`) → "Sair" → link "Testar Crashlytics" (só em dev ou com `MOSTRAR_TESTAR_CRASHLYTICS`).
 
 ### BloqueioAppsScreen
+`BackButton` no topo (`onVoltar` → `navigation.goBack()`). Voltar — pelo botão ou pelo
+voltar físico (`useVoltarFisico`) — nunca pede confirmação: se a edição difere do que
+está salvo (`mesmasRegrasBloqueio`, `domain/appBlock.ts`; a pré-marcação da primeira
+configuração não conta), sai e mostra o toast "Suas alterações não foram salvas.".
+Com `AvisoAlteracaoPendenteScreen` aberto, o voltar físico equivale a "Voltar e
+revisar".
+
 Status do `isAccessibilityServiceEnabled()` (via `useAccessibilityPermission`) +
 **duas entradas pra `DivulgacaoAcessibilidadeScreen`**, sempre a mesma rota (quem
 decide o layout é o status real do serviço, não qual das duas foi tocada):
