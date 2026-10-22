@@ -53,13 +53,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: theme.radius.full,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.terraSuave,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Terra Escura, não Cobre (RN03/RN19) — o único Cobre da tela é o "Salvar".
   diaSelecionado: {
-    backgroundColor: theme.colors.cobre,
-    borderColor: theme.colors.cobre,
+    backgroundColor: theme.colors.terraEscura,
+    borderColor: theme.colors.terraEscura,
   },
   texto: {
     fontSize: theme.typography.fontSize.sm,

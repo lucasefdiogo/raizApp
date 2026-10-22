@@ -1,6 +1,8 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { SeletorDiasSemana } from './SeletorDiasSemana';
+import { theme } from '../../theme';
 
 describe('SeletorDiasSemana', () => {
   it('mostra os 7 dias', async () => {
@@ -36,5 +38,20 @@ describe('SeletorDiasSemana', () => {
     await fireEvent.press(screen.getByLabelText('sexta'));
 
     expect(onToggleDia).toHaveBeenCalledWith(5);
+  });
+
+  it('HU-09 RN03/RN19: dia selecionado usa Terra Escura, nunca Cobre', async () => {
+    await render(<SeletorDiasSemana diasSelecionados={[1]} onToggleDia={jest.fn()} />);
+
+    const estilo = StyleSheet.flatten(screen.getByLabelText('segunda').props.style);
+    expect(estilo.backgroundColor).toBe(theme.colors.terraEscura);
+    expect(estilo.backgroundColor).not.toBe(theme.colors.cobre);
+  });
+
+  it('HU-09 RN03: dia não selecionado usa borda Terra Suave', async () => {
+    await render(<SeletorDiasSemana diasSelecionados={[]} onToggleDia={jest.fn()} />);
+
+    const estilo = StyleSheet.flatten(screen.getByLabelText('terça').props.style);
+    expect(estilo.borderColor).toBe(theme.colors.terraSuave);
   });
 });

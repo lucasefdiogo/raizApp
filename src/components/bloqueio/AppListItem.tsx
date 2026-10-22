@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Check } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { AppInstalado } from '../../native/AccessibilityDetection';
 
@@ -37,8 +38,12 @@ export function AppListItem({ app, selecionado, onToggle, dica }: AppListItemPro
         </Text>
         {dica && <Text style={styles.dica}>{dica}</Text>}
       </View>
-      <View style={[styles.marcador, selecionado && styles.marcadorSelecionado]}>
-        {selecionado && <View style={styles.marcadorPreenchido} />}
+      <View testID="marcador" style={[styles.marcador, selecionado && styles.marcadorSelecionado]}>
+        {selecionado && (
+          <View testID="marcador-check">
+            <Check size={14} color={theme.colors.casca} strokeWidth={3} />
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -81,13 +86,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Musgo, não Cobre (RN04/RN19) — o único Cobre da tela é o "Salvar".
   marcadorSelecionado: {
-    borderColor: theme.colors.cobre,
-  },
-  marcadorPreenchido: {
-    width: 12,
-    height: 12,
-    borderRadius: theme.radius.sm / 2,
-    backgroundColor: theme.colors.cobre,
+    borderColor: theme.colors.musgo,
+    backgroundColor: theme.colors.musgo,
   },
 });
