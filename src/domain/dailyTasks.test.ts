@@ -1,6 +1,7 @@
 import {
   adicionarTarefa,
   contarEssenciais,
+  contarEssenciaisConcluidas,
   editarTarefa,
   limiteEssenciaisAtingido,
   removerTarefa,
@@ -25,6 +26,22 @@ const tresEssenciais: Tarefa[] = [
   tarefa({ id: '2', essencial: true }),
   tarefa({ id: '3', essencial: true }),
 ];
+
+describe('HU-07 · contarEssenciaisConcluidas', () => {
+  it('conta só as essenciais concluídas, ignorando não essenciais e essenciais pendentes', () => {
+    expect(
+      contarEssenciaisConcluidas([
+        tarefa({ id: '1', essencial: true, concluida: true }),
+        tarefa({ id: '2', essencial: true, concluida: false }),
+        tarefa({ id: '3', essencial: false, concluida: true }),
+      ]),
+    ).toBe(1);
+  });
+
+  it('lista vazia conta 0', () => {
+    expect(contarEssenciaisConcluidas([])).toBe(0);
+  });
+});
 
 describe('contarEssenciais / limiteEssenciaisAtingido', () => {
   it('conta só as essenciais', () => {
