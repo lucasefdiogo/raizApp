@@ -50,3 +50,4 @@ Task ativa: nenhuma
 Entrega: tasks concluídas
 Validação: verify 8/8 critérios verdes; lux-revisor APROVADO (achados só de melhoria: horários calculados em horariosUsoPorDia e não em agregarUsoPorDia, filtro pela lista curada, Recalcular automaticamente só limpa modoManual, useRotina sem try/catch no carregamento, UsoApps tipado sem as chaves de horário); security-review sem achados. Pendente de doc: definition/navegacao-componentes.md (telas RotinaConfirmacao, AlternativaNoturna e rota RotinaPerfil). E2E: sem executor configurado.
 Entrega: validação aprovada
+Entrega: merge feito, aguardando push
