@@ -185,6 +185,22 @@ describe('useRotina', () => {
     expect(result.current.mostrarConfirmacao).toBe(false);
   });
 
+  it('HU-09 RN11: diasComDados conta só os dias com os dois horários', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue([
+      ...logs(3),
+      {
+        data: '2026-10-05',
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+      },
+    ]);
+
+    const { result } = await montar();
+
+    expect(result.current.diasComDados).toBe(3);
+  });
+
   it('CA-08: editar o horário de dormir ativa modoManual e a estimativa não o sobrescreve', async () => {
     buscarUsuario.mockResolvedValue({
       rotina: { ...ESTIMATIVA, confirmadoEm: '2026-10-10' },

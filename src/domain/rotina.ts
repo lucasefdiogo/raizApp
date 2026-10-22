@@ -97,3 +97,31 @@ export function estimarRotina(
     acordarEstimado: formatar(mediana(acordar)),
   };
 }
+
+/** "longa" aparece no Bloqueio de apps, "curta" no Perfil (RN11). */
+export type FormaResumoRotina = 'longa' | 'curta';
+
+/**
+ * Resumo da rotina pras seções que só leem, sem editar (RN11): rotina
+ * confirmada > sem acesso de uso > poucos dias de dados > pronta pra
+ * confirmar. Só a variante confirmada muda de texto com `forma`.
+ */
+export function resumoRotina(
+  rotina: Rotina | null | undefined,
+  diasComDados: number,
+  acessoUso: boolean,
+  forma: FormaResumoRotina,
+): string {
+  if (rotina?.confirmadoEm) {
+    return forma === 'longa'
+      ? `Dormir ${rotina.dormirEstimado} · Acordar ${rotina.acordarEstimado}`
+      : `${rotina.dormirEstimado} – ${rotina.acordarEstimado}`;
+  }
+  if (!acessoUso) {
+    return 'Precisa medir o tempo nas redes';
+  }
+  if (diasComDados < MIN_DIAS_ESTIMATIVA) {
+    return `Aprendendo seu horário · ${diasComDados} de ${MIN_DIAS_ESTIMATIVA} dias`;
+  }
+  return 'Pronta para confirmar';
+}

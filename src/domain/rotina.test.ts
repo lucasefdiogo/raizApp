@@ -1,4 +1,5 @@
-import { estimarRotina, dentroDaJanelaNoturna, DiaRotina } from './rotina';
+import { estimarRotina, dentroDaJanelaNoturna, resumoRotina, DiaRotina } from './rotina';
+import { Rotina } from './types';
 
 function dia(primeiro: string, ultimo: string): DiaRotina {
   return { primeiroUsoDia: primeiro, ultimoUsoAntesPausaLonga: ultimo };
@@ -98,5 +99,49 @@ describe('dentroDaJanelaNoturna', () => {
   it('CA-06: fora da janela, com rotina confirmada, devolve falso', () => {
     expect(dentroDaJanelaNoturna(confirmada, as(12, 0))).toBe(false);
     expect(dentroDaJanelaNoturna(confirmada, as(22, 0))).toBe(false);
+  });
+});
+
+describe('resumoRotina', () => {
+  const confirmada: Rotina = {
+    dormirEstimado: '23:30',
+    acordarEstimado: '07:00',
+    confirmadoEm: '2026-10-15',
+  };
+
+  it('HU-09 Cenário 8: rotina confirmada, forma longa (Bloqueio)', () => {
+    expect(resumoRotina(confirmada, 14, true, 'longa')).toBe(
+      'Dormir 23:30 · Acordar 07:00',
+    );
+  });
+
+  it('HU-09 Cenário 16: rotina confirmada, forma curta (Perfil)', () => {
+    expect(resumoRotina(confirmada, 14, true, 'curta')).toBe('23:30 – 07:00');
+  });
+
+  it('HU-09 Cenário 17: sem acesso de uso tem prioridade sobre o resto', () => {
+    expect(resumoRotina(null, 0, false, 'longa')).toBe(
+      'Precisa medir o tempo nas redes',
+    );
+    expect(resumoRotina(null, 0, false, 'curta')).toBe(
+      'Precisa medir o tempo nas redes',
+    );
+  });
+
+  it('HU-09 Cenário 7: com acesso de uso e menos de 5 dias, mostra o progresso', () => {
+    expect(resumoRotina(null, 3, true, 'longa')).toBe(
+      'Aprendendo seu horário · 3 de 5 dias',
+    );
+  });
+
+  it('HU-09 RN11: com 5 dias ou mais e sem confirmação, pronta para confirmar', () => {
+    expect(resumoRotina(null, 5, true, 'longa')).toBe('Pronta para confirmar');
+    expect(resumoRotina(null, 8, true, 'curta')).toBe('Pronta para confirmar');
+  });
+
+  it('HU-09 RN11: rotina confirmada tem prioridade mesmo sem acesso de uso', () => {
+    expect(resumoRotina(confirmada, 0, false, 'longa')).toBe(
+      'Dormir 23:30 · Acordar 07:00',
+    );
   });
 });
