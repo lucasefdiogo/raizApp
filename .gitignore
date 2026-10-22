@@ -93,9 +93,3 @@ firebase-debug.log
 
 # Relatórios de teste (JUnit XML)
 reports/
-# lux diario
-.lux/diario/
-# lux auditoria
-.lux/auditoria/
-.lux/vereditos/
-.lux/aprendizados-*.md
