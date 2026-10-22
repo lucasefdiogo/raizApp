@@ -23,7 +23,7 @@ export const TOUR_PASSOS: TourPasso[] = [
   {
     alvo: 'adicionarTarefa',
     texto:
-      'Toque aqui pra adicionar uma tarefa. Marque até 3 como essenciais — só elas contam pra sua sequência.',
+      'Toque em "Adicionar alternativa" pra registrar o que vai fazer. Marque até 3 como essenciais — só elas contam pra sua sequência.',
   },
   {
     alvo: 'abaProgresso',

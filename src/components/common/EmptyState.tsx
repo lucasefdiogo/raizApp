@@ -62,13 +62,20 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     textAlign: 'center',
   },
+  // Linha tracejada em Musgo, não Cobre: na Home (HU-07, RN10) o único
+  // ponto Cobre é o crescimento da raiz no StreakCard.
   cta: {
     marginTop: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: theme.colors.musgo,
+    borderRadius: theme.radius.sm,
   },
   ctaTexto: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.cobre,
+    color: theme.colors.musgo,
   },
 });

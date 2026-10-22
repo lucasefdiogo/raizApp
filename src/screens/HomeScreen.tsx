@@ -16,6 +16,7 @@ import { theme } from '../theme';
 import { useStreakMilestone } from '../hooks/useStreakMilestone';
 import { useDailyTasks } from '../hooks/useDailyTasks';
 import { useNomeUsuario } from '../hooks/useNomeUsuario';
+import { useAlternativaNoturna } from '../hooks/useAlternativaNoturna';
 import { useColetaUsoApps } from '../hooks/useColetaUsoApps';
 import { useSincronizarAcessibilidade } from '../hooks/useSincronizarAcessibilidade';
 import { useAbrirDestinoDaNotificacao } from '../hooks/useAbrirDestinoDaNotificacao';
@@ -41,8 +42,9 @@ import {
   TOUR_PASSOS,
   TourAlvoId,
 } from '../components/tour/tourSteps';
-import { StatusDia, Tarefa } from '../domain/types';
+import { Tarefa } from '../domain/types';
 import { existeEssencialConcluida } from '../domain/streak';
+import { contarEssenciais, textoPlacarEssenciais } from '../domain/dailyTasks';
 import { selecionarTarefaIntercept } from '../domain/intercept';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 import { TravadoFlowScreen } from './intercept/TravadoFlowScreen';
@@ -50,7 +52,7 @@ import { TravadoFlowScreen } from './intercept/TravadoFlowScreen';
 // No Android com edge-to-edge (RN 0.81+) o `adjustResize` não encolhe mais a
 // janela — o teclado entra por cima. Então acompanhamos a altura do teclado à
 // mão, criamos espaço equivalente no fim do ScrollView e rolamos até lá pra o
-// campo "Nova tarefa" ficar acima do teclado.
+// campo "Nova alternativa" ficar acima do teclado.
 const ATRASO_SCROLL_TECLADO_MS = 50;
 
 // Passos do tour de funcionalidades cujo alvo vive dentro do ScrollView (os
@@ -69,16 +71,19 @@ const ATRASO_MEDICAO_TOUR_MS = 80;
 // rolava, mas o balão ficava espremido/cortado mesmo assim).
 const ESPACO_MINIMO_SCROLL_TOUR_PX = ALTURA_MINIMA_TOOLTIP_TOUR + 160;
 
-const MENSAGEM_STATUS_DIA: Record<StatusDia, string> = {
-  pendente: 'O dia ainda está começando.',
-  cumprido: 'Dia cumprido. Isso já conta.',
-  nao_cumprido: 'Ainda dá tempo de fazer valer o dia.',
+// HU-07, RN01/RN04: headline e linha de apoio da seção de tarefas, chaveados
+// por hojeCumprido — sem essa chave vira o placar de essenciais (RN03).
+const HEADLINE: Record<'pendente' | 'cumprido', string> = {
+  pendente: 'O que você vai fazer no lugar da rolagem hoje?',
+  cumprido: 'Hoje já conta. O resto é bônus.',
 };
+
+const LINHA_DE_APOIO_CUMPRIDO =
+  'Se a vontade de abrir o feed aparecer, escolha uma daqui.';
 
 interface HomeScreenProps {
   uid: string;
   streakAtual: number;
-  escudosDisponiveis: number;
   marcoAtingido: number | null;
   avaliarAlertaRisco: (essencialConcluidaHoje: boolean) => void;
   /**
@@ -105,7 +110,6 @@ interface HomeScreenProps {
 export function HomeScreen({
   uid,
   streakAtual,
-  escudosDisponiveis,
   marcoAtingido,
   avaliarAlertaRisco,
   recarregarStreak,
@@ -114,6 +118,7 @@ export function HomeScreen({
   aoAtualizarTour,
 }: HomeScreenProps) {
   const nome = useNomeUsuario(uid);
+  const alternativaNoturna = useAlternativaNoturna(uid);
   // Home é a aba padrão — "abertura do app" pra fins de
   // useSincronizarRegrasBloqueio (promove regrasBloqueioPendentes vencida e
   // espelha o estado atual em SharedPreferences pro AccessibilityService).
@@ -143,6 +148,16 @@ export function HomeScreen({
     limiteEssenciaisAtingido,
     recarregar,
   } = useDailyTasks(uid);
+  const hojeCumprido = statusDia === 'cumprido';
+  const [sheetAdicionarVisivel, setSheetAdicionarVisivel] = useState(false);
+  const abrirSheetAdicionar = useCallback(
+    () => setSheetAdicionarVisivel(true),
+    [],
+  );
+  const fecharSheetAdicionar = useCallback(
+    () => setSheetAdicionarVisivel(false),
+    [],
+  );
   const [travadoAberto, setTravadoAberto] = useState(false);
   const [travadoAberturaId, setTravadoAberturaId] = useState(0);
   const [travadoTarefaContexto, setTravadoTarefaContexto] =
@@ -264,7 +279,7 @@ export function HomeScreen({
   // relativas ao pai — measureInWindow, não onLayout, ver racional da
   // tarefa). Alvos 1-3 vivem dentro do ScrollView e podem estar fora da
   // faixa visível quando o passo começa (ex: lista de tarefas longa empurra
-  // o botão "Adicionar tarefa" pra baixo) — nesse caso rola até uma posição
+  // o botão "Adicionar alternativa" pra baixo) — nesse caso rola até uma posição
   // previsível antes de remedir. O tour bloqueia toque no resto da tela
   // (ver FeatureTourOverlay), então não existe scroll "ao vivo" pra
   // acompanhar durante um passo, só essa correção pontual ao entrar nele.
@@ -399,33 +414,35 @@ export function HomeScreen({
       >
         <HomeHeader nome={nome} streakAtual={streakAtual} />
         <View ref={streakCardRef} collapsable={false}>
-          <StreakCard
-            streak={{ streakAtual, escudosDisponiveis }}
-            hojeCumprido={statusDia === 'cumprido'}
-          />
+          <StreakCard streak={{ streakAtual }} hojeCumprido={hojeCumprido} />
         </View>
-        <Text style={styles.secaoTitulo}>Tarefas de hoje</Text>
-        <Text style={styles.statusDia}>{MENSAGEM_STATUS_DIA[statusDia]}</Text>
         {carregando ? (
           <LoadingIndicator variant="inline" />
+        ) : tarefas.length === 0 ? (
+          // HU-07, RN10: dia sem nenhuma tarefa — única ação é o CTA
+          // tracejado do próprio EmptyState, sem headline/placar/"Estou
+          // travado" por cima (o broto já é o destaque da tela).
+          <EmptyState
+            titulo="Nada planejado ainda"
+            corpo="Escolha uma coisa pequena para fazer no lugar da rolagem."
+            ctaLabel="Adicionar alternativa"
+            onCtaPress={abrirSheetAdicionar}
+          />
         ) : (
           <>
-            {tarefas.length === 0 ? (
-              <EmptyState
-                titulo="Nenhuma tarefa ainda"
-                corpo="Adicione a primeira — pode ser bem pequena."
-              />
-            ) : (
-              <TaskList
-                tarefas={tarefas}
-                onAlternar={handleAlternarTarefa}
-                onEstouTravado={abrirTravadoComTarefa}
-                onEditar={(id, titulo) => editarTarefa(id, { titulo })}
-                onRemover={removerTarefa}
-                onRemoverHoje={removerTarefaHoje}
-                onPararDeRepetir={pararDeRepetir}
-              />
-            )}
+            <Text style={styles.headline}>{HEADLINE[hojeCumprido ? 'cumprido' : 'pendente']}</Text>
+            <Text style={hojeCumprido ? styles.linhaDeApoio : styles.placar}>
+              {hojeCumprido ? LINHA_DE_APOIO_CUMPRIDO : textoPlacarEssenciais(tarefas)}
+            </Text>
+            <TaskList
+              tarefas={tarefas}
+              onAlternar={handleAlternarTarefa}
+              onEstouTravado={abrirTravadoComTarefa}
+              onEditar={(id, titulo) => editarTarefa(id, { titulo })}
+              onRemover={removerTarefa}
+              onRemoverHoje={removerTarefaHoje}
+              onPararDeRepetir={pararDeRepetir}
+            />
             <Pressable
               testID="botao-estou-travado"
               accessibilityRole="button"
@@ -435,14 +452,29 @@ export function HomeScreen({
             >
               <Text style={styles.botaoEstouTravadoTexto}>Estou travado</Text>
             </Pressable>
-            <AddTaskForm
-              ref={addTaskButtonRef}
-              onAdicionar={adicionarTarefa}
-              limiteEssenciaisAtingido={limiteEssenciaisAtingido}
-            />
+            <View ref={addTaskButtonRef} collapsable={false}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={abrirSheetAdicionar}
+                hitSlop={8}
+                style={styles.botaoAdicionarAlternativa}
+              >
+                <Text style={styles.botaoAdicionarAlternativaTexto}>
+                  Adicionar alternativa
+                </Text>
+              </Pressable>
+            </View>
           </>
         )}
       </ScrollView>
+      <AddTaskForm
+        visible={sheetAdicionarVisivel}
+        onFechar={fecharSheetAdicionar}
+        onAdicionar={adicionarTarefa}
+        limiteEssenciaisAtingido={limiteEssenciaisAtingido}
+        essenciaisUsadas={contarEssenciais(tarefas)}
+        alternativaNoturna={alternativaNoturna}
+      />
       <TaskCompletedOverlay
         visible={overlayVisivel}
         mensagem={mensagemOverlay}
@@ -489,13 +521,20 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
   },
-  secaoTitulo: {
+  headline: {
     fontSize: theme.typography.fontSize.lg,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing.md,
   },
-  statusDia: {
+  // Placar em Space Mono (RN03) — linha de apoio do estado cumprido (RN04)
+  // usa a fonte de corpo normal, por isso os dois estilos ficam separados.
+  placar: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.mono,
+    color: theme.colors.textSecondary,
+  },
+  linhaDeApoio: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
@@ -508,5 +547,16 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
+  },
+  // Sem Cobre: o único ponto Cobre da Home é o crescimento da raiz no
+  // StreakCard (HU-07, regras visuais da seção 3).
+  botaoAdicionarAlternativa: {
+    alignSelf: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  botaoAdicionarAlternativaTexto: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.musgo,
   },
 });

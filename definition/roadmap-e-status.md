@@ -48,7 +48,8 @@
 | Tarefas recorrentes ("Repetir todos os dias", `essentialTasks`) | ✅ |
 | Tipo "exercício" + duração em tarefa | ✅ |
 | `HomeHeader` (saudação + badge de streak) | ✅ |
-| `StreakCard` (streak + escudos disponíveis) | ✅ |
+| `StreakCard` (streak + rodapé de garantia do dia) | ✅ atualizado na HU-07 (RN04/RN05) — não mostra mais a contagem de proteções |
+| HU-07 · Home como alternativa à rolagem (headline, placar de essenciais, sugestões fixas/noturna, `AddTaskForm` como sheet) | ✅ (`docs/hu/hu-07-hoje-alternativas.md`) |
 
 ## 5. Streak e proteção (ex-"escudo")
 

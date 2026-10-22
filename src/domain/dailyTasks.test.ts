@@ -1,10 +1,12 @@
 import {
   adicionarTarefa,
   contarEssenciais,
+  contarEssenciaisConcluidas,
   editarTarefa,
   limiteEssenciaisAtingido,
   removerTarefa,
   tarefaDoDiaAPartirDeRecorrente,
+  textoPlacarEssenciais,
   tituloTarefaValido,
   MENSAGEM_LIMITE_ESSENCIAIS,
   MENSAGEM_TITULO_VAZIO,
@@ -25,6 +27,40 @@ const tresEssenciais: Tarefa[] = [
   tarefa({ id: '2', essencial: true }),
   tarefa({ id: '3', essencial: true }),
 ];
+
+describe('HU-07 · contarEssenciaisConcluidas', () => {
+  it('conta só as essenciais concluídas, ignorando não essenciais e essenciais pendentes', () => {
+    expect(
+      contarEssenciaisConcluidas([
+        tarefa({ id: '1', essencial: true, concluida: true }),
+        tarefa({ id: '2', essencial: true, concluida: false }),
+        tarefa({ id: '3', essencial: false, concluida: true }),
+      ]),
+    ).toBe(1);
+  });
+
+  it('lista vazia conta 0', () => {
+    expect(contarEssenciaisConcluidas([])).toBe(0);
+  });
+});
+
+describe('HU-07 · textoPlacarEssenciais (RN03)', () => {
+  it('sem nenhuma essencial no dia, pede pra marcar', () => {
+    expect(textoPlacarEssenciais([tarefa({ essencial: false })])).toBe(
+      'MARQUE ATÉ 3 COMO ESSENCIAIS',
+    );
+    expect(textoPlacarEssenciais([])).toBe('MARQUE ATÉ 3 COMO ESSENCIAIS');
+  });
+
+  it('com essenciais no dia, mostra feitas de total', () => {
+    expect(
+      textoPlacarEssenciais([
+        tarefa({ id: '1', essencial: true, concluida: false }),
+        tarefa({ id: '2', essencial: true, concluida: true }),
+      ]),
+    ).toBe('ESSENCIAIS · 1 DE 2 FEITAS');
+  });
+});
 
 describe('contarEssenciais / limiteEssenciaisAtingido', () => {
   it('conta só as essenciais', () => {

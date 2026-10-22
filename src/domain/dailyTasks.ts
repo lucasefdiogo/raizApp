@@ -30,6 +30,20 @@ export function contarEssenciais(tarefas: Tarefa[]): number {
   return tarefas.filter(tarefa => tarefa.essencial).length;
 }
 
+/** Placar "ESSENCIAIS · {feitas} DE {total} FEITAS" da Home (HU-07, RN03). */
+export function contarEssenciaisConcluidas(tarefas: Tarefa[]): number {
+  return tarefas.filter(tarefa => tarefa.essencial && tarefa.concluida).length;
+}
+
+/** Texto do placar de essenciais abaixo do headline da Home (HU-07, RN03). */
+export function textoPlacarEssenciais(tarefas: Tarefa[]): string {
+  const total = contarEssenciais(tarefas);
+  if (total === 0) {
+    return 'MARQUE ATÉ 3 COMO ESSENCIAIS';
+  }
+  return `ESSENCIAIS · ${contarEssenciaisConcluidas(tarefas)} DE ${total} FEITAS`;
+}
+
 /**
  * Já bateu no teto de essenciais? A UI usa isso pra antecipar o bloqueio
  * (desabilitar o marcador "essencial") e o hook pra recusar a gravação.

@@ -106,9 +106,9 @@ sem proteção: ramo mais fino e com opacidade reduzida — a raiz principal nun
 | Componente | Arquivo | Composição |
 |---|---|---|
 | `HomeHeader` | `src/components/home/HomeHeader.tsx` | Saudação por horário + nome, badge de streak |
-| `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + proteções disponíveis |
+| `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + rodapé de garantia do dia (HU-07) — não mostra mais a contagem de proteções |
 | `TaskList` / `TaskItem` | `src/components/TaskList.tsx` / `TaskItem.tsx` | Lista + item (checkbox, título, selo essencial, ícone recorrente/exercício) |
-| `AddTaskForm` / `TaskTypeToggle` | `src/components/home/` | Campo título + toggle essencial + tipo/duração + "Repetir todos os dias" |
+| `AddTaskForm` / `TaskTypeToggle` | `src/components/home/` | Sheet "Nova alternativa" (HU-07, Modal controlado pela Home) — sugestões em chip, campo título, toggle essencial + tipo/duração + "Repetir todos os dias" |
 | `TaskActionsSheet` | `src/components/home/TaskActionsSheet.tsx` | Menu de toque longo: "Estou travado", editar, remover |
 | `TaskCompletedOverlay` | `src/components/home/TaskCompletedOverlay.tsx` | Auto-dismiss ~1.5s, 1 de 3 frases fixas |
 | `RootWateringOverlay` | `src/components/home/RootWateringOverlay.tsx` | Animação da raiz ao concluir a essencial |
