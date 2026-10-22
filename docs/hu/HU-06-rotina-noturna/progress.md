@@ -41,3 +41,6 @@ Task ativa: nenhuma
 Task ativa: TASK-09
 TASK-09: hook usePausaNoturna(uid, blocosUsados) devolve {carregando, noturna, duracaoSeg, mensagem, alternativa}; indice da mensagem em utils/storage (rootora.mensagemNoturna.indice); falha cai na pausa padrao. Suite verde (1311).
 Task ativa: nenhuma
+Task ativa: TASK-10
+TASK-10: telas RotinaConfirmacao, AlternativaNoturna e pausa noturna (PausaIntencaoNoturna na fase AGUARDANDO_LIBERACAO, com PausaIntencaoScreen estendida por props opcionais); wiring em HojeStack. Pendente de doc: definition/navegacao-componentes.md precisa das duas telas novas na aba Hoje (fora do escopo desta task). Suite verde (1335).
+Task ativa: nenhuma

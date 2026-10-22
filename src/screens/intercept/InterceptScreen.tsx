@@ -12,7 +12,7 @@ import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
 import { SessaoAtivaAviso } from './SessaoAtivaAviso';
-import { PausaIntencaoScreen } from './PausaIntencaoScreen';
+import { PausaIntencaoNoturna } from '../rotina/PausaIntencaoNoturna';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
 import { RespiracaoEmergenciaScreen } from './RespiracaoEmergenciaScreen';
 import { TarefasExtrasScreen } from './TarefasExtrasScreen';
@@ -216,9 +216,11 @@ export function InterceptScreen({
   if (fase === 'AGUARDANDO_LIBERACAO') {
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
-        <PausaIntencaoScreen
+        <PausaIntencaoNoturna
+          uid={uid}
           appLabel={appLabel}
-          duracaoSeg={saldo.pausaIntencaoSeg}
+          blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
+          duracaoPadraoSeg={saldo.pausaIntencaoSeg}
           saldo={
             saldo.visao
               ? saldoDisponivel(saldo.visao.estado, configBloco)
@@ -226,6 +228,7 @@ export function InterceptScreen({
           }
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
+          onAlternativaNoturna={handleAgoraNaoPausa}
         />
       </SafeAreaView>
     );

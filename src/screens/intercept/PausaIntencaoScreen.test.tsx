@@ -145,4 +145,47 @@ describe('PausaIntencaoScreen', () => {
     expect(screen.getByText(/Restam 3 sessões hoje/)).toBeTruthy();
     expect(screen.queryByText(/!/)).toBeNull();
   });
+
+  describe('variante noturna (HU-06)', () => {
+    it('CA-04: com mensagemNoturna mostra a nota, a mensagem no lugar do título e a contagem', async () => {
+      await montar({
+        mensagemNoturna: 'O descanso de hoje é o foco de amanhã.',
+        duracaoSeg: 40,
+      });
+
+      expect(screen.getByText('Você está perto do seu horário de dormir.')).toBeTruthy();
+      expect(screen.getByText('O descanso de hoje é o foco de amanhã.')).toBeTruthy();
+      expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Liberar em 40s' })).toBeTruthy();
+    });
+
+    it('CA-03: com alternativa mostra o botão com o texto dela, que chama onAlternativa sem liberar', async () => {
+      const onAlternativa = jest.fn();
+      const { props } = await montar({
+        mensagemNoturna: 'Uma mensagem.',
+        alternativa: 'Ler um pouco',
+        onAlternativa,
+      });
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco' }));
+
+      expect(onAlternativa).toHaveBeenCalledTimes(1);
+      expect(props.onLiberar).not.toHaveBeenCalled();
+    });
+
+    it('CA-03: sem alternativa o botão extra não aparece', async () => {
+      await montar({ mensagemNoturna: 'Uma mensagem.' });
+
+      expect(screen.getAllByRole('button')).toHaveLength(2);
+    });
+
+    it('CA-06: sem mensagemNoturna a tela fica como na HU-04, mesmo com alternativa informada', async () => {
+      await montar({ alternativa: 'Ler um pouco', onAlternativa: jest.fn() });
+
+      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
+      expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
+      expect(screen.queryByText('Ler um pouco')).toBeNull();
+      expect(screen.getAllByRole('button')).toHaveLength(2);
+    });
+  });
 });

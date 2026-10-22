@@ -90,7 +90,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/hooks/usePausaNoturna.ts, src/hooks/usePausaNoturna.test.ts
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-10 (tela, CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, RN-04, RN-06, RN-08 a RN-10): telas nos estados normal (confirmação da rotina estimada, com Confirmar e Ajustar horário), carregando (pergunta única da alternativa noturna) e erro (pausa de intenção estendida da janela noturna, com mensagem e atalho da alternativa); confirmação e pergunta abertas uma vez na próxima abertura do app; pausa noturna ligada à `InterceptScreen`
+- [x] TASK-10 (tela, CA-01, CA-02, CA-03, CA-04, CA-05, CA-06, RN-04, RN-06, RN-08 a RN-10): telas nos estados normal (confirmação da rotina estimada, com Confirmar e Ajustar horário), carregando (pergunta única da alternativa noturna) e erro (pausa de intenção estendida da janela noturna, com mensagem e atalho da alternativa); confirmação e pergunta abertas uma vez na próxima abertura do app; pausa noturna ligada à `InterceptScreen`
   - Teste: `CA-01: a tela de confirmação mostra o horário estimado de dormir` (feliz)
   - Teste: `CA-02: Confirmar leva à pergunta da alternativa noturna` (feliz)
   - Teste: `CA-03: dentro da janela a pausa mostra o botão com a alternativa, que fecha sem liberar a sessão` (feliz)

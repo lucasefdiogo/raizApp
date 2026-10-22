@@ -25,6 +25,7 @@ jest.mock('../hooks/useStreak');
 jest.mock('../hooks/useRecoveryState');
 jest.mock('../hooks/useReturnAfterPause');
 jest.mock('../hooks/useDailyTasks');
+jest.mock('../hooks/useRotina');
 // Não é o foco deste arquivo (tem teste próprio em useFeatureTour.test.ts) —
 // mantido inativo pra não interferir nas asserções de roteamento daqui.
 jest.mock('../hooks/useFeatureTour');
@@ -38,6 +39,7 @@ const { useStreak } = require('../hooks/useStreak');
 const { useRecoveryState } = require('../hooks/useRecoveryState');
 const { useReturnAfterPause } = require('../hooks/useReturnAfterPause');
 const { useDailyTasks } = require('../hooks/useDailyTasks');
+const { useRotina } = require('../hooks/useRotina');
 const { useFeatureTour } = require('../hooks/useFeatureTour');
 const { buscarSystemMessage, buscarUsuario } = require('../services/firestore');
 const {
@@ -55,7 +57,21 @@ const ESTADO_BASE_STREAK = {
   marcarRetornoConcluido: jest.fn(),
 };
 
+const ROTINA_BASE = {
+  carregando: false,
+  rotina: null,
+  estimativa: null,
+  mostrarConfirmacao: false,
+  perguntarAlternativa: false,
+  confirmar: jest.fn(),
+  salvarAlternativa: jest.fn(),
+  dispensarAlternativa: jest.fn(),
+  editarHorarioManual: jest.fn(),
+  recalcularAutomaticamente: jest.fn(),
+};
+
 function configurarHooksPadrao() {
+  useRotina.mockReturnValue(ROTINA_BASE);
   useStreak.mockReturnValue(ESTADO_BASE_STREAK);
   useRecoveryState.mockReturnValue({
     deveExibir: false,
@@ -258,5 +274,96 @@ describe('HojeStack', () => {
         'Uma semana inteira sustentando o combinado com você mesmo.',
       ),
     ).toBeTruthy();
+  });
+
+  describe('rotina noturna (HU-06)', () => {
+    const ESTIMATIVA = { dormirEstimado: '23:00', acordarEstimado: '07:00' };
+
+    it('CA-01: com estimativa sem confirmação mostra a confirmação, não a Home', async () => {
+      useRotina.mockReturnValue({
+        ...ROTINA_BASE,
+        estimativa: ESTIMATIVA,
+        mostrarConfirmacao: true,
+      });
+
+      await renderHojeStack();
+
+      expect(screen.getByText('Notamos um padrão')).toBeTruthy();
+      expect(screen.getByText('23:00')).toBeTruthy();
+      expect(screen.queryByText('Tarefas de hoje')).toBeNull();
+    });
+
+    it('CA-02: Confirmar leva à pergunta da alternativa noturna', async () => {
+      const confirmarRotina = jest.fn();
+      useRotina.mockImplementation(() => {
+        const [etapa, setEtapa] = React.useState<'confirmar' | 'perguntar'>(
+          'confirmar',
+        );
+        return {
+          ...ROTINA_BASE,
+          estimativa: ESTIMATIVA,
+          mostrarConfirmacao: etapa === 'confirmar',
+          perguntarAlternativa: etapa === 'perguntar',
+          confirmar: async () => {
+            confirmarRotina();
+            setEtapa('perguntar');
+          },
+        };
+      });
+
+      await renderHojeStack();
+      await fireEvent.press(screen.getByRole('button', { name: 'Confirmar' }));
+
+      expect(confirmarRotina).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByText('O que você gostaria de fazer à noite?'),
+      ).toBeTruthy();
+      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+    });
+
+    it('CA-03: Salvar na pergunta chama salvarAlternativa; Agora não chama dispensarAlternativa', async () => {
+      const salvarAlternativa = jest.fn();
+      const dispensarAlternativa = jest.fn();
+      useRotina.mockReturnValue({
+        ...ROTINA_BASE,
+        perguntarAlternativa: true,
+        salvarAlternativa,
+        dispensarAlternativa,
+      });
+
+      await renderHojeStack();
+      await fireEvent.changeText(
+        screen.getByLabelText('Alternativa noturna (opcional)'),
+        'Ler um pouco',
+      );
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+      expect(salvarAlternativa).toHaveBeenCalledWith('Ler um pouco');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Agora não' }));
+      expect(dispensarAlternativa).toHaveBeenCalledTimes(1);
+    });
+
+    it('CA-07: sem estimativa nem pergunta a Home aparece, mesmo com useRotina ainda carregando', async () => {
+      useRotina.mockReturnValue({ ...ROTINA_BASE, carregando: true });
+
+      await renderHojeStack();
+
+      expect(screen.getByText('Tarefas de hoje')).toBeTruthy();
+      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+    });
+
+    it('CA-01: o retorno após pausa tem prioridade sobre a confirmação da rotina', async () => {
+      useStreak.mockReturnValue({ ...ESTADO_BASE_STREAK, statusStreak: 'pausado' });
+      useRotina.mockReturnValue({
+        ...ROTINA_BASE,
+        estimativa: ESTIMATIVA,
+        mostrarConfirmacao: true,
+      });
+
+      await renderHojeStack();
+
+      expect(screen.getByText('Voltar a começar')).toBeTruthy();
+      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+    });
   });
 });
