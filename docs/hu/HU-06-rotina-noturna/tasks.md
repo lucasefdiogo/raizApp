@@ -42,7 +42,7 @@ Premissas do plano (spec v2 deixa em aberto; seguem a leitura mais simples):
     - Arquivos: src/services/firestore.ts, src/services/firestore.test.ts, src/domain/types.ts, definition/schema-firebase.md
     - Comandos: teste, lint, tipos
     - Instala: nenhuma
-- [ ] TASK-05 (CA-01, CA-02, CA-03, CA-07, CA-08, RN-04, RN-06, RN-12): hook `useRotina(uid)` lê os últimos dias, estima e expõe quando mostrar a confirmação e as ações
+- [x] TASK-05 (CA-01, CA-02, CA-03, CA-07, CA-08, RN-04, RN-06, RN-12): hook `useRotina(uid)` lê os últimos dias, estima e expõe quando mostrar a confirmação e as ações
   - Teste: `CA-01: com 5 dias de dados e sem confirmadoEm pede a tela de confirmação` (feliz)
   - Teste: `CA-02: confirmar grava confirmadoEm e pede a pergunta da alternativa` (feliz)
   - Teste: `CA-03: responder grava a alternativa e Agora não não grava nada` (feliz)

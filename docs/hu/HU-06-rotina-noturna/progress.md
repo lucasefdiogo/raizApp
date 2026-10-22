@@ -25,3 +25,6 @@ Task ativa: nenhuma
 Task ativa: TASK-04
 TASK-04: users/{uid}.rotina no service (confirmarRotina, salvarAlternativaNoturna, editarHorarioRotinaManual, recalcularRotinaAutomatica) com merge aninhado; schema-firebase.md atualizado. Suite verde (1280).
 Task ativa: nenhuma
+Task ativa: TASK-05
+TASK-05: hook useRotina(uid) (estimativa, mostrarConfirmacao, perguntarAlternativa, confirmar, salvarAlternativa, dispensarAlternativa, editarHorarioManual, recalcularAutomaticamente). confirmadoEm grava so a data local AAAA-MM-DD. Suite verde (1291).
+Task ativa: nenhuma
