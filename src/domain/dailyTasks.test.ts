@@ -6,6 +6,7 @@ import {
   limiteEssenciaisAtingido,
   removerTarefa,
   tarefaDoDiaAPartirDeRecorrente,
+  textoPlacarEssenciais,
   tituloTarefaValido,
   MENSAGEM_LIMITE_ESSENCIAIS,
   MENSAGEM_TITULO_VAZIO,
@@ -40,6 +41,24 @@ describe('HU-07 · contarEssenciaisConcluidas', () => {
 
   it('lista vazia conta 0', () => {
     expect(contarEssenciaisConcluidas([])).toBe(0);
+  });
+});
+
+describe('HU-07 · textoPlacarEssenciais (RN03)', () => {
+  it('sem nenhuma essencial no dia, pede pra marcar', () => {
+    expect(textoPlacarEssenciais([tarefa({ essencial: false })])).toBe(
+      'MARQUE ATÉ 3 COMO ESSENCIAIS',
+    );
+    expect(textoPlacarEssenciais([])).toBe('MARQUE ATÉ 3 COMO ESSENCIAIS');
+  });
+
+  it('com essenciais no dia, mostra feitas de total', () => {
+    expect(
+      textoPlacarEssenciais([
+        tarefa({ id: '1', essencial: true, concluida: false }),
+        tarefa({ id: '2', essencial: true, concluida: true }),
+      ]),
+    ).toBe('ESSENCIAIS · 1 DE 2 FEITAS');
   });
 });
 
