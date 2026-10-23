@@ -91,12 +91,27 @@ export function logTravadoEstado(estado: EstadoTravado): void {
   logEvent(analytics(), 'travado_state', { estado });
 }
 
-export function logInterceptShown(estadoTela: EstadoTela): void {
-  logEvent(analytics(), 'intercept_shown', { estado_tela: estadoTela });
+export function logInterceptShown(estadoTela: EstadoTela, janelaNoturna: boolean): void {
+  logEvent(analytics(), 'intercept_shown', {
+    estado_tela: estadoTela,
+    janela_noturna: janelaNoturna,
+  });
 }
 
 export function logInterceptAction(acao: AcaoIntercept): void {
   logEvent(analytics(), 'intercept_action', { acao });
+}
+
+/** RN17: nunca a intenção digitada, a alternativa ou o horário da rotina. */
+export function logValvulaEscolhida(
+  tipo: 'acesso_rapido' | 'emergencia' | 'sessao_foco' | 'tarefas_extras',
+  janelaNoturna: boolean,
+): void {
+  logEvent(analytics(), 'valvula_escolhida', { tipo, janela_noturna: janelaNoturna });
+}
+
+export function logAlternativaNoturnaEscolhida(): void {
+  logEvent(analytics(), 'alternativa_noturna_escolhida');
 }
 
 /**

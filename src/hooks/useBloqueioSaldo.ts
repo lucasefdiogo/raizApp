@@ -61,6 +61,8 @@ interface UseBloqueioSaldoResultado {
   msAteProximoAcessoRapido: number;
   /** A saída de emergência deve aparecer (RN-06). */
   emergenciaOferecida: boolean;
+  /** Horário atual dentro da janela noturna da rotina confirmada (HU-11, RN17). */
+  dentroJanelaNoturna: boolean;
   /** Fim da espera de 5 s: abre 2 min de uso e conta no resumo do dia. Resolve se o nativo aceitou. */
   liberarAcessoRapido: () => Promise<boolean>;
   /** Fim da respiração de 60 s: abre 2 min sem gastar a cota e conta no resumo do dia. Resolve se aceitou. */
@@ -222,6 +224,7 @@ export function useBloqueioSaldo(
     acessosRapidosRestantes,
     msAteProximoAcessoRapido,
     emergenciaOferecida: visao?.emergenciaOferecida ?? false,
+    dentroJanelaNoturna,
     liberarAcessoRapido,
     concluirEmergencia,
     recarregar,

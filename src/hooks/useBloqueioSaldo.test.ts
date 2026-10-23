@@ -144,6 +144,7 @@ describe('useBloqueioSaldo', () => {
       const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
 
       await waitFor(() => expect(result.current.esperaAcessoRapidoSeg).toBe(30));
+      expect(result.current.dentroJanelaNoturna).toBe(true);
 
       jest.useRealTimers();
     });
