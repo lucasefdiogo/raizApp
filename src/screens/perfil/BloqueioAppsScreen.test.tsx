@@ -1,16 +1,45 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BloqueioAppsScreen } from './BloqueioAppsScreen';
+
+// A tela sempre monta a SessoesInfoSheet (que lê useSafeAreaInsets), mesmo
+// invisível — mesmo padrão de ReflexaoSemanalSheet.test.tsx. `rerender`
+// precisa do mesmo wrapper: ele substitui a árvore inteira, não só os filhos.
+function comSafeArea(ui: React.ReactElement) {
+  return (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      {ui}
+    </SafeAreaProvider>
+  );
+}
+
+// render/rerender são assíncronos nesta versão do RNTL — esquecer o await
+// aqui faz `resultado` virar a Promise em vez do objeto de queries.
+async function render(ui: React.ReactElement) {
+  const resultado = await rtlRender(comSafeArea(ui));
+  return {
+    ...resultado,
+    rerender: (novaUi: React.ReactElement) => resultado.rerender(comSafeArea(novaUi)),
+  };
+}
 
 jest.mock('../../hooks/useRegrasBloqueio');
 jest.mock('../../hooks/useAccessibilityPermission');
 jest.mock('../../hooks/useAcessoUso');
+jest.mock('../../hooks/useRotina');
 jest.mock('../../hooks/useToast');
 jest.mock('../../hooks/useVoltarFisico');
 
 const { useRegrasBloqueio } = require('../../hooks/useRegrasBloqueio');
 const { useAccessibilityPermission } = require('../../hooks/useAccessibilityPermission');
 const { useAcessoUso } = require('../../hooks/useAcessoUso');
+const { useRotina } = require('../../hooks/useRotina');
 const { useToast } = require('../../hooks/useToast');
 const { useVoltarFisico } = require('../../hooks/useVoltarFisico');
 
@@ -46,6 +75,7 @@ describe('BloqueioAppsScreen', () => {
     configurarRegrasPadrao();
     configurarAcessibilidadePadrao();
     useAcessoUso.mockReturnValue({ concedido: true, carregando: false });
+    useRotina.mockReturnValue({ carregando: false, rotina: null, diasComDados: 0 });
     useToast.mockReturnValue({ showToast: jest.fn() });
   });
 
@@ -114,18 +144,30 @@ describe('BloqueioAppsScreen', () => {
       />,
     );
 
-    expect(screen.getByText('Desativado')).toBeTruthy();
+    expect(screen.getByText('DESATIVADO')).toBeTruthy();
     await fireEvent.press(screen.getByText('Ativar'));
 
     expect(aoTocarAtivar).toHaveBeenCalledTimes(1);
   });
 
-  it('status "Ativo" não mostra o botão Ativar', async () => {
+  it('HU-09 Cenário 2: status "Ativo" mostra o selo ATIVO e não mostra o botão Ativar', async () => {
     configurarAcessibilidadePadrao({ ativo: true });
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
-    expect(screen.getByText('Ativo')).toBeTruthy();
+    expect(screen.getByText('ATIVO')).toBeTruthy();
     expect(screen.queryByText('Ativar')).toBeNull();
+  });
+
+  it('HU-09 Cenário 3: status desativado mostra o selo DESATIVADO, o aviso e "Ativar"', async () => {
+    configurarAcessibilidadePadrao({ ativo: false });
+    await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
+
+    expect(screen.getByText('DESATIVADO')).toBeTruthy();
+    expect(
+      screen.getByText('Sem ele, o Rootora não consegue interceptar os apps abaixo.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Ativar')).toBeTruthy();
+    expect(screen.getByText('Saiba o que é')).toBeTruthy();
   });
 
   it('aviso "Sem ele..." só aparece com o serviço desativado', async () => {
@@ -201,11 +243,8 @@ describe('BloqueioAppsScreen', () => {
     });
     await render(<BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />);
 
-    expect(
-      screen.getByText(
-        'Nova regra começa amanhã: 1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00.',
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText('VALE A PARTIR DE AMANHÃ')).toBeTruthy();
+    expect(screen.getByText('1 app · seg a sex · 09:00–18:00')).toBeTruthy();
 
     await fireEvent.press(screen.getByText('Cancelar alteração'));
     expect(cancelarAlteracaoPendente).toHaveBeenCalledTimes(1);
@@ -290,6 +329,124 @@ describe('BloqueioAppsScreen', () => {
     expect(salvar).toHaveBeenCalledWith([], null);
   });
 
+  describe('HU-09 · seções Sessões e Rotina noturna', () => {
+    const VIGENTE_COM_JANELA = {
+      apps: ['com.instagram.android'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+
+    it('Cenário 1: mostra as seções nesta ordem: status, QUANDO, APPS, SESSÕES, ROTINA NOTURNA e o resumo com Salvar', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE_COM_JANELA });
+      configurarAcessibilidadePadrao({ ativo: true });
+      const { toJSON } = await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByText('ATIVO')).toBeTruthy();
+      expect(screen.getByText('Salvar')).toBeTruthy();
+
+      // Percorre só `children` (nunca `props`, onde mora a referência
+      // circular do Provider do SafeAreaContext) pra coletar o texto
+      // renderizado em ordem — mais simples e estável do que percorrer a
+      // árvore de fibers do RNTL.
+      function coletarTextos(node: unknown, saida: string[] = []): string[] {
+        if (typeof node === 'string') {
+          saida.push(node);
+        } else if (Array.isArray(node)) {
+          node.forEach(filho => coletarTextos(filho, saida));
+        } else if (node && typeof node === 'object' && 'children' in node) {
+          coletarTextos((node as { children: unknown }).children, saida);
+        }
+        return saida;
+      }
+      const textos = coletarTextos(toJSON());
+      const indiceDe = (alvo: string) => textos.indexOf(alvo);
+      expect(indiceDe('QUANDO')).toBeGreaterThanOrEqual(0);
+      expect(indiceDe('APPS')).toBeGreaterThan(indiceDe('QUANDO'));
+      expect(indiceDe('SESSÕES')).toBeGreaterThan(indiceDe('APPS'));
+      expect(indiceDe('ROTINA NOTURNA')).toBeGreaterThan(indiceDe('SESSÕES'));
+    });
+
+    it('Cenário 5: Sessões com os valores padrão, sem campo de edição', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE_COM_JANELA });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByText('15 min')).toBeTruthy();
+      expect(screen.getByText('45 min')).toBeTruthy();
+      expect(screen.getByText('3x')).toBeTruthy();
+      expect(screen.queryByText(/Até \d+ sessões por dia\./)).toBeNull();
+    });
+
+    it('RN05: com blocosDiarios numérico, mostra "Até {n} sessões por dia."', async () => {
+      configurarRegrasPadrao({
+        regrasVigentes: { ...VIGENTE_COM_JANELA, blocosDiarios: 4 },
+      });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByText('Até 4 sessões por dia.')).toBeTruthy();
+    });
+
+    it('Cenário 6: "Como funciona" abre a sheet e "Entendi" fecha', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE_COM_JANELA });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      await fireEvent.press(screen.getByText('Como funciona'));
+
+      expect(
+        screen.getByText(
+          'Antes de cada sessão, uma pausa curta pergunta o que você vai fazer. Cada sessão dá 15 minutos de uso, contados só com a rede aberta. Depois vem uma pausa de 45 minutos. Durante a pausa, o acesso rápido libera 2 minutos, até 3 vezes por dia.',
+        ),
+      ).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Entendi'));
+
+      expect(screen.queryByText('Entendi')).toBeNull();
+    });
+
+    it('Cenário 7: rotina ainda aprendendo mostra o progresso', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE_COM_JANELA });
+      useRotina.mockReturnValue({ carregando: false, rotina: null, diasComDados: 3 });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByText('Aprendendo seu horário · 3 de 5 dias')).toBeTruthy();
+    });
+
+    it('Cenário 8: rotina confirmada mostra o resumo longo, a pausa maior e "Editar" leva à Rotina noturna', async () => {
+      configurarRegrasPadrao({ regrasVigentes: VIGENTE_COM_JANELA });
+      useRotina.mockReturnValue({
+        carregando: false,
+        rotina: { dormirEstimado: '23:30', acordarEstimado: '07:00', confirmadoEm: '2026-10-15' },
+        diasComDados: 14,
+      });
+      const aoAbrirRotina = jest.fn();
+      await render(
+        <BloqueioAppsScreen
+          uid="uid-1"
+          aoTocarAtivar={jest.fn()}
+          aoTocarSaibaOQueE={jest.fn()}
+          aoTocarMedirTempo={jest.fn()}
+          onVoltar={jest.fn()}
+          aoAbrirRotina={aoAbrirRotina}
+        />,
+      );
+
+      expect(screen.getByText('Dormir 23:30 · Acordar 07:00')).toBeTruthy();
+      expect(screen.getByText('Pausa maior entre 23:00 e 07:00')).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Editar'));
+
+      expect(aoAbrirRotina).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('aviso de alteração pendente (já existe regrasVigentes — qualquer salvar vira pendente)', () => {
     const VIGENTE = {
       apps: ['com.instagram.android'],
@@ -305,11 +462,14 @@ describe('BloqueioAppsScreen', () => {
       await fireEvent.press(screen.getByText('Salvar'));
 
       expect(salvar).not.toHaveBeenCalled();
-      expect(screen.getByText('A mudança vale a partir de amanhã')).toBeTruthy();
-      expect(
-        screen.getByText('1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00.'),
-      ).toBeTruthy();
+      expect(screen.getByText('Antes de salvar')).toBeTruthy();
+      expect(screen.getByText('1 app · seg a sex · 09:00–18:00')).toBeTruthy();
       expect(screen.getByText('Nenhum app bloqueado.')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Precisa parar agora? Dá para desligar o serviço nas configurações de acessibilidade do Android, a qualquer momento.',
+        ),
+      ).toBeTruthy();
     });
 
     it('"Entendi, confirmar" grava de fato e volta pra edição', async () => {
@@ -321,7 +481,7 @@ describe('BloqueioAppsScreen', () => {
       await fireEvent.press(screen.getByText('Entendi, confirmar'));
 
       expect(salvar).toHaveBeenCalledWith(VIGENTE.apps, expect.objectContaining(VIGENTE.janelas[0]));
-      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.queryByText('Antes de salvar')).toBeNull();
       expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
     });
 
@@ -334,7 +494,7 @@ describe('BloqueioAppsScreen', () => {
       await fireEvent.press(screen.getByText('Voltar e revisar'));
 
       expect(salvar).not.toHaveBeenCalled();
-      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.queryByText('Antes de salvar')).toBeNull();
       expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
     });
 
@@ -348,7 +508,7 @@ describe('BloqueioAppsScreen', () => {
       await fireEvent.press(screen.getByText('Salvar'));
 
       await waitFor(() => expect(salvar).toHaveBeenCalled());
-      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.queryByText('Antes de salvar')).toBeNull();
     });
   });
   describe('lista curada de redes sociais (HU-01)', () => {
@@ -534,14 +694,14 @@ describe('BloqueioAppsScreen', () => {
 
       await fireEvent.press(screen.getByLabelText('WhatsApp'));
       await fireEvent.press(screen.getByText('Salvar'));
-      expect(screen.getByText('A mudança vale a partir de amanhã')).toBeTruthy();
+      expect(screen.getByText('Antes de salvar')).toBeTruthy();
       expect(screen.queryByRole('button', { name: 'Voltar' })).toBeNull();
 
       await apertarVoltarFisico();
 
       expect(onVoltar).not.toHaveBeenCalled();
       expect(salvar).not.toHaveBeenCalled();
-      expect(screen.queryByText('A mudança vale a partir de amanhã')).toBeNull();
+      expect(screen.queryByText('Antes de salvar')).toBeNull();
       expect(screen.getByText('Bloqueio de apps')).toBeTruthy();
     });
   });

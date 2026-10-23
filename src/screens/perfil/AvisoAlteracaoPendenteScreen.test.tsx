@@ -3,28 +3,43 @@ import { render, screen, fireEvent } from '@testing-library/react-native';
 import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
 
 describe('AvisoAlteracaoPendenteScreen', () => {
-  it('mostra o título, a explicação e os dois resumos (hoje/amanhã)', async () => {
+  it('HU-09 RN12: mostra o título "Antes de salvar", a explicação e os dois resumos', async () => {
     await render(
       <AvisoAlteracaoPendenteScreen
-        resumoVigente="1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00."
+        resumoVigente="5 apps · seg a sex · 09:00–18:00"
+        resumoNovo="4 apps · seg a sex · 09:00–20:00"
+        onConfirmar={jest.fn()}
+        onRevisar={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Antes de salvar')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Se a vontade de soltar o bloqueio apareceu agora, isso é só o momento falando — não precisa se cobrar por isso.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('HOJE CONTINUA')).toBeTruthy();
+    expect(screen.getByText('5 apps · seg a sex · 09:00–18:00')).toBeTruthy();
+    expect(screen.getByText('A PARTIR DE AMANHÃ')).toBeTruthy();
+    expect(screen.getByText('4 apps · seg a sex · 09:00–20:00')).toBeTruthy();
+  });
+
+  it('HU-09 RN12: mostra a linha sobre desligar o serviço nas configurações do Android', async () => {
+    await render(
+      <AvisoAlteracaoPendenteScreen
+        resumoVigente="Nenhum app bloqueado."
         resumoNovo="Nenhum app bloqueado."
         onConfirmar={jest.fn()}
         onRevisar={jest.fn()}
       />,
     );
 
-    expect(screen.getByText('A mudança vale a partir de amanhã')).toBeTruthy();
     expect(
       screen.getByText(
-        'Se a vontade de soltar o bloqueio apareceu agora, isso é só o momento falando — não precisa se cobrar por isso.',
+        'Precisa parar agora? Dá para desligar o serviço nas configurações de acessibilidade do Android, a qualquer momento.',
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        '1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00.',
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText('Nenhum app bloqueado.')).toBeTruthy();
   });
 
   it('"Entendi, confirmar" chama onConfirmar', async () => {
