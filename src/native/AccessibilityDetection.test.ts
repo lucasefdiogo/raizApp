@@ -12,6 +12,7 @@ import {
   parseVisaoBloqueio,
   salvarRegrasBloqueio,
   salvarRegrasBloqueioPendentes,
+  salvarRotina,
   salvarSessaoAtiva,
   salvarSnapshotDoDia,
   subscribeToForegroundApp,
@@ -28,6 +29,7 @@ const moduloMock = {
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
   salvarRegrasBloqueioPendentes: jest.fn(),
+  salvarRotina: jest.fn(),
   salvarSessaoAtiva: jest.fn(),
   limparSessaoAtiva: jest.fn(),
   listarAppsInstalados: jest.fn(),
@@ -167,6 +169,26 @@ describe('AccessibilityDetection', () => {
     it('não quebra quando o módulo nativo não está linkado', () => {
       delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
       expect(() => salvarRegrasBloqueioPendentes(null)).not.toThrow();
+    });
+  });
+
+  describe('HU-10 RN16 · salvarRotina', () => {
+    it('serializa a rotina e chama o módulo nativo', () => {
+      const rotina = {
+        dormirEstimado: '23:00',
+        acordarEstimado: '07:00',
+        confirmadoEm: '2026-10-20',
+      };
+      salvarRotina(rotina);
+
+      expect(moduloMock.salvarRotina).toHaveBeenCalledWith(JSON.stringify(rotina));
+    });
+
+    it('não quebra quando o módulo nativo não está linkado', () => {
+      delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+      expect(() =>
+        salvarRotina({ dormirEstimado: '23:00', acordarEstimado: '07:00' }),
+      ).not.toThrow();
     });
   });
 

@@ -714,13 +714,16 @@ export async function registrarConsentimentoAcessoUso(
 }
 
 /**
- * Confirma a rotina estimada (HU-06, RN-04): grava os dois horários e
- * `confirmadoEm`. Objeto aninhado com merge — nunca chave com ponto.
+ * Confirma a rotina estimada (HU-06, RN-04; `ajustado` HU-10 RN06/RN07):
+ * grava os dois horários, `confirmadoEm` e `modoManual` (true só quando a
+ * confirmação veio de um ajuste no "Ajustar horário"). Objeto aninhado com
+ * merge — nunca chave com ponto.
  */
 export async function confirmarRotina(
   uid: string,
   horarios: { dormirEstimado: string; acordarEstimado: string },
   confirmadoEm: string,
+  ajustado: boolean,
 ): Promise<void> {
   await setDoc(
     documentoUsuario(uid),
@@ -729,6 +732,7 @@ export async function confirmarRotina(
         dormirEstimado: horarios.dormirEstimado,
         acordarEstimado: horarios.acordarEstimado,
         confirmadoEm,
+        modoManual: ajustado,
       },
     },
     { merge: true },
@@ -770,6 +774,23 @@ export async function recalcularRotinaAutomatica(uid: string): Promise<void> {
   await setDoc(
     documentoUsuario(uid),
     { rotina: { modoManual: false } },
+    { merge: true },
+  );
+}
+
+/**
+ * Aplica uma nova estimativa sobre uma rotina já confirmada (HU-10, RN15) —
+ * só os horários, sem tocar `confirmadoEm`, `modoManual` ou
+ * `alternativaNoturna`. Usada uma vez, na abertura seguinte a "Recalcular
+ * automaticamente" (a decisão de quando chamar é do useRotina).
+ */
+export async function aplicarEstimativaRotina(
+  uid: string,
+  horarios: { dormirEstimado: string; acordarEstimado: string },
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { rotina: horarios },
     { merge: true },
   );
 }

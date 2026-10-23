@@ -223,22 +223,34 @@ importa o componente).
 | `onSubmitTarefa` | function |
 
 ### RotinaConfirmacaoScreen
-Confirmação única da rotina estimada (spec `09-ponte-fuga-tarefa-e-estou-travado.md`
-seção 5). `LuaDecorativa` + título "Notamos um padrão" + horário estimado de dormir
-em destaque. "Ajustar horário" (`SecondaryButton`) revela as linhas "Dormir" e
-"Acordar", cada uma com "Alterar" (`DateTimePicker`); o ajuste fica em estado local
-até "Confirmar" (`PrimaryButton`). Tom de padrão identificado, nunca de regra imposta.
+Confirmação única da rotina estimada (HU-10, RN04/RN05; spec
+`09-ponte-fuga-tarefa-e-estou-travado.md` seção 5). `LuaDecorativa` + eyebrow
+"PADRÃO IDENTIFICADO" + título "Parece que você costuma dormir por volta das
+{dormir}." + horário estimado de dormir em destaque + linha "Entre {início da
+janela} e {acordar}, abrir as redes vai pedir uma pausa um pouco maior."
+(`domain/rotina.ts` `horarioPausaMaior`). "Ajustar horário" (`SecondaryButton`) troca
+o eyebrow para "AJUSTAR HORÁRIO", o título para "Quando você costuma dormir e
+acordar?" e revela as linhas "Dormir"/"Acordar", cada uma com "Alterar"
+(`DateTimePicker`) — a linha da janela recalcula ao vivo. "Usar o horário estimado"
+volta aos valores calculados e ao modo leitura. Horários iguais (RN08) desabilitam
+"Confirmar" e mostram "Os horários de dormir e acordar precisam ser diferentes.". O
+voltar físico (`useVoltarFisico`) chama `onAdiar`, não `onConfirmar` (RN09) — sai sem
+gravar nada, a tela só volta a aparecer no dia seguinte. Tom de padrão identificado,
+nunca de regra imposta.
 
 | Prop | Tipo |
 |---|---|
 | `dormirEstimado` / `acordarEstimado` | string (HH:mm) — de `useRotina.estimativa` |
-| `onConfirmar` | `(horarios?) => void` — `useRotina.confirmar`: grava `rotina.dormirEstimado`, `rotina.acordarEstimado` e `rotina.confirmadoEm` (data local AAAA-MM-DD). Sem argumento = estimativa como veio; com argumento = horários ajustados. Ao gravar, liga `perguntarAlternativa` |
+| `onConfirmar` | `(horarios?) => void` — `useRotina.confirmar`: grava `rotina.dormirEstimado`, `rotina.acordarEstimado`, `rotina.confirmadoEm` (data local AAAA-MM-DD) e `rotina.modoManual` (RN06/RN07 — `true` só quando veio de um ajuste). Sem argumento = estimativa como veio; com argumento = horários ajustados. Ao gravar, liga `perguntarAlternativa` |
+| `onAdiar` | `() => void` — `useRotina.adiar`: grava a data de amanhã em `rotina_confirmacao_adiada` (AsyncStorage, RN09) e esconde a confirmação até lá |
 
 ### AlternativaNoturnaScreen
-Pergunta única e opcional "O que você gostaria de fazer à noite?", mostrada logo
-depois da confirmação da rotina. `TextField` "Alternativa noturna (opcional)" +
-"Salvar" (`PrimaryButton`) + "Agora não" (`SecondaryButton`). "Salvar" com o campo
-vazio age como "Agora não". Editável depois em `RotinaPerfilScreen`.
+Pergunta única e opcional "O que você gostaria de fazer à noite?" (HU-10, RN11),
+mostrada logo depois da confirmação da rotina. Ícone `BookOpen` + `TextField`
+"Alternativa noturna (opcional)" (`maxLength={40}`) + 4 chips de sugestão ("Ler um
+pouco", "Preparar o dia de amanhã", "Alongar", "Escrever 3 linhas") que só preenchem
+o campo + "Salvar" (`PrimaryButton`, **desabilitado** com o campo vazio ou só espaço)
++ "Agora não" (`SecondaryButton`). Editável depois em `RotinaPerfilScreen`.
 
 | Prop | Tipo |
 |---|---|
@@ -418,27 +430,40 @@ conceder, mostra "Acesso de uso desligado. O bloqueio continua funcionando, só 
 medir o tempo."
 
 ### RotinaPerfilScreen
-Rotina noturna no Perfil (spec `09-ponte-fuga-tarefa-e-estou-travado.md` seção 5),
-rota `RotinaPerfil` do `PerfilStack`. Usa `useRotina(uid)` direto. `BackButton` +
-título "Rotina noturna". Com `rotina` existente: linhas "Dormir: HH:mm" e "Acordar:
-HH:mm", cada uma com "Alterar" (`DateTimePicker`, grava ao escolher); com
-`rotina.modoManual`, nota "Horários ajustados por você" + link "Recalcular
-automaticamente"; `TextField` "Alternativa noturna" + "Salvar" (feedback "Salvo" por
-2 s). Sem `rotina` ainda: só o texto "A rotina aparece aqui depois de alguns dias de
-uso. Não precisa fazer nada por enquanto." (sem progresso da coleta).
+Rotina noturna no Perfil (HU-10, RN13/RN14/RN15; spec
+`09-ponte-fuga-tarefa-e-estou-travado.md` seção 5), rota `RotinaPerfil` do
+`PerfilStack`. Usa `useRotina(uid)` e `useAcessoUso()` direto. `BackButton` + título
+"Rotina noturna" + selo "AUTOMÁTICO" (`modoManual` falso) ou "AJUSTADO À MÃO"
+(verdadeiro) — selo só aparece com `rotina.confirmadoEm` preenchido.
+
+Horário e alternativa ficam em **rascunho local** até um único "Salvar"
+(`PrimaryButton`): linhas "Dormir: HH:mm"/"Acordar: HH:mm" com "Alterar"
+(`DateTimePicker`, só atualiza o rascunho) e `TextField` "No lugar da tela, à noite"
+(`maxLength={40}`). Com `rotina.confirmadoEm`: linha "Pausa maior entre {início da
+janela} e {acordar}, todos os dias." (recalculada ao vivo pelo rascunho); "Salvar"
+só chama `editarHorarioManual` se o horário mudou e só `salvarAlternativa` se o texto
+mudou — mudar só a alternativa não liga `modoManual` (RN13). Com `modoManual`: link
+"Recalcular automaticamente". Sem `rotina.confirmadoEm` ainda (RN14): mostra
+`resumoRotina` ("Precisa medir o tempo nas redes" + link "Medir tempo nas redes" que
+abre `DivulgacaoAcessoUsoScreen`, ou "Aprendendo seu horário · {n} de 5 dias"), sem
+selo, sem o campo de alternativa; os horários partem de 23:00/07:00 editáveis e
+"Salvar" chama `useRotina.confirmar(horarios)` (grava `confirmadoEm` e
+`modoManual: true` pela primeira vez).
 
 | Prop | Tipo |
 |---|---|
 | `uid` | string |
 | `onVoltar` | function — `navigation.goBack()` |
+| `aoAbrirMedirTempo` | function — `navigation.navigate('DivulgacaoAcessoUso')` |
 
 Ações (via `useRotina`, não props):
 
 | Ação | Grava |
 |---|---|
-| "Alterar" dormir/acordar | `useRotina.editarHorarioManual` → `rotina.dormirEstimado` ou `rotina.acordarEstimado` + `rotina.modoManual = true` (com `modoManual`, `estimarRotina` devolve null) |
-| "Recalcular automaticamente" | `useRotina.recalcularAutomaticamente` → `rotina.modoManual = false` — só isso; não regrava `dormirEstimado`/`acordarEstimado` |
-| "Salvar" (alternativa) | `useRotina.salvarAlternativa` → `rotina.alternativaNoturna` |
+| "Salvar" sem `rotina.confirmadoEm` | `useRotina.confirmar(horarios)` → `rotina.dormirEstimado`/`acordarEstimado`/`confirmadoEm`/`modoManual = true` |
+| "Salvar" com horário alterado | `useRotina.editarHorarioManual` → `rotina.dormirEstimado` e/ou `rotina.acordarEstimado` + `rotina.modoManual = true` (com `modoManual`, `estimarRotina` devolve null) |
+| "Salvar" com alternativa alterada | `useRotina.salvarAlternativa` → `rotina.alternativaNoturna` |
+| "Recalcular automaticamente" | `useRotina.recalcularAutomaticamente` → `rotina.modoManual = false` + toast + marca `rotina_recalculo_pendente` (AsyncStorage, RN15) — não regrava `dormirEstimado`/`acordarEstimado` na hora |
 
 ### TravadoFlowScreen (spec `09-ponte-fuga-tarefa-e-estou-travado.md`)
 Componente único, reutilizado sem diferença nas 2 entradas (botão da Home e toque longo

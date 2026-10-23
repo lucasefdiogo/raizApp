@@ -110,6 +110,7 @@ export function HojeStack({
               dormirEstimado={rotina.estimativa!.dormirEstimado}
               acordarEstimado={rotina.estimativa!.acordarEstimado}
               onConfirmar={rotina.confirmar}
+              onAdiar={rotina.adiar}
             />
           )}
         </Stack.Screen>

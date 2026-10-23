@@ -19,6 +19,7 @@ object BloqueioPrefs {
   private const val CHAVE_REGRAS_BLOQUEIO = "regras_bloqueio"
   private const val CHAVE_REGRAS_BLOQUEIO_PENDENTES = "regras_bloqueio_pendentes"
   private const val CHAVE_SESSAO_ATIVA = "sessao_ativa"
+  private const val CHAVE_ROTINA = "rotina"
 
   private fun prefs(context: Context) =
     context.getSharedPreferences(PREFS_NOME, Context.MODE_PRIVATE)
@@ -63,6 +64,16 @@ object BloqueioPrefs {
 
   fun lerRegrasBloqueioPendentes(context: Context): String? =
     prefs(context).getString(CHAVE_REGRAS_BLOQUEIO_PENDENTES, null)
+
+  /**
+   * Rotina noturna (JSON bruto, formato de domain/types.ts Rotina) — gravada
+   * pelo JS (useRotina) só quando `confirmadoEm` está preenchido (HU-10,
+   * RN16). Consumo pela máquina de interceptação (pausa dobrada, janela
+   * noturna) fica para a HU-11 — este espelho só grava por enquanto.
+   */
+  fun salvarRotina(context: Context, rotinaJson: String) {
+    prefs(context).edit().putString(CHAVE_ROTINA, rotinaJson).apply()
+  }
 
   /**
    * Sessão de foco em andamento (JSON bruto, formato de

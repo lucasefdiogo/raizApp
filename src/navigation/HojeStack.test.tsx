@@ -68,6 +68,7 @@ const ROTINA_BASE = {
   dispensarAlternativa: jest.fn(),
   editarHorarioManual: jest.fn(),
   recalcularAutomaticamente: jest.fn(),
+  adiar: jest.fn(),
 };
 
 function configurarHooksPadrao() {
@@ -288,7 +289,9 @@ describe('HojeStack', () => {
 
       await renderHojeStack();
 
-      expect(screen.getByText('Notamos um padrão')).toBeTruthy();
+      expect(
+        screen.getByText('Parece que você costuma dormir por volta das 23:00.'),
+      ).toBeTruthy();
       expect(screen.getByText('23:00')).toBeTruthy();
       expect(screen.queryByText('Nada planejado ainda')).toBeNull();
     });
@@ -318,7 +321,7 @@ describe('HojeStack', () => {
       expect(
         await screen.findByText('O que você gostaria de fazer à noite?'),
       ).toBeTruthy();
-      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+      expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
     });
 
     it('CA-03: Salvar na pergunta chama salvarAlternativa; Agora não chama dispensarAlternativa', async () => {
@@ -349,7 +352,7 @@ describe('HojeStack', () => {
       await renderHojeStack();
 
       expect(screen.getByText('Nada planejado ainda')).toBeTruthy();
-      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+      expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
     });
 
     it('CA-01: o retorno após pausa tem prioridade sobre a confirmação da rotina', async () => {
@@ -363,7 +366,26 @@ describe('HojeStack', () => {
       await renderHojeStack();
 
       expect(screen.getByText('Voltar a começar')).toBeTruthy();
-      expect(screen.queryByText('Notamos um padrão')).toBeNull();
+      expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
+    });
+
+    it('HU-10 Cenário 4: a recaída (dia perdido) tem prioridade sobre a confirmação da rotina', async () => {
+      useRecoveryState.mockReturnValue({
+        deveExibir: true,
+        tipo: 'reduzido',
+        corpo: 'Sua sequência caiu.',
+        marcarComoExibido: jest.fn(),
+      });
+      useRotina.mockReturnValue({
+        ...ROTINA_BASE,
+        estimativa: ESTIMATIVA,
+        mostrarConfirmacao: true,
+      });
+
+      await renderHojeStack();
+
+      expect(screen.getByText('Ver tarefas de hoje')).toBeTruthy();
+      expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
     });
   });
 });

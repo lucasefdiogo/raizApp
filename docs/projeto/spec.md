@@ -182,6 +182,11 @@ onboarding, oferece confirmação única (`rotina.confirmadoEm`) + pergunta opci
 noturna. Janela noturna = 30 min antes de `dormirEstimado` até `acordarEstimado`: pausa de
 intenção dobra, texto padrão trocado por mensagem do banco `noturno`, acesso rápido espera 30s
 em vez de 5. Editar manualmente liga `rotina.modoManual` (pausa a reestimativa automática).
+"Recalcular automaticamente" (HU-10, RN15) desliga `modoManual`, mas não troca os horários na
+hora — a estimativa nova (se houver) substitui `dormirEstimado`/`acordarEstimado` uma única vez,
+na abertura seguinte do app, mantendo `confirmadoEm`. Fora desse momento, a estimativa automática
+nunca altera uma rotina já confirmada — resolve a ambiguidade que existia entre "só muda por
+reconfirmação manual" e "uma nova estimativa no ciclo normal".
 
 **TravadoFlow** ("O que está pegando agora?"): caminho independente, acessível pela Home (botão
 discreto) e toque longo numa tarefa. 4 chips de toque único (confusão/medo/tédio/energia), cada
