@@ -105,6 +105,14 @@ export function horarioPausaMaior(dormirEstimado: string): string {
   return formatar(inicio);
 }
 
+/** Dormir e acordar não podem ser o mesmo horário (HU-10, RN08). */
+export function horariosRotinaValidos(
+  dormirEstimado: string,
+  acordarEstimado: string,
+): boolean {
+  return dormirEstimado !== acordarEstimado;
+}
+
 /** "longa" aparece no Bloqueio de apps, "curta" no Perfil (RN11). */
 export type FormaResumoRotina = 'longa' | 'curta';
 

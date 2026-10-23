@@ -2,6 +2,7 @@ import {
   estimarRotina,
   dentroDaJanelaNoturna,
   horarioPausaMaior,
+  horariosRotinaValidos,
   resumoRotina,
   DiaRotina,
 } from './rotina';
@@ -115,6 +116,16 @@ describe('horarioPausaMaior', () => {
 
   it('HU-09 RN07: dormir pós-meia-noite cruza pro dia anterior', () => {
     expect(horarioPausaMaior('00:10')).toBe('23:40');
+  });
+});
+
+describe('horariosRotinaValidos', () => {
+  it('HU-10 RN08: dormir e acordar diferentes são válidos', () => {
+    expect(horariosRotinaValidos('23:00', '07:00')).toBe(true);
+  });
+
+  it('HU-10 Cenário 7: dormir e acordar iguais são inválidos', () => {
+    expect(horariosRotinaValidos('07:00', '07:00')).toBe(false);
   });
 });
 
