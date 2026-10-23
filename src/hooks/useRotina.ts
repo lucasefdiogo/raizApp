@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { paraISOLocal } from '../domain/data';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { dataDeAmanhaLocal, hojeISOLocal, paraISOLocal } from '../domain/data';
 import { DiaRotina, estimarRotina } from '../domain/rotina';
 import { DailyLog, Rotina } from '../domain/types';
 import {
+  aplicarEstimativaRotina,
   buscarUltimosDailyLogs,
   buscarUsuario,
   confirmarRotina,
@@ -10,7 +11,14 @@ import {
   recalcularRotinaAutomatica,
   salvarAlternativaNoturna,
 } from '../services/firestore';
+import { salvarRotina } from '../native/AccessibilityDetection';
+import {
+  logAlternativaNoturnaRespondida,
+  logRotinaConfirmada,
+  logRotinaRecalculoPedido,
+} from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
+import { lerItem, salvarItem, STORAGE_KEYS } from '../utils/storage';
 import { useToast } from './useToast';
 
 // Janela de leitura: folga sobre os 5 dias mínimos da estimativa (RN-03).
@@ -18,6 +26,8 @@ const DIAS_LIDOS = 14;
 
 const MENSAGEM_FALHA =
   'Não conseguimos salvar sua rotina agora. Tente de novo.';
+const MENSAGEM_RECALCULO_PEDIDO =
+  'Na próxima abertura, o horário volta a ser estimado.';
 
 type Horarios = { dormirEstimado: string; acordarEstimado: string };
 
@@ -34,6 +44,8 @@ interface UseRotinaResultado {
   dispensarAlternativa: () => void;
   editarHorarioManual: (campos: Partial<Horarios>) => Promise<void>;
   recalcularAutomaticamente: () => Promise<void>;
+  /** Sai sem decidir (HU-10, RN09): a confirmação só volta a aparecer amanhã. */
+  adiar: () => void;
 }
 
 // usoApps guarda os horários como chaves string irmãs dos pacotes (TASK-02).
@@ -47,10 +59,20 @@ function paraDiaRotina(log: DailyLog): DiaRotina {
   };
 }
 
+/** Espelha no nativo só quando há `confirmadoEm` (HU-10, RN16). */
+function espelharSeConfirmada(rotina: Rotina | null): void {
+  if (rotina?.confirmadoEm) {
+    salvarRotina(rotina);
+  }
+}
+
 /**
  * Rotina noturna (HU-06): lê users/{uid}.rotina e os últimos dailyLogs,
  * estima dormir/acordar (RN-03) e expõe quando mostrar a confirmação
  * (RN-04), a pergunta da alternativa (RN-06) e as ações de edição (RN-12).
+ * HU-10 acrescenta o adiamento (RN09), o espelho nativo e os eventos de
+ * Analytics (RN16/RN18) e a reaplicação da estimativa após "Recalcular
+ * automaticamente" (RN15).
  */
 export function useRotina(uid: string): UseRotinaResultado {
   const { showToast } = useToast();
@@ -58,18 +80,32 @@ export function useRotina(uid: string): UseRotinaResultado {
   const [rotina, setRotina] = useState<Rotina | null>(null);
   const [dias, setDias] = useState<DiaRotina[]>([]);
   const [perguntarAlternativa, setPerguntarAlternativa] = useState(false);
+  const [adiadaAte, setAdiadaAte] = useState<string | null>(null);
+  const [recalculoPendente, setRecalculoPendente] = useState(false);
+
+  // Snapshot sempre atual de `rotina` — os setters abaixo espelham/logam o
+  // resultado já calculado, então não podem depender do closure (estaria
+  // sempre um passo atrás do estado real).
+  const rotinaRef = useRef<Rotina | null>(null);
+  useEffect(() => {
+    rotinaRef.current = rotina;
+  }, [rotina]);
 
   useEffect(() => {
     let cancelado = false;
 
     async function carregar() {
-      const [usuario, logs] = await Promise.all([
+      const [usuario, logs, adiada, pendente] = await Promise.all([
         buscarUsuario(uid),
         buscarUltimosDailyLogs(uid, DIAS_LIDOS),
+        lerItem<string>(STORAGE_KEYS.rotinaConfirmacaoAdiada),
+        lerItem<boolean>(STORAGE_KEYS.rotinaRecalculoPendente),
       ]);
       if (!cancelado) {
         setRotina(usuario?.rotina ?? null);
         setDias(logs.map(paraDiaRotina));
+        setAdiadaAte(adiada);
+        setRecalculoPendente(Boolean(pendente));
         setCarregando(false);
       }
     }
@@ -91,7 +127,10 @@ export function useRotina(uid: string): UseRotinaResultado {
     [dias],
   );
 
-  const mostrarConfirmacao = estimativa !== null && !rotina?.confirmadoEm;
+  const mostrarConfirmacao =
+    estimativa !== null &&
+    !rotina?.confirmadoEm &&
+    (!adiadaAte || hojeISOLocal() >= adiadaAte);
 
   const executar = useCallback(
     async (contexto: string, acao: () => Promise<void>): Promise<boolean> => {
@@ -119,12 +158,15 @@ export function useRotina(uid: string): UseRotinaResultado {
         confirmarRotina(uid, escolhidos, confirmadoEm, ajustado),
       );
       if (gravou) {
-        setRotina(atual => ({
-          ...atual,
+        const novaRotina: Rotina = {
+          ...rotinaRef.current,
           ...escolhidos,
           confirmadoEm,
           modoManual: ajustado,
-        }));
+        };
+        setRotina(novaRotina);
+        espelharSeConfirmada(novaRotina);
+        logRotinaConfirmada(ajustado);
         setPerguntarAlternativa(true);
       }
     },
@@ -137,9 +179,11 @@ export function useRotina(uid: string): UseRotinaResultado {
         salvarAlternativaNoturna(uid, texto),
       );
       if (gravou) {
-        setRotina(atual =>
-          atual ? { ...atual, alternativaNoturna: texto } : atual,
-        );
+        const atual = rotinaRef.current;
+        const novaRotina = atual ? { ...atual, alternativaNoturna: texto } : atual;
+        setRotina(novaRotina);
+        espelharSeConfirmada(novaRotina);
+        logAlternativaNoturnaRespondida('salvou');
         setPerguntarAlternativa(false);
       }
     },
@@ -147,6 +191,7 @@ export function useRotina(uid: string): UseRotinaResultado {
   );
 
   const dispensarAlternativa = useCallback(() => {
+    logAlternativaNoturnaRespondida('agora_nao');
     setPerguntarAlternativa(false);
   }, []);
 
@@ -156,9 +201,10 @@ export function useRotina(uid: string): UseRotinaResultado {
         editarHorarioRotinaManual(uid, campos),
       );
       if (gravou) {
-        setRotina(atual =>
-          atual ? { ...atual, ...campos, modoManual: true } : atual,
-        );
+        const atual = rotinaRef.current;
+        const novaRotina = atual ? { ...atual, ...campos, modoManual: true } : atual;
+        setRotina(novaRotina);
+        espelharSeConfirmada(novaRotina);
       }
     },
     [uid, executar],
@@ -169,9 +215,63 @@ export function useRotina(uid: string): UseRotinaResultado {
       recalcularRotinaAutomatica(uid),
     );
     if (gravou) {
-      setRotina(atual => (atual ? { ...atual, modoManual: false } : atual));
+      const atual = rotinaRef.current;
+      const novaRotina = atual ? { ...atual, modoManual: false } : atual;
+      setRotina(novaRotina);
+      espelharSeConfirmada(novaRotina);
+      await salvarItem(STORAGE_KEYS.rotinaRecalculoPendente, true);
+      setRecalculoPendente(true);
+      logRotinaRecalculoPedido();
+      showToast(MENSAGEM_RECALCULO_PEDIDO);
     }
-  }, [uid, executar]);
+  }, [uid, executar, showToast]);
+
+  const adiar = useCallback(() => {
+    const amanha = dataDeAmanhaLocal(hojeISOLocal());
+    salvarItem(STORAGE_KEYS.rotinaConfirmacaoAdiada, amanha);
+    setAdiadaAte(amanha);
+  }, []);
+
+  // RN15: na abertura seguinte a "Recalcular automaticamente", se já houver
+  // estimativa nova, ela substitui os horários uma vez — mantendo
+  // confirmadoEm e sem reabrir a tela de confirmação. Fora desse caso
+  // (recalculoPendente falso), a estimativa automática nunca toca numa
+  // rotina já confirmada.
+  useEffect(() => {
+    if (carregando || !recalculoPendente || !estimativa) {
+      return;
+    }
+    if (!rotina?.confirmadoEm || rotina.modoManual) {
+      return;
+    }
+
+    let cancelado = false;
+
+    (async () => {
+      const gravou = await executar('aplicarEstimativaPendente', () =>
+        aplicarEstimativaRotina(uid, estimativa),
+      );
+      if (gravou && !cancelado) {
+        const novaRotina = { ...rotinaRef.current!, ...estimativa };
+        setRotina(novaRotina);
+        espelharSeConfirmada(novaRotina);
+        await salvarItem(STORAGE_KEYS.rotinaRecalculoPendente, false);
+        setRecalculoPendente(false);
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    carregando,
+    recalculoPendente,
+    estimativa,
+    rotina?.confirmadoEm,
+    rotina?.modoManual,
+    uid,
+    executar,
+  ]);
 
   return {
     carregando,
@@ -185,5 +285,6 @@ export function useRotina(uid: string): UseRotinaResultado {
     dispensarAlternativa,
     editarHorarioManual,
     recalcularAutomaticamente,
+    adiar,
   };
 }

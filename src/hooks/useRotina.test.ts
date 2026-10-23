@@ -1,9 +1,17 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useRotina } from './useRotina';
+import { dataDeAmanhaLocal, hojeISOLocal } from '../domain/data';
 
 jest.mock('../services/firestore');
 jest.mock('../services/crashlytics');
+jest.mock('../services/analytics');
+jest.mock('../native/AccessibilityDetection');
 jest.mock('./useToast');
+jest.mock('../utils/storage', () => ({
+  ...jest.requireActual('../utils/storage'),
+  lerItem: jest.fn(),
+  salvarItem: jest.fn(),
+}));
 
 const {
   buscarUsuario,
@@ -12,9 +20,17 @@ const {
   salvarAlternativaNoturna,
   editarHorarioRotinaManual,
   recalcularRotinaAutomatica,
+  aplicarEstimativaRotina,
 } = require('../services/firestore');
 const { registrarErro } = require('../services/crashlytics');
+const {
+  logRotinaConfirmada,
+  logAlternativaNoturnaRespondida,
+  logRotinaRecalculoPedido,
+} = require('../services/analytics');
+const { salvarRotina } = require('../native/AccessibilityDetection');
 const { useToast } = require('./useToast');
+const { lerItem, salvarItem, STORAGE_KEYS } = require('../utils/storage');
 
 const showToast = jest.fn();
 
@@ -48,6 +64,9 @@ describe('useRotina', () => {
     salvarAlternativaNoturna.mockResolvedValue(undefined);
     editarHorarioRotinaManual.mockResolvedValue(undefined);
     recalcularRotinaAutomatica.mockResolvedValue(undefined);
+    aplicarEstimativaRotina.mockResolvedValue(undefined);
+    lerItem.mockResolvedValue(null);
+    salvarItem.mockResolvedValue(undefined);
   });
 
   async function montar() {
@@ -265,5 +284,184 @@ describe('useRotina', () => {
     expect(recalcularRotinaAutomatica).toHaveBeenCalledWith('uid-1');
     expect(result.current.rotina?.modoManual).toBe(false);
     expect(result.current.estimativa).toEqual(ESTIMATIVA);
+  });
+
+  describe('HU-10 RN16/RN18: espelho nativo e Analytics', () => {
+    it('Cenário 5: confirmar sem ajuste espelha a rotina e registra ajustado falso', async () => {
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+
+      await act(async () => {
+        await result.current.confirmar();
+      });
+
+      expect(logRotinaConfirmada).toHaveBeenCalledWith(false);
+      expect(salvarRotina).toHaveBeenCalledWith(
+        expect.objectContaining({ ...ESTIMATIVA, modoManual: false }),
+      );
+    });
+
+    it('Cenário 6: confirmar com ajuste registra ajustado verdadeiro', async () => {
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+      const ajustados = { dormirEstimado: '22:30', acordarEstimado: '06:30' };
+
+      await act(async () => {
+        await result.current.confirmar(ajustados);
+      });
+
+      expect(logRotinaConfirmada).toHaveBeenCalledWith(true);
+    });
+
+    it('Cenário 9: salvarAlternativa registra "salvou" e espelha a rotina', async () => {
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+      await act(async () => {
+        await result.current.confirmar();
+      });
+      salvarRotina.mockClear();
+
+      await act(async () => {
+        await result.current.salvarAlternativa('Ler um pouco');
+      });
+
+      expect(logAlternativaNoturnaRespondida).toHaveBeenCalledWith('salvou');
+      expect(salvarRotina).toHaveBeenCalledWith(
+        expect.objectContaining({ alternativaNoturna: 'Ler um pouco' }),
+      );
+    });
+
+    it('Cenário 10: dispensarAlternativa (Agora não) registra "agora_nao"', async () => {
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+      await act(async () => {
+        await result.current.confirmar();
+      });
+
+      await act(async () => {
+        result.current.dispensarAlternativa();
+      });
+
+      expect(logAlternativaNoturnaRespondida).toHaveBeenCalledWith('agora_nao');
+    });
+
+    it('RN15: Recalcular automaticamente registra o pedido e mostra o toast', async () => {
+      buscarUsuario.mockResolvedValue({
+        rotina: { ...ESTIMATIVA, confirmadoEm: '2026-10-10', modoManual: true },
+      });
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+
+      await act(async () => {
+        await result.current.recalcularAutomaticamente();
+      });
+
+      expect(logRotinaRecalculoPedido).toHaveBeenCalledTimes(1);
+      expect(showToast).toHaveBeenCalledWith(
+        'Na próxima abertura, o horário volta a ser estimado.',
+      );
+    });
+
+    it('RN16: sem confirmadoEm, editarHorarioManual não espelha nada no nativo', async () => {
+      buscarUsuario.mockResolvedValue({ rotina: null });
+      buscarUltimosDailyLogs.mockResolvedValue(logs(4));
+      const { result } = await montar();
+
+      await act(async () => {
+        await result.current.editarHorarioManual({ dormirEstimado: '23:00' });
+      });
+
+      expect(salvarRotina).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('HU-10 RN09: adiar a confirmação pro dia seguinte', () => {
+    it('Cenário 8: adiar grava a data de amanhã e esconde a confirmação na hora', async () => {
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+      const { result } = await montar();
+      expect(result.current.mostrarConfirmacao).toBe(true);
+
+      await act(async () => {
+        result.current.adiar();
+      });
+
+      expect(salvarItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.rotinaConfirmacaoAdiada,
+        dataDeAmanhaLocal(hojeISOLocal()),
+      );
+      expect(result.current.mostrarConfirmacao).toBe(false);
+    });
+
+    it('Cenário 8: adiada pra uma data futura, a confirmação não aparece mesmo com estimativa', async () => {
+      const amanha = dataDeAmanhaLocal(hojeISOLocal());
+      lerItem.mockImplementation((chave: string) =>
+        Promise.resolve(chave === STORAGE_KEYS.rotinaConfirmacaoAdiada ? amanha : null),
+      );
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+
+      const { result } = await montar();
+
+      expect(result.current.mostrarConfirmacao).toBe(false);
+    });
+
+    it('a confirmação volta a aparecer quando a data adiada já passou', async () => {
+      lerItem.mockImplementation((chave: string) =>
+        Promise.resolve(chave === STORAGE_KEYS.rotinaConfirmacaoAdiada ? '2020-01-01' : null),
+      );
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+
+      const { result } = await montar();
+
+      expect(result.current.mostrarConfirmacao).toBe(true);
+    });
+  });
+
+  describe('HU-10 RN15: aplica a estimativa uma vez após "Recalcular automaticamente"', () => {
+    it('Cenário 15: com o recálculo pendente e estimativa nova, atualiza os horários mantendo confirmadoEm', async () => {
+      lerItem.mockImplementation((chave: string) =>
+        Promise.resolve(chave === STORAGE_KEYS.rotinaRecalculoPendente ? true : null),
+      );
+      buscarUsuario.mockResolvedValue({
+        rotina: {
+          dormirEstimado: '01:00',
+          acordarEstimado: '09:00',
+          confirmadoEm: '2026-10-10',
+          modoManual: false,
+        },
+      });
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+
+      const { result } = await montar();
+
+      await waitFor(() => expect(aplicarEstimativaRotina).toHaveBeenCalled());
+      expect(aplicarEstimativaRotina).toHaveBeenCalledWith('uid-1', ESTIMATIVA);
+      await waitFor(() =>
+        expect(result.current.rotina).toEqual({
+          dormirEstimado: ESTIMATIVA.dormirEstimado,
+          acordarEstimado: ESTIMATIVA.acordarEstimado,
+          confirmadoEm: '2026-10-10',
+          modoManual: false,
+        }),
+      );
+      expect(salvarItem).toHaveBeenCalledWith(STORAGE_KEYS.rotinaRecalculoPendente, false);
+      expect(result.current.mostrarConfirmacao).toBe(false);
+    });
+
+    it('sem o recálculo pendente, a estimativa nova não sobrescreve a rotina confirmada', async () => {
+      buscarUsuario.mockResolvedValue({
+        rotina: {
+          dormirEstimado: '01:00',
+          acordarEstimado: '09:00',
+          confirmadoEm: '2026-10-10',
+          modoManual: false,
+        },
+      });
+      buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+
+      const { result } = await montar();
+
+      expect(aplicarEstimativaRotina).not.toHaveBeenCalled();
+      expect(result.current.rotina?.dormirEstimado).toBe('01:00');
+    });
   });
 });
