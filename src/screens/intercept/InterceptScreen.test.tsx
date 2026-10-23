@@ -454,6 +454,24 @@ describe('InterceptScreen', () => {
       });
     });
 
+    it('HU-11 Cenário 8: já dentro da janela noturna, a sessão retomada aparece direto, sem a pausa noturna', async () => {
+      configurarDailyTasks({ tarefas: [] });
+      configurarSaldo({}, { dentroJanelaNoturna: true });
+      await render(
+        <InterceptScreen
+          {...props}
+          sessaoAtivaResumida={{
+            tarefaId: null,
+            estadoTravado: null,
+            duracaoRestanteSeg: 300,
+          }}
+        />,
+      );
+
+      expect(screen.getByTestId('sessao-foco-mock')).toBeTruthy();
+      expect(usePausaNoturna).not.toHaveBeenCalled();
+    });
+
     it('com duracaoRestanteSeg <= 0: ignora e mostra a pausa de intenção', async () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
       await render(
