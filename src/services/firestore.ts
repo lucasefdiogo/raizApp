@@ -778,6 +778,23 @@ export async function recalcularRotinaAutomatica(uid: string): Promise<void> {
   );
 }
 
+/**
+ * Aplica uma nova estimativa sobre uma rotina já confirmada (HU-10, RN15) —
+ * só os horários, sem tocar `confirmadoEm`, `modoManual` ou
+ * `alternativaNoturna`. Usada uma vez, na abertura seguinte a "Recalcular
+ * automaticamente" (a decisão de quando chamar é do useRotina).
+ */
+export async function aplicarEstimativaRotina(
+  uid: string,
+  horarios: { dormirEstimado: string; acordarEstimado: string },
+): Promise<void> {
+  await setDoc(
+    documentoUsuario(uid),
+    { rotina: horarios },
+    { merge: true },
+  );
+}
+
 export async function atualizarPerfilUsuario(
   uid: string,
   campos: Partial<{

@@ -33,6 +33,7 @@ import {
   salvarAlternativaNoturna,
   editarHorarioRotinaManual,
   recalcularRotinaAutomatica,
+  aplicarEstimativaRotina,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -922,6 +923,26 @@ describe('services/firestore', () => {
 
       const usuario = await buscarUsuario('uid-1');
       expect(usuario?.rotina).toEqual({ acordarEstimado: '06:30', modoManual: true });
+    });
+
+    it('HU-10 RN15: aplicarEstimativaRotina grava só os horários, sem tocar confirmadoEm/modoManual/alternativa', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await confirmarRotina('uid-1', horarios, '2026-10-20', false);
+      await salvarAlternativaNoturna('uid-1', 'Ler um livro');
+
+      await aplicarEstimativaRotina('uid-1', {
+        dormirEstimado: '23:45',
+        acordarEstimado: '07:15',
+      });
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina).toEqual({
+        dormirEstimado: '23:45',
+        acordarEstimado: '07:15',
+        confirmadoEm: '2026-10-20',
+        modoManual: false,
+        alternativaNoturna: 'Ler um livro',
+      });
     });
   });
 
