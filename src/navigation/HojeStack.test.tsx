@@ -368,5 +368,24 @@ describe('HojeStack', () => {
       expect(screen.getByText('Voltar a começar')).toBeTruthy();
       expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
     });
+
+    it('HU-10 Cenário 4: a recaída (dia perdido) tem prioridade sobre a confirmação da rotina', async () => {
+      useRecoveryState.mockReturnValue({
+        deveExibir: true,
+        tipo: 'reduzido',
+        corpo: 'Sua sequência caiu.',
+        marcarComoExibido: jest.fn(),
+      });
+      useRotina.mockReturnValue({
+        ...ROTINA_BASE,
+        estimativa: ESTIMATIVA,
+        mostrarConfirmacao: true,
+      });
+
+      await renderHojeStack();
+
+      expect(screen.getByText('Ver tarefas de hoje')).toBeTruthy();
+      expect(screen.queryByTestId('rotina-confirmacao')).toBeNull();
+    });
   });
 });
