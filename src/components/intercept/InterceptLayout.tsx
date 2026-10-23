@@ -9,7 +9,8 @@ interface InterceptLayoutProps {
   appIconeBase64: string;
   appNome: string;
   eyebrow: string;
-  headline: string;
+  /** Ausente = sem headline (ex.: EsperaBloqueioScreen no cooldown, onde a própria contagem ocupa esse lugar). */
+  headline?: string;
   /** Frase do banco `noturno` (RN05) — Zilla itálico, peso 500. */
   headlineItalico?: boolean;
   /** Conteúdo específico do estado, entre a headline e a ação principal. */
@@ -47,9 +48,11 @@ export function InterceptLayout({
     <ScrollView contentContainerStyle={styles.conteudo} testID="intercept-layout">
       <AppChip iconeBase64={appIconeBase64} nome={appNome} />
       <Text style={styles.eyebrow}>{eyebrow}</Text>
-      <Text style={[styles.headline, headlineItalico && styles.headlineItalico]}>
-        {headline}
-      </Text>
+      {headline && (
+        <Text style={[styles.headline, headlineItalico && styles.headlineItalico]}>
+          {headline}
+        </Text>
+      )}
       {children}
       {acaoPrincipal}
       {valvulas && valvulas.length > 0 && (

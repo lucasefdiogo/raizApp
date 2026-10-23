@@ -4,12 +4,6 @@ import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
 import { PausaIntencaoScreen } from './PausaIntencaoScreen';
 
-const ACOES = {
-  onSessaoFoco: jest.fn(),
-  onTarefasExtras: jest.fn(),
-  onSair: jest.fn(),
-};
-
 describe('SessaoAtivaAviso', () => {
   it('CA-03: estado carregando mostra o tempo restante da sessão e o aviso 1 minuto restante', async () => {
     await render(<SessaoAtivaAviso msRestantes={45_000} avisoUmMinuto />);
@@ -56,10 +50,14 @@ describe('SessaoAtivaAviso', () => {
       <>
         <SessaoAtivaAviso msRestantes={12 * 60_000 + 41_000} avisoUmMinuto={false} />
         <EsperaBloqueioScreen
+          appIconeBase64="abc"
+          appLabel="Instagram"
           variante="cooldown"
           restanteMs={45 * 60_000}
-          blocoPorTarefaExtra={1}
-          {...ACOES}
+          duracaoBlocoMin={15}
+          valvulas={[]}
+          onValvula={jest.fn()}
+          onVoltarAoInicio={jest.fn()}
         />
       </>,
     );
@@ -83,16 +81,24 @@ describe('SessaoAtivaAviso', () => {
         />
         <SessaoAtivaAviso msRestantes={30_000} avisoUmMinuto />
         <EsperaBloqueioScreen
+          appIconeBase64="abc"
+          appLabel="Instagram"
           variante="cooldown"
           restanteMs={45 * 60_000}
-          blocoPorTarefaExtra={2}
-          {...ACOES}
+          duracaoBlocoMin={15}
+          valvulas={[]}
+          onValvula={jest.fn()}
+          onVoltarAoInicio={jest.fn()}
         />
         <EsperaBloqueioScreen
+          appIconeBase64="abc"
+          appLabel="Instagram"
           variante="zerado"
           restanteMs={0}
-          blocoPorTarefaExtra={2}
-          {...ACOES}
+          duracaoBlocoMin={15}
+          valvulas={[]}
+          onValvula={jest.fn()}
+          onVoltarAoInicio={jest.fn()}
         />
       </>,
     );

@@ -1,73 +1,85 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
+import { Valvula } from '../../domain/valvulas';
+
+const VALVULA_SESSAO: Valvula = {
+  tipo: 'sessao_foco',
+  titulo: 'Sessão de foco',
+  descricao: '5 minutos, sem tarefa',
+  meta: '5 MIN',
+  disponivel: true,
+};
 
 async function montar(
   sobrescritas: Partial<React.ComponentProps<typeof EsperaBloqueioScreen>> = {},
 ) {
   const props = {
+    appIconeBase64: 'abc',
+    appLabel: 'Instagram',
     variante: 'cooldown' as const,
     restanteMs: 45 * 60_000,
-    blocoPorTarefaExtra: 1,
-    onSessaoFoco: jest.fn(),
-    onTarefasExtras: jest.fn(),
-    onSair: jest.fn(),
+    cooldownTotalMs: 45 * 60_000,
+    duracaoBlocoMin: 15,
+    valvulas: [VALVULA_SESSAO],
+    onValvula: jest.fn(),
+    onVoltarAoInicio: jest.fn(),
     ...sobrescritas,
   };
   const resultado = await render(<EsperaBloqueioScreen {...props} />);
   return { props, ...resultado };
 }
 
-describe('EsperaBloqueioScreen', () => {
-  it('CA-03: estado erro mostra próximo acesso em 45 min com os atalhos de foco e tarefas extras', async () => {
-    const { props } = await montar({ restanteMs: 45 * 60_000 });
+describe('HU-11 RN10 · EsperaBloqueioScreen', () => {
+  it('Cenário 10: mostra "PAUSA ENTRE SESSÕES" e a contagem arredondada pra cima', async () => {
+    await montar({ restanteMs: 31 * 60_000 + 15_000, cooldownTotalMs: 45 * 60_000 });
 
-    expect(screen.getByText('Próximo acesso em 45 min')).toBeTruthy();
-    await fireEvent.press(screen.getByText('Iniciar uma sessão de foco'));
-    await fireEvent.press(screen.getByText('Ver tarefas extras'));
-    expect(props.onSessaoFoco).toHaveBeenCalledTimes(1);
-    expect(props.onTarefasExtras).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('PAUSA ENTRE SESSÕES')).toBeTruthy();
+    expect(screen.getByText('32 min')).toBeTruthy();
   });
 
-  it('CA-03: o cooldown diminui com o tempo, arredondando os minutos para cima', async () => {
-    const { rerender } = await montar({ restanteMs: 44 * 60_000 + 1 });
-    expect(screen.getByText('Próximo acesso em 45 min')).toBeTruthy();
+  it('abaixo de 1 minuto mostra a contagem em segundos', async () => {
+    await montar({ restanteMs: 45_000 });
 
-    await rerender(
-      <EsperaBloqueioScreen
-        variante="cooldown"
-        restanteMs={90_000}
-        blocoPorTarefaExtra={1}
-        onSessaoFoco={jest.fn()}
-        onTarefasExtras={jest.fn()}
-        onSair={jest.fn()}
-      />,
-    );
-    expect(screen.getByText('Próximo acesso em 2 min')).toBeTruthy();
+    expect(screen.getByText('45 s')).toBeTruthy();
   });
 
-  it('CA-02: o cooldown tem texto acessível por minuto, sem a contagem de segundos', async () => {
-    await montar({ restanteMs: 30 * 60_000 + 15_000 });
+  it('mostra a linha "até a próxima sessão de {duracaoBlocoMin} min"', async () => {
+    await montar({ duracaoBlocoMin: 15 });
 
-    const contagem = screen.getByTestId('espera-contagem');
+    expect(screen.getByText('Até a próxima sessão de 15 min.')).toBeTruthy();
+  });
+
+  it('o texto acessível da contagem é por minuto, com região viva', async () => {
+    await montar({ restanteMs: 30 * 60_000 + 15_000, cooldownTotalMs: 45 * 60_000 });
+
+    const contagem = screen.getByTestId('contagem-espera');
     expect(contagem.props.accessibilityLabel).toBe('Próximo acesso em 31 minutos');
     expect(contagem.props.accessibilityLiveRegion).toBe('polite');
   });
 
-  it('CA-06: saldo zerado mostra os atalhos sem sugerir bloqueio até amanhã', async () => {
-    await montar({ variante: 'zerado', blocoPorTarefaExtra: 2 });
+  it('Cenário 17: saldo zerado mostra a headline e o texto de amanhã, sem contagem', async () => {
+    await montar({ variante: 'zerado' });
 
-    expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
-    expect(screen.getByText(/rende 2 sessões/)).toBeTruthy();
-    expect(screen.queryByText(/amanhã/)).toBeNull();
-    expect(screen.queryByTestId('espera-contagem')).toBeNull();
-    expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
-    expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
+    expect(screen.getByText('SESSÕES DE HOJE ENCERRADAS')).toBeTruthy();
+    expect(screen.getByText('Por hoje, as sessões acabaram.')).toBeTruthy();
+    expect(screen.getByText('Amanhã elas voltam. Enquanto isso, dá pra:')).toBeTruthy();
+    expect(screen.queryByTestId('contagem-espera')).toBeNull();
   });
 
-  it('"Sair" dispara o callback', async () => {
+  it('mostra a válvula recebida e repassa o tipo ao tocar', async () => {
+    const onValvula = jest.fn();
+    await montar({ onValvula });
+
+    expect(screen.getByText('Sessão de foco')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: /Sessão de foco/ }));
+
+    expect(onValvula).toHaveBeenCalledWith('sessao_foco');
+  });
+
+  it('"Voltar ao início" dispara o callback', async () => {
     const { props } = await montar();
-    await fireEvent.press(screen.getByText('Sair'));
-    expect(props.onSair).toHaveBeenCalledTimes(1);
+    await fireEvent.press(screen.getByText('Voltar ao início'));
+    expect(props.onVoltarAoInicio).toHaveBeenCalledTimes(1);
   });
 });
