@@ -11,16 +11,59 @@ async function montar() {
   return { onSalvar, onAgoraNao };
 }
 
-describe('AlternativaNoturnaScreen', () => {
-  it('CA-03: pergunta a alternativa noturna e Salvar entrega o texto escrito', async () => {
+describe('HU-10 RN11 · AlternativaNoturnaScreen', () => {
+  it('Cenário 9: toca no chip "Ler um pouco" e Salvar entrega o texto escrito', async () => {
     const { onSalvar } = await montar();
 
+    await fireEvent.press(screen.getByText('Ler um pouco'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(onSalvar).toHaveBeenCalledWith('Ler um pouco');
+  });
+
+  it('mostra os 4 chips de sugestão', async () => {
+    await montar();
+
+    expect(screen.getByText('Ler um pouco')).toBeTruthy();
+    expect(screen.getByText('Preparar o dia de amanhã')).toBeTruthy();
+    expect(screen.getByText('Alongar')).toBeTruthy();
+    expect(screen.getByText('Escrever 3 linhas')).toBeTruthy();
+  });
+
+  it('o campo tem limite de 40 caracteres', async () => {
+    await montar();
+
+    expect(screen.getByLabelText('Alternativa noturna (opcional)').props.maxLength).toBe(
+      40,
+    );
+  });
+
+  it('Cenário 11: Salvar fica desabilitado com o campo vazio', async () => {
+    await montar();
+
     expect(
-      screen.getByText('O que você gostaria de fazer à noite?'),
-    ).toBeTruthy();
+      screen.getByRole('button', { name: 'Salvar' }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+  });
+
+  it('Salvar fica desabilitado com o campo só de espaços', async () => {
+    const { onSalvar } = await montar();
+
     await fireEvent.changeText(
       screen.getByLabelText('Alternativa noturna (opcional)'),
-      'Ler um pouco',
+      '   ',
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(onSalvar).not.toHaveBeenCalled();
+  });
+
+  it('Salvar habilita com texto e entrega sem espaços nas pontas', async () => {
+    const { onSalvar } = await montar();
+
+    await fireEvent.changeText(
+      screen.getByLabelText('Alternativa noturna (opcional)'),
+      '  Ler um pouco  ',
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
@@ -38,14 +81,5 @@ describe('AlternativaNoturnaScreen', () => {
 
     expect(onAgoraNao).toHaveBeenCalledTimes(1);
     expect(onSalvar).not.toHaveBeenCalled();
-  });
-
-  it('CA-03: Salvar com o campo vazio não grava e dispensa a pergunta', async () => {
-    const { onSalvar, onAgoraNao } = await montar();
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
-
-    expect(onSalvar).not.toHaveBeenCalled();
-    expect(onAgoraNao).toHaveBeenCalledTimes(1);
   });
 });
