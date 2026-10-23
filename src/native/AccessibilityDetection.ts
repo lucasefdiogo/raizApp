@@ -1,5 +1,5 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
-import { EstadoTravado, RegrasBloqueio, RegrasBloqueioPendentes } from '../domain/types';
+import { EstadoTravado, RegrasBloqueio, RegrasBloqueioPendentes, Rotina } from '../domain/types';
 import { SnapshotDia } from '../domain/intercept';
 import { ConfigBloco, EstadoSaldo } from '../domain/saldoBloqueio';
 
@@ -44,6 +44,7 @@ interface RootoraAccessibilityNative {
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
   salvarRegrasBloqueioPendentes(pendenteJson: string | null): void;
+  salvarRotina(rotinaJson: string): void;
   salvarSessaoAtiva(sessaoJson: string): void;
   limparSessaoAtiva(): void;
   listarAppsInstalados(): Promise<AppInstalado[]>;
@@ -263,6 +264,15 @@ export function salvarRegrasBloqueioPendentes(
   moduloNativo()?.salvarRegrasBloqueioPendentes(
     pendente ? JSON.stringify(pendente) : null,
   );
+}
+
+/**
+ * Espelha `rotina` em SharedPreferences (HU-10, RN16) — mesmo módulo que
+ * espelha `regrasBloqueio`. Quem decide gravar só com `confirmadoEm`
+ * preenchido é o chamador (useRotina), não esta função.
+ */
+export function salvarRotina(rotina: Rotina): void {
+  moduloNativo()?.salvarRotina(JSON.stringify(rotina));
 }
 
 /**

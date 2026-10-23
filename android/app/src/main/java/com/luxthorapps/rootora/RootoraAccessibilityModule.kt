@@ -252,6 +252,16 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  /** Espelha rotina em SharedPreferences (HU-10, RN16) — mesmo racional acima. */
+  @ReactMethod
+  fun salvarRotina(rotinaJson: String) {
+    try {
+      BloqueioPrefs.salvarRotina(reactApplicationContext, rotinaJson)
+    } catch (erro: Exception) {
+      // Não crítico — ver comentário da função.
+    }
+  }
+
   /**
    * Apps com Launcher Intent, resolvidos via `<queries>` (manifest,
    * MAIN/LAUNCHER) — não QUERY_ALL_PACKAGES. Exclui o próprio Rootora da
