@@ -170,11 +170,18 @@ SALDO_ZERADO → AGUARDANDO_LIBERACAO (tarefa extra concluída)
 qualquer estado → reinicia na virada do dia
 ```
 
-**Válvulas de escape:**
-- Acesso rápido: 2 min após 5s de espera, cota 3/dia, intervalo mínimo 15/30/60 min entre usos.
-  Disponível também durante cooldown.
+**Válvulas de escape ("OUTRAS SAÍDAS" na interceptação, HU-11):**
+- Acesso rápido: 2 min após 5s de espera (30s na janela noturna), cota 3/dia, intervalo mínimo
+  15/30/60 min entre usos. Disponível também durante cooldown. Tela própria
+  (`EsperaAcessoRapidoScreen`), não mais inline no cooldown.
 - Emergência: só quando não há sessão/cooldown liberável/acesso rápido disponível. Respiração
   guiada de 60s sem pular → libera 2 min. Sem limite de usos.
+- Sessão de foco e tarefas extras completam a lista (sempre por último, ordem fixa).
+- Ordem e disponibilidade calculadas por `domain/valvulas.ts` (`montarValvulas`), puro: acesso
+  rápido disponível lidera; indisponível por intervalo e com emergência oferecida, a emergência
+  lidera no lugar; nenhuma válvula usa cor de alerta (Cobre) nem texto de negativa.
+- Uma sessão ou acesso rápido já em andamento quando a janela noturna começa segue até o fim,
+  sem aviso — a janela só vale a partir da próxima pausa/espera que começar depois disso.
 
 **Rotina estimada e janela noturna:** coleta de uso grava `primeiroUsoDia`/
 `ultimoUsoAntesPausaLonga`; com 5+ dias de histórico, estima dormir/acordar sem pergunta no
