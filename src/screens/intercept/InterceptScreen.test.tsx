@@ -145,6 +145,7 @@ const props = {
   uid: 'uid-1',
   packageName: 'com.instagram.android',
   appLabel: 'Instagram',
+  appIconeBase64: 'abc',
   snapshot: { tarefas: [] as Tarefa[] },
   onSair: jest.fn(),
 };
@@ -206,7 +207,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+      expect(screen.getByText('Liberar em 0:20')).toBeTruthy();
       expect(screen.getByText(/Restam 5 sessões hoje/)).toBeTruthy();
     });
 
@@ -235,7 +236,7 @@ describe('InterceptScreen', () => {
           jest.advanceTimersByTime(5000);
         });
         await act(async () => {
-          await fireEvent.press(screen.getByText('Liberar'));
+          await fireEvent.press(screen.getByText('Liberar 15 min'));
         });
 
         expect(registrarAcao).toHaveBeenCalledWith('B', 'liberou');
@@ -260,7 +261,7 @@ describe('InterceptScreen', () => {
           jest.advanceTimersByTime(5000);
         });
         await act(async () => {
-          await fireEvent.press(screen.getByText('Liberar'));
+          await fireEvent.press(screen.getByText('Liberar 15 min'));
         });
 
         expect(abrirApp).not.toHaveBeenCalled();
@@ -270,12 +271,12 @@ describe('InterceptScreen', () => {
       }
     });
 
-    it('"Agora não" registra a ação e sai, sem liberar', async () => {
+    it('"Voltar ao início" registra a ação e sai, sem liberar', async () => {
       const saldo = configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByText('Agora não'));
+      await fireEvent.press(screen.getByText('Voltar ao início'));
 
       expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
       expect(saldo.liberar).not.toHaveBeenCalled();
@@ -609,19 +610,19 @@ describe('InterceptScreen', () => {
       expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
       expect(usePausaNoturna).toHaveBeenCalledWith('uid-1', 1);
       expect(
-        screen.getByRole('button', { name: 'Liberar em 40s' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar em 0:40' }).props.accessibilityState?.disabled,
       ).toBe(true);
       await act(async () => {
         jest.advanceTimersByTime(39000);
       });
       expect(
-        screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar em 0:01' }).props.accessibilityState?.disabled,
       ).toBe(true);
       await act(async () => {
         jest.advanceTimersByTime(1000);
       });
       expect(
-        screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar 15 min' }).props.accessibilityState?.disabled,
       ).toBeFalsy();
     });
 
@@ -631,7 +632,7 @@ describe('InterceptScreen', () => {
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco em vez disso' }));
 
       expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
       expect(saldo.liberar).not.toHaveBeenCalled();
@@ -645,7 +646,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByTestId('loading-indicator')).toBeTruthy();
-      expect(screen.queryByTestId('pausa-intencao')).toBeNull();
+      expect(screen.queryByTestId('intercept-layout')).toBeNull();
     });
 
     it('CA-06: fora da janela a pausa mostra o texto padrão da HU-04, sem botão de alternativa', async () => {
@@ -657,7 +658,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+      expect(screen.getByText('Liberar em 0:20')).toBeTruthy();
       expect(screen.queryByText('Ler um pouco')).toBeNull();
       expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
     });

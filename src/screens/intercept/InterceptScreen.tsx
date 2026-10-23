@@ -33,6 +33,8 @@ interface InterceptScreenProps {
   uid: string;
   packageName: string;
   appLabel: string;
+  /** PNG base64 do app interceptado (RN01) — resolvido pelo InterceptRoot via listarAppsInstalados(). */
+  appIconeBase64: string;
   snapshot: SnapshotDia;
   /**
    * Estado do saldo de blocos que o nativo calculou ao abrir a tela (extra
@@ -69,6 +71,7 @@ export function InterceptScreen({
   uid,
   packageName,
   appLabel,
+  appIconeBase64,
   snapshot,
   visaoInicial = null,
   sessaoAtivaResumida,
@@ -218,8 +221,10 @@ export function InterceptScreen({
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <PausaIntencaoNoturna
           uid={uid}
+          appIconeBase64={appIconeBase64}
           appLabel={appLabel}
           blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
+          duracaoBlocoMin={configBloco.duracaoBlocoMin}
           duracaoPadraoSeg={saldo.pausaIntencaoSeg}
           saldo={
             saldo.visao

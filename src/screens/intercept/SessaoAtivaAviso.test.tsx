@@ -72,8 +72,11 @@ describe('SessaoAtivaAviso', () => {
     await render(
       <>
         <PausaIntencaoScreen
+          appIconeBase64="abc"
           appLabel="Instagram"
           duracaoSeg={10}
+          duracaoBlocoMin={15}
+          posicaoSessao={1}
           saldo={2}
           onLiberar={jest.fn()}
           onAgoraNao={jest.fn()}

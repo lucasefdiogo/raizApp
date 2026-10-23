@@ -19,8 +19,10 @@ function montarPausa() {
   return render(
     <PausaIntencaoNoturna
       uid="uid-1"
+      appIconeBase64="abc"
       appLabel="Instagram"
       blocosUsados={1}
+      duracaoBlocoMin={15}
       duracaoPadraoSeg={20}
       saldo={null}
       onLiberar={jest.fn()}
@@ -46,13 +48,13 @@ describe('PausaIntencaoNoturna', () => {
 
   it('CA-05: duas aberturas seguidas mostram mensagens diferentes', async () => {
     const primeira = await montarPausa();
-    await waitFor(() => expect(screen.queryByTestId('pausa-intencao')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
     const textoA = MENSAGENS_NOTURNAS.find(m => screen.queryByText(m));
     expect(textoA).toBeTruthy();
     await primeira.unmount();
 
     await montarPausa();
-    await waitFor(() => expect(screen.queryByTestId('pausa-intencao')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
     const textoB = MENSAGENS_NOTURNAS.find(m => screen.queryByText(m));
     expect(textoB).toBeTruthy();
 
@@ -63,10 +65,10 @@ describe('PausaIntencaoNoturna', () => {
     jest.setSystemTime(new Date(2026, 9, 21, 14, 0, 0));
 
     await montarPausa();
-    await waitFor(() => expect(screen.queryByTestId('pausa-intencao')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
 
     expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-    expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+    expect(screen.getByText('Liberar em 0:20')).toBeTruthy();
     expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
   });
 
@@ -76,6 +78,6 @@ describe('PausaIntencaoNoturna', () => {
     await montarPausa();
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
-    expect(screen.queryByTestId('pausa-intencao')).toBeNull();
+    expect(screen.queryByTestId('intercept-layout')).toBeNull();
   });
 });
