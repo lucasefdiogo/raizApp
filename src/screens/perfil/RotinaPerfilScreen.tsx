@@ -6,16 +6,26 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { theme } from '../../theme';
 import { useRotina } from '../../hooks/useRotina';
+import { useAcessoUso } from '../../hooks/useAcessoUso';
+import { horarioPausaMaior, resumoRotina } from '../../domain/rotina';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { BackButton } from '../../components/common/BackButton';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
+const LIMITE_CARACTERES_ALTERNATIVA = 40;
+
+// Ponto de partida editável quando ainda não há nenhuma estimativa (RN14) —
+// a pessoa pode ajustar livremente antes de "Salvar".
+const DORMIR_PADRAO = '23:00';
+const ACORDAR_PADRAO = '07:00';
 
 interface RotinaPerfilScreenProps {
   uid: string;
   onVoltar: () => void;
+  /** Abre a divulgação do acesso de uso (HU-02), link "Medir tempo nas redes" (RN14). */
+  aoAbrirMedirTempo: () => void;
 }
 
 type Campo = 'dormirEstimado' | 'acordarEstimado';
@@ -34,27 +44,40 @@ function dateParaHorario(data: Date): string {
 }
 
 /**
- * Rotina noturna no Perfil (HU-06, RN-12): editar dormir/acordar, voltar ao
- * cálculo automático e editar a alternativa noturna. Tom de padrão
- * identificado, nunca de regra imposta (RN-13).
+ * Rotina noturna no Perfil (HU-06/HU-10, RN13/RN14/RN15). Horário e
+ * alternativa ficam em rascunho local até "Salvar" — um só botão: grava o
+ * horário (modoManual) só se ele mudou, e a alternativa só se ela mudou
+ * (RN13). Sem rotina confirmada ainda, os mesmos campos partem de um
+ * horário padrão editável e "Salvar" confirma pela primeira vez (RN14).
+ * Tom de padrão identificado, nunca de regra imposta (RN20).
  */
-export function RotinaPerfilScreen({ uid, onVoltar }: RotinaPerfilScreenProps) {
+export function RotinaPerfilScreen({
+  uid,
+  onVoltar,
+  aoAbrirMedirTempo,
+}: RotinaPerfilScreenProps) {
   const {
     carregando,
     rotina,
+    diasComDados,
+    confirmar,
     salvarAlternativa,
     editarHorarioManual,
     recalcularAutomaticamente,
   } = useRotina(uid);
+  const { concedido: acessoUsoConcedido } = useAcessoUso();
 
   const [campoAberto, setCampoAberto] = useState<Campo | null>(null);
-  const [alternativa, setAlternativa] = useState('');
+  const [dormirDraft, setDormirDraft] = useState(DORMIR_PADRAO);
+  const [acordarDraft, setAcordarDraft] = useState(ACORDAR_PADRAO);
+  const [alternativaDraft, setAlternativaDraft] = useState('');
   const [salvoVisivel, setSalvoVisivel] = useState(false);
 
-  const alternativaSalva = rotina?.alternativaNoturna ?? '';
   useEffect(() => {
-    setAlternativa(alternativaSalva);
-  }, [alternativaSalva]);
+    setDormirDraft(rotina?.dormirEstimado ?? DORMIR_PADRAO);
+    setAcordarDraft(rotina?.acordarEstimado ?? ACORDAR_PADRAO);
+    setAlternativaDraft(rotina?.alternativaNoturna ?? '');
+  }, [rotina?.dormirEstimado, rotina?.acordarEstimado, rotina?.alternativaNoturna]);
 
   useEffect(() => {
     if (!salvoVisivel) {
@@ -71,12 +94,35 @@ export function RotinaPerfilScreen({ uid, onVoltar }: RotinaPerfilScreenProps) {
     const campo = campoAberto;
     setCampoAberto(null);
     if (campo && evento.type === 'set' && data) {
-      editarHorarioManual({ [campo]: dateParaHorario(data) });
+      const horario = dateParaHorario(data);
+      if (campo === 'dormirEstimado') {
+        setDormirDraft(horario);
+      } else {
+        setAcordarDraft(horario);
+      }
     }
   };
 
-  const handleSalvarAlternativa = async () => {
-    await salvarAlternativa(alternativa.trim());
+  const handleSalvar = async () => {
+    if (!rotina?.confirmadoEm) {
+      await confirmar({ dormirEstimado: dormirDraft, acordarEstimado: acordarDraft });
+    } else {
+      const camposAlterados: Partial<{ dormirEstimado: string; acordarEstimado: string }> = {};
+      if (dormirDraft !== rotina.dormirEstimado) {
+        camposAlterados.dormirEstimado = dormirDraft;
+      }
+      if (acordarDraft !== rotina.acordarEstimado) {
+        camposAlterados.acordarEstimado = acordarDraft;
+      }
+      if (Object.keys(camposAlterados).length > 0) {
+        await editarHorarioManual(camposAlterados);
+      }
+    }
+
+    const alternativaAtual = rotina?.alternativaNoturna ?? '';
+    if (alternativaDraft.trim() !== alternativaAtual) {
+      await salvarAlternativa(alternativaDraft.trim());
+    }
     setSalvoVisivel(true);
   };
 
@@ -84,64 +130,88 @@ export function RotinaPerfilScreen({ uid, onVoltar }: RotinaPerfilScreenProps) {
     return <LoadingIndicator variant="fullscreen" />;
   }
 
+  const confirmada = Boolean(rotina?.confirmadoEm);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
         <BackButton onPress={onVoltar} />
-        <Text accessibilityRole="header" style={styles.titulo}>
-          Rotina noturna
-        </Text>
+        <View style={styles.cabecalho}>
+          <Text accessibilityRole="header" style={styles.titulo}>
+            Rotina noturna
+          </Text>
+          {confirmada && (
+            <Text style={styles.selo}>
+              {rotina?.modoManual ? 'AJUSTADO À MÃO' : 'AUTOMÁTICO'}
+            </Text>
+          )}
+        </View>
 
-        {rotina ? (
-          <>
-            <LinhaHorario
-              rotulo={`Dormir: ${rotina.dormirEstimado}`}
-              acao="Alterar horário de dormir"
-              onPress={() => setCampoAberto('dormirEstimado')}
-            />
-            <LinhaHorario
-              rotulo={`Acordar: ${rotina.acordarEstimado}`}
-              acao="Alterar horário de acordar"
-              onPress={() => setCampoAberto('acordarEstimado')}
-            />
-            {campoAberto && (
-              <DateTimePicker
-                value={horarioParaDate(rotina[campoAberto])}
-                mode="time"
-                is24Hour
-                onChange={handleSeletor}
-              />
-            )}
-            {rotina.modoManual && (
-              <>
-                <Text style={styles.nota}>Horários ajustados por você</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Recalcular automaticamente"
-                  onPress={recalcularAutomaticamente}
-                  hitSlop={8}
-                  style={styles.alvo}
-                >
-                  <Text style={styles.link}>Recalcular automaticamente</Text>
-                </Pressable>
-              </>
-            )}
-
-            <TextField
-              label="Alternativa noturna"
-              value={alternativa}
-              onChangeText={setAlternativa}
-              multiline
-            />
-            <PrimaryButton titulo="Salvar" onPress={handleSalvarAlternativa} />
-            {salvoVisivel && <Text style={styles.nota}>Salvo</Text>}
-          </>
-        ) : (
+        {!confirmada && (
           <Text style={styles.nota}>
-            A rotina aparece aqui depois de alguns dias de uso. Não precisa
-            fazer nada por enquanto.
+            {resumoRotina(rotina, diasComDados, acessoUsoConcedido, 'longa')}
           </Text>
         )}
+        {!confirmada && !acessoUsoConcedido && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={aoAbrirMedirTempo}
+            hitSlop={8}
+            style={styles.alvo}
+          >
+            <Text style={styles.link}>Medir tempo nas redes</Text>
+          </Pressable>
+        )}
+
+        <LinhaHorario
+          rotulo={`Dormir: ${dormirDraft}`}
+          acao="Alterar horário de dormir"
+          onPress={() => setCampoAberto('dormirEstimado')}
+        />
+        <LinhaHorario
+          rotulo={`Acordar: ${acordarDraft}`}
+          acao="Alterar horário de acordar"
+          onPress={() => setCampoAberto('acordarEstimado')}
+        />
+        {campoAberto && (
+          <DateTimePicker
+            value={horarioParaDate(campoAberto === 'dormirEstimado' ? dormirDraft : acordarDraft)}
+            mode="time"
+            is24Hour
+            onChange={handleSeletor}
+          />
+        )}
+
+        {confirmada && (
+          <Text style={styles.nota}>
+            Pausa maior entre {horarioPausaMaior(dormirDraft)} e {acordarDraft}, todos
+            os dias.
+          </Text>
+        )}
+
+        {rotina?.modoManual && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={recalcularAutomaticamente}
+            hitSlop={8}
+            style={styles.alvo}
+          >
+            <Text style={styles.link}>Recalcular automaticamente</Text>
+          </Pressable>
+        )}
+
+        {confirmada && (
+          <TextField
+            label="No lugar da tela, à noite"
+            value={alternativaDraft}
+            onChangeText={setAlternativaDraft}
+            maxLength={LIMITE_CARACTERES_ALTERNATIVA}
+            multiline
+          />
+        )}
+
+        <PrimaryButton titulo="Salvar" onPress={handleSalvar} />
+        {salvoVisivel && <Text style={styles.nota}>Salvo</Text>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -181,10 +251,21 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
   },
+  cabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
   titulo: {
     fontSize: theme.typography.fontSize.lg,
     fontFamily: theme.typography.fontFamily.headingBold,
     color: theme.colors.textPrimary,
+  },
+  selo: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.mono,
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.5,
   },
   linha: {
     flexDirection: 'row',

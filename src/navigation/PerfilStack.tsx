@@ -41,7 +41,11 @@ export function PerfilStack({ uid }: PerfilStackProps) {
       </Stack.Screen>
       <Stack.Screen name="RotinaPerfil">
         {({ navigation }) => (
-          <RotinaPerfilScreen uid={uid} onVoltar={() => navigation.goBack()} />
+          <RotinaPerfilScreen
+            uid={uid}
+            onVoltar={() => navigation.goBack()}
+            aoAbrirMedirTempo={() => navigation.navigate('DivulgacaoAcessoUso')}
+          />
         )}
       </Stack.Screen>
       <Stack.Screen name="BloqueioApps">
