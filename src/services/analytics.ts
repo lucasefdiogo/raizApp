@@ -134,3 +134,19 @@ export function logReflexaoSemanalExibida(): void {
 export function logReflexaoSemanalFechada(acao: 'entendi' | 'agora_nao'): void {
   logEvent(analytics(), 'reflexao_semanal_fechada', { acao });
 }
+
+/** RN18: nunca o horário de dormir/acordar — só se a confirmação veio com ajuste. */
+export function logRotinaConfirmada(ajustado: boolean): void {
+  logEvent(analytics(), 'rotina_confirmada', { ajustado });
+}
+
+/** RN18: nunca o texto da alternativa — só a ação tomada. */
+export function logAlternativaNoturnaRespondida(
+  acao: 'salvou' | 'agora_nao',
+): void {
+  logEvent(analytics(), 'alternativa_noturna_respondida', { acao });
+}
+
+export function logRotinaRecalculoPedido(): void {
+  logEvent(analytics(), 'rotina_recalculo_pedido');
+}

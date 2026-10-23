@@ -8,10 +8,13 @@ import {
   logInterceptShown,
   logMarcoStreakAtingido,
   logOnboardingConcluido,
+  logAlternativaNoturnaRespondida,
   logPermissaoAccessibility,
   logPermissaoNotificacao,
   logReflexaoSemanalExibida,
   logReflexaoSemanalFechada,
+  logRotinaConfirmada,
+  logRotinaRecalculoPedido,
   logTarefaConcluida,
   logTarefaCriada,
   logTourFuncionalidadesConcluido,
@@ -230,6 +233,35 @@ describe('services/analytics', () => {
       expect.anything(),
       'reflexao_semanal_fechada',
       { acao: 'agora_nao' },
+    );
+  });
+
+  it('HU-10 RN18/Cenário 17: logRotinaConfirmada envia só "ajustado", sem horário', () => {
+    logRotinaConfirmada(true);
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'rotina_confirmada',
+      { ajustado: true },
+    );
+  });
+
+  it('HU-10 RN18: logAlternativaNoturnaRespondida envia só a ação, sem o texto', () => {
+    logAlternativaNoturnaRespondida('salvou');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'alternativa_noturna_respondida',
+      { acao: 'salvou' },
+    );
+  });
+
+  it('HU-10 RN18: logRotinaRecalculoPedido envia o evento sem parâmetros', () => {
+    logRotinaRecalculoPedido();
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'rotina_recalculo_pedido',
     );
   });
 });
