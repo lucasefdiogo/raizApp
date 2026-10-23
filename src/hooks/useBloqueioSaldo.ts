@@ -8,6 +8,7 @@ import {
 } from '../domain/saldoBloqueio';
 import { ACESSOS_RAPIDOS_DIARIOS } from '../domain/acessoRapido';
 import { hojeISOLocal } from '../domain/data';
+import { dentroDaJanelaNoturna } from '../domain/rotina';
 import {
   VisaoBloqueio,
   ResultadoLiberacaoRapida,
@@ -16,7 +17,7 @@ import {
   liberarBloco,
   obterEstadoBloqueio,
 } from '../native/AccessibilityDetection';
-import { registrarResumoBloqueioNoDia } from '../services/firestore';
+import { buscarUsuario, registrarResumoBloqueioNoDia } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
 
 /**
@@ -32,6 +33,8 @@ const FASES_COM_POLLING: EstadoSaldo['fase'][] = [
 
 /** Espera antes de liberar o acesso rápido (RN-01); fixa, sem campo de texto. */
 const ESPERA_ACESSO_RAPIDO_SEG = 5;
+/** Dentro da janela noturna, a espera do acesso rápido é fixa em 30s (HU-11, RN09). */
+const ESPERA_ACESSO_RAPIDO_NOTURNA_SEG = 30;
 
 interface UseBloqueioSaldoResultado {
   /** null só se o nativo não respondeu e não havia visão inicial (não deveria acontecer no device). */
@@ -50,7 +53,7 @@ interface UseBloqueioSaldoResultado {
   avisoUmMinuto: boolean;
   /** Há acesso rápido a usar agora (cota restante e intervalo cumprido). */
   acessoRapidoDisponivel: boolean;
-  /** Espera fixa de 5 segundos antes de liberar o acesso rápido. */
+  /** 5s fora da janela noturna, 30s dentro dela (HU-11, RN09). */
   esperaAcessoRapidoSeg: number;
   /** Acessos rápidos que ainda cabem hoje (default 3 sem o campo no nativo). */
   acessosRapidosRestantes: number;
@@ -58,6 +61,8 @@ interface UseBloqueioSaldoResultado {
   msAteProximoAcessoRapido: number;
   /** A saída de emergência deve aparecer (RN-06). */
   emergenciaOferecida: boolean;
+  /** Horário atual dentro da janela noturna da rotina confirmada (HU-11, RN17). */
+  dentroJanelaNoturna: boolean;
   /** Fim da espera de 5 s: abre 2 min de uso e conta no resumo do dia. Resolve se o nativo aceitou. */
   liberarAcessoRapido: () => Promise<boolean>;
   /** Fim da respiração de 60 s: abre 2 min sem gastar a cota e conta no resumo do dia. Resolve se aceitou. */
@@ -80,9 +85,29 @@ export function useBloqueioSaldo(
 ): UseBloqueioSaldoResultado {
   const [visao, setVisao] = useState<VisaoBloqueio | null>(visaoInicial);
   const [agora, setAgora] = useState(() => Date.now());
+  const [dentroJanelaNoturna, setDentroJanelaNoturna] = useState(false);
   const montado = useRef(true);
   const visaoRef = useRef(visao);
   visaoRef.current = visao;
+
+  // Só decide a espera do acesso rápido (RN09) — a pausa de intenção
+  // noturna já é calculada por usePausaNoturna, independente desta leitura.
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      try {
+        const usuario = await buscarUsuario(uid);
+        if (ativo && usuario?.rotina) {
+          setDentroJanelaNoturna(dentroDaJanelaNoturna(usuario.rotina, new Date()));
+        }
+      } catch (erro) {
+        registrarErro(erro as Error, 'useBloqueioSaldo.janelaNoturna');
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [uid]);
 
   useEffect(() => {
     montado.current = true;
@@ -193,10 +218,13 @@ export function useBloqueioSaldo(
       estado?.fase === 'COOLDOWN' ? Math.max(0, estado.fimCooldownEm - agora) : 0,
     avisoUmMinuto: !!estado && !!config && avisoUmMinutoAtivo(estado, config, agora),
     acessoRapidoDisponivel: acessosRapidosRestantes > 0 && msAteProximoAcessoRapido === 0,
-    esperaAcessoRapidoSeg: ESPERA_ACESSO_RAPIDO_SEG,
+    esperaAcessoRapidoSeg: dentroJanelaNoturna
+      ? ESPERA_ACESSO_RAPIDO_NOTURNA_SEG
+      : ESPERA_ACESSO_RAPIDO_SEG,
     acessosRapidosRestantes,
     msAteProximoAcessoRapido,
     emergenciaOferecida: visao?.emergenciaOferecida ?? false,
+    dentroJanelaNoturna,
     liberarAcessoRapido,
     concluirEmergencia,
     recarregar,

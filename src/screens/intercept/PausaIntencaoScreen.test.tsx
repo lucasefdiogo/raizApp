@@ -4,8 +4,11 @@ import { PausaIntencaoScreen } from './PausaIntencaoScreen';
 
 async function montar(sobrescritas: Partial<React.ComponentProps<typeof PausaIntencaoScreen>> = {}) {
   const props = {
+    appIconeBase64: 'abc',
     appLabel: 'Instagram',
     duracaoSeg: 5,
+    duracaoBlocoMin: 15,
+    posicaoSessao: 1,
     saldo: null as number | null,
     onLiberar: jest.fn(),
     onAgoraNao: jest.fn(),
@@ -15,104 +18,47 @@ async function montar(sobrescritas: Partial<React.ComponentProps<typeof PausaInt
   return { props, ...resultado };
 }
 
-describe('PausaIntencaoScreen', () => {
+describe('HU-11 · PausaIntencaoScreen', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  it('CA-01: estado normal mostra o campo de intenção e o botão Liberar desabilitado durante a pausa', async () => {
-    await montar({ duracaoSeg: 10 });
+  it('Cenário 2: eyebrow com a posição da sessão, headline e botão com a contagem m:ss', async () => {
+    await montar({ posicaoSessao: 3, duracaoSeg: 30 });
 
+    expect(screen.getByText('3ª SESSÃO HOJE')).toBeTruthy();
     expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-    expect(screen.getByLabelText('Se quiser, escreva (opcional)')).toBeTruthy();
-    const botao = screen.getByRole('button', { name: 'Liberar em 10s' });
-    expect(botao.props.accessibilityState?.disabled).toBe(true);
-    await act(async () => {
-      jest.advanceTimersByTime(9000);
-    });
-    expect(
-      screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
-    ).toBe(true);
-    await act(async () => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(
-      screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
-    ).toBeFalsy();
-  });
-
-  it('CA-04: estado normal da segunda sessão mantém o Liberar desabilitado por 20 segundos', async () => {
-    await montar({ duracaoSeg: 20 });
-
-    expect(
-      screen.getByRole('button', { name: 'Liberar em 20s' }).props.accessibilityState?.disabled,
-    ).toBe(true);
-    await act(async () => {
-      jest.advanceTimersByTime(19000);
-    });
-    expect(
-      screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
-    ).toBe(true);
-    await act(async () => {
-      jest.advanceTimersByTime(1000);
-    });
-    expect(
-      screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
-    ).toBeFalsy();
-  });
-
-  it('mostra a pergunta, o campo opcional e o botão desabilitado com a contagem', async () => {
-    await montar({ duracaoSeg: 10 });
-
-    expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-    expect(screen.getByLabelText('Se quiser, escreva (opcional)')).toBeTruthy();
-    const botao = screen.getByRole('button', { name: 'Liberar em 10s' });
+    const botao = screen.getByRole('button', { name: 'Liberar em 0:30' });
     expect(botao.props.accessibilityState?.disabled).toBe(true);
   });
 
-  it('a contagem desce a cada segundo e habilita o botão ao zerar', async () => {
-    await montar({ duracaoSeg: 3 });
-
-    await act(async () => {
-      jest.advanceTimersByTime(2000);
-    });
-    expect(screen.getByText('Liberar em 1s')).toBeTruthy();
+  it('Cenário 3: ao zerar, o botão vira "Liberar {duracaoBlocoMin} min" e libera ao tocar', async () => {
+    const { props } = await montar({ duracaoSeg: 1, duracaoBlocoMin: 15 });
 
     await act(async () => {
       jest.advanceTimersByTime(1000);
     });
-    const botao = screen.getByRole('button', { name: 'Liberar' });
+
+    const botao = screen.getByRole('button', { name: 'Liberar 15 min' });
     expect(botao.props.accessibilityState?.disabled).toBeFalsy();
+
+    await fireEvent.press(botao);
+    expect(props.onLiberar).toHaveBeenCalledWith('');
   });
 
-  it('tocar em "Liberar" antes de zerar não chama onLiberar', async () => {
-    const { props } = await montar({ duracaoSeg: 5 });
+  it('a contagem desce a cada segundo em m:ss', async () => {
+    await montar({ duracaoSeg: 65 });
 
-    await fireEvent.press(screen.getByText('Liberar em 5s'));
-
-    expect(props.onLiberar).not.toHaveBeenCalled();
-  });
-
-  it('depois de zerar, "Liberar" entrega o texto digitado (ou vazio)', async () => {
-    const { props } = await montar({ duracaoSeg: 1 });
     await act(async () => {
-      jest.advanceTimersByTime(1000);
+      jest.advanceTimersByTime(3000);
     });
 
-    await fireEvent.press(screen.getByText('Liberar'));
-    expect(props.onLiberar).toHaveBeenLastCalledWith('');
-
-    await fireEvent.changeText(
-      screen.getByLabelText('Se quiser, escreva (opcional)'),
-      'responder um amigo',
-    );
-    await fireEvent.press(screen.getByText('Liberar'));
-    expect(props.onLiberar).toHaveBeenLastCalledWith('responder um amigo');
+    expect(screen.getByText('Liberar em 1:02')).toBeTruthy();
   });
 
-  it('"Agora não" funciona a qualquer momento', async () => {
+  it('Cenário 4: "Voltar ao início" funciona a qualquer momento', async () => {
     const { props } = await montar({ duracaoSeg: 60 });
 
-    await fireEvent.press(screen.getByText('Agora não'));
+    await fireEvent.press(screen.getByText('Voltar ao início'));
 
     expect(props.onAgoraNao).toHaveBeenCalledTimes(1);
   });
@@ -122,18 +68,17 @@ describe('PausaIntencaoScreen', () => {
     await act(async () => {
       jest.advanceTimersByTime(4000);
     });
-    expect(screen.getByText('Liberar em 1s')).toBeTruthy();
+    expect(screen.getByText('Liberar em 0:01')).toBeTruthy();
 
     await primeira.unmount();
     await montar({ duracaoSeg: 5 });
 
-    expect(screen.getByText('Liberar em 5s')).toBeTruthy();
+    expect(screen.getByText('Liberar em 0:05')).toBeTruthy();
   });
 
   it('sem limite diário (saldo null) não fala em sessões restantes', async () => {
     await montar({ saldo: null });
     expect(screen.queryByText(/Rest/)).toBeNull();
-    expect(screen.getByText(/Um respiro antes de abrir o Instagram/)).toBeTruthy();
   });
 
   it('com limite numérico mostra o saldo restante no singular e no plural, sem exclamação', async () => {
@@ -146,20 +91,25 @@ describe('PausaIntencaoScreen', () => {
     expect(screen.queryByText(/!/)).toBeNull();
   });
 
-  describe('variante noturna (HU-06)', () => {
-    it('CA-04: com mensagemNoturna mostra a nota, a mensagem no lugar do título e a contagem', async () => {
+  describe('variante noturna (HU-06/HU-11 RN05/RN07/RN08)', () => {
+    it('Cenário 5: eyebrow, headline em frase noturna e o botão da alternativa', async () => {
+      const onAlternativa = jest.fn();
       await montar({
+        posicaoSessao: 3,
         mensagemNoturna: 'O descanso de hoje é o foco de amanhã.',
-        duracaoSeg: 40,
+        alternativa: 'Ler um pouco',
+        onAlternativa,
+        duracaoSeg: 60,
       });
 
-      expect(screen.getByText('Você está perto do seu horário de dormir.')).toBeTruthy();
+      expect(screen.getByText('JANELA NOTURNA · 3ª SESSÃO')).toBeTruthy();
       expect(screen.getByText('O descanso de hoje é o foco de amanhã.')).toBeTruthy();
       expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
-      expect(screen.getByRole('button', { name: 'Liberar em 40s' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Liberar em 1:00' })).toBeTruthy();
+      expect(screen.getByText('Ler um pouco em vez disso')).toBeTruthy();
     });
 
-    it('CA-03: com alternativa mostra o botão com o texto dela, que chama onAlternativa sem liberar', async () => {
+    it('Cenário 6: tocar na alternativa chama onAlternativa sem liberar', async () => {
       const onAlternativa = jest.fn();
       const { props } = await montar({
         mensagemNoturna: 'Uma mensagem.',
@@ -167,25 +117,23 @@ describe('PausaIntencaoScreen', () => {
         onAlternativa,
       });
 
-      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco' }));
+      await fireEvent.press(screen.getByText('Ler um pouco em vez disso'));
 
       expect(onAlternativa).toHaveBeenCalledTimes(1);
       expect(props.onLiberar).not.toHaveBeenCalled();
     });
 
-    it('CA-03: sem alternativa o botão extra não aparece', async () => {
+    it('sem alternativa o botão extra não aparece', async () => {
       await montar({ mensagemNoturna: 'Uma mensagem.' });
 
-      expect(screen.getAllByRole('button')).toHaveLength(2);
+      expect(screen.queryByText(/em vez disso/)).toBeNull();
     });
 
-    it('CA-06: sem mensagemNoturna a tela fica como na HU-04, mesmo com alternativa informada', async () => {
+    it('sem mensagemNoturna a tela fica no modo padrão, mesmo com alternativa informada', async () => {
       await montar({ alternativa: 'Ler um pouco', onAlternativa: jest.fn() });
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
-      expect(screen.queryByText('Ler um pouco')).toBeNull();
-      expect(screen.getAllByRole('button')).toHaveLength(2);
+      expect(screen.queryByText(/em vez disso/)).toBeNull();
     });
   });
 });

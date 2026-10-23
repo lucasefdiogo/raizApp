@@ -5,8 +5,11 @@ import { PausaIntencaoScreen } from '../intercept/PausaIntencaoScreen';
 
 interface PausaIntencaoNoturnaProps {
   uid: string;
+  appIconeBase64: string;
   appLabel: string;
   blocosUsados: number;
+  /** Para o botão ao zerar: "Liberar {duracaoBlocoMin} min" (RN04). */
+  duracaoBlocoMin: number;
   /** Duração da HU-04 (saldo.pausaIntencaoSeg), usada fora da janela noturna. */
   duracaoPadraoSeg: number;
   saldo: number | null;
@@ -24,8 +27,10 @@ interface PausaIntencaoNoturnaProps {
  */
 export function PausaIntencaoNoturna({
   uid,
+  appIconeBase64,
   appLabel,
   blocosUsados,
+  duracaoBlocoMin,
   duracaoPadraoSeg,
   saldo,
   onLiberar,
@@ -40,8 +45,11 @@ export function PausaIntencaoNoturna({
 
   return (
     <PausaIntencaoScreen
+      appIconeBase64={appIconeBase64}
       appLabel={appLabel}
       duracaoSeg={noturna.noturna ? noturna.duracaoSeg : duracaoPadraoSeg}
+      duracaoBlocoMin={duracaoBlocoMin}
+      posicaoSessao={blocosUsados + 1}
       saldo={saldo}
       onLiberar={onLiberar}
       onAgoraNao={onAgoraNao}

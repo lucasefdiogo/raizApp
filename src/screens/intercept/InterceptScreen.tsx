@@ -5,14 +5,18 @@ import { theme } from '../../theme';
 import { EstadoTravado } from '../../domain/types';
 import { DURACAO_SEG_SESSAO_BLOQUEIO, SnapshotDia } from '../../domain/intercept';
 import { resolverConfigBloco, saldoDisponivel } from '../../domain/saldoBloqueio';
+import { ACESSOS_RAPIDOS_DIARIOS } from '../../domain/acessoRapido';
+import { TipoValvula, montarValvulas } from '../../domain/valvulas';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
 import { useIntercept } from '../../hooks/useIntercept';
 import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
+import { logAlternativaNoturnaEscolhida, logValvulaEscolhida } from '../../services/analytics';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
 import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { PausaIntencaoNoturna } from '../rotina/PausaIntencaoNoturna';
+import { EsperaAcessoRapidoNoturna } from '../rotina/EsperaAcessoRapidoNoturna';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
 import { RespiracaoEmergenciaScreen } from './RespiracaoEmergenciaScreen';
 import { TarefasExtrasScreen } from './TarefasExtrasScreen';
@@ -33,6 +37,8 @@ interface InterceptScreenProps {
   uid: string;
   packageName: string;
   appLabel: string;
+  /** PNG base64 do app interceptado (RN01) — resolvido pelo InterceptRoot via listarAppsInstalados(). */
+  appIconeBase64: string;
   snapshot: SnapshotDia;
   /**
    * Estado do saldo de blocos que o nativo calculou ao abrir a tela (extra
@@ -46,7 +52,7 @@ interface InterceptScreenProps {
   onSair: () => void;
 }
 
-type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia';
+type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia' | 'acessoRapido';
 
 /** Respiração guiada da saída de emergência (RN-06). */
 const DURACAO_SEG_RESPIRACAO_EMERGENCIA = 60;
@@ -69,6 +75,7 @@ export function InterceptScreen({
   uid,
   packageName,
   appLabel,
+  appIconeBase64,
   snapshot,
   visaoInicial = null,
   sessaoAtivaResumida,
@@ -89,6 +96,20 @@ export function InterceptScreen({
   const tarefasParaExibir = dailyTasks.carregando
     ? snapshot.tarefas
     : dailyTasks.tarefas;
+
+  const extrasPendentes = tarefasParaExibir.filter(
+    tarefa => !tarefa.essencial && !tarefa.concluida && !tarefa.tarefaPaiId,
+  );
+
+  const valvulas = montarValvulas({
+    acessoRapidoDisponivel: saldo.acessoRapidoDisponivel,
+    usosAcessoRapidoHoje: ACESSOS_RAPIDOS_DIARIOS - saldo.acessosRapidosRestantes,
+    msAteProximoAcessoRapido:
+      saldo.acessosRapidosRestantes > 0 ? saldo.msAteProximoAcessoRapido : null,
+    emergenciaOferecida: saldo.emergenciaOferecida,
+    esperaAcessoRapidoSeg: saldo.esperaAcessoRapidoSeg,
+    tarefasExtrasPendentes: extrasPendentes.length,
+  });
 
   const parametrosSessao: ParametrosSessao | null = sessaoLivre
     ? {
@@ -134,6 +155,32 @@ export function InterceptScreen({
   function handleAgoraNaoPausa() {
     registrarAcao('B', 'saiu');
     onSair();
+  }
+
+  /** Alternativa noturna (RN08): fecha sem liberar, sem avançar a posição da sessão. */
+  function handleAlternativaNoturna() {
+    logAlternativaNoturnaEscolhida();
+    registrarAcao('B', 'saiu');
+    onSair();
+  }
+
+  /** "OUTRAS SAÍDAS" (RN02/RN11): cada válvula leva a um sub-fluxo próprio. */
+  function handleValvula(tipo: TipoValvula) {
+    logValvulaEscolhida(tipo, saldo.dentroJanelaNoturna);
+    switch (tipo) {
+      case 'acesso_rapido':
+        setModo('acessoRapido');
+        break;
+      case 'emergencia':
+        setModo('emergencia');
+        break;
+      case 'sessao_foco':
+        handleSessaoDeFoco();
+        break;
+      case 'tarefas_extras':
+        setModo('extras');
+        break;
+    }
   }
 
   /** Fim da sessão de foco: o "Liberar" leva à pausa de intenção do próximo bloco, não libera direto. */
@@ -189,17 +236,34 @@ export function InterceptScreen({
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <RespiracaoEmergenciaScreen
+          appIconeBase64={appIconeBase64}
+          appLabel={appLabel}
           duracaoSeg={DURACAO_SEG_RESPIRACAO_EMERGENCIA}
           onConcluir={handleEmergenciaConcluida}
+          onCancelar={() => setModo('principal')}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (modo === 'acessoRapido') {
+    return (
+      <SafeAreaView style={styles.container} testID="intercept-screen">
+        <EsperaAcessoRapidoNoturna
+          uid={uid}
+          appIconeBase64={appIconeBase64}
+          appLabel={appLabel}
+          blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
+          esperaSeg={saldo.esperaAcessoRapidoSeg}
+          onLiberado={handleAcessoRapido}
+          onVoltarAoInicio={onSair}
+          onAlternativa={handleAlternativaNoturna}
         />
       </SafeAreaView>
     );
   }
 
   if (modo === 'extras') {
-    const extrasPendentes = tarefasParaExibir.filter(
-      tarefa => !tarefa.essencial && !tarefa.concluida && !tarefa.tarefaPaiId,
-    );
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <TarefasExtrasScreen
@@ -218,8 +282,10 @@ export function InterceptScreen({
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <PausaIntencaoNoturna
           uid={uid}
+          appIconeBase64={appIconeBase64}
           appLabel={appLabel}
           blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
+          duracaoBlocoMin={configBloco.duracaoBlocoMin}
           duracaoPadraoSeg={saldo.pausaIntencaoSeg}
           saldo={
             saldo.visao
@@ -228,7 +294,7 @@ export function InterceptScreen({
           }
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
-          onAlternativaNoturna={handleAgoraNaoPausa}
+          onAlternativaNoturna={handleAlternativaNoturna}
         />
       </SafeAreaView>
     );
@@ -238,6 +304,8 @@ export function InterceptScreen({
     return (
       <SafeAreaView style={styles.container} testID="intercept-screen">
         <EsperaBloqueioScreen
+          appIconeBase64={appIconeBase64}
+          appLabel={appLabel}
           variante={fase === 'COOLDOWN' ? 'cooldown' : 'zerado'}
           restanteMs={
             fase === 'COOLDOWN'
@@ -247,16 +315,11 @@ export function InterceptScreen({
                 )
               : 0
           }
-          blocoPorTarefaExtra={configBloco.blocoPorTarefaExtra}
-          onSessaoFoco={handleSessaoDeFoco}
-          onTarefasExtras={() => setModo('extras')}
-          onSair={onSair}
-          acessoRapidoDisponivel={saldo.acessoRapidoDisponivel}
-          esperaSeg={saldo.esperaAcessoRapidoSeg}
-          msAteProximo={saldo.msAteProximoAcessoRapido}
-          emergenciaOferecida={saldo.emergenciaOferecida}
-          onAcessoRapido={handleAcessoRapido}
-          onEmergencia={() => setModo('emergencia')}
+          cooldownTotalMs={configBloco.cooldownMin * 60_000}
+          duracaoBlocoMin={configBloco.duracaoBlocoMin}
+          valvulas={valvulas}
+          onValvula={handleValvula}
+          onVoltarAoInicio={onSair}
         />
       </SafeAreaView>
     );

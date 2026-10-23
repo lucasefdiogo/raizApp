@@ -137,15 +137,19 @@ Duas válvulas de escape, sempre mais baratas do que desativar o Accessibility S
   há 4º uso — a cota já acabou).
 - Disponível também durante o **cooldown de uma sessão normal**, sem encurtar nem
   cancelar esse cooldown.
-- Com cota disponível e intervalo já passado, a tela mostra o botão "Acesso rápido (2
-  min)"; caso contrário, mostra "próximo acesso rápido em X min" em vez do botão —
-  nunca como uma negativa, só como tempo de espera.
+- Com cota disponível e intervalo já passado, a válvula "Acesso rápido" (seção
+  "OUTRAS SAÍDAS" da interceptação, HU-11) mostra a meta "{restantes} DE 3 HOJE";
+  caso contrário, aparece esmaecida com "Próximo disponível em X min" / "EM X MIN" —
+  nunca como uma negativa, só como tempo de espera. Ao tocar, abre uma tela própria
+  (`EsperaAcessoRapidoScreen`) com a contagem de 5s (ou 30s na janela noturna, abaixo)
+  e, ao zerar, libera o app — não é mais um widget inline na tela de cooldown.
 
 ### Saída de emergência
 
 - Aparece **só** quando não há sessão ativa, nem cooldown liberável, nem acesso
   rápido disponível no momento (cota ou intervalo impedindo) — nunca substitui uma
-  opção melhor já disponível.
+  opção melhor já disponível. Na lista "OUTRAS SAÍDAS" (HU-11) é a válvula "Saída de
+  emergência", meta "SEM LIMITE", e lidera a lista quando aparece.
 - Respiração guiada de **60 segundos, sem opção de pular**. Ao terminar, libera 2
   minutos de uso, contados como o acesso rápido.
 - **Sem limite de usos por dia** e **não consome a cota do acesso rápido**. Cada uso é
@@ -200,6 +204,13 @@ sessão nem cooldown ativos:
 
 Fora da janela noturna, mesmo com `rotina.confirmadoEm` preenchido, tudo segue
 exatamente como nas seções 3 e 4 (sequência normal, texto padrão).
+
+Uma sessão (ou acesso rápido) já em andamento quando a janela noturna começa **segue
+até o fim, sem aviso** (decisão HU-11) — a regra noturna só passa a valer a partir da
+próxima pausa de intenção ou espera de acesso rápido que começar depois do início da
+janela. O lado nativo não precisa saber da janela noturna para isso: nenhuma decisão
+em `SaldoBloqueioMaquina.kt`/`BloqueioPrefs.kt` depende dela, só a apresentação no
+lado JS (`usePausaNoturna`/`useBloqueioSaldo`).
 
 ### Editar manualmente
 

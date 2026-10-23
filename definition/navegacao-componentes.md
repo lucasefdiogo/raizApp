@@ -115,24 +115,36 @@ monta `TravadoFlowScreen` (os chips do TravadoFlow só existem no root principal
 Home/TaskCard) — monta, no máximo, uma `SessaoFocoScreen` sem tarefa, pelo atalho
 neutro do cooldown.
 
+Facelift HU-11 (linguagem única): todas as telas abaixo (exceto `SessaoFocoScreen` e
+`TarefasExtrasScreen`, que vêm das HU-04/05) compartilham o esqueleto `InterceptLayout`
+(`src/components/intercept/InterceptLayout.tsx`) — `AppChip` (ícone do app + nome,
+topo), eyebrow em Space Mono, headline em Zilla Slab, e link "Voltar ao início"
+(sempre saída total — `onSair`/`BackHandler.exitApp`, nunca "voltar a uma sub-tela
+anterior"). A lista "OUTRAS SAÍDAS" (`valvulas`/`onValvula`) usa `ValvulaRow`, ordem e
+disponibilidade calculadas por `domain/valvulas.ts` (`montarValvulas`).
+
 ```
-InterceptRoot (packageName, appLabel, estadoBloqueioJson, rotinaJson? via initialProps)
+InterceptRoot (packageName, appLabel, appIconeBase64, estadoBloqueioJson, rotinaJson? via initialProps)
 └── InterceptScreen — fase da máquina de estados (nativo) decide a tela
-      ├── AGUARDANDO_LIBERACAO → PausaIntencaoScreen
-      │     (espera pela posição da sessão no dia — 10/20/30/40/50/60s, dobrada e com
-      │     mensagem do banco `noturno` se dentro da janela noturna — "Liberar" após a
-      │     espera abre a sessão e o app)
+      ├── AGUARDANDO_LIBERACAO → PausaIntencaoNoturna → PausaIntencaoScreen
+      │     (contagem pela posição da sessão no dia — 10/20/30/40/50/60s, dobrada e com
+      │     mensagem do banco `noturno` + botão da alternativa noturna se dentro da
+      │     janela — "Liberar {duracaoBlocoMin} min" ao zerar abre a sessão e o app)
       ├── SESSAO_ATIVA → aviso "sessão em andamento" + abre o app direto
       ├── COOLDOWN | SALDO_ZERADO → EsperaBloqueioScreen
-      │     ├── "Acesso rápido (2 min)" — se cota/intervalo permitirem (espera 5s, ou
-      │     │     30s + mensagem noturna dentro da janela); senão mostra "próximo
-      │     │     acesso rápido em X min"
-      │     ├── "Saída de emergência" — só quando o acesso rápido não está disponível
-      │     │     (respiração guiada de 60s, sem limite de usos)
-      │     ├── "Iniciar uma sessão de foco" → SessaoFocoScreen (5 min, sem tarefa,
-      │     │     origem 'interceptacao' — não libera o app ao terminar)
-      │     └── "Ver tarefas extras" → TarefasExtrasScreen (só relevante com
-      │           `blocosDiarios` configurado como número)
+      │     (contagem + barra no cooldown, ou "Por hoje, as sessões acabaram." no
+      │     saldo zerado; "OUTRAS SAÍDAS" sempre visível)
+      │     ├── válvula "Acesso rápido" → modo 'acessoRapido' → EsperaAcessoRapidoNoturna
+      │     │     → EsperaAcessoRapidoScreen (contagem de 5s, ou 30s + mensagem noturna
+      │     │     e alternativa dentro da janela — libera o app ao zerar, sem botão)
+      │     ├── válvula "Saída de emergência" → modo 'emergencia' → RespiracaoEmergenciaScreen
+      │     │     (círculo "Inspire"/"Solte o ar" 60s sem pular, respeita reduzir
+      │     │     movimento; voltar físico cancela pro modo 'principal', sem link de
+      │     │     "Voltar ao início" nesta tela)
+      │     ├── válvula "Sessão de foco" → modo 'sessao' → SessaoFocoScreen (5 min, sem
+      │     │     tarefa, origem 'interceptacao' — não libera o app ao terminar)
+      │     └── válvula "Tarefas extras" → modo 'extras' → TarefasExtrasScreen (só
+      │           relevante com `blocosDiarios` configurado como número)
       └── (nenhum alvo nesta tela para "Estou travado" — o TravadoFlow com os 4 chips
             só é aberto pela Home/TaskCard, fora deste root)
 ```
@@ -499,7 +511,12 @@ COOLDOWN/SALDO_ZERADO) — não decide mais nenhum estado a partir de tarefas es
 (os antigos estados A/C e o snapshot de tarefas que eles exigiam não existem mais).
 `rotinaJson` (prop opcional, espelho de `users/{uid}.rotina`) diz se a janela noturna
 está ativa agora, pra dobrar a pausa de intenção e trocar o texto padrão pela mensagem
-do banco `noturno` (seção 5 da spec 09).
+do banco `noturno` (seção 5 da spec 09). `appIconeBase64` (HU-11) é resolvido pelo
+`InterceptRoot` via `listarAppsInstalados()` (mesmo wrapper nativo usado em
+`BloqueioAppsScreen`) e repassado pra todas as telas via `AppChip`/`InterceptLayout`.
+A lista "OUTRAS SAÍDAS" é montada com `domain/valvulas.ts` (`montarValvulas`) a partir
+do saldo atual, e cada toque dispara `logValvulaEscolhida` (Analytics) antes de mudar
+de modo.
 
 ### Telas de permissão
 `DivulgacaoAcessibilidadeScreen`, `DivulgacaoAcessoUsoScreen` (ambas no Perfil, antes

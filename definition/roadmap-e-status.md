@@ -89,7 +89,8 @@ caminho, com tela de configuração própria.
 | Detecção via Accessibility Service (único caminho: `regrasBloqueio` → `InterceptActivity`) | ✅ |
 | Tela de configuração (`BloqueioAppsScreen`: status, apps, janela única, resumo) | ✅ |
 | HU-09 · Configuração legível: seções com eyebrow (Status/Quando/Apps/Sessões/Rotina noturna), banner de pendência honesto, resumo do bloqueio e da rotina no Perfil | ✅ (`docs/hu/hu-09-bloqueio-config.md`) |
-| HU-10 · Rotina noturna: confirmação única com janela ao vivo e validação (RN08), alternativa noturna com chips, adiar pro dia seguinte (RN09), `RotinaPerfilScreen` com selo AUTOMÁTICO/AJUSTADO À MÃO e Salvar único, espelho nativo de `rotina` em SharedPreferences (RN16) | ✅ (`docs/hu/hu-10-rotina-noturna.md`) — espelho só grava; consumo pela interceptação (pausa dobrada/janela noturna lendo o espelho nativo) fica para a HU-11. **Kotlin (`BloqueioPrefs.salvarRotina`) não compilado/testado em device** — confirmar com `npx react-native run-android` no terminal WSL |
+| HU-10 · Rotina noturna: confirmação única com janela ao vivo e validação (RN08), alternativa noturna com chips, adiar pro dia seguinte (RN09), `RotinaPerfilScreen` com selo AUTOMÁTICO/AJUSTADO À MÃO e Salvar único, espelho nativo de `rotina` em SharedPreferences (RN16) | ✅ (`docs/hu/hu-10-rotina-noturna.md`) — espelho só grava. **Kotlin (`BloqueioPrefs.salvarRotina`) não compilado/testado em device** — confirmar com `npx react-native run-android` no terminal WSL |
+| HU-11 · Linguagem única da interceptação: `InterceptLayout`/`AppChip`/`ValvulaRow`/`ContagemEspera` compartilhados, "OUTRAS SAÍDAS" (`domain/valvulas.ts`) substitui os botões soltos do cooldown, acesso rápido ganha tela própria (`EsperaAcessoRapidoScreen`), janela noturna consumida só no lado JS (pausa dobrada, espera de acesso rápido dobrada, mensagem/alternativa do banco `noturno`) — decisão: **não implementar RN13 no Kotlin**, nenhum ponto de decisão nativo depende da janela noturna | ✅ (`docs/hu/hu-11-interceptacao.md`) |
 | Lista de apps via `<queries>` (MAIN/LAUNCHER), sem `QUERY_ALL_PACKAGES` | ✅ |
 | Regra de pré-compromisso única (1ª config imediata, qualquer alteração depois vale amanhã, sem distinguir afrouxar/endurecer) | ✅ domain testado; promoção pendente→vigente roda no nativo (app fechado) e sincroniza no Firestore na próxima abertura |
 | Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/C) | ✅ (spec 09) |
@@ -162,7 +163,7 @@ caminho, com tela de configuração própria.
 | Dados: `tarefaPaiId`/`quando` em tarefas, `sessoesFoco`/`interceptacoes` em `dailyLogs`, `regrasBloqueio`/`regrasBloqueioPendentes`/`consentimentoAcessibilidade` em `users` | ✅ |
 | TravadoFlow (4 estados: confusão/medo/tédio/energia) — mesmo componente nas 3 entradas (Home, toque longo, InterceptScreen) | ✅ |
 | SessaoFocoScreen (timer + FimSessao) — sessões de foco não alteram `streakAtual` | ✅ |
-| InterceptScreen (A/C + fases do saldo de blocos) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
+| InterceptScreen (fases do saldo de blocos, linguagem única HU-11) — root RN separado `'Intercept'`, meta <300ms | 🚧 implementado, não confirmado em device físico |
 | Telas de debug (detecção de apps e InterceptScreen, Perfil → dev) | ❌ removidas — validação em device passa a ser pelo fluxo real |
 | AccessibilityService: único gatilho de interceptação (`regrasBloqueio` → `deveInterceptar` → `InterceptActivity`) + "sessão ativa" (reabrir com o timer em andamento) + promoção de `regrasBloqueioPendentes` vencida (roda com o app fechado) | 🚧 implementado, não confirmado em device físico |
 | Tela de configuração de `regrasBloqueio` (`BloqueioAppsScreen`, Perfil) | ✅ |

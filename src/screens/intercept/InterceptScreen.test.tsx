@@ -13,6 +13,7 @@ jest.mock('../../hooks/useDailyTasks');
 jest.mock('../../hooks/useIntercept');
 jest.mock('../../hooks/useBloqueioSaldo');
 jest.mock('../../hooks/usePausaNoturna');
+jest.mock('../../hooks/useVoltarFisico');
 jest.mock('../../native/AccessibilityDetection');
 jest.mock('./SessaoFocoScreen', () => ({
   SessaoFocoScreen: (props: Record<string, unknown>) => {
@@ -111,8 +112,16 @@ function configurarSaldo(
     pausaIntencaoSeg: 5,
     msRestantesSessao: 0,
     avisoUmMinuto: false,
+    acessoRapidoDisponivel: false,
+    esperaAcessoRapidoSeg: 5,
+    acessosRapidosRestantes: 3,
+    msAteProximoAcessoRapido: 0,
+    emergenciaOferecida: false,
+    dentroJanelaNoturna: false,
     recarregar: jest.fn(),
     liberar: jest.fn().mockResolvedValue(true),
+    liberarAcessoRapido: jest.fn().mockResolvedValue(true),
+    concluirEmergencia: jest.fn().mockResolvedValue(true),
     ...sobrescritas,
   };
   useBloqueioSaldo.mockReturnValue(retorno);
@@ -145,6 +154,7 @@ const props = {
   uid: 'uid-1',
   packageName: 'com.instagram.android',
   appLabel: 'Instagram',
+  appIconeBase64: 'abc',
   snapshot: { tarefas: [] as Tarefa[] },
   onSair: jest.fn(),
 };
@@ -206,7 +216,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+      expect(screen.getByText('Liberar em 0:20')).toBeTruthy();
       expect(screen.getByText(/Restam 5 sessões hoje/)).toBeTruthy();
     });
 
@@ -235,7 +245,7 @@ describe('InterceptScreen', () => {
           jest.advanceTimersByTime(5000);
         });
         await act(async () => {
-          await fireEvent.press(screen.getByText('Liberar'));
+          await fireEvent.press(screen.getByText('Liberar 15 min'));
         });
 
         expect(registrarAcao).toHaveBeenCalledWith('B', 'liberou');
@@ -260,7 +270,7 @@ describe('InterceptScreen', () => {
           jest.advanceTimersByTime(5000);
         });
         await act(async () => {
-          await fireEvent.press(screen.getByText('Liberar'));
+          await fireEvent.press(screen.getByText('Liberar 15 min'));
         });
 
         expect(abrirApp).not.toHaveBeenCalled();
@@ -270,12 +280,12 @@ describe('InterceptScreen', () => {
       }
     });
 
-    it('"Agora não" registra a ação e sai, sem liberar', async () => {
+    it('"Voltar ao início" registra a ação e sai, sem liberar', async () => {
       const saldo = configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByText('Agora não'));
+      await fireEvent.press(screen.getByText('Voltar ao início'));
 
       expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
       expect(saldo.liberar).not.toHaveBeenCalled();
@@ -302,19 +312,18 @@ describe('InterceptScreen', () => {
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Próximo acesso em 3 min')).toBeTruthy();
-      expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
-      expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
+      expect(screen.getByText('3 min')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Sessão de foco/ })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Tarefas extras/ })).toBeTruthy();
     });
 
     it('CA-06: com saldo zerado mostra os atalhos de sessão de foco e tarefas extras, sem pausa', async () => {
       configurarSaldo({ fase: 'SALDO_ZERADO', saldo: 0 });
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
-      expect(screen.queryByText(/amanhã/)).toBeNull();
-      expect(screen.getByText('Iniciar uma sessão de foco')).toBeTruthy();
-      expect(screen.getByText('Ver tarefas extras')).toBeTruthy();
+      expect(screen.getByText('Por hoje, as sessões acabaram.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Sessão de foco/ })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Tarefas extras/ })).toBeTruthy();
       expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
     });
 
@@ -324,15 +333,14 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.queryByText('Você usou as sessões de hoje')).toBeNull();
-      expect(screen.queryByText('Ver tarefas extras')).toBeNull();
+      expect(screen.queryByText('Por hoje, as sessões acabaram.')).toBeNull();
     });
 
-    it('"Iniciar uma sessão de foco" abre a SessaoFocoScreen de 5 min sem tarefa e sem botão de seguir pro app', async () => {
+    it('a válvula "Sessão de foco" abre a SessaoFocoScreen de 5 min sem tarefa e sem botão de seguir pro app', async () => {
       configurarSaldo({ fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 });
       await render(<InterceptScreen {...props} />);
 
-      await fireEvent.press(screen.getByText('Iniciar uma sessão de foco'));
+      await fireEvent.press(screen.getByRole('button', { name: /Sessão de foco/ }));
 
       const mock = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
       expect(mock).toMatchObject({
@@ -343,7 +351,7 @@ describe('InterceptScreen', () => {
       expect(screen.queryByText('mock-liberar-app')).toBeNull();
     });
 
-    it('"Ver tarefas extras" lista só extras pendentes (sem essenciais, concluídas ou subtarefas); concluir e adicionar vão pro useDailyTasks', async () => {
+    it('a válvula "Tarefas extras" lista só extras pendentes (sem essenciais, concluídas ou subtarefas); concluir e adicionar vão pro useDailyTasks', async () => {
       const alternarTarefa = jest.fn();
       const adicionarTarefa = jest.fn();
       configurarDailyTasks({
@@ -359,7 +367,7 @@ describe('InterceptScreen', () => {
       configurarSaldo({ fase: 'SALDO_ZERADO' });
       await render(<InterceptScreen {...props} />);
 
-      await fireEvent.press(screen.getByText('Ver tarefas extras'));
+      await fireEvent.press(screen.getByRole('button', { name: /Tarefas extras/ }));
 
       expect(screen.getByTestId('extras-mock').props.children).toBe('extra-1');
       await fireEvent.press(screen.getByText('mock-concluir'));
@@ -368,7 +376,7 @@ describe('InterceptScreen', () => {
       expect(adicionarTarefa).toHaveBeenCalledWith('Nova extra', false);
 
       await fireEvent.press(screen.getByText('mock-voltar'));
-      expect(screen.getByText('Você usou as sessões de hoje')).toBeTruthy();
+      expect(screen.getByText('Por hoje, as sessões acabaram.')).toBeTruthy();
     });
   });
 
@@ -377,7 +385,7 @@ describe('InterceptScreen', () => {
       configurarDailyTasks({ tarefas: [] });
       const sem = configurarSaldo({ fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 });
       const { rerender } = await render(<InterceptScreen {...props} />);
-      await fireEvent.press(screen.getByText('Iniciar uma sessão de foco'));
+      await fireEvent.press(screen.getByRole('button', { name: /Sessão de foco/ }));
       expect(screen.queryByText('mock-liberar-app')).toBeNull();
 
       // O cooldown acabou enquanto a sessão de foco rodava.
@@ -446,6 +454,24 @@ describe('InterceptScreen', () => {
       });
     });
 
+    it('HU-11 Cenário 8: já dentro da janela noturna, a sessão retomada aparece direto, sem a pausa noturna', async () => {
+      configurarDailyTasks({ tarefas: [] });
+      configurarSaldo({}, { dentroJanelaNoturna: true });
+      await render(
+        <InterceptScreen
+          {...props}
+          sessaoAtivaResumida={{
+            tarefaId: null,
+            estadoTravado: null,
+            duracaoRestanteSeg: 300,
+          }}
+        />,
+      );
+
+      expect(screen.getByTestId('sessao-foco-mock')).toBeTruthy();
+      expect(usePausaNoturna).not.toHaveBeenCalled();
+    });
+
     it('com duracaoRestanteSeg <= 0: ignora e mostra a pausa de intenção', async () => {
       configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
       await render(
@@ -468,6 +494,9 @@ describe('InterceptScreen', () => {
     beforeEach(() => {
       jest.useFakeTimers();
       configurarDailyTasks({ tarefas: [] });
+      jest
+        .spyOn(require('react-native').AccessibilityInfo, 'isReduceMotionEnabled')
+        .mockResolvedValue(false);
     });
     afterEach(() => jest.useRealTimers());
 
@@ -494,7 +523,7 @@ describe('InterceptScreen', () => {
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByText('Acesso rápido (2 min)'));
+      await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
       await passar(4);
       expect(liberarAcessoRapido).not.toHaveBeenCalled();
       await passar(1);
@@ -516,7 +545,7 @@ describe('InterceptScreen', () => {
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByText('Acesso rápido (2 min)'));
+      await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
       await passar(5);
 
       expect(abrirApp).not.toHaveBeenCalled();
@@ -538,12 +567,12 @@ describe('InterceptScreen', () => {
       const { unmount } = await render(
         <InterceptScreen {...props} onSair={onSair} />,
       );
-      expect(screen.getByText('Próximo acesso rápido em 20 min')).toBeTruthy();
+      expect(screen.getByText('Próximo disponível em 20 min')).toBeTruthy();
 
       await fireEvent.press(
-        screen.getByText('Preciso agora (respiração de 1 min)'),
+        screen.getByRole('button', { name: /Saída de emergência/ }),
       );
-      expect(screen.getByTestId('respiracao-emergencia')).toBeTruthy();
+      expect(screen.getByText('SAÍDA DE EMERGÊNCIA')).toBeTruthy();
       expect(concluirEmergencia).not.toHaveBeenCalled();
       await passar(60);
 
@@ -558,7 +587,7 @@ describe('InterceptScreen', () => {
         { ...cota, concluirEmergencia },
       );
       await render(<InterceptScreen {...props} />);
-      expect(screen.getByText('Próximo acesso rápido em 20 min')).toBeTruthy();
+      expect(screen.getByText('Próximo disponível em 20 min')).toBeTruthy();
     });
 
     it('CA-07: se o nativo recusar a emergência, o app não abre', async () => {
@@ -574,7 +603,7 @@ describe('InterceptScreen', () => {
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
       await fireEvent.press(
-        screen.getByText('Preciso agora (respiração de 1 min)'),
+        screen.getByRole('button', { name: /Saída de emergência/ }),
       );
       await passar(60);
 
@@ -609,19 +638,19 @@ describe('InterceptScreen', () => {
       expect(screen.queryByText('O que você vai fazer agora?')).toBeNull();
       expect(usePausaNoturna).toHaveBeenCalledWith('uid-1', 1);
       expect(
-        screen.getByRole('button', { name: 'Liberar em 40s' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar em 0:40' }).props.accessibilityState?.disabled,
       ).toBe(true);
       await act(async () => {
         jest.advanceTimersByTime(39000);
       });
       expect(
-        screen.getByRole('button', { name: 'Liberar em 1s' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar em 0:01' }).props.accessibilityState?.disabled,
       ).toBe(true);
       await act(async () => {
         jest.advanceTimersByTime(1000);
       });
       expect(
-        screen.getByRole('button', { name: 'Liberar' }).props.accessibilityState?.disabled,
+        screen.getByRole('button', { name: 'Liberar 15 min' }).props.accessibilityState?.disabled,
       ).toBeFalsy();
     });
 
@@ -631,7 +660,7 @@ describe('InterceptScreen', () => {
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Ler um pouco em vez disso' }));
 
       expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
       expect(saldo.liberar).not.toHaveBeenCalled();
@@ -645,7 +674,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByTestId('loading-indicator')).toBeTruthy();
-      expect(screen.queryByTestId('pausa-intencao')).toBeNull();
+      expect(screen.queryByTestId('intercept-layout')).toBeNull();
     });
 
     it('CA-06: fora da janela a pausa mostra o texto padrão da HU-04, sem botão de alternativa', async () => {
@@ -657,7 +686,7 @@ describe('InterceptScreen', () => {
       await render(<InterceptScreen {...props} />);
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.getByText('Liberar em 20s')).toBeTruthy();
+      expect(screen.getByText('Liberar em 0:20')).toBeTruthy();
       expect(screen.queryByText('Ler um pouco')).toBeNull();
       expect(screen.queryByText('Você está perto do seu horário de dormir.')).toBeNull();
     });

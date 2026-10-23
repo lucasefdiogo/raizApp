@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SnapshotDia } from '../../domain/intercept';
-import { parseVisaoBloqueio } from '../../native/AccessibilityDetection';
+import { listarAppsInstalados, parseVisaoBloqueio } from '../../native/AccessibilityDetection';
 import { InterceptScreen, SessaoAtivaResumida } from './InterceptScreen';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 
@@ -95,17 +95,41 @@ export function InterceptRoot({
   estadoBloqueioJson,
 }: InterceptRootProps) {
   const { user, carregando } = useAuth();
+  // Nenhum extra traz o ícone hoje (só appLabel) — resolvido via o mesmo
+  // listarAppsInstalados() que já popula a BloqueioAppsScreen, em vez de
+  // criar um novo extra Kotlin só pra isso (HU-11, RN01).
+  const [appIconeBase64, setAppIconeBase64] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      let icone = '';
+      try {
+        const apps = await listarAppsInstalados();
+        icone = apps.find(app => app.packageName === packageName)?.iconeBase64 ?? '';
+      } catch {
+        icone = '';
+      }
+      if (ativo) {
+        setAppIconeBase64(icone);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [packageName]);
 
   return (
     <SafeAreaProvider>
       <ToastProvider>
-        {carregando || !user ? (
+        {carregando || !user || appIconeBase64 === null ? (
           <LoadingIndicator variant="fullscreen" />
         ) : (
           <InterceptScreen
             uid={user.uid}
             packageName={packageName}
             appLabel={appLabel}
+            appIconeBase64={appIconeBase64}
             snapshot={parseSnapshot(snapshotJson)}
             visaoInicial={parseVisaoBloqueio(estadoBloqueioJson)}
             sessaoAtivaResumida={parseSessaoAtiva(sessaoAtivaJson)}

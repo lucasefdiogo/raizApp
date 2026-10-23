@@ -8,7 +8,7 @@ jest.mock('../services/firestore');
 jest.mock('../services/crashlytics');
 
 const native = require('../native/AccessibilityDetection');
-const { registrarResumoBloqueioNoDia } = require('../services/firestore');
+const { registrarResumoBloqueioNoDia, buscarUsuario } = require('../services/firestore');
 const { registrarErro } = require('../services/crashlytics');
 
 function visao(
@@ -30,6 +30,7 @@ describe('useBloqueioSaldo', () => {
     jest.resetAllMocks();
     native.obterEstadoBloqueio.mockResolvedValue(visao());
     registrarResumoBloqueioNoDia.mockResolvedValue(undefined);
+    buscarUsuario.mockResolvedValue({});
   });
 
   it('CA-01: a primeira liberação do dia expõe pausa de 10 segundos', async () => {
@@ -128,6 +129,33 @@ describe('useBloqueioSaldo', () => {
       expect(result.current.acessoRapidoDisponivel).toBe(true);
       expect(result.current.esperaAcessoRapidoSeg).toBe(5);
       expect(result.current.acessosRapidosRestantes).toBe(3);
+    });
+
+    it('HU-11 RN09/Cenário 12: dentro da janela noturna, a espera do acesso rápido é de 30 segundos', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 9, 21, 23, 41));
+      buscarUsuario.mockResolvedValue({
+        rotina: {
+          dormirEstimado: '23:30',
+          acordarEstimado: '07:00',
+          confirmadoEm: '2026-10-20',
+        },
+      });
+      const v = base({ acessosRapidosRestantes: 3, msAteProximoAcessoRapido: 0 });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      await waitFor(() => expect(result.current.esperaAcessoRapidoSeg).toBe(30));
+      expect(result.current.dentroJanelaNoturna).toBe(true);
+
+      jest.useRealTimers();
+    });
+
+    it('HU-11 Cenário 9: sem rotina confirmada, a espera do acesso rápido continua em 5 segundos', async () => {
+      buscarUsuario.mockResolvedValue({});
+      const v = base({ acessosRapidosRestantes: 3, msAteProximoAcessoRapido: 0 });
+      const { result } = await renderHook(() => useBloqueioSaldo('uid-1', v));
+
+      await waitFor(() => expect(buscarUsuario).toHaveBeenCalled());
+      expect(result.current.esperaAcessoRapidoSeg).toBe(5);
     });
 
     it('CA-03: depois do 1º uso o hook expõe o tempo até o próximo acesso rápido', async () => {

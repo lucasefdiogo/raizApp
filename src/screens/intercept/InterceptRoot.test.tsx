@@ -1,6 +1,6 @@
 import React from 'react';
 import { BackHandler } from 'react-native';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import { InterceptRoot } from './InterceptRoot';
 
 // InterceptRoot monta o próprio SafeAreaProvider (é um root separado, sem
@@ -14,6 +14,10 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 jest.mock('../../hooks/useAuth');
+jest.mock('../../native/AccessibilityDetection', () => ({
+  ...jest.requireActual('../../native/AccessibilityDetection'),
+  listarAppsInstalados: jest.fn(),
+}));
 
 const mockCapturarProps = jest.fn();
 jest.mock('./InterceptScreen', () => ({
@@ -24,6 +28,7 @@ jest.mock('./InterceptScreen', () => ({
 }));
 
 const { useAuth } = require('../../hooks/useAuth');
+const { listarAppsInstalados } = require('../../native/AccessibilityDetection');
 
 const props = {
   packageName: 'com.instagram.android',
@@ -34,6 +39,10 @@ const props = {
 describe('InterceptRoot', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    listarAppsInstalados.mockResolvedValue([
+      { packageName: 'com.instagram.android', nome: 'Instagram', iconeBase64: 'icone-instagram' },
+      { packageName: 'com.whatsapp', nome: 'WhatsApp', iconeBase64: 'icone-whatsapp' },
+    ]);
   });
 
   it('enquanto o auth carrega: mostra o LoadingIndicator, sem montar a InterceptScreen', async () => {
@@ -55,15 +64,40 @@ describe('InterceptRoot', () => {
     useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
     await render(<InterceptRoot {...props} />);
 
-    expect(mockCapturarProps).toHaveBeenCalledWith(
-      expect.objectContaining({
-        uid: 'uid-teste',
-        packageName: 'com.instagram.android',
-        appLabel: 'Instagram',
-        snapshot: { tarefas: [] },
-        sessaoAtivaResumida: null,
-        visaoInicial: null,
-      }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({
+          uid: 'uid-teste',
+          packageName: 'com.instagram.android',
+          appLabel: 'Instagram',
+          snapshot: { tarefas: [] },
+          sessaoAtivaResumida: null,
+          visaoInicial: null,
+        }),
+      ),
+    );
+  });
+
+  it('HU-11 RN01: resolve o ícone do app interceptado via listarAppsInstalados', async () => {
+    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    await render(<InterceptRoot {...props} />);
+
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({ appIconeBase64: 'icone-instagram' }),
+      ),
+    );
+  });
+
+  it('app não encontrado na lista: resolve o ícone como string vazia, sem quebrar', async () => {
+    listarAppsInstalados.mockResolvedValue([]);
+    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    await render(<InterceptRoot {...props} />);
+
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({ appIconeBase64: '' }),
+      ),
     );
   });
 
@@ -71,8 +105,10 @@ describe('InterceptRoot', () => {
     useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
     await render(<InterceptRoot {...props} snapshotJson="{não é json}" />);
 
-    expect(mockCapturarProps).toHaveBeenCalledWith(
-      expect.objectContaining({ snapshot: { tarefas: [] } }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({ snapshot: { tarefas: [] } }),
+      ),
     );
   });
 
@@ -91,14 +127,16 @@ describe('InterceptRoot', () => {
       />,
     );
 
-    expect(mockCapturarProps).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessaoAtivaResumida: {
-          tarefaId: 'tarefa-1',
-          estadoTravado: 'confusao',
-          duracaoRestanteSeg: 42,
-        },
-      }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessaoAtivaResumida: {
+            tarefaId: 'tarefa-1',
+            estadoTravado: 'confusao',
+            duracaoRestanteSeg: 42,
+          },
+        }),
+      ),
     );
     jest.spyOn(Date, 'now').mockRestore();
   });
@@ -107,8 +145,10 @@ describe('InterceptRoot', () => {
     useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
     await render(<InterceptRoot {...props} sessaoAtivaJson="{também não}" />);
 
-    expect(mockCapturarProps).toHaveBeenCalledWith(
-      expect.objectContaining({ sessaoAtivaResumida: null }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenCalledWith(
+        expect.objectContaining({ sessaoAtivaResumida: null }),
+      ),
     );
   });
 
@@ -122,13 +162,17 @@ describe('InterceptRoot', () => {
     await render(
       <InterceptRoot {...props} estadoBloqueioJson={JSON.stringify(visao)} />,
     );
-    expect(mockCapturarProps).toHaveBeenLastCalledWith(
-      expect.objectContaining({ visaoInicial: visao }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ visaoInicial: visao }),
+      ),
     );
 
     await render(<InterceptRoot {...props} estadoBloqueioJson="{quebrado" />);
-    expect(mockCapturarProps).toHaveBeenLastCalledWith(
-      expect.objectContaining({ visaoInicial: null }),
+    await waitFor(() =>
+      expect(mockCapturarProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ visaoInicial: null }),
+      ),
     );
   });
 
@@ -137,6 +181,7 @@ describe('InterceptRoot', () => {
     const exitApp = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
     await render(<InterceptRoot {...props} />);
 
+    await waitFor(() => expect(mockCapturarProps).toHaveBeenCalled());
     const { onSair } = mockCapturarProps.mock.calls[0][0];
     onSair();
 

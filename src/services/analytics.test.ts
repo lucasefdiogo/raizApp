@@ -8,6 +8,7 @@ import {
   logInterceptShown,
   logMarcoStreakAtingido,
   logOnboardingConcluido,
+  logAlternativaNoturnaEscolhida,
   logAlternativaNoturnaRespondida,
   logPermissaoAccessibility,
   logPermissaoNotificacao,
@@ -15,6 +16,7 @@ import {
   logReflexaoSemanalFechada,
   logRotinaConfirmada,
   logRotinaRecalculoPedido,
+  logValvulaEscolhida,
   logTarefaConcluida,
   logTarefaCriada,
   logTourFuncionalidadesConcluido,
@@ -167,13 +169,13 @@ describe('services/analytics', () => {
     );
   });
 
-  it('logInterceptShown envia o estado da tela', () => {
-    logInterceptShown('A');
+  it('logInterceptShown envia o estado da tela e a janela noturna', () => {
+    logInterceptShown('A', true);
 
     expect(analyticsMock.logEvent).toHaveBeenCalledWith(
       expect.anything(),
       'intercept_shown',
-      { estado_tela: 'A' },
+      { estado_tela: 'A', janela_noturna: true },
     );
   });
 
@@ -262,6 +264,25 @@ describe('services/analytics', () => {
     expect(analyticsMock.logEvent).toHaveBeenCalledWith(
       expect.anything(),
       'rotina_recalculo_pedido',
+    );
+  });
+
+  it('HU-11 Cenário 19: logValvulaEscolhida envia tipo e janela_noturna, sem intenção/alternativa/horário', () => {
+    logValvulaEscolhida('acesso_rapido', true);
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'valvula_escolhida',
+      { tipo: 'acesso_rapido', janela_noturna: true },
+    );
+  });
+
+  it('HU-11 RN17: logAlternativaNoturnaEscolhida envia o evento sem parâmetros', () => {
+    logAlternativaNoturnaEscolhida();
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'alternativa_noturna_escolhida',
     );
   });
 });
