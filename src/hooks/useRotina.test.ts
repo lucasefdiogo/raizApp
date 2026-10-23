@@ -89,6 +89,7 @@ describe('useRotina', () => {
       'uid-1',
       ESTIMATIVA,
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}/),
+      false,
     );
     expect(result.current.mostrarConfirmacao).toBe(false);
     expect(result.current.perguntarAlternativa).toBe(true);
@@ -107,7 +108,31 @@ describe('useRotina', () => {
       'uid-1',
       ajustados,
       expect.any(String),
+      true,
     );
+  });
+
+  it('HU-10 RN06: confirmar sem ajuste atualiza o estado local com modoManual falso', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+    const { result } = await montar();
+
+    await act(async () => {
+      await result.current.confirmar();
+    });
+
+    expect(result.current.rotina?.modoManual).toBe(false);
+  });
+
+  it('HU-10 RN07: confirmar com ajuste atualiza o estado local com modoManual verdadeiro', async () => {
+    buscarUltimosDailyLogs.mockResolvedValue(logs(5));
+    const { result } = await montar();
+    const ajustados = { dormirEstimado: '22:30', acordarEstimado: '06:30' };
+
+    await act(async () => {
+      await result.current.confirmar(ajustados);
+    });
+
+    expect(result.current.rotina?.modoManual).toBe(true);
   });
 
   it('CA-02: falha ao gravar mostra toast sem exclamação e não avança', async () => {

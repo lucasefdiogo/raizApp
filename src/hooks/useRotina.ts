@@ -109,16 +109,22 @@ export function useRotina(uid: string): UseRotinaResultado {
 
   const confirmar = useCallback(
     async (horarios?: Horarios) => {
+      const ajustado = horarios !== undefined;
       const escolhidos = horarios ?? estimativa;
       if (!escolhidos) {
         return;
       }
       const confirmadoEm = paraISOLocal(new Date());
       const gravou = await executar('confirmar', () =>
-        confirmarRotina(uid, escolhidos, confirmadoEm),
+        confirmarRotina(uid, escolhidos, confirmadoEm, ajustado),
       );
       if (gravou) {
-        setRotina(atual => ({ ...atual, ...escolhidos, confirmadoEm }));
+        setRotina(atual => ({
+          ...atual,
+          ...escolhidos,
+          confirmadoEm,
+          modoManual: ajustado,
+        }));
         setPerguntarAlternativa(true);
       }
     },

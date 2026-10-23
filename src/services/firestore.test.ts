@@ -862,31 +862,44 @@ describe('services/firestore', () => {
   describe('rotina noturna (HU-06)', () => {
     const horarios = { dormirEstimado: '23:30', acordarEstimado: '07:00' };
 
-    it('CA-02: confirmar grava dormirEstimado, acordarEstimado e confirmadoEm', async () => {
+    it('CA-02: confirmar grava dormirEstimado, acordarEstimado, confirmadoEm e modoManual falso', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
-      await confirmarRotina('uid-1', horarios, '2026-10-20');
+      await confirmarRotina('uid-1', horarios, '2026-10-20', false);
 
       const usuario = await buscarUsuario('uid-1');
-      expect(usuario?.rotina).toEqual({ ...horarios, confirmadoEm: '2026-10-20' });
+      expect(usuario?.rotina).toEqual({
+        ...horarios,
+        confirmadoEm: '2026-10-20',
+        modoManual: false,
+      });
       expect(usuario?.email).toBe('a@a.com');
+    });
+
+    it('HU-10 RN06/RN07/Cenário 6: confirmar com ajuste grava modoManual verdadeiro', async () => {
+      await criarDocumentoUsuario('uid-1', 'a@a.com');
+      await confirmarRotina('uid-1', horarios, '2026-10-20', true);
+
+      const usuario = await buscarUsuario('uid-1');
+      expect(usuario?.rotina?.modoManual).toBe(true);
     });
 
     it('CA-03: salvar alternativa grava rotina.alternativaNoturna sem tocar nos demais campos', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
-      await confirmarRotina('uid-1', horarios, '2026-10-20');
+      await confirmarRotina('uid-1', horarios, '2026-10-20', false);
       await salvarAlternativaNoturna('uid-1', 'Ler um livro');
 
       const usuario = await buscarUsuario('uid-1');
       expect(usuario?.rotina).toEqual({
         ...horarios,
         confirmadoEm: '2026-10-20',
+        modoManual: false,
         alternativaNoturna: 'Ler um livro',
       });
     });
 
     it('CA-08: editar horário marca modoManual verdadeiro e recalcular limpa modoManual', async () => {
       await criarDocumentoUsuario('uid-1', 'a@a.com');
-      await confirmarRotina('uid-1', horarios, '2026-10-20');
+      await confirmarRotina('uid-1', horarios, '2026-10-20', false);
 
       await editarHorarioRotinaManual('uid-1', { dormirEstimado: '00:15' });
       let usuario = await buscarUsuario('uid-1');
