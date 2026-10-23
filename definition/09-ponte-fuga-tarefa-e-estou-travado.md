@@ -206,8 +206,13 @@ exatamente como nas seções 3 e 4 (sequência normal, texto padrão).
 Editar `rotina.dormirEstimado` ou `rotina.acordarEstimado` no Perfil marca
 `rotina.modoManual` como verdadeiro — a partir daí a estimativa automática não roda
 mais; os horários só mudam por nova edição manual, até a opção "Recalcular
-automaticamente" no Perfil, que limpa `rotina.modoManual` e permite uma nova
-estimativa.
+automaticamente" no Perfil, que limpa `rotina.modoManual` (HU-10, RN15). Essa opção não
+troca os horários na hora: a estimativa atual (se já houver uma) substitui
+`dormirEstimado`/`acordarEstimado` uma única vez, na abertura seguinte do app, mantendo
+`confirmadoEm` — não é uma reestimativa contínua a cada dia. Fora desse momento logo
+após "Recalcular automaticamente", a estimativa automática nunca altera uma rotina já
+confirmada (resolve a ambiguidade com "a estimativa em si só muda por reconfirmação
+manual", acima).
 
 ### Privacidade
 

@@ -89,6 +89,7 @@ caminho, com tela de configuração própria.
 | Detecção via Accessibility Service (único caminho: `regrasBloqueio` → `InterceptActivity`) | ✅ |
 | Tela de configuração (`BloqueioAppsScreen`: status, apps, janela única, resumo) | ✅ |
 | HU-09 · Configuração legível: seções com eyebrow (Status/Quando/Apps/Sessões/Rotina noturna), banner de pendência honesto, resumo do bloqueio e da rotina no Perfil | ✅ (`docs/hu/hu-09-bloqueio-config.md`) |
+| HU-10 · Rotina noturna: confirmação única com janela ao vivo e validação (RN08), alternativa noturna com chips, adiar pro dia seguinte (RN09), `RotinaPerfilScreen` com selo AUTOMÁTICO/AJUSTADO À MÃO e Salvar único, espelho nativo de `rotina` em SharedPreferences (RN16) | ✅ (`docs/hu/hu-10-rotina-noturna.md`) — espelho só grava; consumo pela interceptação (pausa dobrada/janela noturna lendo o espelho nativo) fica para a HU-11. **Kotlin (`BloqueioPrefs.salvarRotina`) não compilado/testado em device** — confirmar com `npx react-native run-android` no terminal WSL |
 | Lista de apps via `<queries>` (MAIN/LAUNCHER), sem `QUERY_ALL_PACKAGES` | ✅ |
 | Regra de pré-compromisso única (1ª config imediata, qualquer alteração depois vale amanhã, sem distinguir afrouxar/endurecer) | ✅ domain testado; promoção pendente→vigente roda no nativo (app fechado) e sincroniza no Firestore na próxima abertura |
 | Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/C) | ✅ (spec 09) |
