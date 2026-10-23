@@ -51,6 +51,7 @@ export function PerfilStack({ uid }: PerfilStackProps) {
             aoTocarAtivar={() => navigation.navigate('DivulgacaoAcessibilidade')}
             aoTocarSaibaOQueE={() => navigation.navigate('DivulgacaoAcessibilidade')}
             aoTocarMedirTempo={() => navigation.navigate('DivulgacaoAcessoUso')}
+            aoAbrirRotina={() => navigation.navigate('RotinaPerfil')}
             onVoltar={() => navigation.goBack()}
           />
         )}

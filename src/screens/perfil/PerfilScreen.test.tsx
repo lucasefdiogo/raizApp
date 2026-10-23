@@ -13,11 +13,19 @@ jest.mock('../../hooks/useAuth');
 jest.mock('../../hooks/useAccountDeletion');
 jest.mock('../../hooks/useVoltarParaAbaHoje');
 jest.mock('../../hooks/useFeatureTour');
+jest.mock('../../hooks/useAccessibilityPermission');
+jest.mock('../../hooks/useRegrasBloqueio');
+jest.mock('../../hooks/useRotina');
+jest.mock('../../hooks/useAcessoUso');
 
 const { usePerfil } = require('../../hooks/usePerfil');
 const { useAuth } = require('../../hooks/useAuth');
 const { useAccountDeletion } = require('../../hooks/useAccountDeletion');
 const { useFeatureTour } = require('../../hooks/useFeatureTour');
+const { useAccessibilityPermission } = require('../../hooks/useAccessibilityPermission');
+const { useRegrasBloqueio } = require('../../hooks/useRegrasBloqueio');
+const { useRotina } = require('../../hooks/useRotina');
+const { useAcessoUso } = require('../../hooks/useAcessoUso');
 
 function configurarPerfilPadrao(sobrescritas = {}) {
   usePerfil.mockReturnValue({
@@ -67,17 +75,106 @@ describe('PerfilScreen', () => {
       pular: jest.fn(),
       reiniciar: jest.fn(),
     });
+    useAccessibilityPermission.mockReturnValue({ ativo: true, carregando: false });
+    useRegrasBloqueio.mockReturnValue({
+      carregando: false,
+      appsInstalados: [],
+      regrasVigentes: undefined,
+      regrasPendentes: null,
+      salvar: jest.fn(),
+      cancelarAlteracaoPendente: jest.fn(),
+    });
+    useRotina.mockReturnValue({ carregando: false, rotina: null, diasComDados: 0 });
+    useAcessoUso.mockReturnValue({ concedido: true, carregando: false });
   });
 
-  it('"Configurar bloqueio de apps" chama aoAbrirBloqueioApps ao tocar', async () => {
+  it('linha "Bloqueio de apps" chama aoAbrirBloqueioApps ao tocar', async () => {
     const aoAbrirBloqueioApps = jest.fn();
     await render(
       <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={aoAbrirBloqueioApps} />,
     );
 
-    await fireEvent.press(screen.getByText('Configurar bloqueio de apps'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Bloqueio de apps' }));
 
     expect(aoAbrirBloqueioApps).toHaveBeenCalledTimes(1);
+  });
+
+  it('HU-09 Cenário 14: serviço ativo com regra vigente mostra "Ativo · {resumoCurtoBloqueio}"', async () => {
+    useAccessibilityPermission.mockReturnValue({ ativo: true, carregando: false });
+    useRegrasBloqueio.mockReturnValue({
+      carregando: false,
+      appsInstalados: [],
+      regrasVigentes: {
+        apps: ['a', 'b', 'c', 'd', 'e'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+      },
+      regrasPendentes: null,
+      salvar: jest.fn(),
+      cancelarAlteracaoPendente: jest.fn(),
+    });
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    expect(screen.getByText('Ativo · 5 apps · seg a sex · 09:00–18:00')).toBeTruthy();
+  });
+
+  it('HU-09 RN15: serviço desativado com regra vigente mostra só "Desativado"', async () => {
+    useAccessibilityPermission.mockReturnValue({ ativo: false, carregando: false });
+    useRegrasBloqueio.mockReturnValue({
+      carregando: false,
+      appsInstalados: [],
+      regrasVigentes: { apps: ['a'], janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1] }] },
+      regrasPendentes: null,
+      salvar: jest.fn(),
+      cancelarAlteracaoPendente: jest.fn(),
+    });
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    expect(screen.getByText('Desativado')).toBeTruthy();
+  });
+
+  it('HU-09 Cenário 15: nunca configurado mostra "Não configurado"', async () => {
+    useRegrasBloqueio.mockReturnValue({
+      carregando: false,
+      appsInstalados: [],
+      regrasVigentes: undefined,
+      regrasPendentes: null,
+      salvar: jest.fn(),
+      cancelarAlteracaoPendente: jest.fn(),
+    });
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    expect(screen.getByText('Não configurado')).toBeTruthy();
+  });
+
+  it('HU-09 Cenário 16: rotina confirmada mostra a forma curta e abre a Rotina noturna ao tocar', async () => {
+    useRotina.mockReturnValue({
+      carregando: false,
+      rotina: { dormirEstimado: '23:30', acordarEstimado: '07:00', confirmadoEm: '2026-10-15' },
+      diasComDados: 14,
+    });
+    const aoAbrirRotina = jest.fn();
+    await render(
+      <PerfilScreen
+        uid="uid-teste"
+        aoAbrirBloqueioApps={jest.fn()}
+        aoAbrirRotina={aoAbrirRotina}
+      />,
+    );
+
+    expect(screen.getByText('23:30 – 07:00')).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Rotina noturna' }));
+
+    expect(aoAbrirRotina).toHaveBeenCalledTimes(1);
+  });
+
+  it('HU-09 Cenário 17: sem acesso de uso mostra "Precisa medir o tempo nas redes"', async () => {
+    useAcessoUso.mockReturnValue({ concedido: false, carregando: false });
+    await render(
+      <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} aoAbrirRotina={jest.fn()} />,
+    );
+
+    expect(screen.getByText('Precisa medir o tempo nas redes')).toBeTruthy();
   });
 
   it('mostra a linha "Rotina noturna" que chama aoAbrirRotina ao tocar', async () => {
@@ -101,14 +198,34 @@ describe('PerfilScreen', () => {
     expect(screen.queryByRole('button', { name: 'Rotina noturna' })).toBeNull();
   });
 
-  it('mostra o porquê atual carregado de usePerfil', async () => {
+  it('HU-09 RN14: com porquê cadastrado, mostra a citação e "Editar", sem o campo direto', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
+    expect(screen.getByText('Terminar meus estudos')).toBeTruthy();
+    expect(screen.getByText('Editar')).toBeTruthy();
+    expect(screen.queryByLabelText('Por que você quer estar aqui')).toBeNull();
+  });
+
+  it('HU-09 RN14: sem porquê cadastrado, o campo aparece direto, sem citação nem "Editar"', async () => {
+    configurarPerfilPadrao({ porqueTexto: '' });
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    expect(screen.getByLabelText('Por que você quer estar aqui')).toBeTruthy();
+    expect(screen.queryByText('Editar')).toBeNull();
+  });
+
+  it('HU-09 RN14: "Editar" mostra o campo preenchido com o texto atual e o botão Salvar', async () => {
+    await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+    await fireEvent.press(screen.getByText('Editar'));
+
     expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy();
+    expect(screen.getByText('Salvar')).toBeTruthy();
   });
 
   it('o campo do porquê é multilinha e alto (mesmo padrão do onboarding)', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Editar'));
 
     const campo = screen.getByLabelText('Por que você quer estar aqui');
     const estilo = StyleSheet.flatten(campo.props.style) ?? {};
@@ -118,6 +235,7 @@ describe('PerfilScreen', () => {
 
   it('o botão Salvar não fica dentro de um container flex-row (que o encolheria)', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Editar'));
 
     // sobe do texto até o conteúdo da tela conferindo que nenhum ancestral
     // próximo é flex-row — foi isso que colapsava o botão pra ~130px.
@@ -134,6 +252,7 @@ describe('PerfilScreen', () => {
     configurarPerfilPadrao({ salvarPorque });
 
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Editar'));
 
     await fireEvent.changeText(
       screen.getByDisplayValue('Terminar meus estudos'),
@@ -149,6 +268,7 @@ describe('PerfilScreen', () => {
 
   it('mostra "Salvo" depois de salvar o porquê', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Editar'));
 
     expect(screen.queryByText('Salvo')).toBeNull();
 
@@ -163,20 +283,21 @@ describe('PerfilScreen', () => {
     });
 
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Editar'));
     await fireEvent.press(screen.getByText('Salvar'));
 
     await waitFor(() => expect(screen.getByText('Salvar')).toBeTruthy());
     expect(screen.queryByText('Salvo')).toBeNull();
   });
 
-  it('seletor de horário não aparece com notificações desativadas', async () => {
+  it('HU-09 RN17: notificações desativadas não mostram horário nem seletor', async () => {
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
-    expect(screen.queryByText('Alterar horário')).toBeNull();
+    expect(screen.queryByText('08:00')).toBeNull();
     expect(screen.queryByTestId('datetimepicker-mock')).toBeNull();
   });
 
-  it('seletor de horário aparece só depois de ativar as notificações e tocar em Alterar horário', async () => {
+  it('HU-09 RN17: ativas, mostra o horário como subtítulo e tocar na linha abre o seletor', async () => {
     configurarPerfilPadrao({
       notificacoesAtivas: true,
       horarioLembreteDiario: '08:00',
@@ -184,10 +305,10 @@ describe('PerfilScreen', () => {
 
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
-    expect(screen.getByText('Horário: 08:00')).toBeTruthy();
+    expect(screen.getByText('08:00')).toBeTruthy();
     expect(screen.queryByTestId('datetimepicker-mock')).toBeNull();
 
-    await fireEvent.press(screen.getByText('Alterar horário'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Lembrete diário' }));
 
     expect(screen.getByTestId('datetimepicker-mock')).toBeTruthy();
   });
@@ -201,7 +322,7 @@ describe('PerfilScreen', () => {
     });
 
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
-    await fireEvent.press(screen.getByText('Alterar horário'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Lembrete diário' }));
     await fireEvent.press(screen.getByTestId('datetimepicker-mock'));
 
     expect(alterarHorario).toHaveBeenCalledTimes(1);
@@ -290,14 +411,12 @@ describe('PerfilScreen', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
     expect(screen.queryByText('Seu porquê')).toBeNull();
-    expect(screen.queryByDisplayValue('Terminar meus estudos')).toBeNull();
+    expect(screen.queryByText('Terminar meus estudos')).toBeNull();
 
     configurarPerfilPadrao({ carregando: false });
     rerender(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
-    await waitFor(() =>
-      expect(screen.getByDisplayValue('Terminar meus estudos')).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText('Terminar meus estudos')).toBeTruthy());
     expect(screen.queryByTestId('loading-indicator')).toBeNull();
   });
 
@@ -313,17 +432,16 @@ describe('PerfilScreen', () => {
       expect(screen.getByText('Excluir sua conta')).toBeTruthy();
     });
 
-    it('o botão "Excluir conta" é sóbrio — nem Cobre nem cor de erro/alerta', async () => {
+    it('HU-09 RN18/Cenário 18: "Excluir conta" é um link neutro, sublinhado — nem Cobre nem cor de erro/alerta', async () => {
       await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
 
       const botao = screen.getByText('Excluir conta');
       const estiloTexto = StyleSheet.flatten(botao.props.style);
-      const estiloContainer = StyleSheet.flatten(botao.parent!.props.style);
 
       expect(estiloTexto.color).toBe(theme.colors.terraSuave);
-      expect(estiloContainer.borderColor).toBe(theme.colors.terraSuave);
+      expect(estiloTexto.textDecorationLine).toBe('underline');
       expect(estiloTexto.color).not.toBe(theme.colors.erro);
-      expect(estiloContainer.borderColor).not.toBe(theme.colors.erro);
+      expect(estiloTexto.color).not.toBe(theme.colors.cobre);
     });
 
     it('confirmar no modal chama excluirConta do hook', async () => {

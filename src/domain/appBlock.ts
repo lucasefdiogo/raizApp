@@ -89,6 +89,41 @@ function resumoJanela(janela: JanelaBloqueio): string {
   return `${formatarDiasSemana(janela.diasSemana)} das ${janela.inicio} às ${janela.fim}`;
 }
 
+/** Dias abreviados pro resumo curto (RN10): intervalo contínuo vira "seg a sex". */
+function formatarDiasResumoCurto(diasSemana: number[]): string {
+  if (diasSemana.length === 7) {
+    return 'todos os dias';
+  }
+  const ordenados = [...diasSemana].sort((a, b) => a - b);
+  if (ordenados.length === 1) {
+    return NOMES_DIAS_SEMANA[ordenados[0]];
+  }
+  const continuo = ordenados.every(
+    (dia, indice) => indice === 0 || dia === ordenados[indice - 1] + 1,
+  );
+  if (continuo) {
+    return `${NOMES_DIAS_SEMANA[ordenados[0]]} a ${NOMES_DIAS_SEMANA[ordenados[ordenados.length - 1]]}`;
+  }
+  return ordenados.map(dia => NOMES_DIAS_SEMANA[dia]).join(', ');
+}
+
+/** Texto curto pro banner de pendência e pro aviso de alteração (RN10). */
+export function resumoCurtoBloqueio(regras: RegrasBloqueio): string {
+  if (regras.apps.length === 0) {
+    return 'Nenhum app bloqueado.';
+  }
+
+  const quantidade = regras.apps.length;
+  const textoApps = quantidade === 1 ? '1 app' : `${quantidade} apps`;
+  const janela = regras.janelas[0];
+
+  if (!janela) {
+    return textoApps;
+  }
+
+  return `${textoApps} · ${formatarDiasResumoCurto(janela.diasSemana)} · ${janela.inicio}–${janela.fim}`;
+}
+
 /** Texto curto pra tela de configuração e pro aviso de alteração pendente. */
 export function resumoRegrasBloqueio(regras: RegrasBloqueio): string {
   if (regras.apps.length === 0) {

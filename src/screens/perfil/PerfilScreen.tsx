@@ -4,14 +4,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { Bell, Lock, Moon } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { usePerfil } from '../../hooks/usePerfil';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccountDeletion } from '../../hooks/useAccountDeletion';
 import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
 import { useFeatureTour } from '../../hooks/useFeatureTour';
+import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
+import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
+import { useRotina } from '../../hooks/useRotina';
+import { useAcessoUso } from '../../hooks/useAcessoUso';
+import { resumoCurtoBloqueio } from '../../domain/appBlock';
+import { resumoRotina } from '../../domain/rotina';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { LinkExterno } from '../../components/common/LinkExterno';
 import { ConfirmDeleteAccountModal } from '../../components/perfil/ConfirmDeleteAccountModal';
@@ -75,11 +83,16 @@ export function PerfilScreen({
     carregando: exclusaoCarregando,
     erro: exclusaoErro,
   } = useAccountDeletion();
+  const { ativo: servicoAtivo } = useAccessibilityPermission();
+  const { regrasVigentes } = useRegrasBloqueio(uid);
+  const { rotina, diasComDados } = useRotina(uid);
+  const { concedido: acessoUsoConcedido } = useAcessoUso();
 
   const [textoPorque, setTextoPorque] = useState('');
   const [salvoVisivel, setSalvoVisivel] = useState(false);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
+  const [editandoPorque, setEditandoPorque] = useState(false);
 
   useEffect(() => {
     setTextoPorque(porqueTexto);
@@ -102,6 +115,18 @@ export function PerfilScreen({
       setSalvoVisivel(true);
     }
   };
+
+  // Sem porquê cadastrado, o campo aparece direto (RN14) — não há citação
+  // vazia pra editar.
+  const mostrarCampoPorque = editandoPorque || !porqueTexto;
+
+  const textoBloqueio = !regrasVigentes
+    ? 'Não configurado'
+    : servicoAtivo
+      ? `Ativo · ${resumoCurtoBloqueio(regrasVigentes)}`
+      : 'Desativado';
+
+  const textoRotinaCurta = resumoRotina(rotina, diasComDados, acessoUsoConcedido, 'curta');
 
   const handleAlterarHorario = (evento: DateTimePickerEvent, data?: Date) => {
     setSeletorAberto(false);
@@ -129,39 +154,88 @@ export function PerfilScreen({
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
         <Text style={styles.secaoTitulo}>Seu porquê</Text>
-        <TextField
-          label="Por que você quer estar aqui"
-          value={textoPorque}
-          onChangeText={setTextoPorque}
-          multiline
-        />
-        <PrimaryButton titulo="Salvar" onPress={handleSalvarPorque} />
-        {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
+        {mostrarCampoPorque ? (
+          <>
+            <TextField
+              label="Por que você quer estar aqui"
+              value={textoPorque}
+              onChangeText={setTextoPorque}
+              multiline
+            />
+            <PrimaryButton titulo="Salvar" onPress={handleSalvarPorque} />
+            {salvoVisivel && <Text style={styles.feedbackSalvo}>Salvo</Text>}
+          </>
+        ) : (
+          <View style={styles.citacao}>
+            <View style={styles.citacaoBarra} />
+            <View style={styles.citacaoConteudo}>
+              <Text style={styles.citacaoTexto}>{porqueTexto}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setEditandoPorque(true)}
+                hitSlop={8}
+                style={styles.linkToque}
+              >
+                <Text style={styles.link}>Editar</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
-        <Text style={styles.secaoTitulo}>Notificações</Text>
-        <View style={styles.linhaToggle}>
-          <Text style={styles.rotulo}>Lembrete diário</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Bloqueio de apps"
+          onPress={aoAbrirBloqueioApps}
+          hitSlop={8}
+          style={styles.linhaNav}
+        >
+          <Lock size={18} color={theme.colors.textSecondary} />
+          <View style={styles.linhaNavTextos}>
+            <Text style={styles.linhaNavTitulo}>Bloqueio de apps</Text>
+            <Text style={styles.linhaNavSubtitulo}>{textoBloqueio}</Text>
+          </View>
+        </Pressable>
+
+        {aoAbrirRotina && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Rotina noturna"
+            onPress={aoAbrirRotina}
+            hitSlop={8}
+            style={styles.linhaNav}
+          >
+            <Moon size={18} color={theme.colors.textSecondary} />
+            <View style={styles.linhaNavTextos}>
+              <Text style={styles.linhaNavTitulo}>Rotina noturna</Text>
+              <Text style={styles.linhaNavSubtitulo}>{textoRotinaCurta}</Text>
+            </View>
+          </Pressable>
+        )}
+
+        <View style={styles.linhaNavComToggle}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Lembrete diário"
+            onPress={() => notificacoesAtivas && setSeletorAberto(true)}
+            hitSlop={8}
+            style={styles.linhaNavToque}
+          >
+            <Bell size={18} color={theme.colors.textSecondary} />
+            <View style={styles.linhaNavTextos}>
+              <Text style={styles.linhaNavTitulo}>Lembrete diário</Text>
+              {notificacoesAtivas && (
+                <Text style={styles.linhaNavSubtitulo}>
+                  {horarioLembreteDiario ?? 'não definido'}
+                </Text>
+              )}
+            </View>
+          </Pressable>
           <Switch
             value={notificacoesAtivas}
             onValueChange={alternarNotificacoes}
             trackColor={{ false: theme.colors.border, true: theme.colors.cobre }}
           />
         </View>
-        {notificacoesAtivas && (
-          <View style={styles.linhaHorario}>
-            <Text style={styles.rotulo}>
-              Horário: {horarioLembreteDiario ?? 'não definido'}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setSeletorAberto(true)}
-              hitSlop={8}
-              style={styles.linkToque}
-            >
-              <Text style={styles.link}>Alterar horário</Text>
-            </Pressable>
-          </View>
-        )}
         {seletorAberto && (
           <DateTimePicker
             value={horarioParaDate(horarioLembreteDiario)}
@@ -169,31 +243,6 @@ export function PerfilScreen({
             is24Hour
             onChange={handleAlterarHorario}
           />
-        )}
-
-        <Text style={styles.secaoTitulo}>Bloqueio de apps</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={aoAbrirBloqueioApps}
-          hitSlop={8}
-          style={styles.linkToque}
-        >
-          <Text style={styles.link}>Configurar bloqueio de apps</Text>
-        </Pressable>
-
-        {aoAbrirRotina && (
-          <>
-            <Text style={styles.secaoTitulo}>Rotina</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Rotina noturna"
-              onPress={aoAbrirRotina}
-              hitSlop={8}
-              style={styles.linkToque}
-            >
-              <Text style={styles.link}>Rotina noturna</Text>
-            </Pressable>
-          </>
         )}
 
         <Text style={styles.secaoTitulo}>Sobre</Text>
@@ -212,15 +261,14 @@ export function PerfilScreen({
           {ROTULO_TERMOS_DE_USO}
         </LinkExterno>
 
-        <Text style={styles.secaoTitulo}>Sair</Text>
-        <PrimaryButton titulo="Sair" onPress={signOut} />
+        <SecondaryButton titulo="Sair" onPress={signOut} />
 
         <View style={styles.zonaExclusao}>
           <Pressable
             accessibilityRole="button"
             onPress={() => setConfirmacaoAberta(true)}
-            style={styles.botaoExcluirConta}
             hitSlop={8}
+            style={styles.linkToque}
           >
             <Text style={styles.textoExcluirConta}>Excluir conta</Text>
           </Pressable>
@@ -278,20 +326,61 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.musgo,
   },
-  linhaToggle: {
+  // Citação do porquê (RN14) — Zilla itálico, barra Musgo à esquerda,
+  // mesmo princípio de destaque das citações no resto do app (principio 5
+  // do CLAUDE.md: o porquê pessoal merece reaparecer).
+  citacao: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
   },
-  linhaHorario: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  citacaoBarra: {
+    width: 3,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.musgo,
   },
-  rotulo: {
+  citacaoConteudo: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
+  citacaoTexto: {
     fontSize: theme.typography.fontSize.md,
-    fontFamily: theme.typography.fontFamily.body,
+    fontFamily: theme.typography.fontFamily.heading,
+    fontStyle: 'italic',
     color: theme.colors.textPrimary,
+  },
+  // Linhas de navegação com o estado atual em uma linha (RN15/RN16) — dá
+  // pra saber se o bloqueio está ativo sem entrar na tela.
+  linhaNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+  },
+  linhaNavComToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.sm,
+  },
+  linhaNavToque: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  linhaNavTextos: {
+    flex: 1,
+    gap: 2,
+  },
+  linhaNavTitulo: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textPrimary,
+  },
+  linhaNavSubtitulo: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
   linkToque: {
     paddingVertical: theme.spacing.sm,
@@ -311,23 +400,16 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.colors.border,
     gap: theme.spacing.xs,
+    alignItems: 'center',
   },
-  // Sóbrio de propósito (ver 02-identidade-visual.md) — mesmo tratamento
-  // neutro do SecondaryButton (Terra Suave), nem Cobre (destaque de CTA)
-  // nem a cor de erro/alerta. É uma ação real, mas não precisa competir
-  // visualmente nem soar punitiva (princípio 3 do CLAUDE.md).
-  botaoExcluirConta: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: theme.colors.terraSuave,
-    borderRadius: theme.radius.sm,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-  },
+  // Link neutro centralizado (RN18) — nem Cobre (destaque de CTA) nem cor
+  // de erro/alerta. É uma ação real, mas não precisa competir visualmente
+  // nem soar punitiva (princípio 3 do CLAUDE.md).
   textoExcluirConta: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.terraSuave,
+    textDecorationLine: 'underline',
   },
   avisoExclusao: {
     fontSize: theme.typography.fontSize.xs,

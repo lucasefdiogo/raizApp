@@ -315,15 +315,25 @@ atual (teto 120s) e troca o texto padrão por uma mensagem rotativa do banco `no
 o acesso rápido espera 30s em vez de 5 e mostra a mesma mensagem/botão — cota e
 intervalos do acesso rápido não mudam. Fora da janela, tudo segue padrão.
 
-**Onde se ajusta:** Perfil → seção "Rotina" → "Rotina noturna" (`RotinaPerfilScreen`),
-uma tela própria — não fica dentro de "Bloqueio de apps". Enquanto `rotina` não existe
-no documento do usuário (só é gravada ao confirmar a estimativa), a tela mostra um
-texto fixo, sem indicador de progresso da coleta: "A rotina aparece aqui depois de
-alguns dias de uso. Não precisa fazer nada por enquanto." Com rotina, a tela permite
-editar dormir/acordar e a alternativa noturna. Editar os horários manualmente liga
+**Onde se ajusta:** Perfil → "Rotina noturna" (`RotinaPerfilScreen`), uma rota só —
+não fica dentro de "Bloqueio de apps". Enquanto `rotina` não existe no documento do
+usuário (só é gravada ao confirmar a estimativa), a tela mostra um texto fixo, sem
+indicador de progresso da coleta: "A rotina aparece aqui depois de alguns dias de
+uso. Não precisa fazer nada por enquanto." Com rotina, a tela permite editar
+dormir/acordar e a alternativa noturna. Editar os horários manualmente liga
 `rotina.modoManual`, que pausa a reestimativa automática. "Recalcular automaticamente"
 (visível só com `modoManual` ligado) apenas grava `rotina.modoManual: false` — não
 regrava os horários na hora.
+
+**Resumo no Bloqueio de apps e no Perfil (HU-09):** `domain/rotina.ts` expõe
+`resumoRotina(rotina, diasComDados, acessoUso, forma)`, só leitura, em ordem de
+prioridade — rotina confirmada ("Dormir {dormir} · Acordar {acordar}" na forma longa,
+"{dormir} – {acordar}" na forma curta); sem acesso de uso ("Precisa medir o tempo nas
+redes"); menos de 5 dias com dados ("Aprendendo seu horário · {n} de 5 dias"); 5+ dias
+sem confirmação ("Pronta para confirmar"). A seção ROTINA NOTURNA de
+`BloqueioAppsScreen` usa a forma longa (+ link "Editar" pra `RotinaPerfilScreen`); a
+linha "Rotina noturna" de `PerfilScreen` usa a forma curta. Nenhuma das duas edita a
+rotina — isso só acontece na `RotinaPerfilScreen`.
 
 Detalhe completo (regras RN e critérios de aceite) em
 `09-ponte-fuga-tarefa-e-estou-travado.md`, seções 3 a 5.

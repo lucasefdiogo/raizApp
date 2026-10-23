@@ -5,6 +5,7 @@ import {
   janelaBloqueioValida,
   limparAppsForaDaListaCurada,
   mesmasRegrasBloqueio,
+  resumoCurtoBloqueio,
   resumoRegrasBloqueio,
 } from './appBlock';
 import { RegrasBloqueio, RegrasBloqueioPendentes } from './types';
@@ -152,6 +153,70 @@ describe('resumoRegrasBloqueio', () => {
     expect(
       resumoRegrasBloqueio({ apps: ['com.instagram.android'], janelas: [] }),
     ).toBe('1 app selecionado, sem janela de horário definida.');
+  });
+});
+
+describe('resumoCurtoBloqueio', () => {
+  it('HU-09 RN10: nenhum app bloqueado', () => {
+    expect(resumoCurtoBloqueio({ apps: [], janelas: [] })).toBe('Nenhum app bloqueado.');
+  });
+
+  it('HU-09 RN10: um app vira "1 app"', () => {
+    expect(
+      resumoCurtoBloqueio({
+        apps: ['com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+      }),
+    ).toBe('1 app · seg a sex · 09:00–18:00');
+  });
+
+  it('HU-09 RN10: intervalo contínuo de dias vira "seg a sex"', () => {
+    expect(
+      resumoCurtoBloqueio({
+        apps: ['com.instagram.android', 'com.whatsapp', 'com.zhiliaoapp.musically', 'com.a', 'com.b'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+      }),
+    ).toBe('5 apps · seg a sex · 09:00–18:00');
+  });
+
+  it('HU-09 RN10: todos os 7 dias vira "todos os dias"', () => {
+    expect(
+      resumoCurtoBloqueio({
+        apps: ['com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [0, 1, 2, 3, 4, 5, 6] }],
+      }),
+    ).toBe('1 app · todos os dias · 09:00–18:00');
+  });
+
+  it('HU-09 RN10: dias soltos ficam separados por vírgula', () => {
+    expect(
+      resumoCurtoBloqueio({
+        apps: ['com.instagram.android', 'com.whatsapp'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 3, 5] }],
+      }),
+    ).toBe('2 apps · seg, qua, sex · 09:00–18:00');
+  });
+
+  it('HU-09 RN10: um único dia selecionado não usa "a"', () => {
+    expect(
+      resumoCurtoBloqueio({
+        apps: ['com.instagram.android'],
+        janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [0] }],
+      }),
+    ).toBe('1 app · dom · 09:00–18:00');
+  });
+
+  it('HU-09 Cenário 10: muda de 5 apps/09:00–18:00 para 4 apps/09:00–20:00', () => {
+    const vigente: RegrasBloqueio = {
+      apps: ['a', 'b', 'c', 'd', 'e'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+    const novo: RegrasBloqueio = {
+      apps: ['a', 'b', 'c', 'd'],
+      janelas: [{ inicio: '09:00', fim: '20:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+    expect(resumoCurtoBloqueio(vigente)).toBe('5 apps · seg a sex · 09:00–18:00');
+    expect(resumoCurtoBloqueio(novo)).toBe('4 apps · seg a sex · 09:00–20:00');
   });
 });
 

@@ -25,6 +25,8 @@ interface UseRotinaResultado {
   carregando: boolean;
   rotina: Rotina | null;
   estimativa: Horarios | null;
+  /** Dias (dos últimos DIAS_LIDOS) com os dois horários coletados — usado por resumoRotina (RN11). */
+  diasComDados: number;
   mostrarConfirmacao: boolean;
   perguntarAlternativa: boolean;
   confirmar: (horarios?: Horarios) => Promise<void>;
@@ -82,6 +84,11 @@ export function useRotina(uid: string): UseRotinaResultado {
   const estimativa = useMemo(
     () => estimarRotina(dias, rotina?.modoManual ?? false),
     [dias, rotina?.modoManual],
+  );
+
+  const diasComDados = useMemo(
+    () => dias.filter(d => d.primeiroUsoDia && d.ultimoUsoAntesPausaLonga).length,
+    [dias],
   );
 
   const mostrarConfirmacao = estimativa !== null && !rotina?.confirmadoEm;
@@ -164,6 +171,7 @@ export function useRotina(uid: string): UseRotinaResultado {
     carregando,
     rotina,
     estimativa,
+    diasComDados,
     mostrarConfirmacao,
     perguntarAlternativa,
     confirmar,

@@ -88,6 +88,7 @@ caminho, com tela de configuração própria.
 |---|---|
 | Detecção via Accessibility Service (único caminho: `regrasBloqueio` → `InterceptActivity`) | ✅ |
 | Tela de configuração (`BloqueioAppsScreen`: status, apps, janela única, resumo) | ✅ |
+| HU-09 · Configuração legível: seções com eyebrow (Status/Quando/Apps/Sessões/Rotina noturna), banner de pendência honesto, resumo do bloqueio e da rotina no Perfil | ✅ (`docs/hu/hu-09-bloqueio-config.md`) |
 | Lista de apps via `<queries>` (MAIN/LAUNCHER), sem `QUERY_ALL_PACKAGES` | ✅ |
 | Regra de pré-compromisso única (1ª config imediata, qualquer alteração depois vale amanhã, sem distinguir afrouxar/endurecer) | ✅ domain testado; promoção pendente→vigente roda no nativo (app fechado) e sincroniza no Firestore na próxima abertura |
 | Desbloqueio por tarefa essencial cumprida / sessão de foco (InterceptScreen estados A/C) | ✅ (spec 09) |

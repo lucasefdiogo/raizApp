@@ -4,21 +4,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { Info } from 'lucide-react-native';
+import { Info, Moon } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { useRegrasBloqueio } from '../../hooks/useRegrasBloqueio';
 import { useAccessibilityPermission } from '../../hooks/useAccessibilityPermission';
 import { useAcessoUso } from '../../hooks/useAcessoUso';
+import { useRotina } from '../../hooks/useRotina';
 import { useToast } from '../../hooks/useToast';
 import { useVoltarFisico } from '../../hooks/useVoltarFisico';
 import {
   decidirGravacaoRegrasBloqueio,
   janelaBloqueioValida,
   mesmasRegrasBloqueio,
+  resumoCurtoBloqueio,
   resumoRegrasBloqueio,
 } from '../../domain/appBlock';
+import { ACESSOS_RAPIDOS_DIARIOS } from '../../domain/acessoRapido';
 import { hojeISOLocal } from '../../domain/data';
 import { PACOTE_YOUTUBE, appsIniciaisSelecionados } from '../../domain/redesSociais';
+import { horarioPausaMaior, resumoRotina } from '../../domain/rotina';
+import { CONFIG_BLOCO_PADRAO, extrairConfigBloco } from '../../domain/saldoBloqueio';
 import { JanelaBloqueio, RegrasBloqueio } from '../../domain/types';
 import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -27,6 +32,8 @@ import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { BackButton } from '../../components/common/BackButton';
 import { AppListItem } from '../../components/bloqueio/AppListItem';
 import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
+import { SecaoConfig } from '../../components/bloqueio/SecaoConfig';
+import { SessoesInfoSheet } from '../../components/bloqueio/SessoesInfoSheet';
 import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
 import { logAcessibilidadeSaibaMais } from '../../services/analytics';
 
@@ -49,6 +56,8 @@ interface BloqueioAppsScreenProps {
   aoTocarSaibaOQueE: () => void;
   /** Abre a divulgação do acesso de uso (HU-02); só aparece com o acesso desligado. */
   aoTocarMedirTempo: () => void;
+  /** Abre a RotinaPerfilScreen (HU-10) a partir do link "Editar" da seção Rotina noturna. */
+  aoAbrirRotina?: () => void;
   onVoltar: () => void;
 }
 
@@ -83,6 +92,7 @@ export function BloqueioAppsScreen({
   aoTocarAtivar,
   aoTocarSaibaOQueE,
   aoTocarMedirTempo,
+  aoAbrirRotina,
   onVoltar,
 }: BloqueioAppsScreenProps) {
   const {
@@ -95,7 +105,9 @@ export function BloqueioAppsScreen({
   } = useRegrasBloqueio(uid);
   const { ativo: servicoAtivo, carregando: statusCarregando } = useAccessibilityPermission();
   const { concedido: acessoUsoConcedido, carregando: acessoUsoCarregando } = useAcessoUso();
+  const { rotina, diasComDados } = useRotina(uid);
   const { showToast } = useToast();
+  const [sheetSessoesAberta, setSheetSessoesAberta] = useState(false);
 
   const handleAtivar = () => {
     logAcessibilidadeSaibaMais('ativar', servicoAtivo ? 'ativo' : 'desativado');
@@ -163,6 +175,10 @@ export function BloqueioAppsScreen({
   const regrasEmEdicao = regrasDoFormulario(appsSelecionados, janela);
   const resumo = resumoRegrasBloqueio(regrasEmEdicao);
 
+  // Config de blocos (RN05): só leitura nesta tela, com os padrões de
+  // saldoBloqueio.ts quando a regra vigente não define nada.
+  const cfgBloco = { ...CONFIG_BLOCO_PADRAO, ...extrairConfigBloco(regrasVigentes) };
+
   // Mesmo ponto de partida do formulário (ver useEffect de inicialização) —
   // a pré-marcação da primeira configuração não conta como alteração. Depois
   // de salvar, o hook atualiza vigente/pendente e a edição volta a bater.
@@ -224,8 +240,8 @@ export function BloqueioAppsScreen({
   if (mostrarAvisoPendente) {
     return (
       <AvisoAlteracaoPendenteScreen
-        resumoVigente={resumoRegrasBloqueio(regrasVigentes ?? SEM_BLOQUEIO)}
-        resumoNovo={resumo}
+        resumoVigente={resumoCurtoBloqueio(regrasVigentes ?? SEM_BLOQUEIO)}
+        resumoNovo={resumoCurtoBloqueio(regrasEmEdicao)}
         onConfirmar={handleConfirmarPendente}
         onRevisar={() => setMostrarAvisoPendente(false)}
       />
@@ -245,108 +261,112 @@ export function BloqueioAppsScreen({
             <BackButton onPress={handleVoltar} />
             <Text style={styles.titulo}>Bloqueio de apps</Text>
 
-            <Text style={styles.secaoTitulo}>Serviço de acessibilidade</Text>
-            <View style={styles.blocoStatus}>
-              <View style={styles.linhaStatus}>
-                <Text
-                  style={[
-                    styles.status,
-                    servicoAtivo ? styles.statusAtivo : styles.statusInativo,
-                  ]}
-                >
-                  {statusCarregando ? 'Verificando…' : servicoAtivo ? 'Ativo' : 'Desativado'}
-                </Text>
-              </View>
-              {!statusCarregando && !servicoAtivo && (
-                <Text style={styles.avisoDesativado}>
-                  Sem ele, o Rootora não consegue interceptar os apps abaixo.
-                </Text>
-              )}
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleSaibaOQueE}
-                hitSlop={8}
-                style={styles.linkSaibaOQueE}
-              >
-                <Info size={14} color={theme.colors.textSecondary} />
-                <Text style={styles.linkSaibaOQueETexto}>Saiba o que é</Text>
-              </Pressable>
-              {!statusCarregando && !servicoAtivo && (
-                <SecondaryButton titulo="Ativar" onPress={handleAtivar} />
-              )}
-            </View>
-
-            {!acessoUsoCarregando && !acessoUsoConcedido && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={aoTocarMedirTempo}
-                hitSlop={8}
-                style={styles.linkMedirTempo}
-              >
-                <Text style={styles.linkSaibaOQueETexto}>Medir tempo nas redes</Text>
-              </Pressable>
-            )}
-
             {regrasPendentes && (
-              <View style={styles.avisoPendente}>
-                <Text style={styles.avisoPendenteTexto}>
-                  Nova regra começa amanhã: {resumoRegrasBloqueio(regrasPendentes)}
-                </Text>
-                <SecondaryButton
-                  titulo="Cancelar alteração"
+              <View style={styles.bannerPendente}>
+                <Text style={styles.bannerEyebrow}>VALE A PARTIR DE AMANHÃ</Text>
+                <Text style={styles.bannerResumo}>{resumoCurtoBloqueio(regrasPendentes)}</Text>
+                <Pressable
+                  accessibilityRole="button"
                   onPress={cancelarAlteracaoPendente}
-                />
+                  hitSlop={8}
+                  style={styles.bannerLink}
+                >
+                  <Text style={styles.linkSaibaOQueETexto}>Cancelar alteração</Text>
+                </Pressable>
               </View>
             )}
+
+            <SecaoConfig eyebrow="STATUS DO SERVIÇO">
+              <View style={styles.blocoStatus}>
+                <View style={styles.linhaStatus}>
+                  <View
+                    style={[
+                      styles.pontoStatus,
+                      servicoAtivo ? styles.pontoStatusAtivo : styles.pontoStatusInativo,
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.status,
+                      servicoAtivo ? styles.statusAtivo : styles.statusInativo,
+                    ]}
+                  >
+                    {statusCarregando ? 'Verificando…' : servicoAtivo ? 'ATIVO' : 'DESATIVADO'}
+                  </Text>
+                </View>
+                {!statusCarregando && !servicoAtivo && (
+                  <Text style={styles.avisoDesativado}>
+                    Sem ele, o Rootora não consegue interceptar os apps abaixo.
+                  </Text>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleSaibaOQueE}
+                  hitSlop={8}
+                  style={styles.linkSaibaOQueE}
+                >
+                  <Info size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.linkSaibaOQueETexto}>Saiba o que é</Text>
+                </Pressable>
+                {!statusCarregando && !servicoAtivo && (
+                  <SecondaryButton titulo="Ativar" onPress={handleAtivar} />
+                )}
+              </View>
+            </SecaoConfig>
 
             {!semRedesSociais && (
               <>
-            <Text style={styles.secaoTitulo}>Horário</Text>
-            <View style={styles.blocoJanela}>
-              <View style={styles.linhaHorario}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setSeletorAberto('inicio')}
-                  style={styles.campoHorario}
-                >
-                  <Text style={styles.rotulo}>Início</Text>
-                  <Text style={styles.valorHorario}>{janela.inicio}</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setSeletorAberto('fim')}
-                  style={styles.campoHorario}
-                >
-                  <Text style={styles.rotulo}>Fim</Text>
-                  <Text style={styles.valorHorario}>{janela.fim}</Text>
-                </Pressable>
-              </View>
-              {seletorAberto && (
-                <DateTimePicker
-                  value={horarioParaDate(janela[seletorAberto])}
-                  mode="time"
-                  is24Hour
-                  onChange={handleAlterarHorario(seletorAberto)}
-                />
-              )}
+                <SecaoConfig eyebrow="QUANDO">
+                  <View style={styles.blocoJanela}>
+                    <View style={styles.linhaHorario}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setSeletorAberto('inicio')}
+                        style={styles.campoHorario}
+                      >
+                        <Text style={styles.rotulo}>Início</Text>
+                        <Text style={styles.valorHorario}>{janela.inicio}</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setSeletorAberto('fim')}
+                        style={styles.campoHorario}
+                      >
+                        <Text style={styles.rotulo}>Fim</Text>
+                        <Text style={styles.valorHorario}>{janela.fim}</Text>
+                      </Pressable>
+                    </View>
+                    {seletorAberto && (
+                      <DateTimePicker
+                        value={horarioParaDate(janela[seletorAberto])}
+                        mode="time"
+                        is24Hour
+                        onChange={handleAlterarHorario(seletorAberto)}
+                      />
+                    )}
 
-              <Text style={styles.rotuloDias}>Dias da semana</Text>
-              <SeletorDiasSemana diasSelecionados={janela.diasSemana} onToggleDia={toggleDia} />
-            </View>
+                    <Text style={styles.rotuloDias}>Dias da semana</Text>
+                    <SeletorDiasSemana
+                      diasSelecionados={janela.diasSemana}
+                      onToggleDia={toggleDia}
+                    />
+                  </View>
 
-            {!janelaValida && (
-              <Text style={styles.erroValidacao}>
-                Escolha um horário de fim depois do início e pelo menos um dia da semana.
-              </Text>
-            )}
+                  {!janelaValida && (
+                    <Text style={styles.erroValidacao}>
+                      Escolha um horário de fim depois do início e pelo menos um dia da semana.
+                    </Text>
+                  )}
+                </SecaoConfig>
 
-            <Text style={styles.secaoTitulo}>Apps</Text>
-            <TextField
-              label="Buscar"
-              value={busca}
-              onChangeText={setBusca}
-              placeholder="Nome do app"
-            />
+                <SecaoConfig eyebrow="APPS">
+                  <TextField
+                    label="Buscar"
+                    value={busca}
+                    onChangeText={setBusca}
+                    placeholder="Nome do app"
+                  />
+                </SecaoConfig>
               </>
             )}
           </>
@@ -367,13 +387,85 @@ export function BloqueioAppsScreen({
           </Text>
         }
         ListFooterComponent={
-          semRedesSociais ? undefined : (
-            <>
-              <Text style={styles.resumo}>{resumo}</Text>
-              <PrimaryButton titulo="Salvar" onPress={handleSalvar} desabilitado={!janelaValida} />
-            </>
-          )
+          <>
+            {!semRedesSociais && (
+              <>
+                <SecaoConfig
+                  eyebrow="SESSÕES"
+                  link={{ rotulo: 'Como funciona', onPress: () => setSheetSessoesAberta(true) }}
+                >
+                  <View style={styles.sessoesNumeros}>
+                    <View style={styles.sessaoItem}>
+                      <Text style={styles.sessaoNumero}>{cfgBloco.duracaoBlocoMin} min</Text>
+                      <Text style={styles.sessaoLegenda}>de uso</Text>
+                    </View>
+                    <View style={styles.sessaoItem}>
+                      <Text style={styles.sessaoNumero}>{cfgBloco.cooldownMin} min</Text>
+                      <Text style={styles.sessaoLegenda}>de pausa</Text>
+                    </View>
+                    <View style={styles.sessaoItem}>
+                      <Text style={styles.sessaoNumero}>{ACESSOS_RAPIDOS_DIARIOS}x</Text>
+                      <Text style={styles.sessaoLegenda}>acesso rápido</Text>
+                    </View>
+                  </View>
+                  {typeof cfgBloco.blocosDiarios === 'number' && (
+                    <Text style={styles.notaSessoes}>
+                      Até {cfgBloco.blocosDiarios} sessões por dia.
+                    </Text>
+                  )}
+                </SecaoConfig>
+
+                <SecaoConfig
+                  eyebrow="ROTINA NOTURNA"
+                  link={aoAbrirRotina ? { rotulo: 'Editar', onPress: aoAbrirRotina } : undefined}
+                >
+                  <View style={styles.linhaRotina}>
+                    <Moon size={16} color={theme.colors.textSecondary} />
+                    <Text style={styles.textoRotina}>
+                      {resumoRotina(rotina, diasComDados, acessoUsoConcedido, 'longa')}
+                    </Text>
+                  </View>
+                  {rotina?.confirmadoEm && (
+                    <Text style={styles.notaSessoes}>
+                      Pausa maior entre {horarioPausaMaior(rotina.dormirEstimado)} e{' '}
+                      {rotina.acordarEstimado}
+                    </Text>
+                  )}
+                </SecaoConfig>
+              </>
+            )}
+
+            {!acessoUsoCarregando && !acessoUsoConcedido && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={aoTocarMedirTempo}
+                hitSlop={8}
+                style={styles.linkMedirTempo}
+              >
+                <Text style={styles.linkSaibaOQueETexto}>Medir tempo nas redes</Text>
+              </Pressable>
+            )}
+
+            {!semRedesSociais && (
+              <>
+                <Text style={styles.resumo}>{resumo}</Text>
+                <PrimaryButton
+                  titulo="Salvar"
+                  onPress={handleSalvar}
+                  desabilitado={!janelaValida}
+                />
+              </>
+            )}
+          </>
         }
+      />
+
+      <SessoesInfoSheet
+        visible={sheetSessoesAberta}
+        duracaoBlocoMin={cfgBloco.duracaoBlocoMin}
+        cooldownMin={cfgBloco.cooldownMin}
+        acessosRapidosDiarios={ACESSOS_RAPIDOS_DIARIOS}
+        onEntendi={() => setSheetSessoesAberta(false)}
       />
     </SafeAreaView>
   );
@@ -394,11 +486,42 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.xs,
   },
-  secaoTitulo: {
-    fontSize: theme.typography.fontSize.lg,
-    fontFamily: theme.typography.fontFamily.headingBold,
+  // Só borda Terra Suave, sem fundo (RN08) — não pode competir com o status.
+  bannerPendente: {
+    borderWidth: 1,
+    borderColor: theme.colors.terraSuave,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  bannerEyebrow: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.mono,
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  bannerResumo: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing.lg,
+  },
+  bannerLink: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  pontoStatus: {
+    width: 8,
+    height: 8,
+    borderRadius: theme.radius.full,
+    marginRight: theme.spacing.xs,
+  },
+  pontoStatusAtivo: {
+    backgroundColor: theme.colors.musgo,
+  },
+  pontoStatusInativo: {
+    backgroundColor: theme.colors.terraSuave,
   },
   // Agrupa status + aviso + link + botão "Ativar" com gap mais apertado
   // que o ritmo entre seções (sm, não md/lg) — mesmo racional de
@@ -447,21 +570,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bodyMedium,
     color: theme.colors.textSecondary,
     textDecorationLine: 'underline',
-  },
-  // marginTop próprio (não só o gap do container) — separa claramente do
-  // cluster de status/Ativar acima, que também pode terminar num
-  // SecondaryButton (os dois ficavam visualmente colados sem isso).
-  avisoPendente: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.lg,
-  },
-  avisoPendenteTexto: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.body,
-    color: theme.colors.textPrimary,
   },
   listaVazia: {
     fontSize: theme.typography.fontSize.sm,
@@ -514,5 +622,38 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.md,
+  },
+  sessoesNumeros: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sessaoItem: {
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  sessaoNumero: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.headingBold,
+    color: theme.colors.textPrimary,
+  },
+  sessaoLegenda: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  notaSessoes: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  linhaRotina: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  textoRotina: {
+    fontSize: theme.typography.fontSize.md,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textPrimary,
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Info } from 'lucide-react-native';
 import { theme } from '../../theme';
 import { RootProgressIcon } from '../../components/RootProgressIcon';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -38,7 +39,7 @@ export function AvisoAlteracaoPendenteScreen({
       <ScrollView contentContainerStyle={styles.conteudo}>
         <RootProgressIcon variant="reduzido" tamanho={72} />
 
-        <Text style={styles.titulo}>A mudança vale a partir de amanhã</Text>
+        <Text style={styles.titulo}>Antes de salvar</Text>
         <Text style={styles.paragrafo}>
           Se a vontade de soltar o bloqueio apareceu agora, isso é só o momento falando — não
           precisa se cobrar por isso.
@@ -48,11 +49,19 @@ export function AvisoAlteracaoPendenteScreen({
           começa a valer no dia seguinte.
         </Text>
 
-        <Text style={styles.rotuloResumo}>Hoje continua</Text>
+        <Text style={styles.rotuloResumo}>HOJE CONTINUA</Text>
         <Text style={styles.resumo}>{resumoVigente}</Text>
 
-        <Text style={styles.rotuloResumo}>A partir de amanhã</Text>
+        <Text style={styles.rotuloResumo}>A PARTIR DE AMANHÃ</Text>
         <Text style={styles.resumo}>{resumoNovo}</Text>
+
+        <View style={styles.linhaDesligar}>
+          <Info size={14} color={theme.colors.textSecondary} />
+          <Text style={styles.textoDesligar}>
+            Precisa parar agora? Dá para desligar o serviço nas configurações de acessibilidade do
+            Android, a qualquer momento.
+          </Text>
+        </View>
 
         <PrimaryButton titulo="Entendi, confirmar" onPress={onConfirmar} />
         <SecondaryButton titulo="Voltar e revisar" onPress={onRevisar} />
@@ -96,5 +105,18 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
+  },
+  // Só texto, sem link nem botão (RN12) — não incentiva desligar, só não esconde a opção.
+  linhaDesligar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
+  },
+  textoDesligar: {
+    flex: 1,
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
 });
