@@ -4,9 +4,11 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { theme } from '../../theme';
+import { horarioPausaMaior, horariosRotinaValidos } from '../../domain/rotina';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LuaDecorativa } from '../../components/rotina/LuaDecorativa';
+import { useVoltarFisico } from '../../hooks/useVoltarFisico';
 
 interface Horarios {
   dormirEstimado: string;
@@ -16,6 +18,8 @@ interface Horarios {
 interface RotinaConfirmacaoScreenProps extends Horarios {
   /** Sem argumento = confirma a estimativa como veio; com argumento = horários ajustados. */
   onConfirmar: (horarios?: Horarios) => void;
+  /** Voltar físico (HU-10, RN09): sai sem gravar, só volta amanhã. */
+  onAdiar: () => void;
 }
 
 type Campo = 'dormirEstimado' | 'acordarEstimado';
@@ -34,14 +38,16 @@ function dateParaHorario(data: Date): string {
 }
 
 /**
- * Confirmação única da rotina estimada (HU-06, RN-04). "Ajustar horário"
- * deixa editar dormir e acordar antes de confirmar. Tom de padrão
- * identificado, nunca de regra imposta (RN-13).
+ * Confirmação única da rotina estimada (HU-06/HU-10, RN04/RN05). "Ajustar
+ * horário" deixa editar dormir e acordar antes de confirmar (RN07), com a
+ * linha da janela recalculada ao vivo. Tom de padrão identificado, nunca de
+ * regra imposta (RN05/RN20).
  */
 export function RotinaConfirmacaoScreen({
   dormirEstimado,
   acordarEstimado,
   onConfirmar,
+  onAdiar,
 }: RotinaConfirmacaoScreenProps) {
   const [horarios, setHorarios] = useState<Horarios>({
     dormirEstimado,
@@ -50,6 +56,13 @@ export function RotinaConfirmacaoScreen({
   const [ajustando, setAjustando] = useState(false);
   const [ajustado, setAjustado] = useState(false);
   const [campoAberto, setCampoAberto] = useState<Campo | null>(null);
+
+  useVoltarFisico(onAdiar);
+
+  const valido = horariosRotinaValidos(
+    horarios.dormirEstimado,
+    horarios.acordarEstimado,
+  );
 
   const handleSeletor = (evento: DateTimePickerEvent, data?: Date) => {
     const campo = campoAberto;
@@ -60,6 +73,20 @@ export function RotinaConfirmacaoScreen({
     }
   };
 
+  const handleUsarEstimado = () => {
+    setHorarios({ dormirEstimado, acordarEstimado });
+    setAjustado(false);
+    setAjustando(false);
+  };
+
+  const handleConfirmar = () => {
+    if (ajustado) {
+      onConfirmar(horarios);
+    } else {
+      onConfirmar();
+    }
+  };
+
   return (
     <View
       style={styles.conteudo}
@@ -67,20 +94,30 @@ export function RotinaConfirmacaoScreen({
       accessibilityLabel="Confirmar rotina estimada"
     >
       <LuaDecorativa />
+      <Text style={styles.eyebrow}>
+        {ajustando ? 'AJUSTAR HORÁRIO' : 'PADRÃO IDENTIFICADO'}
+      </Text>
       <Text accessibilityRole="header" style={styles.titulo}>
-        Notamos um padrão
+        {ajustando
+          ? 'Quando você costuma dormir e acordar?'
+          : `Parece que você costuma dormir por volta das ${dormirEstimado}.`}
       </Text>
-      <Text style={styles.corpo}>
-        Parece que você costuma dormir perto desse horário. Isso ajuda a ajustar
-        a janela noturna.
-      </Text>
-      <Text
-        style={styles.horario}
-        accessible
-        accessibilityLabel={`Horário estimado de dormir: ${horarios.dormirEstimado}`}
-      >
-        {horarios.dormirEstimado}
-      </Text>
+      {!ajustando && (
+        <Text style={styles.corpo}>
+          Olhamos só os horários em que o celular foi usado nos últimos dias.
+          Nada do que você viu ou digitou.
+        </Text>
+      )}
+
+      {!ajustando && (
+        <Text
+          style={styles.horario}
+          accessible
+          accessibilityLabel={`Horário estimado de dormir: ${dormirEstimado}`}
+        >
+          {dormirEstimado}
+        </Text>
+      )}
 
       {ajustando && (
         <View style={styles.ajuste}>
@@ -105,16 +142,39 @@ export function RotinaConfirmacaoScreen({
         />
       )}
 
+      {valido ? (
+        <Text style={styles.janela}>
+          Entre {horarioPausaMaior(horarios.dormirEstimado)} e{' '}
+          {horarios.acordarEstimado}, abrir as redes vai pedir uma pausa um
+          pouco maior.
+        </Text>
+      ) : (
+        <Text style={styles.erro}>
+          Os horários de dormir e acordar precisam ser diferentes.
+        </Text>
+      )}
+
       <View style={styles.acoes}>
         <PrimaryButton
           titulo="Confirmar"
-          onPress={() => (ajustado ? onConfirmar(horarios) : onConfirmar())}
+          onPress={handleConfirmar}
+          desabilitado={!valido}
         />
         {!ajustando && (
           <SecondaryButton
             titulo="Ajustar horário"
             onPress={() => setAjustando(true)}
           />
+        )}
+        {ajustando && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleUsarEstimado}
+            hitSlop={8}
+            style={styles.alvo}
+          >
+            <Text style={styles.link}>Usar o horário estimado</Text>
+          </Pressable>
         )}
       </View>
     </View>
@@ -154,6 +214,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  eyebrow: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.mono,
+    color: theme.colors.textSecondary,
+    letterSpacing: 0.5,
+  },
   titulo: {
     fontSize: theme.typography.fontSize.xl,
     fontFamily: theme.typography.fontFamily.headingBold,
@@ -170,6 +236,18 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xxl,
     fontFamily: theme.typography.fontFamily.mono,
     color: theme.colors.textPrimary,
+  },
+  janela: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  erro: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.erro,
+    textAlign: 'center',
   },
   ajuste: {
     alignSelf: 'stretch',
