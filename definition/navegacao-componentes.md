@@ -261,13 +261,35 @@ vazio age como "Agora não". Editável depois em `RotinaPerfilScreen`.
 | `onClose` | function |
 
 ### PerfilScreen
-Seções, em ordem: "Seu porquê" (campo + botão Salvar explícito) → Notificações
-(toggle + `DateTimePicker`) → "Bloqueio de apps" (link "Configurar bloqueio de apps",
-abre `BloqueioAppsScreen`) → "Rotina" (link "Rotina noturna", abre
-`RotinaPerfilScreen`; só aparece quando `aoAbrirRotina` é passado) → "Sobre" ("Ver tutorial novamente", reinicia o tour de
-funcionalidades — ver seção própria abaixo — + links legais: Política de Privacidade /
-Termos) → "Excluir conta" (`SecondaryButton` neutro, sem vermelho, abre
-`ConfirmDeleteAccountModal`) → "Sair" → link "Testar Crashlytics" (só em dev ou com `MOSTRAR_TESTAR_CRASHLYTICS`).
+Seções, em ordem (HU-09, RN13): "Seu porquê" → grupo de navegação (Bloqueio de apps,
+Rotina noturna, Lembrete diário) → grupo "Sobre" → "Sair" → "Excluir conta" → link de
+debug (condicional).
+
+"Seu porquê" (RN14): com texto cadastrado, mostra uma citação (Zilla itálico, barra
+Musgo à esquerda) + link "Editar", que revela o `TextField` + botão "Salvar" (como
+antes). Sem porquê cadastrado, o campo aparece direto, sem citação.
+
+Grupo de navegação, cada linha com ícone + título + estado atual numa linha (dá pra
+saber se o bloqueio está ativo sem entrar na tela):
+- "Bloqueio de apps" (ícone `Lock`): `Ativo · {resumoCurtoBloqueio(regrasVigentes)}` /
+  "Desativado" (serviço desligado, com regra salva) / "Não configurado" (sem
+  `regrasBloqueio`). Lê `useAccessibilityPermission` + `useRegrasBloqueio(uid)`. Toque
+  abre `BloqueioAppsScreen`.
+- "Rotina noturna" (ícone `Moon`): forma curta de `resumoRotina` (`domain/rotina.ts`),
+  ex. "23:30 – 07:00". Só aparece quando `aoAbrirRotina` é passado; toque abre
+  `RotinaPerfilScreen`.
+- "Lembrete diário" (ícone `Bell`): título + horário como subtítulo (só com
+  notificações ativas) + `Switch` à destra. Tocar no título/subtítulo abre o
+  `DateTimePicker` (só se já ativo); o toggle liga/desliga, como antes.
+
+"Sobre": "Ver tutorial novamente" (reinicia o tour de funcionalidades — ver seção
+própria abaixo) + links legais (Política de Privacidade / Termos de Uso).
+
+"Sair" (RN18): `SecondaryButton`, não mais `PrimaryButton`. "Excluir conta" (RN18):
+link de texto centralizado (Terra Suave, sublinhado), não mais um botão com borda —
+mesma ação de sempre (abre `ConfirmDeleteAccountModal`). Nenhum dos dois usa vermelho
+nem Cobre. Debug: link "Testar Crashlytics" (só em dev ou com
+`MOSTRAR_TESTAR_CRASHLYTICS`).
 
 ### BloqueioAppsScreen
 `BackButton` no topo (`onVoltar` → `navigation.goBack()`). Voltar — pelo botão ou pelo
@@ -288,17 +310,41 @@ decide o layout é o status real do serviço, não qual das duas foi tocada):
   ele, o Rootora não consegue interceptar os apps abaixo."
 
 Nenhum dos dois abre as configurações do Android direto — isso só acontece de
-dentro da divulgação. Lista de `AppListItem` (checkbox customizado, não Switch
-nativo — quebra em testes Jest no mesmo arquivo de um `LoadingIndicator`), restrita à
-lista curada de redes sociais instalada (HU-01 — nunca todo app do aparelho), com
-busca por nome, `SeletorDiasSemana` (7 chips de toque único) e os dois seletores
-de horário início/fim (`DateTimePicker`). Entrada "Medir tempo nas redes" (abre
-`DivulgacaoAcessoUsoScreen`), visível enquanto esse acesso estiver desligado. A
-rotina noturna **não** fica nesta tela: tem rota própria (`RotinaPerfilScreen`),
-aberta pela seção "Rotina" de `PerfilScreen`. Resumo em texto (`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar". Edita a
-partir da regra PENDENTE quando existe uma (o que vai valer amanhã), senão da
-vigente. Com uma pendência: banner "Nova regra começa amanhã: [resumo]" + "Cancelar
-alteração".
+dentro da divulgação.
+
+A partir da HU-09 (RN01), a tela é organizada em seções com eyebrow em Space Mono
+(`SecaoConfig`, `src/components/bloqueio/SecaoConfig.tsx`), nesta ordem: Status do
+serviço → QUANDO → APPS → SESSÕES → ROTINA NOTURNA → "Medir tempo nas redes" (condicional)
+→ resumo em texto + "Salvar".
+
+- QUANDO/APPS: `SeletorDiasSemana` (Terra Escura quando selecionado, borda Terra
+  Suave quando não — antes Cobre) e lista de `AppListItem` (checkbox customizado,
+  caixa marcada em Musgo — antes Cobre; não Switch nativo, quebra em testes Jest no
+  mesmo arquivo de um `LoadingIndicator`), restrita à lista curada de redes sociais
+  instalada (HU-01 — nunca todo app do aparelho), com busca por nome, e os dois
+  seletores de horário início/fim (`DateTimePicker`).
+- SESSÕES (só leitura, sem tela de edição): 3 números lidos de `regrasBloqueio`
+  vigente com os padrões de `domain/saldoBloqueio.ts` (`duracaoBlocoMin`: 15 min,
+  `cooldownMin`: 45 min) e `ACESSOS_RAPIDOS_DIARIOS` (`domain/acessoRapido.ts`: 3x).
+  Link "Como funciona" abre `SessoesInfoSheet`
+  (`src/components/bloqueio/SessoesInfoSheet.tsx`). Com `blocosDiarios` numérico,
+  linha extra "Até {n} sessões por dia.".
+- ROTINA NOTURNA: resumo de `resumoRotina` (`domain/rotina.ts`, forma "longa") +
+  link "Editar", que abre `RotinaPerfilScreen` (prop `aoAbrirRotina`). Com rotina
+  confirmada, linha extra "Pausa maior entre {horarioPausaMaior(dormirEstimado)} e
+  {acordarEstimado}". A tela não edita a rotina — isso só acontece na
+  `RotinaPerfilScreen`, aberta pela linha "Rotina noturna" de `PerfilScreen` ou por
+  este link.
+- "Medir tempo nas redes" (abre `DivulgacaoAcessoUsoScreen`), visível enquanto o
+  acesso de uso estiver desligado.
+- Resumo em texto (`resumoRegrasBloqueio`, `domain/appBlock.ts`) + "Salvar" — único
+  Cobre da tela.
+
+Edita a partir da regra PENDENTE quando existe uma (o que vai valer amanhã), senão
+da vigente. Com uma pendência, banner no topo da tela (só borda Terra Suave, sem
+fundo — pra não competir com o status): eyebrow "VALE A PARTIR DE AMANHÃ" +
+`resumoCurtoBloqueio(regrasPendentes)` (`domain/appBlock.ts`, RN10 — "{n} apps ·
+{dias} · {início}–{fim}") + "Cancelar alteração".
 
 Tocar "Salvar" quando `regrasVigentes` já existe (qualquer alteração depois da
 primeira configuração) não grava nada na hora — renderiza
@@ -310,14 +356,18 @@ primeira configuração) não grava nada na hora — renderiza
 Componente burro renderizado por `BloqueioAppsScreen` (não uma tela do
 `PerfilStack` — evita duplicar o carregamento de `appsInstalados`/`regrasVigentes`
 numa rota separada). Mostrada sempre que "Salvar" resultaria numa alteração
-pendente — nunca na primeira configuração. Reconhece o momento sem culpa (frase
-sobre a vontade de soltar o bloqueio "ser só o momento falando"), explica o
-mecanismo e mostra `resumoRegrasBloqueio` de antes ("Hoje continua") e depois
-("A partir de amanhã").
+pendente — nunca na primeira configuração. Título "Antes de salvar" (HU-09 — antes
+"A mudança vale a partir de amanhã"). Reconhece o momento sem culpa (frase sobre a
+vontade de soltar o bloqueio "ser só o momento falando"), explica o mecanismo e
+mostra `resumoCurtoBloqueio` (`domain/appBlock.ts`, RN10 — antes
+`resumoRegrasBloqueio`) de antes ("HOJE CONTINUA") e depois ("A PARTIR DE AMANHÃ").
+Acima dos botões, linha com ícone `Info`: "Precisa parar agora? Dá para desligar o
+serviço nas configurações de acessibilidade do Android, a qualquer momento." — só
+texto, sem link nem botão (RN12).
 
 | Prop | Tipo |
 |---|---|
-| `resumoVigente` / `resumoNovo` | string |
+| `resumoVigente` / `resumoNovo` | string — `resumoCurtoBloqueio` de quem chama |
 | `onConfirmar` | function — grava de fato (chama `useRegrasBloqueio.salvar`) |
 | `onRevisar` | function — só volta pra edição, nada é gravado |
 

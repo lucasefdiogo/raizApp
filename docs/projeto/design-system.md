@@ -118,9 +118,15 @@ sem proteção: ramo mais fino e com opacidade reduzida — a raiz principal nun
 | `ReturnAfterPauseCard` | `src/components/return/ReturnAfterPauseCard.tsx` | Corpo + blockquote do "porquê" + campo + botão |
 | `ChallengeCard` | `src/components/challenges/ChallengeCard.tsx` | Título + barra de progresso (`musgo`) + "X de Y" |
 | `DayDetailSheet` | `src/components/progress/DayDetailSheet.tsx` | Label do dia + status + tarefas somente-leitura |
-| `AppListItem` | `src/components/bloqueio/AppListItem.tsx` | Ícone + nome + checkbox customizado (não Switch nativo) |
-| `SeletorDiasSemana` | `src/components/bloqueio/SeletorDiasSemana.tsx` | 7 chips de toque único, preenchido Cobre quando selecionado |
+| `AppListItem` | `src/components/bloqueio/AppListItem.tsx` | Ícone + nome + checkbox customizado (não Switch nativo); caixa marcada em Musgo, não Cobre (HU-09) |
+| `SeletorDiasSemana` | `src/components/bloqueio/SeletorDiasSemana.tsx` | 7 chips de toque único, preenchido Terra Escura quando selecionado, borda Terra Suave quando não (HU-09 — antes Cobre) |
+| `SecaoConfig` | `src/components/bloqueio/SecaoConfig.tsx` | Cabeçalho de seção da `BloqueioAppsScreen`: eyebrow Space Mono + link opcional à direita (HU-09) |
+| `SessoesInfoSheet` | `src/components/bloqueio/SessoesInfoSheet.tsx` | Sheet "Como funciona" da seção SESSÕES (HU-09) |
 | `ConfirmDeleteAccountModal` | `src/components/perfil/ConfirmDeleteAccountModal.tsx` | Modal sóbrio — "Excluir conta" com tratamento neutro (sem vermelho) |
+
+No Perfil, "Excluir conta" é um link de texto centralizado (Terra Suave, sublinhado), não mais
+um botão com borda — único Cobre da tela acima dele é o toggle ligado do lembrete (HU-09).
+`BloqueioAppsScreen` segue a mesma regra: único Cobre é o botão "Salvar".
 | `RecurringTaskActionSheet` | `src/components/home/RecurringTaskActionSheet.tsx` | Menu de 3 opções |
 
 ## Cores de status (histórico semanal, `domain/progress.ts`)
