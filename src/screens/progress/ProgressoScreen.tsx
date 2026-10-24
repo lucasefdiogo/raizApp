@@ -24,7 +24,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { dataLocalDeISO, paraISOLocal } from '../../domain/data';
 import { inicioDaSemana } from '../../domain/streak';
 import { STORAGE_KEYS, lerItem, salvarItem } from '../../utils/storage';
-import { logReflexaoSemanalExibida, logReflexaoSemanalFechada } from '../../services/analytics';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 interface ProgressoScreenProps {
   uid: string;
@@ -83,6 +83,8 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
   const [atualizando, setAtualizando] = useState(false);
   const [mostrarReflexao, setMostrarReflexao] = useState(false);
   const avaliouReflexaoRef = useRef(false);
+  const { logReflexaoSemanalExibida, logReflexaoSemanalFechada } =
+    useAnalytics();
 
   const handleTocarDia = useCallback(
     (data: string, status: string) => {
@@ -125,13 +127,13 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
         logReflexaoSemanalExibida();
       }
     })();
-  }, [carregandoResumoRedes, reflexao]);
+  }, [carregandoResumoRedes, reflexao, logReflexaoSemanalExibida]);
 
   const fecharReflexao = useCallback(async (acao: 'entendi' | 'agora_nao') => {
     await salvarItem(STORAGE_KEYS.reflexaoSemanalVista, paraISOLocal(inicioDaSemana(new Date())));
     logReflexaoSemanalFechada(acao);
     setMostrarReflexao(false);
-  }, []);
+  }, [logReflexaoSemanalFechada]);
 
   return (
     <SafeAreaView style={styles.container}>

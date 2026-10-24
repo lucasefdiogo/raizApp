@@ -12,7 +12,7 @@ import { useIntercept } from '../../hooks/useIntercept';
 import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
 import { useToast } from '../../hooks/useToast';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
-import { logAlternativaNoturnaEscolhida, logValvulaEscolhida } from '../../services/analytics';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
 import { SessaoAtivaAviso } from './SessaoAtivaAviso';
@@ -102,6 +102,8 @@ export function InterceptScreen({
   const [sessaoLivre, setSessaoLivre] = useState(false);
   const { registrarAcao } = useIntercept(uid, packageName);
   const { showToast } = useToast();
+  const { logAlternativaNoturnaEscolhida, logValvulaEscolhida } =
+    useAnalytics();
   const temSessaoResumida =
     !!sessaoAtivaResumida && sessaoAtivaResumida.duracaoRestanteSeg > 0;
   const [modo, setModo] = useState<Modo>(

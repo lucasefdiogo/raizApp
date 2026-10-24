@@ -37,7 +37,7 @@ import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
 import { SecaoConfig } from '../../components/bloqueio/SecaoConfig';
 import { SessoesInfoSheet } from '../../components/bloqueio/SessoesInfoSheet';
 import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
-import { logAcessibilidadeSaibaMais } from '../../services/analytics';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 const SEM_BLOQUEIO: RegrasBloqueio = { apps: [], janelas: [] };
 
@@ -125,6 +125,7 @@ export function BloqueioAppsScreen({
   const { concedido: acessoUsoConcedido, carregando: acessoUsoCarregando } = useAcessoUso();
   const { rotina, diasComDados } = useRotina(uid);
   const { showToast } = useToast();
+  const { logAcessibilidadeSaibaMais } = useAnalytics();
   const [sheetSessoesAberta, setSheetSessoesAberta] = useState(false);
 
   const handleAtivar = () => {
