@@ -68,6 +68,7 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
     resumoCard,
     reflexao,
     comAcessoDeUso,
+    appsBloqueados,
     carregando: carregandoResumoRedes,
     recarregar: recarregarResumoRedes,
   } = useResumoRedes(uid);
@@ -78,7 +79,7 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
     detalheRedes,
     buscarDia,
     limparSelecao,
-  } = useDayDetail(uid, comAcessoDeUso);
+  } = useDayDetail(uid, comAcessoDeUso, appsBloqueados);
   const [atualizando, setAtualizando] = useState(false);
   const [mostrarReflexao, setMostrarReflexao] = useState(false);
   const avaliouReflexaoRef = useRef(false);
