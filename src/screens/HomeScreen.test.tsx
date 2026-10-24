@@ -53,6 +53,10 @@ jest.mock('../hooks/useSincronizarRegrasBloqueio');
 jest.mock('../hooks/useColetaUsoApps');
 const { useColetaUsoApps } = require('../hooks/useColetaUsoApps');
 
+// Banner de cooldown (HU-14): tem teste próprio (useCooldownRestante.test.ts).
+jest.mock('../hooks/useCooldownRestante');
+const { useCooldownRestante } = require('../hooks/useCooldownRestante');
+
 // Sincronização do serviço de acessibilidade (HU-03): tem teste próprio.
 jest.mock('../hooks/useSincronizarAcessibilidade');
 const { useSincronizarAcessibilidade } = require('../hooks/useSincronizarAcessibilidade');
@@ -188,6 +192,7 @@ beforeEach(() => {
   });
   useNomeUsuario.mockReturnValue('Ana');
   useAlternativaNoturna.mockReturnValue(null);
+  useCooldownRestante.mockReturnValue({ minutosRestantes: null });
   useFeatureTour.mockReturnValue({
     tourAtivo: false,
     passoAtual: 0,
@@ -286,6 +291,20 @@ describe('HomeScreen', () => {
   it('mostra o streak recebido via prop', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(screen.getByText('4')).toBeTruthy();
+  });
+
+  describe('HU-14 · banner de cooldown', () => {
+    it('Cenário 5/6: aparece em COOLDOWN e some fora dele', async () => {
+      useCooldownRestante.mockReturnValue({ minutosRestantes: 32 });
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      expect(screen.getByText('Próxima sessão em 32 min')).toBeTruthy();
+    });
+
+    it('sem COOLDOWN (minutosRestantes null), não mostra o banner', async () => {
+      useCooldownRestante.mockReturnValue({ minutosRestantes: null });
+      await render(<HomeScreen {...PROPS_PADRAO} />);
+      expect(screen.queryByText(/Próxima sessão/)).toBeNull();
+    });
   });
 
   it('regressão: HomeHeader recebe o nome (useNomeUsuario) e o streakAtual (prop) corretos', async () => {
