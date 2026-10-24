@@ -20,14 +20,21 @@ const RESUMO_VAZIO: ResumoCardSemana = {
   duracaoTotal: '',
   barras: [],
   comparacao: null,
+  listaPorApp: null,
 };
 
 interface UseResumoRedesResultado {
   resumoCard: ResumoCardSemana;
   /** Já considera consentimento + base de dados (RN10) — null quando não deve aparecer. */
   reflexao: ReflexaoSemanalDados | null;
-  /** users/{uid}.consentimentoAcessoUso preenchido — não o status nativo de permissão. */
+  /**
+   * users/{uid}.consentimentoAcessoUso preenchido E pelo menos um app
+   * bloqueado (HU-13 RN06) — sem apps bloqueados, usa o mesmo estado de
+   * "sem acesso de uso" mesmo com o consentimento dado.
+   */
   comAcessoDeUso: boolean;
+  /** regrasBloqueio.apps vigente (HU-13 RN03) — pro useDayDetail filtrar igual. */
+  appsBloqueados: string[];
   carregando: boolean;
   recarregar: () => Promise<void>;
 }
@@ -51,6 +58,7 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
   const [resumoCard, setResumoCard] = useState<ResumoCardSemana>(RESUMO_VAZIO);
   const [reflexao, setReflexao] = useState<ReflexaoSemanalDados | null>(null);
   const [comAcessoDeUso, setComAcessoDeUso] = useState(false);
+  const [appsBloqueados, setAppsBloqueados] = useState<string[]>([]);
   const [carregando, setCarregando] = useState(true);
   const leituraRef = useRef(0);
 
@@ -70,12 +78,17 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
     }
 
     const temConsentimento = !!usuario?.consentimentoAcessoUso;
+    const apps = usuario?.regrasBloqueio?.apps ?? [];
+    const mostrarResumoDetalhado = temConsentimento && apps.length > 0;
     const logsSemanaAtual = logs.filter(log => log.data >= inicioAtualISO);
     const logsSemanaAnterior = logs.filter(log => log.data < inicioAtualISO);
 
-    setResumoCard(montarResumoCard(logsSemanaAtual, logsSemanaAnterior, temConsentimento, hoje));
+    setResumoCard(
+      montarResumoCard(logsSemanaAtual, logsSemanaAnterior, mostrarResumoDetalhado, hoje, apps),
+    );
     setReflexao(temConsentimento ? reflexaoSemanal(logsSemanaAnterior, hoje) : null);
-    setComAcessoDeUso(temConsentimento);
+    setComAcessoDeUso(mostrarResumoDetalhado);
+    setAppsBloqueados(apps);
     setCarregando(false);
   }, [uid]);
 
@@ -94,5 +107,5 @@ export function useResumoRedes(uid: string): UseResumoRedesResultado {
 
   useRecarregarAoReganharFoco(recarregar);
 
-  return { resumoCard, reflexao, comAcessoDeUso, carregando, recarregar };
+  return { resumoCard, reflexao, comAcessoDeUso, appsBloqueados, carregando, recarregar };
 }

@@ -75,7 +75,10 @@ describe('HU-08 · useResumoRedes', () => {
   });
 
   it('com consentimento e base de 4+ dias na semana anterior, expõe resumo e reflexão', async () => {
-    buscarUsuario.mockResolvedValue({ consentimentoAcessoUso: '2026-01-01' });
+    buscarUsuario.mockResolvedValue({
+      consentimentoAcessoUso: '2026-01-01',
+      regrasBloqueio: { apps: ['com.instagram.android'], janelas: [] },
+    });
     buscarDailyLogsNoIntervalo.mockResolvedValue(
       diasComUso(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-19']),
     );
@@ -87,6 +90,51 @@ describe('HU-08 · useResumoRedes', () => {
     expect(result.current.reflexao).not.toBeNull();
     expect(result.current.reflexao?.duracaoTotal).toBe('4h');
     expect(result.current.comAcessoDeUso).toBe(true);
+  });
+
+  describe('HU-13 · apps bloqueados', () => {
+    it('expõe appsBloqueados a partir de regrasBloqueio.apps', async () => {
+      buscarUsuario.mockResolvedValue({
+        consentimentoAcessoUso: '2026-01-01',
+        regrasBloqueio: { apps: ['com.instagram.android', 'com.zhiliaoapp.musically'], janelas: [] },
+      });
+
+      const { result } = await renderHook(() => useResumoRedes('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      expect(result.current.appsBloqueados).toEqual([
+        'com.instagram.android',
+        'com.zhiliaoapp.musically',
+      ]);
+    });
+
+    it('sem regrasBloqueio configurado, appsBloqueados vem vazio', async () => {
+      buscarUsuario.mockResolvedValue({ consentimentoAcessoUso: '2026-01-01' });
+
+      const { result } = await renderHook(() => useResumoRedes('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      expect(result.current.appsBloqueados).toEqual([]);
+    });
+
+    it('Cenário 5: com consentimento mas sem nenhum app bloqueado, comAcessoDeUso é false (mesmo estado de "sem acesso de uso")', async () => {
+      buscarUsuario.mockResolvedValue({
+        consentimentoAcessoUso: '2026-01-01',
+        regrasBloqueio: { apps: [], janelas: [] },
+      });
+      buscarDailyLogsNoIntervalo.mockResolvedValue(
+        diasComUso(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-19']),
+      );
+
+      const { result } = await renderHook(() => useResumoRedes('uid-1'));
+      await waitFor(() => expect(result.current.carregando).toBe(false));
+
+      expect(result.current.comAcessoDeUso).toBe(false);
+      expect(result.current.resumoCard.duracaoTotal).toBe('');
+      expect(result.current.resumoCard.barras).toEqual([]);
+      // Reflexão não é afetada por apps bloqueados (fora do escopo da HU-13).
+      expect(result.current.reflexao).not.toBeNull();
+    });
   });
 
   it('recarregar() refaz a mesma busca sob demanda', async () => {
