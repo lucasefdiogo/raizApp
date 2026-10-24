@@ -58,4 +58,14 @@ describe('AppListItem', () => {
 
     expect(screen.queryByTestId('marcador-check')).toBeNull();
   });
+
+  it('a linha tem fundo e borda de cartão, não um texto solto (conforme o protótipo)', async () => {
+    await render(<AppListItem app={APP} selecionado={false} onToggle={jest.fn()} />);
+
+    const estilo = StyleSheet.flatten(screen.getByLabelText('Instagram').props.style);
+    expect(estilo.backgroundColor).toBe(theme.colors.areia);
+    expect(estilo.borderWidth).toBeGreaterThan(0);
+    expect(estilo.borderColor).toBe(theme.colors.border);
+    expect(estilo.borderRadius).toBe(theme.radius.md);
+  });
 });
