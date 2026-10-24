@@ -329,6 +329,103 @@ describe('BloqueioAppsScreen', () => {
     expect(salvar).toHaveBeenCalledWith([], null);
   });
 
+  describe('HU-12 · Janela de horário opcional', () => {
+    const VIGENTE_HORARIO_ESPECIFICO = {
+      apps: ['com.instagram.android'],
+      janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+    };
+
+    it('Cenário 1: primeira configuração sugere "O dia todo" já selecionado, sem campos de início/fim', async () => {
+      configurarRegrasPadrao({ regrasVigentes: undefined, regrasPendentes: null });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByRole('radio', { name: 'O dia todo', checked: true })).toBeTruthy();
+      expect(screen.getByRole('radio', { name: 'Horário específico', checked: false })).toBeTruthy();
+      expect(screen.queryByText('Início')).toBeNull();
+      expect(screen.queryByText('Fim')).toBeNull();
+    });
+
+    it('Cenário 2: selecionar "O dia todo" e salvar grava a janela 00:00–23:59', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: undefined, regrasPendentes: null });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      // "O dia todo" já vem pré-selecionado (Cenário 1) — só falta um dia da semana.
+      await fireEvent.press(screen.getByLabelText('segunda'));
+      await fireEvent.press(screen.getByText('Salvar'));
+
+      await waitFor(() =>
+        expect(salvar).toHaveBeenCalledWith(
+          ['com.instagram.android', 'com.whatsapp'],
+          expect.objectContaining({ inicio: '00:00', fim: '23:59', diasSemana: [1] }),
+        ),
+      );
+    });
+
+    it('Cenário 3: "Horário específico" mostra os campos de hora e mantém a validação de fim depois do início', async () => {
+      configurarRegrasPadrao({ regrasVigentes: undefined, regrasPendentes: null });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      await fireEvent.press(screen.getByRole('radio', { name: 'Horário específico' }));
+
+      expect(screen.getByText('Início')).toBeTruthy();
+      expect(screen.getByText('Fim')).toBeTruthy();
+      expect(screen.getByRole('radio', { name: 'Horário específico', checked: true })).toBeTruthy();
+
+      // Sem dia da semana marcado, a validação de janela continua reprovando.
+      expect(
+        screen.getByText('Escolha um horário de fim depois do início e pelo menos um dia da semana.'),
+      ).toBeTruthy();
+    });
+
+    it('Cenário 4: trocar pra "O dia todo" com regra já vigente cria pendência (não salva na hora)', async () => {
+      const salvar = jest.fn().mockResolvedValue(true);
+      configurarRegrasPadrao({ salvar, regrasVigentes: VIGENTE_HORARIO_ESPECIFICO });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByRole('radio', { name: 'Horário específico', checked: true })).toBeTruthy();
+
+      await fireEvent.press(screen.getByRole('radio', { name: 'O dia todo' }));
+      await fireEvent.press(screen.getByText('Salvar'));
+
+      expect(salvar).not.toHaveBeenCalled();
+      expect(screen.getByText('Antes de salvar')).toBeTruthy();
+      expect(screen.getByText('1 app · seg a sex · o dia todo')).toBeTruthy();
+
+      await fireEvent.press(screen.getByText('Entendi, confirmar'));
+
+      expect(salvar).toHaveBeenCalledWith(
+        VIGENTE_HORARIO_ESPECIFICO.apps,
+        expect.objectContaining({ inicio: '00:00', fim: '23:59', diasSemana: [1, 2, 3, 4, 5] }),
+      );
+    });
+
+    it('Cenário 6: com "O dia todo" selecionado, os dias da semana continuam configuráveis', async () => {
+      configurarRegrasPadrao({ regrasVigentes: undefined, regrasPendentes: null });
+      await render(
+        <BloqueioAppsScreen uid="uid-1" aoTocarAtivar={jest.fn()} aoTocarSaibaOQueE={jest.fn()} aoTocarMedirTempo={jest.fn()} onVoltar={jest.fn()} />,
+      );
+
+      expect(screen.getByRole('radio', { name: 'O dia todo', checked: true })).toBeTruthy();
+
+      await fireEvent.press(screen.getByLabelText('segunda'));
+      await fireEvent.press(screen.getByLabelText('terça'));
+
+      expect(screen.getByLabelText('segunda').props.accessibilityState).toMatchObject({ checked: true });
+      expect(screen.getByLabelText('terça').props.accessibilityState).toMatchObject({ checked: true });
+      // Continua em "O dia todo" — marcar dias não troca de opção.
+      expect(screen.getByRole('radio', { name: 'O dia todo', checked: true })).toBeTruthy();
+    });
+  });
+
   describe('HU-09 · seções Sessões e Rotina noturna', () => {
     const VIGENTE_COM_JANELA = {
       apps: ['com.instagram.android'],
