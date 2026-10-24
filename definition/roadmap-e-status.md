@@ -181,7 +181,7 @@ caminho, com tela de configuração própria.
 
 ## 16. Publicação (fora do código, `procedimento-loja.md`)
 
-- Versão atual do build: `versionName 1.4` / `versionCode 5` (`android/app/build.gradle`)
+- Versão atual do build: `versionName 1.7` / `versionCode 8` (`android/app/build.gradle`)
 - Conta de desenvolvedor Google Play
 - Ficha da app na loja (inclui justificativa de Accessibility Service)
 - Tudo do item 13 acima
