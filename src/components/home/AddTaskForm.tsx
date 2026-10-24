@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { TextField } from '../TextField';
 import { PrimaryButton } from '../PrimaryButton';
+import { ToggleIndicator } from '../common/ToggleIndicator';
 import { TaskTypeToggle } from './TaskTypeToggle';
 import { SUGESTOES_ALTERNATIVAS } from '../../domain/sugestoesAlternativas';
 import { TipoTarefa } from '../../domain/types';
@@ -150,11 +151,7 @@ export function AddTaskForm({
                   : 'Você já tem 3 essenciais hoje.'}
               </Text>
             </View>
-            <View style={[styles.trilha, essencialEfetivo && styles.trilhaAtiva]}>
-              <View
-                style={[styles.bolinha, essencialEfetivo && styles.bolinhaAtiva]}
-              />
-            </View>
+            <ToggleIndicator ativo={essencialEfetivo} />
           </Pressable>
 
           <TaskTypeToggle
@@ -172,11 +169,7 @@ export function AddTaskForm({
             style={styles.linhaRepetir}
           >
             <Text style={styles.rotuloRepetir}>Repetir todos os dias</Text>
-            <View style={[styles.trilha, repetirTodosOsDias && styles.trilhaAtiva]}>
-              <View
-                style={[styles.bolinha, repetirTodosOsDias && styles.bolinhaAtiva]}
-              />
-            </View>
+            <ToggleIndicator ativo={repetirTodosOsDias} />
           </Pressable>
 
           <PrimaryButton
@@ -279,30 +272,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
-  },
-  // Toggle customizado (não o <Switch> nativo) — ver
-  // reference_switch_loadingindicator_flatlist_jest na memória do projeto:
-  // Switch quebra em testes que rodam depois de um LoadingIndicator no
-  // mesmo arquivo, gatilho mais amplo do que só "dentro de FlatList".
-  trilha: {
-    width: 44,
-    height: 26,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.border,
-    padding: 3,
-    justifyContent: 'center',
-  },
-  trilhaAtiva: {
-    backgroundColor: theme.colors.cobre,
-  },
-  bolinha: {
-    width: 20,
-    height: 20,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.casca,
-  },
-  bolinhaAtiva: {
-    alignSelf: 'flex-end',
   },
   cancelar: {
     alignSelf: 'center',

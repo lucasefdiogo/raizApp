@@ -269,10 +269,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Musgo, não Cobre (RotinaPerfilScreen usa a mesma cor pro link "Alterar")
+  // — o único Cobre da tela é o botão "Confirmar".
   link: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.accent,
+    color: theme.colors.musgo,
   },
   acoes: {
     alignSelf: 'stretch',

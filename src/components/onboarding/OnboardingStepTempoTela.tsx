@@ -72,8 +72,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.surface,
   },
+  // Musgo, não Cobre — o único Cobre da tela é o botão "Continuar" do onboarding.
   chipSelecionado: {
-    borderColor: theme.colors.cobre,
+    borderColor: theme.colors.musgo,
     backgroundColor: theme.colors.cobreClaro,
   },
   chipTexto: {

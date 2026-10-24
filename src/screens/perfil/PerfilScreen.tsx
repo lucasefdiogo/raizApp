@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
@@ -21,6 +21,7 @@ import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { ToggleIndicator } from '../../components/common/ToggleIndicator';
 import { LinkExterno } from '../../components/common/LinkExterno';
 import { ConfirmDeleteAccountModal } from '../../components/perfil/ConfirmDeleteAccountModal';
 import { ReauthPromptModal } from '../../components/perfil/ReauthPromptModal';
@@ -230,11 +231,15 @@ export function PerfilScreen({
               )}
             </View>
           </Pressable>
-          <Switch
-            value={notificacoesAtivas}
-            onValueChange={alternarNotificacoes}
-            trackColor={{ false: theme.colors.border, true: theme.colors.cobre }}
-          />
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel="Lembrete diário"
+            accessibilityState={{ checked: notificacoesAtivas }}
+            onPress={() => alternarNotificacoes(!notificacoesAtivas)}
+            hitSlop={8}
+          >
+            <ToggleIndicator ativo={notificacoesAtivas} />
+          </Pressable>
         </View>
         {seletorAberto && (
           <DateTimePicker

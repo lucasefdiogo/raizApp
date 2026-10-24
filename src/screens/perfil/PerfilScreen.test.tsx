@@ -334,7 +334,7 @@ describe('PerfilScreen', () => {
     configurarPerfilPadrao({ alternarNotificacoes });
 
     await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
-    await fireEvent(screen.getByRole('switch'), 'valueChange', true);
+    await fireEvent.press(screen.getByRole('switch'));
 
     expect(alternarNotificacoes).toHaveBeenCalledWith(true);
   });
