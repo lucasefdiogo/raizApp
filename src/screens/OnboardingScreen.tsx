@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
-  KeyboardAvoidingView,
-  Platform,
+  Keyboard,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -25,6 +25,13 @@ interface OnboardingScreenProps {
   onConcluir: () => void;
 }
 
+// No Android com edge-to-edge (RN 0.87+) o `adjustResize` não encolhe mais a
+// janela — KeyboardAvoidingView com behavior Android não tem efeito nenhum
+// (só 'padding' no iOS, que este app não tem). Mesmo fix de
+// SignUpScreen/HomeScreen: acompanha a altura do teclado à mão e cria espaço
+// equivalente no fim do ScrollView, depois rola até lá.
+const ATRASO_SCROLL_TECLADO_MS = 50;
+
 export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
   const {
     passo,
@@ -44,6 +51,32 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
     comecarComTarefa,
     pularPrimeiraTarefa,
   } = useOnboarding({ uid, onConcluir });
+
+  const [alturaTeclado, setAlturaTeclado] = useState(0);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+
+  useEffect(() => {
+    const aoMostrar = Keyboard.addListener('keyboardDidShow', evento => {
+      setAlturaTeclado(evento.endCoordinates.height);
+    });
+    const aoEsconder = Keyboard.addListener('keyboardDidHide', () => {
+      setAlturaTeclado(0);
+    });
+    return () => {
+      aoMostrar.remove();
+      aoEsconder.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (alturaTeclado === 0) {
+      return;
+    }
+    const id = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, ATRASO_SCROLL_TECLADO_MS);
+    return () => clearTimeout(id);
+  }, [alturaTeclado]);
 
   // Sem isso, o botão físico voltar fecha o app inteiro nos passos 2 e 3
   // em vez de retroceder um passo — o app "sumindo" no meio do onboarding.
@@ -73,9 +106,16 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      <ScrollView
+        ref={scrollRef}
+        testID="onboarding-scroll"
+        contentContainerStyle={[
+          styles.flex,
+          alturaTeclado > 0 && {
+            paddingBottom: alturaTeclado + theme.spacing.md,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.conteudo}>
           {passo === PASSO_ONBOARDING.foco && (
@@ -144,7 +184,7 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
             )}
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -155,7 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   flex: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'space-between',
   },
   conteudo: {
