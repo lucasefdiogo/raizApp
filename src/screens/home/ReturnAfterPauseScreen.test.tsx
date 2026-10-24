@@ -1,6 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
+import { render, screen, act, waitFor } from '@testing-library/react-native';
+import { BackHandler, Keyboard, ScrollView, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ReturnAfterPauseScreen } from './ReturnAfterPauseScreen';
@@ -45,5 +45,52 @@ describe('ReturnAfterPauseScreen — bloqueio do botão voltar', () => {
     );
 
     addEventListener.mockRestore();
+  });
+
+  it('quando o teclado abre, cria espaço no fim do conteúdo e rola até lá', async () => {
+    const ouvintes: Record<string, (evento: unknown) => void> = {};
+    const addListener = jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      evento: string,
+      cb: (e: unknown) => void,
+    ) => {
+      ouvintes[evento] = cb;
+      return { remove: jest.fn() };
+    }) as never);
+    const scrollToEnd = jest
+      .spyOn(ScrollView.prototype, 'scrollToEnd')
+      .mockImplementation(() => {});
+
+    const paddingBottomAtual = () =>
+      StyleSheet.flatten(
+        screen.getByTestId('return-after-pause-scroll').props
+          .contentContainerStyle,
+      ).paddingBottom;
+
+    try {
+      await renderEmStack(
+        <ReturnAfterPauseScreen uid="uid-teste" onConcluir={jest.fn()} />,
+      );
+
+      expect(paddingBottomAtual()).toBeUndefined();
+
+      await act(async () => {
+        ouvintes.keyboardDidShow?.({ endCoordinates: { height: 280 } });
+      });
+
+      expect(paddingBottomAtual()).toBeGreaterThanOrEqual(280);
+
+      await waitFor(() =>
+        expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
+      );
+
+      await act(async () => {
+        ouvintes.keyboardDidHide?.({});
+      });
+
+      expect(paddingBottomAtual()).toBeUndefined();
+    } finally {
+      addListener.mockRestore();
+      scrollToEnd.mockRestore();
+    }
   });
 });
