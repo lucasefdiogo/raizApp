@@ -1,7 +1,17 @@
 {
-  "defaultMode": "bypassPermissions",
   "sandbox": {
-    "allowedNetworkDomains": ["*.github.com", "*.npmjs.com", "*.pypi.org"],
-    "denyWrite": [".claude/", ".git/hooks/"]
+    "allowedNetworkDomains": [
+      "*.github.com",
+      "*.npmjs.com",
+      "*.pypi.org"
+    ],
+    "denyWrite": [
+      ".claude/",
+      ".git/hooks/"
+    ]
+  },
+  "defaultMode": "bypassPermissions",
+  "enabledPlugins": {
+    "superpowers@anthropic-plugin-directory": true
   }
 }
