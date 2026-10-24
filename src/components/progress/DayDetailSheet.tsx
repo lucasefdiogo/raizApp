@@ -1,6 +1,9 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  useSafeAreaFrame,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { StatusHistoricoDia } from '../../domain/progress';
 import { DetalheRedesDoDia } from '../../domain/resumoRedes';
@@ -16,6 +19,11 @@ interface DayDetailSheetProps {
   detalheRedes?: DetalheRedesDoDia | null;
   onClose: () => void;
 }
+
+// Dia com muitas tarefas/muitas intenções não pode empurrar o cartão pra
+// fora da tela — trava a altura numa fração do frame e rola só o corpo,
+// com título e "Fechar" sempre visíveis.
+const FRACAO_ALTURA_MAXIMA = 0.85;
 
 const LABEL_STATUS: Record<StatusHistoricoDia, string> = {
   cumprido: 'cumprido',
@@ -40,6 +48,7 @@ export function DayDetailSheet({
   onClose,
 }: DayDetailSheetProps) {
   const insets = useSafeAreaInsets();
+  const frame = useSafeAreaFrame();
 
   return (
     <Modal
@@ -51,9 +60,13 @@ export function DayDetailSheet({
       <Pressable style={styles.fundo} onPress={onClose}>
         {/* trava a propagação do toque no cartão pro fundo não fechar */}
         <Pressable
+          testID="day-detail-cartao"
           style={[
             styles.cartao,
-            { paddingBottom: theme.spacing.xl + insets.bottom },
+            {
+              maxHeight: frame.height * FRACAO_ALTURA_MAXIMA,
+              paddingBottom: theme.spacing.xl + insets.bottom,
+            },
           ]}
           onPress={() => {}}
         >
@@ -61,59 +74,64 @@ export function DayDetailSheet({
             {label} · {LABEL_STATUS[status]}
           </Text>
 
-          {tarefas.length === 0 ? (
-            <Text style={styles.vazio}>Nenhuma tarefa registrada nesse dia.</Text>
-          ) : (
-            <View style={styles.lista}>
-              {tarefas.map(tarefa => (
-                <View key={tarefa.id} style={styles.linha}>
-                  <View
-                    testID="day-detail-checkbox"
-                    accessibilityLabel={
-                      tarefa.concluida ? 'concluída' : 'não concluída'
-                    }
-                    style={[
-                      styles.checkbox,
-                      tarefa.concluida && styles.checkboxMarcado,
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.tarefaTitulo,
-                      tarefa.concluida && styles.tarefaTituloConcluida,
-                    ]}
-                  >
-                    {tarefa.titulo}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {detalheRedes && (
-            <View testID="day-detail-nas-redes" style={styles.blocoRedes}>
-              <Text style={styles.eyebrowRedes}>Nas redes</Text>
-              <View style={styles.linhaRedes}>
-                {detalheRedes.duracao && (
-                  <Text style={styles.duracaoRedes}>{detalheRedes.duracao}</Text>
-                )}
-                <Text style={styles.contadoresRedes}>{detalheRedes.textoContadores}</Text>
+          <ScrollView
+            testID="day-detail-corpo-scroll"
+            contentContainerStyle={styles.corpoScroll}
+          >
+            {tarefas.length === 0 ? (
+              <Text style={styles.vazio}>Nenhuma tarefa registrada nesse dia.</Text>
+            ) : (
+              <View style={styles.lista}>
+                {tarefas.map(tarefa => (
+                  <View key={tarefa.id} style={styles.linha}>
+                    <View
+                      testID="day-detail-checkbox"
+                      accessibilityLabel={
+                        tarefa.concluida ? 'concluída' : 'não concluída'
+                      }
+                      style={[
+                        styles.checkbox,
+                        tarefa.concluida && styles.checkboxMarcado,
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.tarefaTitulo,
+                        tarefa.concluida && styles.tarefaTituloConcluida,
+                      ]}
+                    >
+                      {tarefa.titulo}
+                    </Text>
+                  </View>
+                ))}
               </View>
-              {detalheRedes.topAppsTexto && (
-                <Text style={styles.topAppsRedes}>{detalheRedes.topAppsTexto}</Text>
-              )}
-              {detalheRedes.intencoes.length > 0 && (
-                <>
-                  <View style={styles.divisorRedes} />
-                  <Text style={styles.eyebrowRedes}>O que você escreveu na pausa</Text>
-                  <Text style={styles.intencoesRedes}>
-                    {detalheRedes.intencoes.map(texto => `“${texto}”`).join(' · ')}
-                    {detalheRedes.intencoesExcedente > 0 ? ` · +${detalheRedes.intencoesExcedente}` : ''}
-                  </Text>
-                </>
-              )}
-            </View>
-          )}
+            )}
+
+            {detalheRedes && (
+              <View testID="day-detail-nas-redes" style={styles.blocoRedes}>
+                <Text style={styles.eyebrowRedes}>Nas redes</Text>
+                <View style={styles.linhaRedes}>
+                  {detalheRedes.duracao && (
+                    <Text style={styles.duracaoRedes}>{detalheRedes.duracao}</Text>
+                  )}
+                  <Text style={styles.contadoresRedes}>{detalheRedes.textoContadores}</Text>
+                </View>
+                {detalheRedes.topAppsTexto && (
+                  <Text style={styles.topAppsRedes}>{detalheRedes.topAppsTexto}</Text>
+                )}
+                {detalheRedes.intencoes.length > 0 && (
+                  <>
+                    <View style={styles.divisorRedes} />
+                    <Text style={styles.eyebrowRedes}>O que você escreveu na pausa</Text>
+                    <Text style={styles.intencoesRedes}>
+                      {detalheRedes.intencoes.map(texto => `“${texto}”`).join(' · ')}
+                      {detalheRedes.intencoesExcedente > 0 ? ` · +${detalheRedes.intencoesExcedente}` : ''}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
+          </ScrollView>
 
           <Pressable
             accessibilityRole="button"
@@ -140,6 +158,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.radius.lg,
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  corpoScroll: {
     gap: theme.spacing.sm,
   },
   titulo: {

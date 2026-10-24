@@ -1,5 +1,10 @@
 import React from 'react';
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react-native';
+import {
+  render as rtlRender,
+  screen,
+  fireEvent,
+} from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { DayDetailSheet } from './DayDetailSheet';
 import { Tarefa } from '../../domain/types';
@@ -213,6 +218,30 @@ describe('DayDetailSheet', () => {
       expect(screen.queryByTestId('day-detail-nas-redes')).toBeNull();
       expect(screen.queryByText('Nas redes')).toBeNull();
     });
+  });
+
+  it('limita a altura do cartão e rola a lista em vez de vazar da tela (frame de 640 de altura)', async () => {
+    const muitasTarefas: Tarefa[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `t${i}`,
+      titulo: `Tarefa ${i}`,
+      essencial: false,
+      concluida: false,
+    }));
+
+    await render(
+      <DayDetailSheet
+        visible
+        label="Quarta-feira"
+        status="cumprido"
+        tarefas={muitasTarefas}
+        onClose={jest.fn()}
+      />,
+    );
+
+    const cartao = StyleSheet.flatten(screen.getByTestId('day-detail-cartao').props.style);
+    expect(cartao.maxHeight).toBe(640 * 0.85);
+    expect(screen.getByTestId('day-detail-corpo-scroll')).toBeTruthy();
+    expect(screen.getByText('Tarefa 29')).toBeTruthy();
   });
 
   it('"Fechar" chama onClose', async () => {
