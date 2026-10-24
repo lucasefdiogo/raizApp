@@ -213,6 +213,25 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   }
 
   /**
+   * "Voltar ao início" (RN01) — sair de verdade pra tela inicial do Android,
+   * não só fechar a InterceptActivity. Como o serviço de acessibilidade abre
+   * essa Activity numa tarefa nova por cima da tarefa do app bloqueado (sem
+   * nunca limpar essa tarefa de baixo), um simples finish() revelaria o
+   * próprio app bloqueado de novo — e o AccessibilityService reinterceptaria
+   * na hora, num laço infinito. ACTION_MAIN/CATEGORY_HOME é o equivalente
+   * programático de apertar o botão Home: ignora qualquer tarefa por baixo.
+   */
+  @ReactMethod
+  fun irParaTelaInicial(promise: Promise) {
+    val intent = Intent(Intent.ACTION_MAIN).apply {
+      addCategory(Intent.CATEGORY_HOME)
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    reactApplicationContext.startActivity(intent)
+    promise.resolve(null)
+  }
+
+  /**
    * Espelha o snapshot do dia em SharedPreferences (ver BloqueioPrefs) —
    * falha silenciosa: um JSON malformado não derruba o app, e o snapshot
    * sincroniza de novo na próxima mudança de tarefas.

@@ -48,8 +48,18 @@ interface InterceptScreenProps {
   visaoInicial?: VisaoBloqueio | null;
   /** Ausente/duracaoRestanteSeg <= 0 = segue a fase do saldo normalmente. */
   sessaoAtivaResumida?: SessaoAtivaResumida | null;
-  /** "Sair"/"Agora não"/fim de qualquer sub-fluxo — BackHandler.exitApp (ver InterceptRoot). */
+  /**
+   * "Voltar ao início"/"Agora não"/alternativa noturna/"Parar aqui" — saída
+   * total pra tela inicial do Android (ver InterceptRoot), nunca pra revelar
+   * o app bloqueado por baixo.
+   */
   onSair: () => void;
+  /**
+   * Só depois de abrir o app liberado (ver `abrirAppEFechar`) — fecha a
+   * interceptação sem forçar a Home, porque o que deve aparecer por baixo é
+   * justamente o app que o usuário pediu para abrir.
+   */
+  onFecharAposAbrir: () => void;
 }
 
 type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia' | 'acessoRapido';
@@ -80,6 +90,7 @@ export function InterceptScreen({
   visaoInicial = null,
   sessaoAtivaResumida,
   onSair,
+  onFecharAposAbrir,
 }: InterceptScreenProps) {
   const dailyTasks = useDailyTasks(uid);
   const saldo = useBloqueioSaldo(uid, visaoInicial);
@@ -127,7 +138,7 @@ export function InterceptScreen({
 
   async function abrirAppEFechar() {
     await abrirApp(packageName);
-    onSair();
+    onFecharAposAbrir();
   }
 
   async function handleLiberarBloco(intencao: string) {

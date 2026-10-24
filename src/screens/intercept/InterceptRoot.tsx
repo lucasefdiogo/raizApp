@@ -4,7 +4,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
 import { SnapshotDia } from '../../domain/intercept';
-import { listarAppsInstalados, parseVisaoBloqueio } from '../../native/AccessibilityDetection';
+import {
+  irParaTelaInicial,
+  listarAppsInstalados,
+  parseVisaoBloqueio,
+} from '../../native/AccessibilityDetection';
 import { InterceptScreen, SessaoAtivaResumida } from './InterceptScreen';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 
@@ -133,7 +137,14 @@ export function InterceptRoot({
             snapshot={parseSnapshot(snapshotJson)}
             visaoInicial={parseVisaoBloqueio(estadoBloqueioJson)}
             sessaoAtivaResumida={parseSessaoAtiva(sessaoAtivaJson)}
-            onSair={() => BackHandler.exitApp()}
+            onSair={async () => {
+              // Vai pra Home de verdade antes de fechar — só fechar (exitApp)
+              // revelaria a tarefa do app bloqueado por baixo (RootoraAccessibilityService
+              // nunca a move/limpa), e ele seria reinterceptado na hora.
+              await irParaTelaInicial();
+              BackHandler.exitApp();
+            }}
+            onFecharAposAbrir={() => BackHandler.exitApp()}
           />
         )}
       </ToastProvider>

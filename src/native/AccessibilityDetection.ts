@@ -41,6 +41,7 @@ interface RootoraAccessibilityNative {
   liberarAcessoRapido(): Promise<string>;
   concluirEmergencia(): Promise<string>;
   abrirApp(packageName: string): Promise<boolean>;
+  irParaTelaInicial(): Promise<void>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
   salvarRegrasBloqueioPendentes(pendenteJson: string | null): void;
@@ -228,6 +229,23 @@ export async function abrirApp(packageName: string): Promise<boolean> {
     return false;
   }
   return modulo.abrirApp(packageName);
+}
+
+/**
+ * "Voltar ao início" (RN01) — tela inicial do Android de verdade, não só
+ * fecha a InterceptActivity. Sem isso, fechar a Activity revela a tarefa do
+ * app bloqueado que ficou por baixo (o serviço de acessibilidade nunca
+ * limpa essa tarefa), e o AccessibilityService reintercepta na hora — ver
+ * `irParaTelaInicial` em RootoraAccessibilityModule.kt. Sem o módulo nativo,
+ * não há o que fazer além de deixar quem chamou seguir com o próprio
+ * fallback (BackHandler.exitApp).
+ */
+export async function irParaTelaInicial(): Promise<void> {
+  const modulo = moduloNativo();
+  if (!modulo) {
+    return;
+  }
+  await modulo.irParaTelaInicial();
 }
 
 /**
