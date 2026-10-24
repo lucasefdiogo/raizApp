@@ -424,8 +424,8 @@ describe('InterceptScreen', () => {
     });
   });
 
-  describe('SESSAO_ATIVA', () => {
-    it('CA-03: mostra o tempo restante e o aviso 1 minuto restante quando o hook sinaliza', async () => {
+  describe('SESSAO_ATIVA (RN08, HU-11)', () => {
+    it('CA-03: abre o app sozinho, sem exigir toque, e avisa por Toast quando falta 1 minuto', async () => {
       configurarDailyTasks();
       configurarSaldo(
         { fase: 'SESSAO_ATIVA' },
@@ -433,14 +433,12 @@ describe('InterceptScreen', () => {
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('00:45')).toBeTruthy();
-      expect(screen.getByText('1 minuto restante')).toBeTruthy();
-      expect(screen.queryByText('Sua sessão está em andamento.')).toBeNull();
-      await fireEvent.press(screen.getByText('Abrir o Instagram'));
       expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+      expect(showToast).toHaveBeenCalledWith('1 minuto restante na sessão.');
+      expect(screen.queryByText('Abrir o Instagram')).toBeNull();
     });
 
-    it('CA-03: fora do último minuto não há aviso', async () => {
+    it('CA-03: fora do último minuto, abre o app sozinho sem nenhum Toast', async () => {
       configurarDailyTasks();
       configurarSaldo(
         { fase: 'SESSAO_ATIVA' },
@@ -448,8 +446,8 @@ describe('InterceptScreen', () => {
       );
       await render(<InterceptScreen {...props} />);
 
-      expect(screen.getByText('05:00')).toBeTruthy();
-      expect(screen.queryByText('1 minuto restante')).toBeNull();
+      expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
+      expect(showToast).not.toHaveBeenCalled();
     });
   });
 

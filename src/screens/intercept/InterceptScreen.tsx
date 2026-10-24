@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { EstadoTravado } from '../../domain/types';
@@ -13,9 +13,7 @@ import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
 import { useToast } from '../../hooks/useToast';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
 import { logAlternativaNoturnaEscolhida, logValvulaEscolhida } from '../../services/analytics';
-import { PrimaryButton } from '../../components/PrimaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
-import { SessaoAtivaAviso } from './SessaoAtivaAviso';
 import { PausaIntencaoNoturna } from '../rotina/PausaIntencaoNoturna';
 import { EsperaAcessoRapidoNoturna } from '../rotina/EsperaAcessoRapidoNoturna';
 import { EsperaBloqueioScreen } from './EsperaBloqueioScreen';
@@ -69,6 +67,7 @@ type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia' | 'acessoRapido';
 const DURACAO_SEG_RESPIRACAO_EMERGENCIA = 60;
 
 const MENSAGEM_FALHA_LIBERAR = 'Não conseguimos liberar agora. Tente de novo.';
+const MENSAGEM_UM_MINUTO_RESTANTE = '1 minuto restante na sessão.';
 
 interface ParametrosSessao {
   tarefaId: string | null;
@@ -144,6 +143,21 @@ export function InterceptScreen({
     await abrirApp(packageName);
     onFecharAposAbrir();
   }
+
+  // Sessão já em andamento (RN08, HU-11): o Service não intercepta nesta
+  // fase, mas a tela pode ter ficado aberta enquanto o estado virou — abre o
+  // app direto, sem exigir toque, com um aviso passageiro (Toast) se faltar
+  // só 1 minuto. Nunca uma tela cheia bloqueante.
+  useEffect(() => {
+    if (fase !== 'SESSAO_ATIVA' || modo !== 'principal') {
+      return;
+    }
+    if (saldo.avisoUmMinuto) {
+      showToast(MENSAGEM_UM_MINUTO_RESTANTE);
+    }
+    abrirAppEFechar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só a transição pra SESSAO_ATIVA importa; abrirAppEFechar/showToast são recriados a cada render sem precisar reexecutar o efeito.
+  }, [fase, modo, saldo.avisoUmMinuto]);
 
   async function handleLiberarBloco(intencao: string) {
     registrarAcao('B', 'liberou');
@@ -342,33 +356,14 @@ export function InterceptScreen({
     );
   }
 
-  // Sessão já em andamento (o Service não intercepta nesta fase, mas a tela
-  // pode ter ficado aberta enquanto o estado virou): tempo restante e aviso.
-  return (
-    <SafeAreaView style={styles.container} testID="intercept-screen">
-      <View style={styles.conteudo}>
-        <SessaoAtivaAviso
-          msRestantes={saldo.msRestantesSessao}
-          avisoUmMinuto={saldo.avisoUmMinuto}
-        />
-        <PrimaryButton
-          titulo={`Abrir o ${appLabel}`}
-          onPress={abrirAppEFechar}
-        />
-      </View>
-    </SafeAreaView>
-  );
+  // fase === 'SESSAO_ATIVA': o useEffect acima já abre o app sozinho, sem
+  // UI própria — nunca uma tela cheia bloqueante (RN08).
+  return <SafeAreaView style={styles.container} testID="intercept-screen" />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  conteudo: {
-    flex: 1,
-    padding: theme.spacing.lg,
-    gap: theme.spacing.lg,
-    justifyContent: 'center',
   },
 });
