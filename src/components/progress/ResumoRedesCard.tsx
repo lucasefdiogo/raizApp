@@ -68,6 +68,12 @@ export function ResumoRedesCard({
             ))}
           </View>
 
+          {resumo.listaPorApp && (
+            <Text testID="resumo-redes-lista-apps" style={styles.listaPorApp}>
+              {resumo.listaPorApp}
+            </Text>
+          )}
+
           <View style={styles.divisor} />
         </>
       )}
@@ -128,6 +134,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   comparacao: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
+  },
+  // HU-13 RN02: "Instagram 4h 10min · TikTok 2h 30min", abaixo do gráfico.
+  listaPorApp: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textSecondary,

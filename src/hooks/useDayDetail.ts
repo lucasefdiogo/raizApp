@@ -9,7 +9,7 @@ interface UseDayDetailResultado {
   dataSelecionada: string | null;
   tarefasDoDia: Tarefa[];
   statusDoDia: StatusHistoricoDia | null;
-  /** Bloco "Nas redes" do dia (HU-08, RN07) — null quando não há nada pra mostrar. */
+  /** Bloco "Nas redes" do dia (HU-08, RN07; filtro por appsBloqueados, HU-13) — null quando não há nada pra mostrar. */
   detalheRedes: DetalheRedesDoDia | null;
   carregando: boolean;
   /** Busca o dailyLog daquele dia e passa a exibi-lo — troca a seleção
@@ -26,7 +26,11 @@ interface UseDayDetailResultado {
  * (domain/progress.ts), a mesma regra que já monta o histórico da semana,
  * pra não divergir do status já mostrado na própria pastilha.
  */
-export function useDayDetail(uid: string, comAcessoDeUso: boolean): UseDayDetailResultado {
+export function useDayDetail(
+  uid: string,
+  comAcessoDeUso: boolean,
+  appsBloqueados: string[],
+): UseDayDetailResultado {
   const [dataSelecionada, setDataSelecionada] = useState<string | null>(null);
   const [tarefasDoDia, setTarefasDoDia] = useState<Tarefa[]>([]);
   const [statusDoDia, setStatusDoDia] = useState<StatusHistoricoDia | null>(
@@ -59,10 +63,10 @@ export function useDayDetail(uid: string, comAcessoDeUso: boolean): UseDayDetail
           avaliarHojeAoVivo: true,
         }),
       );
-      setDetalheRedes(detalheRedesDoDia(log, comAcessoDeUso));
+      setDetalheRedes(detalheRedesDoDia(log, comAcessoDeUso, appsBloqueados));
       setCarregando(false);
     },
-    [uid, comAcessoDeUso],
+    [uid, comAcessoDeUso, appsBloqueados],
   );
 
   const limparSelecao = useCallback(() => {

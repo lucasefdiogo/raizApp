@@ -6,8 +6,10 @@ import {
   montarResumoCard,
   reflexaoSemanal,
   segundosPorNomeApp,
+  segundosPorNomeAppBloqueados,
   somarAberturasRedes,
   somarContadoresBloqueio,
+  somarSegundosBloqueados,
   somarSegundosRedes,
   textoComparacao,
 } from './resumoRedes';
@@ -136,7 +138,9 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
     }));
 
     it('Cenário 1: com acesso de uso, soma contadores/duração e devolve 7 barras com "hoje" marcado', () => {
-      const resumo = montarResumoCard(semanaAtual, semanaAnteriorComBase, true, SEGUNDA);
+      const resumo = montarResumoCard(semanaAtual, semanaAnteriorComBase, true, SEGUNDA, [
+        'com.instagram.android',
+      ]);
 
       expect(resumo.contadores).toEqual({ sessoesUsadas: 18, acessosRapidos: 5, emergencias: 1 });
       expect(resumo.duracaoTotal).toBe('6h 40min');
@@ -148,12 +152,15 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
     });
 
     it('Cenário 2: sem acesso de uso, contadores aparecem mas nenhum dado de uso é lido', () => {
-      const resumo = montarResumoCard(semanaAtual, semanaAnteriorComBase, false, SEGUNDA);
+      const resumo = montarResumoCard(semanaAtual, semanaAnteriorComBase, false, SEGUNDA, [
+        'com.instagram.android',
+      ]);
 
       expect(resumo.contadores).toEqual({ sessoesUsadas: 18, acessosRapidos: 5, emergencias: 1 });
       expect(resumo.duracaoTotal).toBe('');
       expect(resumo.barras).toEqual([]);
       expect(resumo.comparacao).toBeNull();
+      expect(resumo.listaPorApp).toBeNull();
     });
   });
 
@@ -169,6 +176,7 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
           },
         },
         true,
+        ['com.zhiliaoapp.musically', 'com.ss.android.ugc.trill', 'com.instagram.android'],
       );
 
       expect(detalhe?.topAppsTexto).toBe('TikTok 30 min · Instagram 20 min');
@@ -183,6 +191,7 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
           },
         },
         true,
+        [],
       );
 
       expect(detalhe?.intencoes).toEqual(['responder a turma', 'ver o story da Bia']);
@@ -198,6 +207,7 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
           },
         },
         true,
+        [],
       );
 
       expect(detalhe?.intencoes).toEqual(['a', 'b', 'c', 'd', 'e']);
@@ -205,8 +215,8 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
     });
 
     it('Cenário 9: dia sem resumoBloqueio nem usoApps não mostra o bloco', () => {
-      expect(detalheRedesDoDia({}, true)).toBeNull();
-      expect(detalheRedesDoDia(null, true)).toBeNull();
+      expect(detalheRedesDoDia({}, true, [])).toBeNull();
+      expect(detalheRedesDoDia(null, true, [])).toBeNull();
     });
 
     it('sem acesso de uso, não mostra duração nem apps mesmo que usoApps exista', () => {
@@ -216,10 +226,122 @@ describe('HU-08 · Tempo nas redes e reflexão da semana', () => {
           usoApps: { 'com.instagram.android': { segundos: 100, aberturas: 1 } },
         },
         false,
+        ['com.instagram.android'],
       );
 
       expect(detalhe?.duracao).toBeNull();
       expect(detalhe?.topAppsTexto).toBeNull();
+    });
+  });
+
+  describe('HU-13 · Histórico só dos apps bloqueados', () => {
+    describe('somarSegundosBloqueados / segundosPorNomeAppBloqueados', () => {
+      const usoApps = {
+        'com.instagram.android': { segundos: 100, aberturas: 2 },
+        'com.zhiliaoapp.musically': { segundos: 50, aberturas: 1 },
+        'com.google.android.youtube': { segundos: 999, aberturas: 5 },
+      };
+
+      it('soma só os pacotes bloqueados, ignorando apps da lista curada que não estão bloqueados', () => {
+        expect(somarSegundosBloqueados([{ usoApps }], ['com.instagram.android'])).toBe(100);
+      });
+
+      it('sem nenhum app bloqueado, soma zero mesmo havendo uso registrado', () => {
+        expect(somarSegundosBloqueados([{ usoApps }], [])).toBe(0);
+      });
+
+      it('agrupa por nome só os pacotes bloqueados', () => {
+        expect(
+          segundosPorNomeAppBloqueados([{ usoApps }], ['com.instagram.android', 'com.zhiliaoapp.musically']),
+        ).toEqual({ Instagram: 100, TikTok: 50 });
+      });
+    });
+
+    describe('montarResumoCard', () => {
+      const semanaAtual = [
+        {
+          data: '2026-10-19',
+          resumoBloqueio: { sessoesUsadas: 1, intencoes: [] },
+          usoApps: {
+            'com.instagram.android': { segundos: 4 * 3600 + 10 * 60, aberturas: 2 },
+            'com.zhiliaoapp.musically': { segundos: 2 * 3600 + 30 * 60, aberturas: 2 },
+            'com.google.android.youtube': { segundos: 10 * 3600, aberturas: 10 },
+          },
+        },
+      ];
+
+      it('Cenário 1: soma só os apps bloqueados, YouTube desmarcado não entra no total', () => {
+        const resumo = montarResumoCard(semanaAtual, [], true, SEGUNDA, [
+          'com.instagram.android',
+          'com.zhiliaoapp.musically',
+        ]);
+
+        expect(resumo.duracaoTotal).toBe('6h 40min');
+      });
+
+      it('Cenário 2: lista por app ordenada do maior pro menor tempo', () => {
+        const resumo = montarResumoCard(semanaAtual, [], true, SEGUNDA, [
+          'com.instagram.android',
+          'com.zhiliaoapp.musically',
+        ]);
+
+        expect(resumo.listaPorApp).toBe('Instagram 4h 10min · TikTok 2h 30min');
+      });
+
+      it('Cenário 3: um único app bloqueado não mostra a lista por app', () => {
+        const resumo = montarResumoCard(semanaAtual, [], true, SEGUNDA, ['com.instagram.android']);
+
+        expect(resumo.listaPorApp).toBeNull();
+      });
+
+      it('Cenário 5: nenhum app bloqueado usa o mesmo estado de "sem acesso de uso"', () => {
+        // O hook (useResumoRedes) é quem decide comAcessoDeUso combinando
+        // consentimento + apps bloqueados — aqui simulamos o resultado já
+        // combinado (false), que é o que RN06 pede.
+        const resumo = montarResumoCard(semanaAtual, [], false, SEGUNDA, []);
+
+        expect(resumo.duracaoTotal).toBe('');
+        expect(resumo.barras).toEqual([]);
+        expect(resumo.listaPorApp).toBeNull();
+      });
+    });
+
+    describe('detalheRedesDoDia', () => {
+      const logDoDia = {
+        resumoBloqueio: { sessoesUsadas: 2, intencoes: [] },
+        usoApps: {
+          'com.instagram.android': { segundos: 20 * 60, aberturas: 1 },
+          'com.zhiliaoapp.musically': { segundos: 15 * 60, aberturas: 1 },
+          'com.google.android.youtube': { segundos: 999 * 60, aberturas: 1 },
+        },
+      };
+
+      it('Cenário 1: YouTube desmarcado não entra na duração nem na lista de apps', () => {
+        const detalhe = detalheRedesDoDia(logDoDia, true, [
+          'com.instagram.android',
+          'com.zhiliaoapp.musically',
+        ]);
+
+        expect(detalhe?.duracao).toBe('35 min');
+        expect(detalhe?.topAppsTexto).toBe('Instagram 20 min · TikTok 15 min');
+      });
+
+      it('Cenário 6: sem teto de 2 apps — lista os 3 apps bloqueados com uso no dia', () => {
+        const detalhe = detalheRedesDoDia(
+          {
+            resumoBloqueio: { sessoesUsadas: 1, intencoes: [] },
+            usoApps: {
+              'com.instagram.android': { segundos: 30 * 60, aberturas: 1 },
+              'com.zhiliaoapp.musically': { segundos: 20 * 60, aberturas: 1 },
+              'com.pinterest': { segundos: 10 * 60, aberturas: 1 },
+            },
+          },
+          true,
+          ['com.instagram.android', 'com.zhiliaoapp.musically', 'com.pinterest'],
+        );
+
+        expect(detalhe?.topAppsTexto).toBe('Instagram 30 min · TikTok 20 min · Pinterest 10 min');
+      });
     });
   });
 

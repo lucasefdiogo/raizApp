@@ -12,6 +12,7 @@ const RESUMO_BASE: ResumoCardSemana = {
     { data: '2026-10-21', segundos: null, hoje: false },
   ],
   comparacao: '40 min a mais que a semana passada',
+  listaPorApp: null,
 };
 
 describe('HU-08 · ResumoRedesCard', () => {
@@ -78,5 +79,27 @@ describe('HU-08 · ResumoRedesCard', () => {
     await fireEvent.press(screen.getByText('Medir tempo'));
 
     expect(onMedirTempo).toHaveBeenCalledTimes(1);
+  });
+
+  describe('HU-13 · lista por app', () => {
+    it('Cenário 2: com 2+ apps bloqueados, mostra a lista ordenada por tempo', async () => {
+      await render(
+        <ResumoRedesCard
+          comAcessoDeUso
+          resumo={{ ...RESUMO_BASE, listaPorApp: 'Instagram 4h 10min · TikTok 2h 30min' }}
+          onMedirTempo={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Instagram 4h 10min · TikTok 2h 30min')).toBeTruthy();
+    });
+
+    it('Cenário 3: com listaPorApp nula (1 app só, ou nenhum), não mostra a lista', async () => {
+      await render(
+        <ResumoRedesCard comAcessoDeUso resumo={RESUMO_BASE} onMedirTempo={jest.fn()} />,
+      );
+
+      expect(screen.queryByTestId('resumo-redes-lista-apps')).toBeNull();
+    });
   });
 });

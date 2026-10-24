@@ -61,6 +61,7 @@ const RESUMO_REDES_VAZIO = {
   duracaoTotal: '',
   barras: [],
   comparacao: null,
+  listaPorApp: null,
 };
 
 function configurarResumoRedes(sobrescritas = {}) {
@@ -68,6 +69,7 @@ function configurarResumoRedes(sobrescritas = {}) {
     resumoCard: RESUMO_REDES_VAZIO,
     reflexao: null,
     comAcessoDeUso: false,
+    appsBloqueados: [],
     carregando: false,
     recarregar: recarregarResumoRedesPadrao,
     ...sobrescritas,
@@ -440,6 +442,20 @@ describe('ProgressoScreen', () => {
       await fireEvent.press(screen.getByText('Medir tempo'));
 
       expect(aoTocarMedirTempoPadrao).toHaveBeenCalledTimes(1);
+    });
+
+    it('HU-13: repassa appsBloqueados de useResumoRedes pro useDayDetail', async () => {
+      configurarResumoRedes({
+        comAcessoDeUso: true,
+        appsBloqueados: ['com.instagram.android', 'com.zhiliaoapp.musically'],
+      });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+
+      expect(useDayDetail).toHaveBeenCalledWith('uid-1', true, [
+        'com.instagram.android',
+        'com.zhiliaoapp.musically',
+      ]);
     });
 
     it('enquanto useResumoRedes carrega, não mostra o card', async () => {

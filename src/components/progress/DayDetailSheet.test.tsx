@@ -175,6 +175,29 @@ describe('DayDetailSheet', () => {
       expect(screen.getByText('“a” · “b” · “c” · “d” · “e” · +2')).toBeTruthy();
     });
 
+    it('HU-13 Cenário 6: sem teto de 2 apps, mostra os 3 apps bloqueados no topAppsTexto', async () => {
+      await render(
+        <DayDetailSheet
+          visible
+          label="Quarta-feira"
+          status="cumprido"
+          tarefas={[]}
+          detalheRedes={{
+            duracao: '1h',
+            textoContadores: '1 sessões · 0 acesso rápido',
+            topAppsTexto: 'Instagram 30 min · TikTok 20 min · Pinterest 10 min',
+            intencoes: [],
+            intencoesExcedente: 0,
+          }}
+          onClose={jest.fn()}
+        />,
+      );
+
+      expect(
+        screen.getByText('Instagram 30 min · TikTok 20 min · Pinterest 10 min'),
+      ).toBeTruthy();
+    });
+
     it('Cenário 9: sem detalheRedes, não mostra o bloco', async () => {
       await render(
         <DayDetailSheet

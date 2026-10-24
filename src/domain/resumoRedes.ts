@@ -26,7 +26,6 @@ const MES_ABREV = [
 const DIA_SEMANA_ABREV = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
 const MAX_INTENCOES = 5;
-const MAX_TOP_APPS = 2;
 
 /** Soma os contadores de bloqueio (RN02) — dia ou campo ausente conta como zero. */
 export function somarContadoresBloqueio(logs: LogComBloqueio[]): ContadoresBloqueio {
@@ -52,6 +51,10 @@ export function diasComUsoApps(logs: LogComUso[]): number {
  * `usoApps` no Firestore (RN02, RN14).
  */
 export function somarSegundosRedes(logs: LogComUso[]): number {
+  return somarSegundosFiltrado(logs, pacote => PACOTES_REDES_SOCIAIS.includes(pacote));
+}
+
+function somarSegundosFiltrado(logs: LogComUso[], estaNaLista: (pacote: string) => boolean): number {
   return logs.reduce((total, log) => {
     if (!log.usoApps) {
       return total;
@@ -59,7 +62,7 @@ export function somarSegundosRedes(logs: LogComUso[]): number {
     return (
       total +
       Object.entries(log.usoApps)
-        .filter(([pacote]) => PACOTES_REDES_SOCIAIS.includes(pacote))
+        .filter(([pacote]) => estaNaLista(pacote))
         .reduce((soma, [, uso]) => soma + uso.segundos, 0)
     );
   }, 0);
@@ -82,13 +85,37 @@ export function somarAberturasRedes(logs: LogComUso[]): number {
 
 /** Segundos por nome de app (RN08) — agrupa pacotes do mesmo app sob o mesmo nome. */
 export function segundosPorNomeApp(logs: LogComUso[]): Record<string, number> {
+  return segundosPorNomeFiltrado(logs, pacote => PACOTES_REDES_SOCIAIS.includes(pacote));
+}
+
+/**
+ * HU-13 (RN01, RN03): soma segundos só dos pacotes em `appsBloqueados` —
+ * `regrasBloqueio.apps`, não a lista curada inteira (ver somarSegundosRedes,
+ * usada pela reflexão semanal, fora do escopo desta HU).
+ */
+export function somarSegundosBloqueados(logs: LogComUso[], appsBloqueados: string[]): number {
+  return somarSegundosFiltrado(logs, pacote => appsBloqueados.includes(pacote));
+}
+
+/** HU-13 (RN01, RN03): mesma ideia de segundosPorNomeApp, filtrando por `appsBloqueados`. */
+export function segundosPorNomeAppBloqueados(
+  logs: LogComUso[],
+  appsBloqueados: string[],
+): Record<string, number> {
+  return segundosPorNomeFiltrado(logs, pacote => appsBloqueados.includes(pacote));
+}
+
+function segundosPorNomeFiltrado(
+  logs: LogComUso[],
+  estaNaLista: (pacote: string) => boolean,
+): Record<string, number> {
   const porPacote: Record<string, number> = {};
   logs.forEach(log => {
     if (!log.usoApps) {
       return;
     }
     Object.entries(log.usoApps)
-      .filter(([pacote]) => PACOTES_REDES_SOCIAIS.includes(pacote))
+      .filter(([pacote]) => estaNaLista(pacote))
       .forEach(([pacote, uso]) => {
         porPacote[pacote] = (porPacote[pacote] ?? 0) + uso.segundos;
       });
@@ -164,6 +191,7 @@ function barrasDaSemana(
   logsSemana: Array<{ data: string } & LogComUso>,
   inicioSemana: Date,
   hojeISO: string,
+  appsBloqueados: string[],
 ): BarraDia[] {
   const porData = new Map(logsSemana.map(log => [log.data, log]));
   const barras: BarraDia[] = [];
@@ -174,7 +202,7 @@ function barrasDaSemana(
     const log = porData.get(data);
     barras.push({
       data,
-      segundos: log?.usoApps !== undefined ? somarSegundosRedes([log]) : null,
+      segundos: log?.usoApps !== undefined ? somarSegundosBloqueados([log], appsBloqueados) : null,
       hoje: data === hojeISO,
     });
   }
@@ -186,37 +214,51 @@ export interface ResumoCardSemana {
   duracaoTotal: string;
   barras: BarraDia[];
   comparacao: string | null;
+  /** HU-13 RN02: "Instagram 4h 10min · TikTok 2h 30min" — null com 0 ou 1 app na soma da semana. */
+  listaPorApp: string | null;
 }
 
 /**
- * Dados do ResumoRedesCard (RN01-RN06): contadores sempre vêm do
- * resumoBloqueio (independem de acesso de uso); duração, barras e
- * comparação só existem com acesso de uso concedido — sem ele, nenhum dado
- * de uso é lido (RN04), mesmo que os logs recebidos o contenham.
+ * Dados do ResumoRedesCard (RN01-RN06 da HU-08; RN01-RN02 da HU-13):
+ * contadores sempre vêm do resumoBloqueio (independem de acesso de uso);
+ * duração, barras, comparação e lista por app só existem com acesso de uso
+ * concedido E pelo menos um app bloqueado — sem isso, nenhum dado de uso é
+ * lido (RN04 da HU-08, RN06 da HU-13), mesmo que os logs recebidos o
+ * contenham. `appsBloqueados` é sempre a lista vigente no momento em que a
+ * tela é aberta (RN03 da HU-13) — quem decide o `comAcessoDeUso` combinado
+ * é o hook (useResumoRedes), não esta função.
  */
 export function montarResumoCard(
   logsSemanaAtual: Array<{ data: string } & LogComBloqueio & LogComUso>,
   logsSemanaAnterior: LogComUso[],
   comAcessoDeUso: boolean,
   hoje: Date,
+  appsBloqueados: string[],
 ): ResumoCardSemana {
   const contadores = somarContadoresBloqueio(logsSemanaAtual);
 
   if (!comAcessoDeUso) {
-    return { contadores, duracaoTotal: '', barras: [], comparacao: null };
+    return { contadores, duracaoTotal: '', barras: [], comparacao: null, listaPorApp: null };
   }
 
   const inicioSemanaAtual = inicioDaSemana(hoje);
   const hojeISO = paraISOLocal(hoje);
-  const segundosAtual = somarSegundosRedes(logsSemanaAtual);
-  const segundosAnterior = somarSegundosRedes(logsSemanaAnterior);
+  const segundosAtual = somarSegundosBloqueados(logsSemanaAtual, appsBloqueados);
+  const segundosAnterior = somarSegundosBloqueados(logsSemanaAnterior, appsBloqueados);
   const diasAnterior = diasComUsoApps(logsSemanaAnterior);
+  const appsDaSemana = appsPorTempoDesc(
+    segundosPorNomeAppBloqueados(logsSemanaAtual, appsBloqueados),
+  ).filter(app => app.segundos > 0);
 
   return {
     contadores,
     duracaoTotal: formatarDuracao(segundosAtual),
-    barras: barrasDaSemana(logsSemanaAtual, inicioSemanaAtual, hojeISO),
+    barras: barrasDaSemana(logsSemanaAtual, inicioSemanaAtual, hojeISO, appsBloqueados),
     comparacao: textoComparacao(segundosAtual, segundosAnterior, diasAnterior),
+    listaPorApp:
+      appsDaSemana.length > 1
+        ? appsDaSemana.map(app => `${app.nome} ${formatarDuracao(app.segundos)}`).join(' · ')
+        : null,
   };
 }
 
@@ -228,10 +270,17 @@ export interface DetalheRedesDoDia {
   intencoesExcedente: number;
 }
 
-/** Dados do bloco "Nas redes" do DayDetailSheet (RN07, RN08, RN09) — null quando o dia não tem nada pra mostrar. */
+/**
+ * Dados do bloco "Nas redes" do DayDetailSheet (RN07, RN08, RN09 da HU-08;
+ * RN01, RN05 da HU-13) — null quando o dia não tem nada pra mostrar.
+ * `appsBloqueados` filtra duração e lista de apps pela lista vigente de
+ * bloqueio (RN01/RN03 da HU-13), sem teto de quantidade (RN05 — antes
+ * limitava aos 2 com mais tempo).
+ */
 export function detalheRedesDoDia(
   log: (LogComBloqueio & LogComUso) | null | undefined,
   comAcessoDeUso: boolean,
+  appsBloqueados: string[],
 ): DetalheRedesDoDia | null {
   if (!log || (!log.resumoBloqueio && log.usoApps === undefined)) {
     return null;
@@ -249,10 +298,10 @@ export function detalheRedesDoDia(
   let topAppsTexto: string | null = null;
   let duracao: string | null = null;
   if (comAcessoDeUso && log.usoApps !== undefined) {
-    duracao = formatarDuracao(somarSegundosRedes([log]));
-    const topApps = appsPorTempoDesc(segundosPorNomeApp([log]))
-      .filter(app => app.segundos > 0)
-      .slice(0, MAX_TOP_APPS);
+    duracao = formatarDuracao(somarSegundosBloqueados([log], appsBloqueados));
+    const topApps = appsPorTempoDesc(segundosPorNomeAppBloqueados([log], appsBloqueados)).filter(
+      app => app.segundos > 0,
+    );
     if (topApps.length > 0) {
       topAppsTexto = topApps
         .map(app => `${app.nome} ${formatarDuracao(app.segundos)}`)

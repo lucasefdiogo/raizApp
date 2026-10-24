@@ -69,6 +69,7 @@
 | Histórico de 7 dias + 2 números de resumo | ✅ |
 | Ver detalhe de um dia passado (`DayDetailSheet`) | ✅ |
 | HU-08 · Tempo nas redes e reflexão da semana (`ResumoRedesCard`, bloco "Nas redes" no `DayDetailSheet`, `ReflexaoSemanalSheet` às segundas) | ✅ (`docs/hu/hu-08-progresso-redes.md`) — proposta de redução como desafio (RN11) fora do escopo, decisão pendente |
+| HU-13 · Corrige HU-08: `ResumoRedesCard` e o bloco "Nas redes" somam/listam só os apps em `regrasBloqueio.apps` (não a lista curada inteira), lista por app no card, sem teto de 2 apps no detalhe do dia; `ReflexaoSemanalSheet` não muda (continua pela lista curada) | ✅ (`docs/hu/hu-13-historico-apps-bloqueados.md`) |
 
 ## 7. Desafios semanais/mensais
 

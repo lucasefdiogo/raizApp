@@ -17,7 +17,7 @@ describe('useDayDetail', () => {
   });
 
   it('começa sem nenhum dia selecionado', async () => {
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     expect(result.current.dataSelecionada).toBeNull();
     expect(result.current.tarefasDoDia).toEqual([]);
@@ -36,7 +36,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       await result.current.buscarDia(DATA_PASSADA);
@@ -59,7 +59,7 @@ describe('useDayDetail', () => {
       }),
     );
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       // Sem await na chamada em si (senão ficaria pendurado esperando
@@ -85,7 +85,7 @@ describe('useDayDetail', () => {
   it('dia sem dailyLog (buscarDailyLog resolve null): tarefas vazias e status sem_registro', async () => {
     buscarDailyLog.mockResolvedValue(null);
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       await result.current.buscarDia(DATA_PASSADA);
@@ -106,7 +106,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       await result.current.buscarDia('2026-09-23');
@@ -127,7 +127,7 @@ describe('useDayDetail', () => {
       escudoUsado: false,
     });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       await result.current.buscarDia('2026-09-23');
@@ -152,7 +152,7 @@ describe('useDayDetail', () => {
         escudoUsado: false,
       });
 
-    const { result } = await renderHook(() => useDayDetail('uid-1', false));
+    const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
     await act(async () => {
       await result.current.buscarDia('2020-01-10');
@@ -179,7 +179,7 @@ describe('useDayDetail', () => {
         resumoBloqueio: { sessoesUsadas: 1, intencoes: [] },
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1', false));
+      const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
@@ -207,7 +207,7 @@ describe('useDayDetail', () => {
         escudoUsado: false,
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+      const { result } = await renderHook(() => useDayDetail('uid-1', true, []));
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
@@ -216,7 +216,7 @@ describe('useDayDetail', () => {
       expect(result.current.detalheRedes).toBeNull();
     });
 
-    it('dia com resumoBloqueio e usoApps, com acesso de uso: expõe duração e apps', async () => {
+    it('dia com resumoBloqueio e usoApps, com acesso de uso: expõe duração e apps bloqueados', async () => {
       buscarDailyLog.mockResolvedValue({
         data: DATA_PASSADA,
         tarefas: [],
@@ -229,7 +229,9 @@ describe('useDayDetail', () => {
         },
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+      const { result } = await renderHook(() =>
+        useDayDetail('uid-1', true, ['com.instagram.android', 'com.zhiliaoapp.musically']),
+      );
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
@@ -241,6 +243,31 @@ describe('useDayDetail', () => {
       expect(result.current.detalheRedes?.intencoes).toEqual(['responder a turma']);
     });
 
+    it('HU-13: app com uso registrado mas desmarcado do bloqueio não entra na duração nem na lista', async () => {
+      buscarDailyLog.mockResolvedValue({
+        data: DATA_PASSADA,
+        tarefas: [],
+        statusDia: 'pendente',
+        escudoUsado: false,
+        resumoBloqueio: { sessoesUsadas: 1, intencoes: [] },
+        usoApps: {
+          'com.instagram.android': { segundos: 31 * 60, aberturas: 2 },
+          'com.google.android.youtube': { segundos: 999 * 60, aberturas: 1 },
+        },
+      });
+
+      const { result } = await renderHook(() =>
+        useDayDetail('uid-1', true, ['com.instagram.android']),
+      );
+
+      await act(async () => {
+        await result.current.buscarDia(DATA_PASSADA);
+      });
+
+      expect(result.current.detalheRedes?.duracao).toBe('31 min');
+      expect(result.current.detalheRedes?.topAppsTexto).toBe('Instagram 31 min');
+    });
+
     it('sem acesso de uso, não expõe duração nem apps mesmo com usoApps no log', async () => {
       buscarDailyLog.mockResolvedValue({
         data: DATA_PASSADA,
@@ -250,7 +277,7 @@ describe('useDayDetail', () => {
         usoApps: { 'com.instagram.android': { segundos: 100, aberturas: 1 } },
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1', false));
+      const { result } = await renderHook(() => useDayDetail('uid-1', false, []));
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
@@ -270,7 +297,9 @@ describe('useDayDetail', () => {
         usoApps: { 'com.instagram.android': { segundos: 100, aberturas: 1 } },
       });
 
-      const { result } = await renderHook(() => useDayDetail('uid-1', true));
+      const { result } = await renderHook(() =>
+        useDayDetail('uid-1', true, ['com.instagram.android']),
+      );
 
       await act(async () => {
         await result.current.buscarDia(DATA_PASSADA);
