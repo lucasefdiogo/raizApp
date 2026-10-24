@@ -180,6 +180,7 @@ precisa de teste.
 | Exclusão de conta | Client-side, sem exclusão recursiva via Admin SDK — lista de subcoleções é manual (`SUBCOLECOES_DO_USUARIO`), subcoleção nova esquecida fica órfã | Cloud Function, mesmo racional do item acima |
 | Regra do saldo de blocos duplicada (Kotlin + TS) | Mantidas iguais só pelas fixtures compartilhadas | Aceito: o Service não tem JS. Mexer numa cópia exige mexer na outra + fixtures |
 | Testes Kotlin | Fora do `npm test`, roda só via Gradle local | Incluir no CI quando houver |
+| Notificação da sessão ativa (`RootoraAccessibilityService`, HU-14) | Sem teste JUnit (precisaria de `Context`/Robolectric, inexistente no projeto — mesmo caso de `AvisoDesligamentoReceiver`); lógica de texto/agendamento (pura) é testada, a postagem em si não | Aceito por ora; validar sempre em device físico ao tocar neste arquivo |
 | Estado do saldo de blocos | Só em SharedPreferences, sem backup/restauração nem sync (reinstalar zera o dia) | Aceito: o saldo vale um dia só |
 | Verificação de assinatura | Feature não implementada ainda | Será Cloud Function desde o início, não dívida |
 
