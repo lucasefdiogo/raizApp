@@ -163,30 +163,6 @@ describe('useFocusSession', () => {
     });
   });
 
-  it('liberarApp registra a sessão com resultado "liberou_app"', async () => {
-    const { result } = await renderHook(() =>
-      useFocusSession({
-        uid: 'uid-1',
-        duracaoInicialSeg: 120,
-        tarefaId: 'tarefa-1',
-        origem: 'interceptacao',
-        estadoTravado: null,
-      }),
-    );
-
-    await act(async () => {
-      result.current.liberarApp();
-    });
-
-    expect(logFocusSessionEnd).toHaveBeenCalledWith(120, 'liberou_app');
-    await waitFor(() => expect(registrarSessaoFocoNoDia).toHaveBeenCalled());
-    const [, , sessao] = registrarSessaoFocoNoDia.mock.calls[0];
-    expect(sessao).toMatchObject({
-      origem: 'interceptacao',
-      resultado: 'liberou_app',
-    });
-  });
-
   it('não duplica o registro em toque duplo na mesma ação', async () => {
     const { result } = await renderHook(() =>
       useFocusSession({

@@ -200,12 +200,6 @@ export function InterceptScreen({
     }
   }
 
-  /** Fim da sessão de foco: o "Liberar" leva à pausa de intenção do próximo bloco, não libera direto. */
-  function handleLiberarNaSessao() {
-    setSessaoLivre(false);
-    setModo('principal');
-  }
-
   function handleSessaoDeFoco() {
     setSessaoLivre(true);
     setModo('sessao');
@@ -239,11 +233,7 @@ export function InterceptScreen({
             handleTarefaConcluida(parametrosSessao.tarefaId)
           }
           onFechar={handleFecharSessao}
-          appLabel={appLabel}
           packageName={packageName}
-          onLiberarApp={
-            fase === 'AGUARDANDO_LIBERACAO' ? handleLiberarNaSessao : undefined
-          }
         />
       </SafeAreaView>
     );

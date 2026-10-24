@@ -116,11 +116,7 @@ export type OrigemSessaoFoco = 'interceptacao' | 'travado' | 'home';
  */
 export type EstadoTravado = 'confusao' | 'medo' | 'tedio' | 'energia';
 
-export type ResultadoSessaoFoco =
-  | 'continuou'
-  | 'concluiu_tarefa'
-  | 'parou'
-  | 'liberou_app';
+export type ResultadoSessaoFoco = 'continuou' | 'concluiu_tarefa' | 'parou';
 
 export interface SessaoFoco {
   id: string;
