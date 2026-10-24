@@ -1,6 +1,7 @@
 package com.luxthorapps.rootora
 
 import android.content.Context
+import io.invertase.firebase.crashlytics.ReactNativeFirebaseCrashlyticsNativeHelper
 import java.util.Calendar
 import org.json.JSONArray
 import org.json.JSONObject
@@ -220,8 +221,23 @@ object SaldoBloqueioPrefs {
    */
   @Synchronized
   fun creditarTrechoEmAberto(context: Context) {
-    transicionar(context) { s, cfg, agora, dia ->
-      SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
+    var haviaTrechoEmAberto = false
+    val resultado =
+      transicionar(context) { s, cfg, agora, dia ->
+        haviaTrechoEmAberto = s.fgDesde > 0L || s.liberacaoRapidaFgDesde > 0L
+        SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
+      }
+    if (haviaTrechoEmAberto) {
+      // Confirma em campo se o reinício do Service durante um bloco ativo
+      // (hipótese investigada pra um relato de sessão "rearmando" sozinha)
+      // está de fato acontecendo, e com qual fase o estado foi reconciliado.
+      ReactNativeFirebaseCrashlyticsNativeHelper.setCustomKey(
+        "fase_apos_creditar_trecho_em_aberto",
+        resultado.estado.fase.name,
+      )
+      ReactNativeFirebaseCrashlyticsNativeHelper.recordNativeException(
+        Exception("Service reconectou com trecho de bloco em primeiro plano aberto"),
+      )
     }
   }
 
