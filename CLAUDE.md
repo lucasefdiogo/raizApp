@@ -1,221 +1,123 @@
-# CLAUDE.md — Projeto Rootora
+# CLAUDE.md — Rootora
 
-Contexto persistente para o Claude Code neste repositório. Leia isto antes de qualquer
-alteração de código.
+App mobile **Rootora** (Android, React Native CLI bare workflow + TypeScript + Firebase) contra
+procrastinação e uso problemático do celular: tarefas fatiadas, streak com proteção (perdão),
+recaída sem culpa e bloqueio de apps com sessões, válvulas de escape e rotina noturna.
 
-## O que é o projeto
+O produto está construído e em teste fechado na Play Store. O trabalho daqui em diante é
+**correção de bugs e construções pontuais**. Responder sempre em português do Brasil.
 
-App mobile **Rootora** (Android, React Native CLI bare workflow + TypeScript) para
-combater procrastinação e uso problemático de smartphone via streak com sistema de
-proteção (perdão), tarefas fatiadas, recaída sem culpa, e bloqueio de apps como
-diferencial competitivo.
+## Fonte de verdade — `docs/projeto/`
 
-## Documentação detalhada — pasta `docs/projeto/`
+Ler o arquivo relevante **antes** de mudar código. Não existe outra pasta de especificação.
 
-Este arquivo é deliberadamente enxuto. Antes de qualquer decisão de escopo, regra de
-negócio, cor, componente ou dado do Firestore, **consultar `docs/projeto/`**:
+| Arquivo | Quando consultar |
+|---|---|
+| `docs/projeto/regras-de-negocio.md` | **Toda regra de negócio do app**, textos exatos de UI, privacidade/Analytics e pendências em aberto (§13) |
+| `docs/projeto/spec.md` | O que é o produto, público, princípios, decisões já tomadas, restrições (LGPD, Play Store), loja e assinatura |
+| `docs/projeto/arquitetura.md` | Stack, camadas, comandos, serviços, dependências, estrutura de pastas, dívida técnica |
+| `docs/projeto/schema.md` | Coleções e campos do Firestore, regras de segurança, mapeamento telas → coleções |
+| `docs/projeto/boas-praticas.md` | Convenções de código, testes, commits, Definição de Pronto, estilo de trabalho do Lucas |
+| `docs/projeto/design-system.md` | Tokens de cor, tipografia e componentes (com caminho de arquivo) |
+| `docs/projeto/prototipo.md` | Protótipos HTML em `docs/design/prototipo/` e lista de telas reais |
+| `docs/adr/` · `docs/legal/` | Decisões de arquitetura · Política de Privacidade e Termos (atualizar se a coleta de dados mudar) |
 
-| Arquivo                        | Quando consultar                                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `docs/projeto/spec.md`          | O que é o produto, problema, público, princípios, regras de negócio completas, restrições (LGPD, loja) |
-| `docs/projeto/arquitetura.md`   | Tipo de solução, stack, comandos, serviços externos, dependências, estrutura de pastas, ADRs, dívida técnica |
-| `docs/projeto/schema.md`        | Toda a estrutura de dados do Firestore, campos, regras de segurança, bancos de conteúdo (frases)        |
-| `docs/projeto/boas-praticas.md` | Convenções de código, testes, commits, Definição de Pronto, estilo de trabalho preferido do Lucas       |
-| `docs/projeto/design-system.md` | Tokens de cor, tipografia, biblioteca de componentes com caminho de arquivo                             |
-| `docs/projeto/prototipo.md`     | Protótipos HTML atuais por tela/estado, lista de telas reais, wireframes históricos (desatualizados)    |
+O código é a referência para composição de telas e navegação (`src/screens/`, `src/navigation/`).
 
-**`docs/projeto/` é a fonte única de verdade** para especificação de produto, arquitetura e
-regras de negócio (migração concluída em 2026-10-22). Toda funcionalidade nova ou mudança de
-regra entra por uma HU em `docs/hu/` (ver "Fluxo de desenvolvimento — SDD Leve"). Se a HU
-mudar regra, schema, componente ou tela, o arquivo correspondente de `docs/projeto/` é
-atualizado na mesma branch.
+**Regra de manutenção:** se uma mudança altera regra, texto exibido, campo do Firestore,
+componente ou tela, o arquivo correspondente de `docs/projeto/` é atualizado **no mesmo
+branch**, antes do merge. Documentação nunca fica divergente do código.
 
-## `/definition` — origem/histórico do conteúdo migrado
-
-`docs/projeto/*.md` foi sintetizado a partir de `/definition`. Os arquivos de `/definition`
-continuam existindo e têm o detalhe linha a linha que os resumos de `docs/projeto/` nem sempre
-preservam (textos exatos de copy, critérios de aceite completos, tabelas extensas) — consultar
-quando o resumo não bastar. Três documentos de `/definition` **não têm arquivo correspondente
-em `docs/projeto/`** e continuam sendo a referência direta:
-
-- `roadmap-e-status.md` — o que já existe, está em andamento ou é planejado (tracking de
-  status, não é especificação; consultar sempre antes de assumir que algo não foi feito)
-- `navegacao-componentes.md` — árvore de navegação real e composição detalhada de cada tela
-  (component a component); `docs/projeto/prototipo.md` tem só a lista de telas, não essa
-  composição
-- `fundamentacaoteoricaprojeto.pdf` — base científica/conceitual com fontes, referenciada mas
-  não resumida em `docs/projeto/spec.md`
-
-Os demais arquivos de `/definition` (`01-visao-geral-projeto.md`, `00-instrucoes-do-projeto.md`,
-`regras-de-negocio.md`, `09-ponte-fuga-tarefa-e-estou-travado.md`, `procedimento-loja.md`,
-`schema-firebase.md`, `banco-de-frases.md`, `banco-de-versiculos.md`, `design-system-rootora.md`,
-`02-identidade-visual.md`, `stack-tecnico.md`, `arquitetura.md`) foram incorporados em
-`docs/projeto/` e não devem mais ser a primeira consulta — ficam como material de origem.
-
-`03-mvp.md`, `04-fase2.md`, `05-fase3.md` e `regras-streak-e-textos-mvp.md` foram
-**aposentados** — não existem mais / não devem ser recriados. O projeto não é mais
-organizado por fase burocrática (MVP/Fase2/Fase3); é organizado por domínio funcional,
-refletido em `roadmap-e-status.md`.
-
-O formato antigo de HU do lux kit (`/lux-especificar`, `lux importar`, pacotes com
-`spec.md`, `criteria.lock`, cenários `.feature` e zips `lux-HU-*`) foi **aposentado** e não
-deve ser recriado. O histórico das HU-01 a HU-06 fica em `docs/historico/` (só leitura). As
-HUs novas seguem o SDD Leve (seção abaixo) e a numeração continua a partir da HU-07.
-
-## Princípios inegociáveis (aplicam-se a QUALQUER código, texto ou mecânica nova)
+## Princípios inegociáveis
 
 1. Reduzir a ameaça percebida da tarefa — nunca aumentar cobrança/pressão
-2. Nunca prometer "resetar o cérebro" ou "esvaziar dopamina" em copy ou nomes de feature
-3. Recaída sem vergonha — nenhuma mensagem de erro/estado vazio pode soar punitiva;
-   fricção é aceitável (ex: regra de pré-compromisso do bloqueio de apps — alteração só vale
-   amanhã), punição não
-4. Autoeficácia por acúmulo de pequenas vitórias — desconfiar de gamificação vazia
-5. O "porquê" pessoal do usuário deve poder ser reexibido em telas de recaída/retorno
+2. Nunca prometer "resetar o cérebro" ou "esvaziar dopamina"
+3. Recaída sem vergonha — fricção é aceitável (ex.: pré-compromisso do bloqueio), punição não
+4. Autoeficácia por pequenas vitórias — desconfiar de gamificação vazia
+5. O "porquê" pessoal reaparece em telas de recaída/retorno
 
-Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implementar.
+Se um pedido contradiz isso ou `regras-de-negocio.md`, apontar o conflito antes de implementar.
 
-## Fluxo de desenvolvimento — SDD Leve
+## Fluxo de trabalho com superpowers
 
-```
-lux-hu (claude.ai) → /lux-build (Claude Code) → lux-revisor → merge local → push (com ok)
-```
+**Bug:** `systematic-debugging` (achar a causa raiz, sem chute) → `test-driven-development`
+(primeiro um teste que reproduz o bug e falha) → correção mínima →
+`verification-before-completion` → `finishing-a-development-branch`.
 
-- Funcionalidade nova, mudança de regra ou de tela começa por uma HU gerada pela skill
-  `lux-hu` no claude.ai: um arquivo `docs/hu/hu-NN-nome-curto.md` com título, cartão,
-  protótipo, regras de negócio (RNnn) e critérios de aceite em Gherkin.
-- A HU é a especificação da tarefa — não implementar o que não está nela. Se faltar algo,
-  ou se ela conflitar com `docs/projeto/` ou com os 5 princípios, parar e perguntar antes
-  de seguir.
-- Construção: `/lux-build docs/hu/hu-NN-nome.md --no-e2e`. O `/lux-build` mostra o plano e
-  espera o ok, cria a branch `feature/HU-NN-nome`, desenvolve com testes primeiro, roda os
-  testes, faz commit e chama o `lux-revisor`. Usar `--no-e2e` até existir um framework de
-  E2E escolhido e aprovado (é dependência nova, ver "Convenções de código").
-- Depois da aprovação do `lux-revisor`, o `/lux-build` pode fazer o merge local `--no-ff`
-  da branch da HU na `main`. **Push para o remoto só com confirmação explícita do Lucas** —
-  nunca automático.
-- O `lux-revisor` não exige percentual mínimo de cobertura neste projeto: vale a regra de
-  testes da Definição de Pronto (lógica nova coberta e cada cenário Gherkin com teste).
-- Bug, ajuste de build ou dependência sem mudança de regra não precisa de HU: vai em
-  branch `fix/` ou `chore/`, com a mesma Definição de Pronto.
-- Pendências que surgirem durante a HU vão para a seção "Pendências" do próprio arquivo da
-  HU; o `TODO.md` fica para o que não pertence a nenhuma HU.
-- Ao concluir, atualizar o status da HU no `roadmap-e-status.md` e, se a HU mudou regra,
-  schema, componente ou tela, o arquivo correspondente de `docs/projeto/`.
+**Construção pontual / mudança de regra:** `brainstorming` → `writing-plans` →
+`executing-plans` (ou `subagent-driven-development`) com `test-driven-development` →
+`requesting-code-review` → `finishing-a-development-branch`.
+- No brainstorming, partir de `regras-de-negocio.md` e não perguntar o que ele já responde.
+  Mudança pequena se combina no chat; spec escrita só quando a mudança for maior.
+- Specs e planos ficam nos caminhos padrão do superpowers (`docs/superpowers/specs/`,
+  `docs/superpowers/plans/`). São registro de trabalho, não fonte de verdade: o que valer como
+  regra é levado para `docs/projeto/regras-de-negocio.md` no mesmo branch.
+- Mostrar o racional/plano e esperar o ok do Lucas antes de mudar mecânica, regra ou texto.
 
-## Arquitetura real (corrigida após auditoria — não é o que documentos antigos descrevem)
+**Preferências que ajustam os skills:**
+- **Sem git worktree.** Ambiente WSL2 + Android/Gradle: trabalhar em branch normal no mesmo
+  checkout (`fix/nome`, `feature/nome`, `chore/nome`, `docs/nome`). Nunca commit direto na `main`.
+- **Fechamento do branch:** testes, lint e tipos passando → merge local `--no-ff` na `main`.
+  Sem PR. **Push para o remoto só com confirmação explícita do Lucas** — nunca automático.
+- **Dependência nova:** propor e esperar aprovação antes de instalar.
 
-```
-RootNavigator (Stack.Navigator ÚNICO, não stacks separados por arquivo)
-├── Splash → Tutorial → Auth (SignIn/SignUp/ForgotPassword) → Onboarding
-│     → NotificationPriming (uma vez) → Main
-├── Onboarding é 1 tela com máquina de passos interna (Foco→TempoTela→Porque→PrimeiraTarefa)
-│     gate de saída: users/{uid}.onboardingConcluido (não porqueTexto)
-├── Main → MainTabNavigator (Hoje / Progresso / Perfil)
-└── Interceptação de apps bloqueados: root RN separado ('Intercept', InterceptActivity nativa),
-    fora do RootNavigator — o AppBlockedScreen antigo foi removido
-```
-
-Detalhe completo em `navegacao-componentes.md`.
-
-## Separação de camadas
+## Arquitetura — o essencial
 
 ```
 src/
-├── screens/       # Orquestram hooks + componentes, quase zero lógica própria
-├── components/    # "Burros" — só recebem props, nunca chamam Firebase direto
-├── hooks/         # Lógica de negócio (useStreak, useDailyTasks, useRegrasBloqueio...)
-├── domain/        # Funções puras (streak.ts, progress.ts, appBlock.ts, intercept.ts...)
-│                  # sem import de React/Firebase — as mais fáceis e importantes de testar
-├── services/      # Única camada que fala com Firebase (firestore.ts, auth.ts...)
-├── native/        # Wrappers TS sobre módulos nativos Android (AccessibilityDetection.ts)
-├── theme/         # colors.ts, typography.ts — ver design-system-rootora.md pros tokens
-├── navigation/    # React Navigation
-└── utils/         # Helpers genéricos
+├── screens/     orquestram hooks + componentes, quase sem lógica
+├── components/  "burros": só props, nunca chamam Firebase
+├── hooks/       lógica de negócio (useStreak, useDailyTasks, useRegrasBloqueio...)
+├── domain/      funções puras, sem React/Firebase/AsyncStorage — onde vive a regra e o teste
+├── services/    única camada que fala com Firebase
+├── native/      wrappers TS de módulos Android (Kotlin)
+├── theme/       colors.ts, typography.ts — nenhuma cor/fonte fora daqui
+└── navigation/
 ```
 
-Regra-chave: `components/`/`screens/` nunca importam `services/` direto — só via
-`hooks/`. `domain/` nunca importa React/Firebase/AsyncStorage.
-
-## Tema e ícone
-
-Tema único (Raiz). Seleção de tema (Amanhecer/Raiz/Maré) está pendente de decisão — ver
-`roadmap-e-status.md`. Ícone do app é genérico, paleta própria, não segue tema (ver
-`design-system-rootora.md` seção 1).
-
-## Notificações
-
-O app usa **notificação local** (`@notifee/react-native`), não FCM — lembrete diário e
-alerta de risco de streak dependem de horário/estado local, não de evento de servidor.
-FCM fica reservado para o reengajamento via Cloud Function (planejado, ver
-`roadmap-e-status.md`).
+- `components/` e `screens/` nunca importam `services/` direto — só via `hooks/`.
+- `RootNavigator` é um Stack único; a interceptação de apps é um root RN separado (`'Intercept'`,
+  `InterceptActivity` nativa), fora dele.
+- Motor de sessões: autoridade em `SaldoBloqueioMaquina.kt`, cópia em `domain/saldoBloqueio.ts`,
+  mesmas fixtures — mudou um, muda o outro e as fixtures.
+- `regrasBloqueio` vigente é espelhado em SharedPreferences e promovido no Kotlin, mesmo com o
+  app fechado. Notificações são locais (`@notifee/react-native`), não FCM.
+- Ao mexer em `firestore.rules`, streak ou assinatura: checar a dívida técnica em
+  `docs/projeto/arquitetura.md`.
 
 ## Comandos
 
 ```bash
-npm start                 # Metro bundler
-npm run android            # build + instala no emulador/dispositivo
-npm run lint                # ESLint
-npm test                    # Jest
+npm start                    # Metro
+npm run android              # build + instala (sempre pelo terminal WSL, nunca pelo sync do Android Studio)
+npm test                     # Jest
+npm run lint                 # ESLint
+npx tsc --noEmit             # tipos
+cd android && ./gradlew :app:testDebugUnitTest   # testes Kotlin (fora do npm test)
 ```
 
-Gradle/build sempre via terminal WSL (`npx react-native run-android`), nunca pelo botão
-de sync do Android Studio — ver `stack-tecnico.md` pro motivo.
+Código que toca Kotlin, notificação ou Accessibility Service só é dado como validado depois de
+rodar em aparelho físico — dizer isso no resumo final quando não der para validar.
 
-## Convenções de código
+## Definição de Pronto
 
-- TypeScript estrito, sem `any` implícito
-- Componentes em `PascalCase`, hooks em `useCamelCase`
-- Nomes de campo no Firestore em `camelCase`, em português (`streakAtual`,
-  `escudosDisponiveis` — nome interno continua "escudo", texto ao usuário é
-  "proteção", ver `regras-de-negocio.md`)
-- Nenhum texto de UI com ponto de exclamação, tom de cobrança, ou pedido de desculpas
-- Commits: `tipo: descrição curta` (`feat:`, `fix:`, `chore:`, `docs:`), em português —
-  vale também para os commits feitos pelo `/lux-build`
-- Novas dependências: propor e validar com o Lucas antes de instalar, não decidir sozinho
+- [ ] Branch própria, nada direto na `main`
+- [ ] Teste escrito antes (bug: teste que reproduzia a falha); regra nova em `domain/` com teste
+- [ ] `npm test`, `npm run lint` e `npx tsc --noEmit` sem erros novos (Kotlin: gradle test se mexeu)
+- [ ] Nenhuma cor/fonte fora de `theme/`; textos seguem as regras de copy (sem "!", sem cobrança,
+      sem desculpas, "proteção" só no streak)
+- [ ] Nenhum dos 5 princípios violado
+- [ ] `docs/projeto/` atualizado se regra, texto, schema, componente ou tela mudou
+- [ ] Merge local `--no-ff` só depois disso; push só com ok do Lucas
 
-## Fluxo de trabalho preferido
+## Convenções rápidas
 
-- Mostrar o racional antes de codar mudança de mecânica ou funcionalidade nova (no
-  `/lux-build`, é o plano que ele apresenta antes de começar)
-- Perguntar antes de assumir escopo quando não estiver claro
-- **Todo trabalho começa em branch própria**: `feature/HU-NN-nome` para HU (criada pelo
-  `/lux-build`), `fix/` ou `chore/` para o resto. Nunca commit direto na `main` — a única
-  escrita permitida na `main` é o merge `--no-ff` feito pelo `/lux-build` depois da
-  aprovação do `lux-revisor`
-- **Toda funcionalidade nova precisa de testes automatizados** — cobrir especialmente
-  `domain/` (lógica pura, sem desculpa pra deixar sem teste) e componentes com
-  comportamento condicional. Rodar `npm test` antes de finalizar
-- Ao editar `firestore.rules` ou campos de streak/assinatura, checar dívida técnica em
-  `docs/projeto/arquitetura.md`
-- Se um documento em `docs/projeto/` ficar desatualizado por uma mudança feita, sinalizar
-  isso no resumo final da tarefa — não deixar a documentação divergir do código de novo
-
-## Definição de Pronto (checklist antes de finalizar qualquer tarefa)
-
-- [ ] Código em branch própria, nada direto na `main` (exceto o merge pós-revisor)
-- [ ] Se veio de HU: todas as RNs implementadas e cada cenário Gherkin coberto por teste
-- [ ] Se veio de HU: `lux-revisor` aprovou
-- [ ] Regra de negócio nova vive em `domain/`, não espalhada em componente/hook
-- [ ] Nenhuma cor/fonte hardcoded fora de `theme/`
-- [ ] Testes automatizados cobrindo a lógica nova, `npm test` passando
-- [ ] `npm run lint` sem erros novos
-- [ ] `npx tsc --noEmit` sem erros
-- [ ] Nenhum dos 5 princípios do produto violado
-- [ ] Se mexeu em dado sensível (streak, assinatura, firestore.rules): dívida técnica
-      relevante mencionada
-- [ ] Se a HU mudou regra, schema, componente ou tela: `docs/projeto/` e
-      `roadmap-e-status.md` atualizados
-- [ ] Push para o remoto só depois do ok do Lucas
-
-## Verificação
-
-- Instalar: `npm install`. Tipos: `npx tsc --noEmit`.
-- Relatório de testes em `reports/junit/*.xml` (ignorado pelo git). O
-  `verify.config.json` do lux kit antigo continua no repositório como ferramenta opcional,
-  sem uso obrigatório no fluxo.
-- Testes de HU nova **identificam a HU e o cenário no nome e na descrição**, para o
-  `lux-revisor` ligar cada critério de aceite a um teste:
-  `describe('HU-07 · Hoje como alternativa à rolagem', ...)` e
-  `it('Cenário 3: concluir a essencial garante o dia', ...)`. Teste que não vem de HU
-  (fix/chore, lógica de `domain/` sem cenário) descreve só o comportamento.
-- Testes antigos com prefixo `CA-nn:` vêm das HUs arquivadas — não renomear em massa.
+- TypeScript estrito; componentes `PascalCase`, hooks `useCamelCase`.
+- Campos do Firestore em `camelCase` e em português (`streakAtual`, `escudosDisponiveis` — no
+  código é "escudo", na UI é "proteção").
+- Commits `tipo: descrição curta` em português (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
+- Testes novos descrevem o comportamento no nome. Testes antigos com `CA-nn:` ou `HU-NN ·`
+  vêm de HUs já encerradas (a HU de origem aparece nos títulos de `regras-de-negocio.md`) —
+  não renomear em massa.
+- Pendência que não for resolvida na tarefa vai para `TODO.md` ou para
+  `regras-de-negocio.md` §13 (se for decisão de produto).

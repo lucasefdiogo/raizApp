@@ -1,8 +1,6 @@
 # Design System — Rootora
 
-> Consolidado de `definition/design-system-rootora.md` (implementação real, auditada no
-> código) e `definition/02-identidade-visual.md` (conceito/intenção de marca — fonte original
-> dos hex). Tema único no MVP ("Raiz"); seleção de tema (Amanhecer/Raiz/Maré) é planejamento
+> Tokens, tipografia e componentes reais (auditados no código). Tema único no MVP ("Raiz"); seleção de tema (Amanhecer/Raiz/Maré) é planejamento
 > futuro, fora de escopo hoje.
 
 ## Conceito central

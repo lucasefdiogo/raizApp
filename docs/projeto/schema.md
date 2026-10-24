@@ -1,7 +1,6 @@
 # Schema de Dados — Rootora
 
-> Consolidado de `definition/schema-firebase.md`, `definition/banco-de-frases.md` e
-> `definition/banco-de-versiculos.md`. Banco de dados: **Cloud Firestore** (projeto
+> Banco de dados: **Cloud Firestore** (projeto
 > `raiz-app-71d02`). Princípio de modelagem: um documento por dia por usuário
 > (`dailyLogs`), sem arrays que crescem indefinidamente no documento do usuário.
 
@@ -36,7 +35,7 @@ systemMessages/{messageKey}           (coleção global, textos versionáveis se
 | `notificacoesAtivas` | boolean | |
 | `horarioLembreteDiario` | string (`HH:mm`) | |
 | `regrasBloqueio` | map \| ausente | `{ apps: string[], janelas: [{inicio, fim, diasSemana[]}], duracaoBlocoMin?, cooldownMin?, blocosDiarios? }`. `apps` só aceita pacotes da lista curada (abaixo) |
-| `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: YYYY-MM-DD` — regra de pré-compromisso (ver `spec.md`) |
+| `regrasBloqueioPendentes` | map \| `null` | `RegrasBloqueio` + `efetivaEm: YYYY-MM-DD` — regra de pré-compromisso (ver `regras-de-negocio.md` §6) |
 | `consentimentoAcessibilidade` | string (`YYYY-MM-DD`) \| ausente | Data do consentimento na divulgação do Accessibility Service |
 | `consentimentoAcessoUso` | string (`YYYY-MM-DD`) \| ausente | Data do consentimento no acesso de uso (`UsageStatsManager`) |
 | `rotina` | map \| ausente | `{ dormirEstimado, acordarEstimado, confirmadoEm, alternativaNoturna, modoManual }` — estimado a partir de `dailyLogs.usoApps` |
@@ -119,7 +118,7 @@ de intenção e no acesso rápido dentro da janela noturna **vivem no código**
 (`src/domain/mensagensNoturnas.ts`), não no Firestore, em rotação sequencial sem repetir a
 anterior — nunca entram na Home.
 
-**Conteúdo do banco** (`definition/banco-de-frases.md`, autoria própria, sem viés religioso):
+**Conteúdo do banco** (o texto vive em `seed-firestore.js`; autoria própria, sem viés religioso):
 7 temas com 6–9 frases cada (disciplina e ação, foco e distração, recomeço e recaída,
 identidade e consistência, desconforto e tolerância, pequenos passos, noturno). Tom de voz
 obrigatório: frases curtas, verbo no início quando possível, sem ponto de exclamação, sem
@@ -127,11 +126,10 @@ culpa, sem cobrança. Padrões proibidos documentados (comparação social, "sem
 glorificação de sofrimento, responsabilização punitiva) — nunca adicionar frase que viole os
 5 princípios do produto (`spec.md`).
 
-**Conteúdo bíblico (toggle futuro, fora do app hoje):** `definition/banco-de-versiculos.md`
+**Conteúdo bíblico (toggle futuro, fora do app hoje):** `banco-de-versiculos.md` (nesta pasta)
 descreve uma coleção separada planejada, `biblicalPhrases/{phraseId}` (`referencia`, `texto`,
 `traducao`, `tema`, `contexto`, `ativa`), usando a tradução Almeida (domínio público) para
-evitar custo de licenciamento. Pendente de decisão de produto (ver `roadmap-e-status.md` em
-`/definition`) — mesma regra de exibição e mesmo critério de triagem contra conteúdo
+evitar custo de licenciamento. Pendente de decisão de produto (ver `regras-de-negocio.md` §13) — mesma regra de exibição e mesmo critério de triagem contra conteúdo
 culpabilizante do banco neutro.
 
 ## `systemMessages/{messageKey}` (coleção global)

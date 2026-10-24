@@ -1,7 +1,6 @@
 # Boas Práticas — Rootora
 
-> Consolidado de `CLAUDE.md` (raiz), `definition/00-instrucoes-do-projeto.md` (estilo de
-> trabalho) e `definition/stack-tecnico.md` (seção 5, dívida técnica).
+> Convenções de código, testes, commits, Definição de Pronto e estilo de trabalho do Lucas.
 
 ## Estrutura de pastas e separação de camadas
 

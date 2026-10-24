@@ -1,15 +1,13 @@
 # Protótipo e Telas — Rootora
 
-> Consolidado de `docs/design/prototipo/*.html` (protótipos atuais, por estado de tela),
-> `definition/wireframes/*.html` (histórico, desatualizado) e `definition/navegacao-componentes.md`
-> (árvore real de navegação).
+> Protótipos HTML atuais (`docs/design/prototipo/`) e lista de telas reais do app.
 
 ## Protótipos atuais (`docs/design/prototipo/`)
 
 HTML estático, um arquivo por funcionalidade, cada um mostrando os **estados reais da tela**
 lado a lado (normal / carregando / vazio / erro — nomenclatura de `data-estado`), já na paleta e
 tipografia do design system (`design-system.md`). Refletem o motor de sessões/válvulas/rotina
-noturna (ver `spec.md`, regra de negócio seção 5).
+noturna ((ver `regras-de-negocio.md` §7 e §8)).
 
 | Arquivo | Tela/fluxo | Estados mostrados |
 |---|---|---|
@@ -26,9 +24,7 @@ continuar em uso como referência.
 
 ## Lista de telas reais (estado atual do app)
 
-Árvore completa e lógica de decisão em `definition/navegacao-componentes.md` (ainda não
-migrado integralmente para `docs/projeto/` — este resumo cobre as telas, não os detalhes de
-composição por componente).
+A composição detalhada de cada tela é a do código (`src/screens/`, `src/navigation/`).
 
 **`RootNavigator`** (Stack único): Splash → Tutorial (4 slides) → SignIn/SignUp/ForgotPassword
 → Onboarding (1 tela, 4 passos internos: Foco, TempoTela, Porquê, PrimeiraTarefa) →
@@ -52,17 +48,3 @@ NotificationPriming (uma vez) → Main.
 tarefas extras). TravadoFlow (4 chips) só existe no root principal, acessível pela Home e por
 toque longo numa tarefa — não é montado pelo root `Intercept`.
 
-## Histórico (desatualizado) — `definition/wireframes/`
-
-Os 3 arquivos abaixo são de fases anteriores do projeto (antes do motor de sessões/cooldown e
-da identidade visual final) e **não refletem o design system ou a navegação atuais**. Mantidos
-como referência histórica, não como fonte de verdade de UI:
-
-| Arquivo | Conteúdo |
-|---|---|
-| `comparacao-3-identidades-9-telas.html` | Comparação exploratória de 3 identidades visuais candidatas, 3 telas cada — fase de decisão de marca, já resolvida em favor de "Raiz" |
-| `telas-raiz-completo.html` | Conjunto mais completo de telas da identidade Raiz, de uma versão anterior do app (antes do motor de sessões atual) |
-| `wireframes-mvp.html` | Wireframes da fase "MVP" original — terminologia de fase (MVP/Fase2/Fase3) está aposentada no projeto atual, ver `CLAUDE.md` |
-
-Ao desenhar uma tela nova, usar `docs/design/prototipo/` e `design-system.md` como referência —
-nunca os arquivos desta seção.

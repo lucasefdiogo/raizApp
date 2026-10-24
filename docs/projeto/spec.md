@@ -1,10 +1,7 @@
 # Spec do Projeto — Rootora
 
-> Consolidado de `definition/01-visao-geral-projeto.md`, `definition/00-instrucoes-do-projeto.md`,
-> `definition/regras-de-negocio.md`, `definition/09-ponte-fuga-tarefa-e-estou-travado.md`,
-> `definition/procedimento-loja.md` e `docs/legal/README.md`. Este arquivo é a fonte única de
-> verdade para escopo, regras de negócio e restrições do produto — ver `../../CLAUDE.md` para
-> como essa fonte se relaciona com `/definition` (histórico/origem do conteúdo).
+> Visão do produto, princípios, decisões, restrições e loja. As **regras de negócio** vivem em
+> `regras-de-negocio.md` (fonte única).
 
 ## O que é
 
@@ -20,7 +17,7 @@ Procrastinação não é preguiça — é evitação emocional ativa: o cérebro
 ameaça e busca alívio imediato no celular. O alívio consome a atenção por completo (scroll sem
 ponto de saída natural), o retorno à realidade gera culpa, e a culpa aumenta a aversão à tarefa
 original, realimentando o ciclo. Fundamentação completa, com fontes, em
-`definition/fundamentacaoteoricaprojeto.pdf`.
+`fundamentacao-teorica.pdf` (nesta pasta).
 
 ## Público-alvo
 
@@ -68,146 +65,13 @@ Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implem
 | Identidade visual | Raiz, tema único no MVP | Metáfora de fundação/consistência |
 | Monetização | Assinatura do app inteiro, 7 dias grátis, verificação via Cloud Function | Ver seção "Loja e publicação" abaixo |
 | Pacote Android | `com.luxthorapps.rootora` (permanente após 1ª publicação) | — |
-| Pendente de decisão | XP/níveis, micro-reflexão pós-recaída, conteúdo bíblico (toggle), seleção de tema | Ver `roadmap-e-status` em `/definition` |
+| Pendente de decisão | XP/níveis, micro-reflexão pós-recaída, conteúdo bíblico (toggle), seleção de tema | Ver `regras-de-negocio.md` §13 |
 
 ## Regras de Negócio
 
-### 1. Streak e Proteção
-
-**Dia cumprido:** pelo menos 1 tarefa essencial concluída no dia (`avaliarDiaCumprido`,
-`domain/streak.ts`). Tarefas comuns, mesmo todas concluídas, não cumprem o dia — teto de 3
-essenciais existe para manter o foco em poucas vitórias reais (princípio 4). Dia sem nenhuma
-tarefa nunca é cumprido. Máximo de 3 tarefas essenciais por dia
-(`LIMITE_TAREFAS_ESSENCIAIS`, `domain/dailyTasks.ts`); rebaixar de essencial é sempre livre.
-
-**Sistema de Proteção:** 1 proteção disponível por semana, renovação automática toda
-segunda-feira, não acumula (expira se não usada), ativação automática. Com proteção, o streak
-numérico não é zerado e o dia perdido fica marcado de forma neutra no histórico.
-
-**Sem proteção disponível:**
-- 1 dia perdido: streak cai para 50% do valor anterior, arredondado para baixo, mínimo 1
-  enquanto streak > 0 (`Math.max(1, Math.floor(x * 0.5))`). Streak 0 continua 0.
-  `diasTotaisAtivos` não muda.
-- 2+ dias seguidos perdidos: streak vai a 0 e recomeça em 1 no próximo dia cumprido. A proteção
-  não é consultada nesse caso (cobre falha isolada, não sumiço de vários dias).
-
-**Marcos de celebração:** 3 · 7 · 14 · 30 · 60 · 90 dias.
-
-**Lógica diária** (comparando `ultimoDiaAtivo` com a data atual, ao abrir o app):
-0. Primeiro dia de uso → só grava hoje como ponto de partida, não avalia nada
-1. Dia cumprido → `streakAtual += 1`, `diasTotaisAtivos += 1`
-2. Dia não cumprido + proteção disponível → consome a proteção, streak mantido,
-   `statusDia = 'protegido_escudo'`
-3. Dia não cumprido + sem proteção → `streakAtual = max(1, floor(streakAtual * 0.5))`,
-   `statusDia = 'perdido'`
-4. 2+ dias seguidos não cumpridos (checado antes de 1–3) → `streakAtual = 0`,
-   `statusStreak = 'pausado'`
-
-Textos exatos de cada estado (proteção ativada, streak reduzido, retorno após pausa, dia
-zerado) vivem em `definition/regras-de-negocio.md` seção 1 — preservar literalmente ao exibir.
-
-### 2. Tarefas recorrentes
-
-- "Repetir todos os dias" gera documento em `essentialTasks` além da tarefa do dia
-- Todo `dailyLog` novo nasce pré-populado com as `essentialTasks` ativas
-- "Remover só hoje" não afeta a recorrência futura
-- "Parar de repetir" desativa (`ativa: false`) sem apagar histórico já gerado
-
-### 3. Desafios semanais e mensais
-
-Catálogo fixo, um semanal + um mensal ativos por vez, gerados automaticamente no início de cada
-período (segunda-feira / dia 1):
-
-| Desafio | Período | Meta |
-|---|---|---|
-| "Exercite-se 3x essa semana" | Semanal | 3 tarefas `tipo: 'exercicio'` concluídas na semana |
-| "Cumpra sua essencial todo dia" | Semanal | 7 dias com status `cumprido` ou `protegido_escudo` |
-| "20 dias ativos esse mês" | Mensal | 20 dias com status `cumprido` ou `protegido_escudo` |
-
-Qual semanal: alterna por paridade da semana (contada a partir de 2024-01-01). Progresso sempre
-recalculado dos `dailyLogs` reais, nunca incrementado manualmente. Meta não atingida no fim do
-período → `status: 'expirado'`, sem afetar streak.
-
-### 4. Bloqueio de apps
-
-Sistema antigo (custo crescente por nível) foi removido por completo. Caminho único hoje:
-configuração (esta seção) + motor de sessões (seção 5).
-
-- **Detecção:** Accessibility Service (não `UsageStatsManager`+overlay — precisão sobre menor
-  escrutínio de loja). Lê só o nome do pacote em primeiro plano; `canRetrieveWindowContent="false"`.
-- **Configuração** (Perfil → "Bloqueio de apps"): lista curada de redes sociais (Instagram,
-  TikTok, Kwai, Facebook, X, Threads, Reddit, Pinterest, Snapchat, YouTube — constante em
-  `src/domain/`, nunca `QUERY_ALL_PACKAGES`). Primeira configuração: tudo marcado exceto YouTube.
-  Uma única janela de horário (início, fim, dias da semana) para todos os apps selecionados —
-  fim precisa ser depois do início. Seletor "O dia todo" / "Horário específico" (HU-12): "o dia
-  todo" grava a janela como `00:00`–`23:59` (mesmo formato de dado, sem campo novo) e esconde os
-  campos de hora; pré-selecionado só na primeira configuração, sem `regrasBloqueio` ainda.
-- **Medir tempo nas redes:** `UsageStatsManager` independente da interceptação, mede
-  tempo/aberturas por app da lista curada. Opt-in (`consentimentoAcessoUso`); sem ele, nada é
-  coletado e o bloqueio continua funcionando normalmente.
-- **Aviso de bloqueio desligado:** até 2 lembretes locais por desligamento (dia seguinte 09h,
-  +3 dias 09h). Nenhum texto usa a palavra "proteção".
-- **Divulgação em destaque:** exigência de política da Play Store — tela própria antes de abrir
-  as configurações de acessibilidade do Android. Consentimento (`consentimentoAcessibilidade`)
-  só é gravado ao tocar "Concordo e quero ativar".
-
-### 5. Motor de sessões, válvulas de escape e rotina noturna
-
-Extensão do bloqueio de apps (detalhe completo em `definition/09-ponte-fuga-tarefa-e-estou-travado.md`).
-Caminho único de interceptação: `regrasBloqueio` → `InterceptActivity`.
-
-**Pausa de intenção → Sessão → Cooldown:**
-- Pausa de intenção: campo opcional + espera de 10/20/30/40/50/60s (teto) pela posição da sessão
-  no dia; dobrada (teto 120s) dentro da janela noturna.
-- Sessão: 15 min (`duracaoBlocoMin`), tempo global, só conta com app bloqueado em primeiro
-  plano. Sem oferta de tolerância ao terminar.
-- Cooldown: 45 min (`cooldownMin`) em tempo corrido, sobrevive a fechar o app/reiniciar.
-- Saldo diário: padrão "sem limite" — sempre há próxima sessão após o cooldown. Só número
-  (via Firestore) pode zerar e levar a `SALDO_ZERADO`.
-
-Máquina de estados (autoridade em `SaldoBloqueioMaquina.kt`, cópia em `domain/saldoBloqueio.ts`):
-```
-AGUARDANDO_LIBERACAO ⇄ PAUSA_INTENCAO → SESSAO_ATIVA → COOLDOWN → (AGUARDANDO_LIBERACAO | SALDO_ZERADO)
-SALDO_ZERADO → AGUARDANDO_LIBERACAO (tarefa extra concluída)
-qualquer estado → reinicia na virada do dia
-```
-
-**Válvulas de escape ("OUTRAS SAÍDAS" na interceptação, HU-11):**
-- Acesso rápido: 2 min após 5s de espera (30s na janela noturna), cota 3/dia, intervalo mínimo
-  15/30/60 min entre usos. Disponível também durante cooldown. Tela própria
-  (`EsperaAcessoRapidoScreen`), não mais inline no cooldown.
-- Emergência: só quando não há sessão/cooldown liberável/acesso rápido disponível. Respiração
-  guiada de 60s sem pular → libera 2 min. Sem limite de usos.
-- Sessão de foco e tarefas extras completam a lista (sempre por último, ordem fixa).
-- Ordem e disponibilidade calculadas por `domain/valvulas.ts` (`montarValvulas`), puro: acesso
-  rápido disponível lidera; indisponível por intervalo e com emergência oferecida, a emergência
-  lidera no lugar; nenhuma válvula usa cor de alerta (Cobre) nem texto de negativa.
-- Uma sessão ou acesso rápido já em andamento quando a janela noturna começa segue até o fim,
-  sem aviso — a janela só vale a partir da próxima pausa/espera que começar depois disso.
-
-**Rotina estimada e janela noturna:** coleta de uso grava `primeiroUsoDia`/
-`ultimoUsoAntesPausaLonga`; com 5+ dias de histórico, estima dormir/acordar sem pergunta no
-onboarding, oferece confirmação única (`rotina.confirmadoEm`) + pergunta opcional de alternativa
-noturna. Janela noturna = 30 min antes de `dormirEstimado` até `acordarEstimado`: pausa de
-intenção dobra, texto padrão trocado por mensagem do banco `noturno`, acesso rápido espera 30s
-em vez de 5. Editar manualmente liga `rotina.modoManual` (pausa a reestimativa automática).
-"Recalcular automaticamente" (HU-10, RN15) desliga `modoManual`, mas não troca os horários na
-hora — a estimativa nova (se houver) substitui `dormirEstimado`/`acordarEstimado` uma única vez,
-na abertura seguinte do app, mantendo `confirmadoEm`. Fora desse momento, a estimativa automática
-nunca altera uma rotina já confirmada — resolve a ambiguidade que existia entre "só muda por
-reconfirmação manual" e "uma nova estimativa no ciclo normal".
-
-**TravadoFlow** ("O que está pegando agora?"): caminho independente, acessível pela Home (botão
-discreto) e toque longo numa tarefa. 4 chips de toque único (confusão/medo/tédio/energia), cada
-um leva a uma ação (subtarefa + timer, timer direto, ou 3 opções no caso de energia baixa).
-Sessões de foco (2/5/10 min, qualquer origem) **nunca alteram `streakAtual`**.
-
-**Regra de pré-compromisso (regra única):** primeira configuração de `regrasBloqueio` vale na
-hora; qualquer alteração depois (inclusive desativar) só vale a partir do dia seguinte
-(`regrasBloqueioPendentes.efetivaEm`), sem distinguir afrouxar de endurecer. Nova alteração
-substitui pendência existente. Promoção pendente→vigente acontece no nativo (Kotlin), roda com
-o app fechado. `AvisoAlteracaoPendenteScreen` é mostrado antes de gravar qualquer alteração que
-viraria pendente, reconhecendo o momento sem culpa (princípio 3).
+Todas em [`regras-de-negocio.md`](regras-de-negocio.md) — streak e proteção, Home, tarefas,
+desafios, Progresso, bloqueio de apps, interceptação (sessões/válvulas), rotina noturna,
+TravadoFlow, Perfil, privacidade/Analytics e pendências.
 
 ## Restrições importantes
 
@@ -242,13 +106,3 @@ viraria pendente, reconhecendo o momento sem culpa (princípio 3).
   4. Cloud Function de verificação de compra (Google Play Developer API)
   5. Fluxo de compra no app (`react-native-iap`)
   6. Paywall com contagem regressiva dos 7 dias e "Restaurar compra"
-
-## Documentos de origem (histórico)
-
-Conteúdo migrado deste arquivo veio de `definition/01-visao-geral-projeto.md`,
-`definition/00-instrucoes-do-projeto.md`, `definition/regras-de-negocio.md`,
-`definition/09-ponte-fuga-tarefa-e-estou-travado.md`, `definition/procedimento-loja.md` e
-`docs/legal/README.md`. Esses arquivos continuam existindo em `/definition` e `docs/legal/` como
-material de origem/histórico — consulte-os para o detalhe linha a linha (ex.: tabela completa de
-estados do TravadoFlow, textos exatos de cada marco de streak, critérios de aceite do motor de
-sessões) quando este resumo não bastar.

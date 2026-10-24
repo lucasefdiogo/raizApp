@@ -1,8 +1,6 @@
 # Arquitetura — Rootora
 
-> Consolidado de `definition/arquitetura.md`, `definition/stack-tecnico.md`,
-> `docs/adr/0001-coleta-uso-usagestatsmanager.md` e do `CLAUDE.md` da raiz (seções
-> "Arquitetura real" e "Comandos"). ADRs completas continuam em `docs/adr/`.
+> Stack, camadas, comandos, serviços, dependências e dívida técnica. ADRs completas em `docs/adr/`.
 
 ## Tipo de solução
 
@@ -26,8 +24,8 @@ pelas fixtures compartilhadas.
     fora do RootNavigator
   ```
   Onboarding é 1 tela com máquina de passos interna (Foco→TempoTela→Porque→PrimeiraTarefa); o
-  gate de saída é `users/{uid}.onboardingConcluido` (não `porqueTexto`). Detalhe completo em
-  `navegacao-componentes.md` (em `/definition`, ainda não migrado para `docs/projeto/`).
+  gate de saída é `users/{uid}.onboardingConcluido` (não `porqueTexto`). Lista de telas em
+  `prototipo.md`; a composição de cada tela é a do código (`src/screens/`, `src/navigation/`).
 - **Animações:** `Animated` do core (Splash, Tutorial, LoadingIndicator) — `react-native-reanimated`
   não está instalado
 - **Ícones:** `lucide-react-native`
@@ -138,7 +136,7 @@ Relatório Kotlin: `android/app/build/test-results/testDebugUnitTest/*.xml`.
 | firebase-admin | 14.3.0 | Apache-2.0 |
 | react-native-iap (📋 planejado, ainda não instalado) | — | — |
 
-Lista completa (incluindo dependências de build/CLI) em `definition/arquitetura.md`.
+Lista completa (incluindo dependências de build/CLI) em `package.json`.
 
 ## Estrutura de pastas
 
