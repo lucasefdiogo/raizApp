@@ -193,4 +193,73 @@ class SaldoBloqueioMaquinaTest {
     assertEquals(10, SaldoBloqueioMaquina.duracaoPausaIntencaoSeg(0))
     assertEquals(60, SaldoBloqueioMaquina.duracaoPausaIntencaoSeg(9))
   }
+
+  // HU-14: notificação da sessão ativa (RN02, RN03) — sem fixture compartilhada
+  // com o TS porque é lógica só de agendamento nativo (mesma categoria de
+  // msParaAgendarAviso/chaveAvisoSessao, sem espelho em saldoBloqueio.ts).
+  private val sessaoDe15min = EstadoSaldo(dia = "2026-10-24", fase = FaseBloqueio.SESSAO_ATIVA, fgDesde = 0L)
+  private val cfg15min = ConfigBloco(duracaoBlocoMin = 15)
+
+  @Test
+  fun `Cenário 1 - minutosRestantesNotificacao mostra 15 ao iniciar a sessão`() {
+    val s = sessaoDe15min.copy(fgDesde = 1_000L)
+    assertEquals(15, SaldoBloqueioMaquina.minutosRestantesNotificacao(s, cfg15min, 1_000L))
+  }
+
+  @Test
+  fun `Cenário 2 - minutosRestantesNotificacao mostra 10 depois de 5 minutos`() {
+    val s = sessaoDe15min.copy(fgDesde = 1_000L)
+    assertEquals(10, SaldoBloqueioMaquina.minutosRestantesNotificacao(s, cfg15min, 1_000L + 5 * 60_000L))
+  }
+
+  @Test
+  fun `Cenário 3 - minutosRestantesNotificacao mostra 1 com exatamente 1 minuto restante`() {
+    val s = sessaoDe15min.copy(fgDesde = 1_000L)
+    assertEquals(1, SaldoBloqueioMaquina.minutosRestantesNotificacao(s, cfg15min, 1_000L + 14 * 60_000L))
+  }
+
+  @Test
+  fun `textoNotificacaoSessao segue RN02 para mais de 1 minuto`() {
+    assertEquals(
+      "Sessão em andamento · 15 min restantes nesta sessão",
+      SaldoBloqueioMaquina.textoNotificacaoSessao(15),
+    )
+    assertEquals(
+      "Sessão em andamento · 10 min restantes nesta sessão",
+      SaldoBloqueioMaquina.textoNotificacaoSessao(10),
+    )
+  }
+
+  @Test
+  fun `Cenário 3 - textoNotificacaoSessao do aviso final é distinto do formato padrão (RN03)`() {
+    assertEquals("1 min restante nesta sessão", SaldoBloqueioMaquina.textoNotificacaoSessao(1))
+  }
+
+  @Test
+  fun `Cenário 2 - msAteProximaAtualizacaoNotificacao agenda o próximo marco de 5 em 5 min`() {
+    val inicio = 1_000L
+    val s = sessaoDe15min.copy(fgDesde = inicio)
+    // No início: próximo marco em 5 min.
+    assertEquals(5 * 60_000L, SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(s, cfg15min, inicio))
+    // Aos 5 min: próximo marco em outros 5 min (aos 10 min decorridos).
+    assertEquals(5 * 60_000L, SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(s, cfg15min, inicio + 5 * 60_000L))
+  }
+
+  @Test
+  fun `msAteProximaAtualizacaoNotificacao para de agendar quando o próximo marco cairia no minuto final`() {
+    val inicio = 1_000L
+    val s = sessaoDe15min.copy(fgDesde = inicio)
+    // Aos 10 min decorridos (5 min restantes): o próximo marco de 5 em 5 (aos
+    // 15 min) cairia depois do fim da sessão — só o aviso final de 1 min
+    // deve disparar a partir daqui.
+    assertEquals(null, SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(s, cfg15min, inicio + 10 * 60_000L))
+  }
+
+  @Test
+  fun `msAteProximaAtualizacaoNotificacao é null fora de SESSAO_ATIVA ou com o relógio parado`() {
+    val cooldown = EstadoSaldo(dia = "2026-10-24", fase = FaseBloqueio.COOLDOWN)
+    assertEquals(null, SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(cooldown, cfg15min, 1_000L))
+    val sessaoEmPausa = sessaoDe15min.copy(fgDesde = 0L)
+    assertEquals(null, SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(sessaoEmPausa, cfg15min, 1_000L))
+  }
 }

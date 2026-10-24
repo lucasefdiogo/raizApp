@@ -107,6 +107,7 @@ sem proteção: ramo mais fino e com opacidade reduzida — a raiz principal nun
 |---|---|---|
 | `HomeHeader` | `src/components/home/HomeHeader.tsx` | Saudação por horário + nome, badge de streak |
 | `StreakCard` | `src/components/StreakCard.tsx` | Streak atual + rodapé de garantia do dia (HU-07) — não mostra mais a contagem de proteções |
+| `CooldownBanner` | `src/components/home/CooldownBanner.tsx` | Card "Próxima sessão em N min" (HU-14) — só em `COOLDOWN`, sem nome de app |
 | `TaskList` / `TaskItem` | `src/components/TaskList.tsx` / `TaskItem.tsx` | Lista + item (checkbox, título, selo essencial, ícone recorrente/exercício) |
 | `AddTaskForm` / `TaskTypeToggle` | `src/components/home/` | Sheet "Nova alternativa" (HU-07, Modal controlado pela Home) — sugestões em chip, campo título, toggle essencial + tipo/duração + "Repetir todos os dias" |
 | `TaskActionsSheet` | `src/components/home/TaskActionsSheet.tsx` | Menu de toque longo: "Estou travado", editar, remover |

@@ -344,4 +344,39 @@ object SaldoBloqueioMaquina {
 
   /** Identifica a sessão (dia + contador de sessões usadas) para lembrar que o aviso dela já saiu. */
   fun chaveAvisoSessao(s: EstadoSaldo): String = "${s.dia}#${s.blocosUsados}"
+
+  /** Intervalo da notificação de sessão ativa (HU-14, RN03). */
+  const val INTERVALO_NOTIFICACAO_SESSAO_MIN = 5
+
+  /**
+   * Minutos restantes pro texto da notificação (HU-14, RN02), arredondado
+   * pra cima — evita mostrar "0 min" com a sessão ainda ativa por alguns
+   * segundos (mesmo critério de formatarContagemMs no TS). Assume sessão
+   * ativa: fora dela msRestantes já é 0.
+   */
+  fun minutosRestantesNotificacao(s: EstadoSaldo, cfg: ConfigBloco, agora: Long): Int =
+    Math.ceil(msRestantes(s, cfg, agora) / MS_POR_MIN.toDouble()).toInt()
+
+  /** Texto da notificação (HU-14, RN02/RN03) — 1 minuto é o aviso final, fora do formato padrão. */
+  fun textoNotificacaoSessao(minutosRestantes: Int): String =
+    if (minutosRestantes <= 1) {
+      "1 min restante nesta sessão"
+    } else {
+      "Sessão em andamento · $minutosRestantes min restantes nesta sessão"
+    }
+
+  /**
+   * Ms até o próximo marco de INTERVALO_NOTIFICACAO_SESSAO_MIN minutos de
+   * sessão consumida (HU-14, RN03); null se o relógio não está correndo, não
+   * há sessão ativa, ou o próximo marco cairia dentro do minuto final — esse
+   * trecho já é coberto por msAteAviso/AVISO_FIM_SESSAO_MS.
+   */
+  fun msAteProximaAtualizacaoNotificacao(s: EstadoSaldo, cfg: ConfigBloco, agora: Long): Long? {
+    val faltam = msAteEsgotar(s, cfg, agora) ?: return null
+    val ateJanelaFinal = faltam - AVISO_FIM_SESSAO_MS
+    val intervaloMs = INTERVALO_NOTIFICACAO_SESSAO_MIN * MS_POR_MIN
+    val decorridoMs = cfg.duracaoBlocoMin * MS_POR_MIN - faltam
+    val proximoMarco = intervaloMs - (decorridoMs % intervaloMs)
+    return proximoMarco.takeIf { it < ateJanelaFinal }
+  }
 }

@@ -552,6 +552,20 @@ export function avisoUmMinutoAtivo(
   return permiteUso(estado) && restante > 0 && restante <= AVISO_FIM_SESSAO_MS;
 }
 
+/**
+ * Minutos até o cooldown acabar, arredondado pra cima — "Próxima sessão em
+ * N min" no banner da Home (HU-14, RN05). Só o lado JS: o nativo não
+ * formata texto de UI, então não tem espelho em SaldoBloqueioMaquina.kt
+ * (mesma categoria de msParaAgendarAviso/chaveAvisoSessao, que são só-Kotlin
+ * no sentido inverso).
+ */
+export function minutosRestantesCooldown(estado: EstadoSaldo, agora: number): number {
+  if (estado.fase !== 'COOLDOWN') {
+    return 0;
+  }
+  return Math.ceil(Math.max(0, estado.fimCooldownEm - agora) / MS_POR_MIN);
+}
+
 /** "MM:SS" a partir de ms (arredonda pra cima — 0:00 só quando de fato acabou). */
 export function formatarContagemMs(ms: number): string {
   const totalSeg = Math.max(0, Math.ceil(ms / 1000));

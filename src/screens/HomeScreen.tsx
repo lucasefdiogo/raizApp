@@ -22,8 +22,10 @@ import { useSincronizarAcessibilidade } from '../hooks/useSincronizarAcessibilid
 import { useAbrirDestinoDaNotificacao } from '../hooks/useAbrirDestinoDaNotificacao';
 import { useFeatureTour } from '../hooks/useFeatureTour';
 import { useSincronizarRegrasBloqueio } from '../hooks/useSincronizarRegrasBloqueio';
+import { useCooldownRestante } from '../hooks/useCooldownRestante';
 import { HomeHeader } from '../components/home/HomeHeader';
 import { StreakCard } from '../components/StreakCard';
+import { CooldownBanner } from '../components/home/CooldownBanner';
 import { TaskList } from '../components/TaskList';
 import { LoadingIndicator } from '../components/common/LoadingIndicator';
 import { EmptyState } from '../components/common/EmptyState';
@@ -131,6 +133,8 @@ export function HomeScreen({
   useSincronizarAcessibilidade(uid);
   // Opens Bloqueio de apps when the app was opened by the reminder (HU-03).
   useAbrirDestinoDaNotificacao();
+  // HU-14, RN05-RN07: tempo até a próxima sessão liberar, só em COOLDOWN.
+  const { minutosRestantes: minutosRestantesCooldown } = useCooldownRestante();
   const { marcoParaExibir, corpoParaExibir, limparMarcoExibido } =
     useStreakMilestone(marcoAtingido);
   const {
@@ -416,6 +420,9 @@ export function HomeScreen({
         <View ref={streakCardRef} collapsable={false}>
           <StreakCard streak={{ streakAtual }} hojeCumprido={hojeCumprido} />
         </View>
+        {minutosRestantesCooldown !== null && (
+          <CooldownBanner minutosRestantes={minutosRestantesCooldown} />
+        )}
         {carregando ? (
           <LoadingIndicator variant="inline" />
         ) : tarefas.length === 0 ? (
