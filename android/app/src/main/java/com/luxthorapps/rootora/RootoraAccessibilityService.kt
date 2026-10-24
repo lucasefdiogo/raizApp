@@ -160,7 +160,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     handler.postDelayed(aoEstourarBloco, faltam + 50L)
   }
 
-  /** RN-04: agenda o toast de "1 minuto restante" (uma vez por sessão) enquanto o app bloqueado segue em primeiro plano. */
+  /** RN-04: agenda o aviso de "1 minuto restante" (uma vez por sessão) enquanto o app bloqueado segue em primeiro plano. */
   private fun agendarAviso() {
     handler.removeCallbacks(aoChegarAviso)
     val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
