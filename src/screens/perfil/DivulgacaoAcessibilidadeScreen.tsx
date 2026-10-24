@@ -8,6 +8,7 @@ import { openAccessibilitySettings } from '../../native/AccessibilityDetection';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { Selo } from '../../components/common/Selo';
 
 interface DivulgacaoAcessibilidadeScreenProps {
   uid: string;
@@ -64,12 +65,7 @@ export function DivulgacaoAcessibilidadeScreen({
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.conteudo}>
-        {ativo && (
-          <View style={styles.selo}>
-            <View style={styles.seloPonto} />
-            <Text style={styles.seloTexto}>ATIVO</Text>
-          </View>
-        )}
+        {ativo && <Selo texto="ATIVO" ativo />}
 
         <Text style={styles.titulo}>Como o bloqueio funciona</Text>
         <Text style={styles.paragrafo}>
@@ -122,28 +118,6 @@ const styles = StyleSheet.create({
   conteudo: {
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
-  },
-  selo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: theme.spacing.xs,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.full,
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-  },
-  seloPonto: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.musgo,
-  },
-  seloTexto: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.mono,
-    color: theme.colors.musgo,
-    letterSpacing: 0.5,
   },
   titulo: {
     fontSize: theme.typography.fontSize.xl,
