@@ -52,8 +52,8 @@ class RootoraAccessibilityService : AccessibilityService() {
 
   override fun onServiceConnected() {
     super.onServiceConnected()
-    // Processo/serviço reiniciou: um trecho em aberto não tem fim conhecido.
-    SaldoBloqueioPrefs.descartarTrechoEmAberto(applicationContext)
+    // Processo/serviço reiniciou: credita o trecho em aberto antes de zerá-lo.
+    SaldoBloqueioPrefs.creditarTrechoEmAberto(applicationContext)
     registerReceiver(receiverTela, IntentFilter(Intent.ACTION_SCREEN_OFF))
     // RN-01: records the re-enable (if a shutdown was recorded) and marks "already activated".
     AvisoDesligamentoPrefs.registrarConexaoDoServico(applicationContext)
@@ -170,6 +170,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     val pacote = pacoteBloqueadoEmFoco ?: return
     // reconciliar (dentro de estadoAtual) move pra COOLDOWN e zera o trecho em aberto.
     SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    pacoteBloqueadoEmFoco = null
     avaliarIntercept(pacote)
   }
 

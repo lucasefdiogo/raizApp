@@ -209,11 +209,19 @@ object SaldoBloqueioPrefs {
     prefs(context).edit().putString(CHAVE_AVISO_EXIBIDO, chave).apply()
   }
 
-  /** Reinício do Service/processo: o trecho em primeiro plano em aberto é descartado (não dá pra saber quando acabou). */
+  /**
+   * Reinício do Service/processo: o trecho em primeiro plano que estava em
+   * aberto (`fgDesde`) não tem mais o Handler que avisaria quando esgotasse
+   * — sem creditar esse tempo a `consumidoMs`, ele evaporava da conta e a
+   * próxima sessão rearmava com a duração quase inteira de novo, mesmo que o
+   * bloco já tivesse esgotado durante o reinício. `saiuDePrimeiroPlano` já
+   * credita e reconcilia (inclusive para COOLDOWN, se o trecho sozinho já
+   * esgotava o bloco).
+   */
   @Synchronized
-  fun descartarTrechoEmAberto(context: Context) {
-    transicionar(context) { s, _, _, _ ->
-      ResultadoTransicao(s.copy(fgDesde = 0L, liberacaoRapidaFgDesde = 0L), true)
+  fun creditarTrechoEmAberto(context: Context) {
+    transicionar(context) { s, cfg, agora, dia ->
+      SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
     }
   }
 
