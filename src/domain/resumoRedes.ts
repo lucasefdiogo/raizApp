@@ -51,6 +51,10 @@ export function diasComUsoApps(logs: LogComUso[]): number {
  * `usoApps` no Firestore (RN02, RN14).
  */
 export function somarSegundosRedes(logs: LogComUso[]): number {
+  return somarSegundosFiltrado(logs, pacote => PACOTES_REDES_SOCIAIS.includes(pacote));
+}
+
+function somarSegundosFiltrado(logs: LogComUso[], estaNaLista: (pacote: string) => boolean): number {
   return logs.reduce((total, log) => {
     if (!log.usoApps) {
       return total;
@@ -58,7 +62,7 @@ export function somarSegundosRedes(logs: LogComUso[]): number {
     return (
       total +
       Object.entries(log.usoApps)
-        .filter(([pacote]) => PACOTES_REDES_SOCIAIS.includes(pacote))
+        .filter(([pacote]) => estaNaLista(pacote))
         .reduce((soma, [, uso]) => soma + uso.segundos, 0)
     );
   }, 0);
@@ -81,24 +85,7 @@ export function somarAberturasRedes(logs: LogComUso[]): number {
 
 /** Segundos por nome de app (RN08) — agrupa pacotes do mesmo app sob o mesmo nome. */
 export function segundosPorNomeApp(logs: LogComUso[]): Record<string, number> {
-  const porPacote: Record<string, number> = {};
-  logs.forEach(log => {
-    if (!log.usoApps) {
-      return;
-    }
-    Object.entries(log.usoApps)
-      .filter(([pacote]) => PACOTES_REDES_SOCIAIS.includes(pacote))
-      .forEach(([pacote, uso]) => {
-        porPacote[pacote] = (porPacote[pacote] ?? 0) + uso.segundos;
-      });
-  });
-
-  const porNome: Record<string, number> = {};
-  Object.entries(porPacote).forEach(([pacote, segundos]) => {
-    const nome = nomeDoApp(pacote);
-    porNome[nome] = (porNome[nome] ?? 0) + segundos;
-  });
-  return porNome;
+  return segundosPorNomeFiltrado(logs, pacote => PACOTES_REDES_SOCIAIS.includes(pacote));
 }
 
 /**
@@ -107,17 +94,7 @@ export function segundosPorNomeApp(logs: LogComUso[]): Record<string, number> {
  * usada pela reflexão semanal, fora do escopo desta HU).
  */
 export function somarSegundosBloqueados(logs: LogComUso[], appsBloqueados: string[]): number {
-  return logs.reduce((total, log) => {
-    if (!log.usoApps) {
-      return total;
-    }
-    return (
-      total +
-      Object.entries(log.usoApps)
-        .filter(([pacote]) => appsBloqueados.includes(pacote))
-        .reduce((soma, [, uso]) => soma + uso.segundos, 0)
-    );
-  }, 0);
+  return somarSegundosFiltrado(logs, pacote => appsBloqueados.includes(pacote));
 }
 
 /** HU-13 (RN01, RN03): mesma ideia de segundosPorNomeApp, filtrando por `appsBloqueados`. */
@@ -125,13 +102,20 @@ export function segundosPorNomeAppBloqueados(
   logs: LogComUso[],
   appsBloqueados: string[],
 ): Record<string, number> {
+  return segundosPorNomeFiltrado(logs, pacote => appsBloqueados.includes(pacote));
+}
+
+function segundosPorNomeFiltrado(
+  logs: LogComUso[],
+  estaNaLista: (pacote: string) => boolean,
+): Record<string, number> {
   const porPacote: Record<string, number> = {};
   logs.forEach(log => {
     if (!log.usoApps) {
       return;
     }
     Object.entries(log.usoApps)
-      .filter(([pacote]) => appsBloqueados.includes(pacote))
+      .filter(([pacote]) => estaNaLista(pacote))
       .forEach(([pacote, uso]) => {
         porPacote[pacote] = (porPacote[pacote] ?? 0) + uso.segundos;
       });
