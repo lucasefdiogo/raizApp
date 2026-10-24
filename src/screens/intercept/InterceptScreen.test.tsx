@@ -18,18 +18,8 @@ jest.mock('../../hooks/useToast');
 jest.mock('../../native/AccessibilityDetection');
 jest.mock('./SessaoFocoScreen', () => ({
   SessaoFocoScreen: (props: Record<string, unknown>) => {
-    const { Text, Pressable } = require('react-native');
-    const onLiberarApp = props.onLiberarApp as (() => void) | undefined;
-    return (
-      <>
-        <Text testID="sessao-foco-mock">{JSON.stringify(props)}</Text>
-        {onLiberarApp && (
-          <Pressable onPress={onLiberarApp}>
-            <Text>mock-liberar-app</Text>
-          </Pressable>
-        )}
-      </>
-    );
+    const { Text } = require('react-native');
+    return <Text testID="sessao-foco-mock">{JSON.stringify(props)}</Text>;
   },
 }));
 jest.mock('./TarefasExtrasScreen', () => ({
@@ -371,7 +361,6 @@ describe('InterceptScreen', () => {
         origem: 'interceptacao',
       });
       expect(mock.tarefaId).toBeNull();
-      expect(screen.queryByText('mock-liberar-app')).toBeNull();
     });
 
     it('a válvula "Tarefas extras" lista só extras pendentes (sem essenciais, concluídas ou subtarefas); concluir e adicionar vão pro useDailyTasks', async () => {
@@ -400,27 +389,6 @@ describe('InterceptScreen', () => {
 
       await fireEvent.press(screen.getByText('mock-voltar'));
       expect(screen.getByText('Por hoje, as sessões acabaram.')).toBeTruthy();
-    });
-  });
-
-  describe('fim de uma sessão de foco', () => {
-    it('só oferece "liberar" quando há sessão a liberar (AGUARDANDO_LIBERACAO); ele leva à pausa de intenção, não libera direto', async () => {
-      configurarDailyTasks({ tarefas: [] });
-      const sem = configurarSaldo({ fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 });
-      const { rerender } = await render(<InterceptScreen {...props} />);
-      await fireEvent.press(screen.getByRole('button', { name: /Sessão de foco/ }));
-      expect(screen.queryByText('mock-liberar-app')).toBeNull();
-
-      // O cooldown acabou enquanto a sessão de foco rodava.
-      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
-      await rerender(<InterceptScreen {...props} />);
-      expect(screen.getByTestId('sessao-foco-mock')).toBeTruthy();
-
-      await fireEvent.press(screen.getByText('mock-liberar-app'));
-
-      expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(sem.liberar).not.toHaveBeenCalled();
-      expect(abrirApp).not.toHaveBeenCalled();
     });
   });
 

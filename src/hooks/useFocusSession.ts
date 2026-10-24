@@ -45,8 +45,6 @@ interface UseFocusSessionResultado {
   continuarMais10Minutos: () => void;
   marcarTarefaComoFeita: () => void;
   pararAqui: () => void;
-  /** Só registra a sessão como 'liberou_app' — quem chama (SessaoFocoScreen) decide o desbloqueio nativo de fato. */
-  liberarApp: () => void;
 }
 
 const DURACAO_CONTINUAR_SEG = 10 * 60;
@@ -157,10 +155,6 @@ export function useFocusSession({
     registrar('parou');
   }, [registrar]);
 
-  const liberarApp = useCallback(() => {
-    registrar('liberou_app');
-  }, [registrar]);
-
   return {
     fase,
     duracaoPlanejadaSeg,
@@ -169,6 +163,5 @@ export function useFocusSession({
     continuarMais10Minutos,
     marcarTarefaComoFeita,
     pararAqui,
-    liberarApp,
   };
 }

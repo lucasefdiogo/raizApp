@@ -21,24 +21,11 @@ interface SessaoFocoScreenProps {
   /** Fecha o fluxo inteiro e volta pra Home/pro app de origem. */
   onFechar: () => void;
   /**
-   * Nome exibido do app de origem — só usado no texto do botão que segue pro app.
-   * Ausente quando origem !== 'interceptacao' (a única situação em que o
-   * botão aparece, ver seção 5 da spec).
-   */
-  appLabel?: string;
-  /**
    * Package name do app de origem — repassado pro useFocusSession pra
    * espelhar "sessão ativa" em SharedPreferences (Etapa 4). Ausente quando
    * origem !== 'interceptacao'.
    */
   packageName?: string;
-  /**
-   * Desbloqueio nativo de fato (registrarDesbloqueioTemporario + abrirApp)
-   * — quem chama decide, essa tela só registra a sessão como
-   * 'liberou_app' e aciona isso. Ausente = botão não aparece, mesmo com
-   * origem === 'interceptacao'.
-   */
-  onLiberarApp?: () => void;
 }
 
 function formatarMMSS(segundos: number): string {
@@ -64,9 +51,7 @@ export function SessaoFocoScreen({
   estadoTravado,
   onMarcarTarefaComoFeita,
   onFechar,
-  appLabel,
   packageName,
-  onLiberarApp,
 }: SessaoFocoScreenProps) {
   const {
     fase,
@@ -76,7 +61,6 @@ export function SessaoFocoScreen({
     continuarMais10Minutos,
     marcarTarefaComoFeita,
     pararAqui,
-    liberarApp,
   } = useFocusSession({
     uid,
     duracaoInicialSeg,
@@ -98,14 +82,6 @@ export function SessaoFocoScreen({
   function handlePararAqui() {
     pararAqui();
     onFechar();
-  }
-
-  const mostrarLiberar =
-    origem === 'interceptacao' && onLiberarApp !== undefined;
-
-  function handleLiberarApp() {
-    liberarApp();
-    onLiberarApp?.();
   }
 
   return (
@@ -137,12 +113,6 @@ export function SessaoFocoScreen({
               />
             )}
             <SecondaryButton titulo="Parar aqui" onPress={handlePararAqui} />
-            {mostrarLiberar && (
-              <SecondaryButton
-                titulo={`Seguir para o ${appLabel}`}
-                onPress={handleLiberarApp}
-              />
-            )}
           </View>
         </View>
       )}

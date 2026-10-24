@@ -24,7 +24,6 @@ function configurarHook(sobrescritas = {}) {
     continuarMais10Minutos: jest.fn(),
     marcarTarefaComoFeita: jest.fn(),
     pararAqui: jest.fn(),
-    liberarApp: jest.fn(),
     ...sobrescritas,
   });
 }
@@ -123,52 +122,10 @@ describe('SessaoFocoScreen', () => {
     expect(screen.queryByText('Feito. Isso conta.')).toBeNull();
   });
 
-  describe('"Liberar" (só quando origem === interceptacao)', () => {
-    it('não aparece com origem "travado", mesmo passando onLiberarApp', async () => {
-      configurarHook({ fase: 'concluida' });
-      await render(
-        <SessaoFocoScreen
-          {...props}
-          origem="travado"
-          onLiberarApp={jest.fn()}
-          appLabel="Instagram"
-        />,
-      );
+  it('nunca mostra um botão de seguir pro app, nem com origem "interceptacao" (HU-04: nenhuma sessão libera app ao terminar)', async () => {
+    configurarHook({ fase: 'concluida' });
+    await render(<SessaoFocoScreen {...props} origem="interceptacao" />);
 
-      expect(screen.queryByText(/Seguir para o/)).toBeNull();
-    });
-
-    it('não aparece com origem "interceptacao" sem onLiberarApp', async () => {
-      configurarHook({ fase: 'concluida' });
-      await render(
-        <SessaoFocoScreen
-          {...props}
-          origem="interceptacao"
-          appLabel="Instagram"
-        />,
-      );
-
-      expect(screen.queryByText(/Seguir para o/)).toBeNull();
-    });
-
-    it('com origem "interceptacao" e onLiberarApp: aparece com o nome do app e chama liberarApp + onLiberarApp ao tocar', async () => {
-      const liberarApp = jest.fn();
-      const onLiberarApp = jest.fn();
-      configurarHook({ fase: 'concluida', liberarApp });
-      await render(
-        <SessaoFocoScreen
-          {...props}
-          origem="interceptacao"
-          appLabel="Instagram"
-          onLiberarApp={onLiberarApp}
-        />,
-      );
-
-      const botao = screen.getByText('Seguir para o Instagram');
-      await fireEvent.press(botao);
-
-      expect(liberarApp).toHaveBeenCalledTimes(1);
-      expect(onLiberarApp).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.queryByText(/Seguir para o/)).toBeNull();
   });
 });
