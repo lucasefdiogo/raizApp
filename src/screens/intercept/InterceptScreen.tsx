@@ -10,6 +10,7 @@ import { TipoValvula, montarValvulas } from '../../domain/valvulas';
 import { useDailyTasks } from '../../hooks/useDailyTasks';
 import { useIntercept } from '../../hooks/useIntercept';
 import { useBloqueioSaldo } from '../../hooks/useBloqueioSaldo';
+import { useToast } from '../../hooks/useToast';
 import { VisaoBloqueio, abrirApp } from '../../native/AccessibilityDetection';
 import { logAlternativaNoturnaEscolhida, logValvulaEscolhida } from '../../services/analytics';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -67,6 +68,8 @@ type Modo = 'principal' | 'sessao' | 'extras' | 'emergencia' | 'acessoRapido';
 /** Respiração guiada da saída de emergência (RN-06). */
 const DURACAO_SEG_RESPIRACAO_EMERGENCIA = 60;
 
+const MENSAGEM_FALHA_LIBERAR = 'Não conseguimos liberar agora. Tente de novo.';
+
 interface ParametrosSessao {
   tarefaId: string | null;
   estadoTravado: EstadoTravado | null;
@@ -98,6 +101,7 @@ export function InterceptScreen({
   const configBloco = resolverConfigBloco(saldo.visao?.config);
   const [sessaoLivre, setSessaoLivre] = useState(false);
   const { registrarAcao } = useIntercept(uid, packageName);
+  const { showToast } = useToast();
   const temSessaoResumida =
     !!sessaoAtivaResumida && sessaoAtivaResumida.duracaoRestanteSeg > 0;
   const [modo, setModo] = useState<Modo>(
@@ -146,6 +150,8 @@ export function InterceptScreen({
     const liberado = await saldo.liberar(intencao);
     if (liberado) {
       await abrirAppEFechar();
+    } else {
+      showToast(MENSAGEM_FALHA_LIBERAR);
     }
   }
 

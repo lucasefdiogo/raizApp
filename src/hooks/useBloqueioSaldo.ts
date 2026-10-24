@@ -164,7 +164,12 @@ export function useBloqueioSaldo(
 
   const liberar = useCallback(
     async (intencao: string) => {
-      const ok = await liberarBloco();
+      let ok = false;
+      try {
+        ok = await liberarBloco();
+      } catch (erro) {
+        registrarErro(erro as Error, 'useBloqueioSaldo.liberar');
+      }
       if (ok) {
         gravarResumo({ sessoesUsadas: 1, intencao: intencao.trim() });
       }

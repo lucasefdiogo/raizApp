@@ -165,7 +165,26 @@ object BloqueioPrefs {
       return
     }
 
-    // Tudo menos `efetivaEm` (apps, janelas e a config de blocos, se houver).
+    val novaVigente =
+      try {
+        mesclarRegraVigente(pendente)
+      } catch (erro: Exception) {
+        return
+      }
+    salvarRegrasBloqueio(context, novaVigente.toString())
+    salvarRegrasBloqueioPendentes(context, null)
+  }
+
+  /**
+   * Tudo da pendência menos `efetivaEm` (apps, janelas e a config de
+   * blocos, se houver), com `apps`/`janelas` suprindo o default vazio.
+   * Função pura (sem Context) — extraída de `promoverPendentesSeVencidas`
+   * pra poder testar o merge sozinho, sem SharedPreferences. Pode lançar
+   * se algum valor da pendência não for aceito por `JSONObject.put`; quem
+   * chama protege com try/catch (falha aqui não deve travar a interceptação
+   * nem promover uma regra pela metade).
+   */
+  fun mesclarRegraVigente(pendente: JSONObject): JSONObject {
     val novaVigente = JSONObject()
     pendente.keys().forEach { chave ->
       if (chave != "efetivaEm") {
@@ -174,8 +193,7 @@ object BloqueioPrefs {
     }
     if (!novaVigente.has("apps")) novaVigente.put("apps", JSONArray())
     if (!novaVigente.has("janelas")) novaVigente.put("janelas", JSONArray())
-    salvarRegrasBloqueio(context, novaVigente.toString())
-    salvarRegrasBloqueioPendentes(context, null)
+    return novaVigente
   }
 
   /** YYYY-MM-DD local do aparelho — mesmo formato de domain/data.ts paraISOLocal. */
