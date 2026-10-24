@@ -1,6 +1,7 @@
 import {
   aplicarRegrasBloqueioPendentesSeVencidas,
   decidirGravacaoRegrasBloqueio,
+  ehJanelaDiaTodo,
   formatarDiasSemana,
   janelaBloqueioValida,
   limparAppsForaDaListaCurada,
@@ -342,6 +343,69 @@ describe('limparAppsForaDaListaCurada', () => {
     };
 
     expect(limparAppsForaDaListaCurada(vigente, null).mudou).toBe(false);
+  });
+});
+
+describe('HU-12 · Janela de horário opcional', () => {
+  describe('ehJanelaDiaTodo', () => {
+    it('true para 00:00–23:59', () => {
+      expect(ehJanelaDiaTodo({ inicio: '00:00', fim: '23:59', diasSemana: [1] })).toBe(true);
+    });
+
+    it('false para uma janela específica', () => {
+      expect(ehJanelaDiaTodo({ inicio: '09:00', fim: '18:00', diasSemana: [1] })).toBe(false);
+    });
+  });
+
+  describe('resumoCurtoBloqueio com janela dia todo', () => {
+    it('Cenário 5: mostra "o dia todo" em vez do intervalo', () => {
+      expect(
+        resumoCurtoBloqueio({
+          apps: ['com.instagram.android', 'com.whatsapp', 'com.a', 'com.b', 'com.c'],
+          janelas: [{ inicio: '00:00', fim: '23:59', diasSemana: [1, 2, 3, 4, 5] }],
+        }),
+      ).toBe('5 apps · seg a sex · o dia todo');
+    });
+
+    it('janela específica continua mostrando o intervalo (regressão HU-09)', () => {
+      expect(
+        resumoCurtoBloqueio({
+          apps: ['com.instagram.android'],
+          janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+        }),
+      ).toBe('1 app · seg a sex · 09:00–18:00');
+    });
+  });
+
+  describe('resumoRegrasBloqueio com janela dia todo', () => {
+    it('Cenário 2: mostra "o dia todo" em vez do intervalo', () => {
+      expect(
+        resumoRegrasBloqueio({
+          apps: ['com.instagram.android'],
+          janelas: [{ inicio: '00:00', fim: '23:59', diasSemana: [1, 2, 3, 4, 5] }],
+        }),
+      ).toBe('1 app selecionado, seg, ter, qua, qui, sex, o dia todo.');
+    });
+
+    it('janela específica continua mostrando o intervalo (regressão HU-09)', () => {
+      expect(
+        resumoRegrasBloqueio({
+          apps: ['com.instagram.android'],
+          janelas: [{ inicio: '09:00', fim: '18:00', diasSemana: [1, 2, 3, 4, 5] }],
+        }),
+      ).toBe('1 app selecionado, seg, ter, qua, qui, sex das 09:00 às 18:00.');
+    });
+  });
+
+  describe('Cenário 6: dias da semana continuam configuráveis com "o dia todo"', () => {
+    it('resumoCurtoBloqueio reflete os dias restritos mantendo "o dia todo"', () => {
+      expect(
+        resumoCurtoBloqueio({
+          apps: ['com.instagram.android'],
+          janelas: [{ inicio: '00:00', fim: '23:59', diasSemana: [1, 2, 3, 4, 5] }],
+        }),
+      ).toBe('1 app · seg a sex · o dia todo');
+    });
   });
 });
 

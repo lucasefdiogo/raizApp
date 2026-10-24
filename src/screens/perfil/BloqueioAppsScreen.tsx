@@ -14,6 +14,8 @@ import { useToast } from '../../hooks/useToast';
 import { useVoltarFisico } from '../../hooks/useVoltarFisico';
 import {
   decidirGravacaoRegrasBloqueio,
+  ehJanelaDiaTodo,
+  HORARIOS_DIA_TODO,
   janelaBloqueioValida,
   mesmasRegrasBloqueio,
   resumoCurtoBloqueio,
@@ -43,6 +45,13 @@ const DICA_YOUTUBE = 'Usa para estudar? Pode deixar livre.';
 
 const JANELA_PADRAO: JanelaBloqueio = { inicio: '09:00', fim: '18:00', diasSemana: [] };
 
+// HU-12: sem regrasBloqueio ainda, "O dia todo" vem pré-selecionado (RN02) —
+// quem já tem regra configurada (vigente ou pendente) mantém o que tinha.
+const JANELA_DIA_TODO_PADRAO: JanelaBloqueio = { ...HORARIOS_DIA_TODO, diasSemana: [] };
+
+const DESCRICAO_DIA_TODO =
+  'Sem horário fixo: a interceptação vale o dia inteiro, nos dias marcados abaixo.';
+
 const MENSAGEM_ALTERACOES_NAO_SALVAS = 'Suas alterações não foram salvas.';
 
 interface BloqueioAppsScreenProps {
@@ -63,6 +72,15 @@ interface BloqueioAppsScreenProps {
 
 function regrasDoFormulario(apps: string[], janela: JanelaBloqueio): RegrasBloqueio {
   return { apps, janelas: apps.length > 0 ? [janela] : [] };
+}
+
+// HU-12 RN02: sem regra salva (vigente ou pendente) ainda, o ponto de
+// partida do formulário é "o dia todo"; com regra salva mas sem janela
+// (ex: bloqueio desativado), mantém o padrão de horário específico de
+// sempre — sem regra salva não conta como "já tinha, continua com o que
+// tinha" (RN02 só vale pra quem já configurou).
+function janelaInicialDoFormulario(base: RegrasBloqueio | null | undefined): JanelaBloqueio {
+  return base?.janelas[0] ?? (base ? JANELA_PADRAO : JANELA_DIA_TODO_PADRAO);
 }
 
 function horarioParaDate(horario: string): Date {
@@ -134,7 +152,7 @@ export function BloqueioAppsScreen({
 
     const base = regrasPendentes ?? regrasVigentes;
     setAppsSelecionados(appsIniciaisSelecionados(base, appsInstalados));
-    setJanela(base?.janelas[0] ?? JANELA_PADRAO);
+    setJanela(janelaInicialDoFormulario(base));
   }, [carregando, regrasPendentes, regrasVigentes, appsInstalados]);
 
   // Nenhuma rede social da lista curada instalada: sem seleção de apps (RN-05).
@@ -154,6 +172,18 @@ export function BloqueioAppsScreen({
         ? atual.filter(pacote => pacote !== packageName)
         : [...atual, packageName],
     );
+  };
+
+  // Sem state próprio — a opção do seletor é a própria janela (RN03): evita
+  // as duas coisas dessincronizarem.
+  const modoDiaTodo = ehJanelaDiaTodo(janela);
+
+  const selecionarDiaTodo = () => {
+    setJanela(atual => ({ ...HORARIOS_DIA_TODO, diasSemana: atual.diasSemana }));
+  };
+
+  const selecionarHorarioEspecifico = () => {
+    setJanela(atual => ({ inicio: JANELA_PADRAO.inicio, fim: JANELA_PADRAO.fim, diasSemana: atual.diasSemana }));
   };
 
   const toggleDia = (dia: number) => {
@@ -185,7 +215,7 @@ export function BloqueioAppsScreen({
   const regrasSalvas = regrasPendentes ?? regrasVigentes;
   const regrasIniciais = regrasDoFormulario(
     appsIniciaisSelecionados(regrasSalvas, appsInstalados),
-    regrasSalvas?.janelas[0] ?? JANELA_PADRAO,
+    janelaInicialDoFormulario(regrasSalvas),
   );
   const alteracaoNaoSalva = !carregando && !mesmasRegrasBloqueio(regrasIniciais, regrasEmEdicao);
 
@@ -318,31 +348,72 @@ export function BloqueioAppsScreen({
               <>
                 <SecaoConfig eyebrow="QUANDO">
                   <View style={styles.blocoJanela}>
-                    <View style={styles.linhaHorario}>
+                    <View style={styles.linhaSeletorJanela}>
                       <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setSeletorAberto('inicio')}
-                        style={styles.campoHorario}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: modoDiaTodo }}
+                        accessibilityLabel="O dia todo"
+                        onPress={selecionarDiaTodo}
+                        style={[styles.opcaoJanela, modoDiaTodo && styles.opcaoJanelaSelecionada]}
                       >
-                        <Text style={styles.rotulo}>Início</Text>
-                        <Text style={styles.valorHorario}>{janela.inicio}</Text>
+                        <Text
+                          style={[
+                            styles.opcaoJanelaTexto,
+                            modoDiaTodo && styles.opcaoJanelaTextoSelecionado,
+                          ]}
+                        >
+                          O dia todo
+                        </Text>
                       </Pressable>
                       <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setSeletorAberto('fim')}
-                        style={styles.campoHorario}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: !modoDiaTodo }}
+                        accessibilityLabel="Horário específico"
+                        onPress={selecionarHorarioEspecifico}
+                        style={[styles.opcaoJanela, !modoDiaTodo && styles.opcaoJanelaSelecionada]}
                       >
-                        <Text style={styles.rotulo}>Fim</Text>
-                        <Text style={styles.valorHorario}>{janela.fim}</Text>
+                        <Text
+                          style={[
+                            styles.opcaoJanelaTexto,
+                            !modoDiaTodo && styles.opcaoJanelaTextoSelecionado,
+                          ]}
+                        >
+                          Horário específico
+                        </Text>
                       </Pressable>
                     </View>
-                    {seletorAberto && (
-                      <DateTimePicker
-                        value={horarioParaDate(janela[seletorAberto])}
-                        mode="time"
-                        is24Hour
-                        onChange={handleAlterarHorario(seletorAberto)}
-                      />
+
+                    {modoDiaTodo ? (
+                      <Text style={styles.descricaoJanela}>{DESCRICAO_DIA_TODO}</Text>
+                    ) : (
+                      <>
+                        <View style={styles.linhaHorario}>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => setSeletorAberto('inicio')}
+                            style={styles.campoHorario}
+                          >
+                            <Text style={styles.rotulo}>Início</Text>
+                            <Text style={styles.valorHorario}>{janela.inicio}</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => setSeletorAberto('fim')}
+                            style={styles.campoHorario}
+                          >
+                            <Text style={styles.rotulo}>Fim</Text>
+                            <Text style={styles.valorHorario}>{janela.fim}</Text>
+                          </Pressable>
+                        </View>
+                        {seletorAberto && (
+                          <DateTimePicker
+                            value={horarioParaDate(janela[seletorAberto])}
+                            mode="time"
+                            is24Hour
+                            onChange={handleAlterarHorario(seletorAberto)}
+                          />
+                        )}
+                      </>
                     )}
 
                     <Text style={styles.rotuloDias}>Dias da semana</Text>
@@ -583,6 +654,39 @@ const styles = StyleSheet.create({
   // relação ao resto da tela.
   blocoJanela: {
     gap: theme.spacing.sm,
+  },
+  linhaSeletorJanela: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  opcaoJanela: {
+    flex: 1,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.terraSuave,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  // Terra Escura, não Cobre (RN08) — mesmo racional do dia selecionado em
+  // SeletorDiasSemana; o único Cobre da tela é o "Salvar".
+  opcaoJanelaSelecionada: {
+    backgroundColor: theme.colors.terraEscura,
+    borderColor: theme.colors.terraEscura,
+  },
+  opcaoJanelaTexto: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    color: theme.colors.textPrimary,
+  },
+  opcaoJanelaTextoSelecionado: {
+    color: theme.colors.casca,
+  },
+  descricaoJanela: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
   linhaHorario: {
     flexDirection: 'row',
