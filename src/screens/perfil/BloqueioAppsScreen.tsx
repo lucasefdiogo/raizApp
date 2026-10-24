@@ -32,6 +32,7 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { BackButton } from '../../components/common/BackButton';
+import { Selo } from '../../components/common/Selo';
 import { AppListItem } from '../../components/bloqueio/AppListItem';
 import { SeletorDiasSemana } from '../../components/bloqueio/SeletorDiasSemana';
 import { SecaoConfig } from '../../components/bloqueio/SecaoConfig';
@@ -308,22 +309,11 @@ export function BloqueioAppsScreen({
 
             <SecaoConfig eyebrow="STATUS DO SERVIÇO">
               <View style={styles.blocoStatus}>
-                <View style={styles.linhaStatus}>
-                  <View
-                    style={[
-                      styles.pontoStatus,
-                      servicoAtivo ? styles.pontoStatusAtivo : styles.pontoStatusInativo,
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.status,
-                      servicoAtivo ? styles.statusAtivo : styles.statusInativo,
-                    ]}
-                  >
-                    {statusCarregando ? 'Verificando…' : servicoAtivo ? 'ATIVO' : 'DESATIVADO'}
-                  </Text>
-                </View>
+                {statusCarregando ? (
+                  <Text style={styles.status}>Verificando…</Text>
+                ) : (
+                  <Selo texto={servicoAtivo ? 'ATIVO' : 'DESATIVADO'} ativo={servicoAtivo} />
+                )}
                 {!statusCarregando && !servicoAtivo && (
                   <Text style={styles.avisoDesativado}>
                     Sem ele, o Rootora não consegue interceptar os apps abaixo.
@@ -582,18 +572,6 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
   },
-  pontoStatus: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.radius.full,
-    marginRight: theme.spacing.xs,
-  },
-  pontoStatusAtivo: {
-    backgroundColor: theme.colors.musgo,
-  },
-  pontoStatusInativo: {
-    backgroundColor: theme.colors.terraSuave,
-  },
   // Agrupa status + aviso + link + botão "Ativar" com gap mais apertado
   // que o ritmo entre seções (sm, não md/lg) — mesmo racional de
   // blocoJanela: formam um cluster só ("o que fazer com o serviço"),
@@ -602,18 +580,9 @@ const styles = StyleSheet.create({
   blocoStatus: {
     gap: theme.spacing.sm,
   },
-  linhaStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   status: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-  },
-  statusAtivo: {
-    color: theme.colors.musgo,
-  },
-  statusInativo: {
     color: theme.colors.textSecondary,
   },
   avisoDesativado: {
