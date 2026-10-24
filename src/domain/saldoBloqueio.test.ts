@@ -17,6 +17,7 @@ import {
   extrairConfigBloco,
   extrasConcluidasDoDia,
   formatarContagemMs,
+  minutosRestantesCooldown,
   avisoUmMinutoAtivo,
   emergenciaOferecidaNoEstado,
   liberarAcessoRapido,
@@ -437,6 +438,37 @@ describe('derivados de exibição', () => {
     expect(formatarContagemMs(30 * MIN)).toBe('30:00');
     expect(formatarContagemMs(1)).toBe('00:01');
     expect(formatarContagemMs(-5)).toBe('00:00');
+  });
+});
+
+describe('HU-14 · banner de cooldown na Home', () => {
+  const t0 = 1_700_000_000_000;
+
+  it('Cenário 5: minutosRestantesCooldown arredonda pra cima — 32 min restantes', () => {
+    const emCooldown: EstadoSaldo = {
+      ...estadoInicialDia('2026-10-11'),
+      fase: 'COOLDOWN',
+      fimCooldownEm: t0 + 32 * MIN - 1, // menos de 32min exatos: ainda mostra 32 (ceil)
+    };
+    expect(minutosRestantesCooldown(emCooldown, t0)).toBe(32);
+  });
+
+  it('vale 0 fora de COOLDOWN, mesmo com fimCooldownEm no futuro', () => {
+    const foraDoCooldown: EstadoSaldo = {
+      ...estadoInicialDia('2026-10-11'),
+      fase: 'AGUARDANDO_LIBERACAO',
+      fimCooldownEm: t0 + 32 * MIN,
+    };
+    expect(minutosRestantesCooldown(foraDoCooldown, t0)).toBe(0);
+  });
+
+  it('nunca fica negativo com o cooldown já vencido', () => {
+    const vencido: EstadoSaldo = {
+      ...estadoInicialDia('2026-10-11'),
+      fase: 'COOLDOWN',
+      fimCooldownEm: t0 - 1,
+    };
+    expect(minutosRestantesCooldown(vencido, t0)).toBe(0);
   });
 });
 
