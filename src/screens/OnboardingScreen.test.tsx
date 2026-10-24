@@ -1,6 +1,12 @@
 import React from 'react';
-import { act, render, screen, fireEvent } from '@testing-library/react-native';
-import { BackHandler } from 'react-native';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react-native';
+import { BackHandler, Keyboard, ScrollView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './OnboardingScreen';
 
@@ -146,6 +152,54 @@ describe('OnboardingScreen', () => {
 
     expect(screen.getByText('Escreva um pouco mais sobre isso')).toBeTruthy();
     expect(atualizarDadosOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('no passo do porquê, quando o teclado abre, cria espaço no fim e rola até lá', async () => {
+    buscarUsuario.mockResolvedValue(
+      usuario({ focoProcrastinacao: 'estudos', tempoTelaEstimado: 4 }),
+    );
+    const ouvintes: Record<string, (evento: unknown) => void> = {};
+    const addListener = jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      evento: string,
+      cb: (e: unknown) => void,
+    ) => {
+      ouvintes[evento] = cb;
+      return { remove: jest.fn() };
+    }) as never);
+    const scrollToEnd = jest
+      .spyOn(ScrollView.prototype, 'scrollToEnd')
+      .mockImplementation(() => {});
+
+    const paddingBottomAtual = () =>
+      StyleSheet.flatten(
+        screen.getByTestId('onboarding-scroll').props.contentContainerStyle,
+      ).paddingBottom;
+
+    try {
+      await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+      await screen.findByText(LABEL_PORQUE);
+
+      expect(paddingBottomAtual()).toBeUndefined();
+
+      await act(async () => {
+        ouvintes.keyboardDidShow?.({ endCoordinates: { height: 280 } });
+      });
+
+      expect(paddingBottomAtual()).toBeGreaterThanOrEqual(280);
+
+      await waitFor(() =>
+        expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
+      );
+
+      await act(async () => {
+        ouvintes.keyboardDidHide?.({});
+      });
+
+      expect(paddingBottomAtual()).toBeUndefined();
+    } finally {
+      addListener.mockRestore();
+      scrollToEnd.mockRestore();
+    }
   });
 
   it('bloqueia o avanço no passo do foco até uma opção ser escolhida', async () => {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
@@ -88,7 +89,7 @@ export function RotinaConfirmacaoScreen({
   };
 
   return (
-    <View
+    <SafeAreaView
       style={styles.conteudo}
       testID="rotina-confirmacao"
       accessibilityLabel="Confirmar rotina estimada"
@@ -177,7 +178,7 @@ export function RotinaConfirmacaoScreen({
           </Pressable>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

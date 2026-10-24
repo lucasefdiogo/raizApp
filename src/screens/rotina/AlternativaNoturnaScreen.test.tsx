@@ -1,5 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
+import { Keyboard, ScrollView, StyleSheet } from 'react-native';
 import { AlternativaNoturnaScreen } from './AlternativaNoturnaScreen';
 
 async function montar() {
@@ -68,6 +75,51 @@ describe('HU-10 RN11 · AlternativaNoturnaScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(onSalvar).toHaveBeenCalledWith('Ler um pouco');
+  });
+
+  it('quando o teclado abre, cria espaço no fim do conteúdo e rola até lá', async () => {
+    const ouvintes: Record<string, (evento: unknown) => void> = {};
+    const addListener = jest.spyOn(Keyboard, 'addListener').mockImplementation(((
+      evento: string,
+      cb: (e: unknown) => void,
+    ) => {
+      ouvintes[evento] = cb;
+      return { remove: jest.fn() };
+    }) as never);
+    const scrollToEnd = jest
+      .spyOn(ScrollView.prototype, 'scrollToEnd')
+      .mockImplementation(() => {});
+
+    const paddingBottomAtual = () =>
+      StyleSheet.flatten(
+        screen.getByTestId('alternativa-noturna-scroll').props
+          .contentContainerStyle,
+      ).paddingBottom;
+
+    try {
+      await montar();
+
+      expect(paddingBottomAtual()).toBeUndefined();
+
+      await act(async () => {
+        ouvintes.keyboardDidShow?.({ endCoordinates: { height: 280 } });
+      });
+
+      expect(paddingBottomAtual()).toBeGreaterThanOrEqual(280);
+
+      await waitFor(() =>
+        expect(scrollToEnd).toHaveBeenCalledWith({ animated: true }),
+      );
+
+      await act(async () => {
+        ouvintes.keyboardDidHide?.({});
+      });
+
+      expect(paddingBottomAtual()).toBeUndefined();
+    } finally {
+      addListener.mockRestore();
+      scrollToEnd.mockRestore();
+    }
   });
 
   it('CA-03: Agora não dispensa a pergunta sem salvar nada', async () => {
