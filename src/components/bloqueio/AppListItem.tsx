@@ -54,7 +54,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    padding: theme.spacing.sm,
+    backgroundColor: theme.colors.areia,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
   },
   linhaPressionada: {
     opacity: 0.7,
