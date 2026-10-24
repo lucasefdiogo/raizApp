@@ -49,11 +49,15 @@ export function AvisoAlteracaoPendenteScreen({
           começa a valer no dia seguinte.
         </Text>
 
-        <Text style={styles.rotuloResumo}>HOJE CONTINUA</Text>
-        <Text style={styles.resumo}>{resumoVigente}</Text>
+        <View style={styles.cartaoResumo} testID="aviso-pendente-cartao-resumo">
+          <Text style={styles.rotuloResumo}>HOJE CONTINUA</Text>
+          <Text style={styles.resumo}>{resumoVigente}</Text>
+        </View>
 
-        <Text style={styles.rotuloResumo}>A PARTIR DE AMANHÃ</Text>
-        <Text style={styles.resumo}>{resumoNovo}</Text>
+        <View style={styles.cartaoResumo} testID="aviso-pendente-cartao-resumo">
+          <Text style={styles.rotuloResumo}>A PARTIR DE AMANHÃ</Text>
+          <Text style={styles.resumo}>{resumoNovo}</Text>
+        </View>
 
         <View style={styles.linhaDesligar}>
           <Info size={14} color={theme.colors.textSecondary} />
@@ -92,16 +96,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     textAlign: 'center',
   },
+  cartaoResumo: {
+    alignSelf: 'stretch',
+    backgroundColor: theme.colors.areia,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+    marginTop: theme.spacing.sm,
+  },
   rotuloResumo: {
-    alignSelf: 'flex-start',
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.mono,
     color: theme.colors.textSecondary,
     letterSpacing: 0.5,
-    marginTop: theme.spacing.sm,
   },
   resumo: {
-    alignSelf: 'flex-start',
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
