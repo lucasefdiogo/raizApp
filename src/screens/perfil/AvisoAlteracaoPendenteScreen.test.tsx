@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { AvisoAlteracaoPendenteScreen } from './AvisoAlteracaoPendenteScreen';
+import { theme } from '../../theme';
 
 describe('AvisoAlteracaoPendenteScreen', () => {
   it('HU-09 RN12: mostra o título "Antes de salvar", a explicação e os dois resumos', async () => {
@@ -23,6 +25,25 @@ describe('AvisoAlteracaoPendenteScreen', () => {
     expect(screen.getByText('5 apps · seg a sex · 09:00–18:00')).toBeTruthy();
     expect(screen.getByText('A PARTIR DE AMANHÃ')).toBeTruthy();
     expect(screen.getByText('4 apps · seg a sex · 09:00–20:00')).toBeTruthy();
+  });
+
+  it('os dois resumos ficam em cartões separados, não em texto corrido (fácil confundir hoje/amanhã)', async () => {
+    await render(
+      <AvisoAlteracaoPendenteScreen
+        resumoVigente="5 apps · seg a sex · 09:00–18:00"
+        resumoNovo="4 apps · seg a sex · 09:00–20:00"
+        onConfirmar={jest.fn()}
+        onRevisar={jest.fn()}
+      />,
+    );
+
+    const cartoes = screen.getAllByTestId('aviso-pendente-cartao-resumo');
+    expect(cartoes).toHaveLength(2);
+    cartoes.forEach(cartao => {
+      const estilo = StyleSheet.flatten(cartao.props.style);
+      expect(estilo.backgroundColor).toBe(theme.colors.areia);
+      expect(estilo.borderRadius).toBe(theme.radius.md);
+    });
   });
 
   it('HU-09 RN12: mostra a linha sobre desligar o serviço nas configurações do Android', async () => {
