@@ -1,6 +1,7 @@
 package com.luxthorapps.rootora
 
 import android.content.Context
+import io.invertase.firebase.crashlytics.ReactNativeFirebaseCrashlyticsNativeHelper
 import java.util.Calendar
 import org.json.JSONArray
 import org.json.JSONObject
@@ -209,11 +210,34 @@ object SaldoBloqueioPrefs {
     prefs(context).edit().putString(CHAVE_AVISO_EXIBIDO, chave).apply()
   }
 
-  /** Reinício do Service/processo: o trecho em primeiro plano em aberto é descartado (não dá pra saber quando acabou). */
+  /**
+   * Reinício do Service/processo: o trecho em primeiro plano que estava em
+   * aberto (`fgDesde`) não tem mais o Handler que avisaria quando esgotasse
+   * — sem creditar esse tempo a `consumidoMs`, ele evaporava da conta e a
+   * próxima sessão rearmava com a duração quase inteira de novo, mesmo que o
+   * bloco já tivesse esgotado durante o reinício. `saiuDePrimeiroPlano` já
+   * credita e reconcilia (inclusive para COOLDOWN, se o trecho sozinho já
+   * esgotava o bloco).
+   */
   @Synchronized
-  fun descartarTrechoEmAberto(context: Context) {
-    transicionar(context) { s, _, _, _ ->
-      ResultadoTransicao(s.copy(fgDesde = 0L, liberacaoRapidaFgDesde = 0L), true)
+  fun creditarTrechoEmAberto(context: Context) {
+    var haviaTrechoEmAberto = false
+    val resultado =
+      transicionar(context) { s, cfg, agora, dia ->
+        haviaTrechoEmAberto = s.fgDesde > 0L || s.liberacaoRapidaFgDesde > 0L
+        SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
+      }
+    if (haviaTrechoEmAberto) {
+      // Confirma em campo se o reinício do Service durante um bloco ativo
+      // (hipótese investigada pra um relato de sessão "rearmando" sozinha)
+      // está de fato acontecendo, e com qual fase o estado foi reconciliado.
+      ReactNativeFirebaseCrashlyticsNativeHelper.setCustomKey(
+        "fase_apos_creditar_trecho_em_aberto",
+        resultado.estado.fase.name,
+      )
+      ReactNativeFirebaseCrashlyticsNativeHelper.recordNativeException(
+        Exception("Service reconectou com trecho de bloco em primeiro plano aberto"),
+      )
     }
   }
 
