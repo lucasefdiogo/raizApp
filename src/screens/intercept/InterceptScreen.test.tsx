@@ -157,6 +157,7 @@ const props = {
   appIconeBase64: 'abc',
   snapshot: { tarefas: [] as Tarefa[] },
   onSair: jest.fn(),
+  onFecharAposAbrir: jest.fn(),
 };
 
 describe('InterceptScreen', () => {
@@ -227,7 +228,7 @@ describe('InterceptScreen', () => {
       expect(screen.queryByText(/Rest/)).toBeNull();
     });
 
-    it('"Liberar" (com a pausa zerada): registra a ação, libera com a intenção, reabre o app e sai', async () => {
+    it('"Liberar" (com a pausa zerada): registra a ação, libera com a intenção, reabre o app e fecha sem forçar a Home', async () => {
       jest.useFakeTimers();
       try {
         const saldo = configurarSaldo(
@@ -235,7 +236,14 @@ describe('InterceptScreen', () => {
           { pausaIntencaoSeg: 5 },
         );
         const onSair = jest.fn();
-        await render(<InterceptScreen {...props} onSair={onSair} />);
+        const onFecharAposAbrir = jest.fn();
+        await render(
+          <InterceptScreen
+            {...props}
+            onSair={onSair}
+            onFecharAposAbrir={onFecharAposAbrir}
+          />,
+        );
 
         await fireEvent.changeText(
           screen.getByLabelText('Se quiser, escreva (opcional)'),
@@ -251,13 +259,14 @@ describe('InterceptScreen', () => {
         expect(registrarAcao).toHaveBeenCalledWith('B', 'liberou');
         expect(saldo.liberar).toHaveBeenCalledWith('ver mensagens');
         expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
-        expect(onSair).toHaveBeenCalledTimes(1);
+        expect(onFecharAposAbrir).toHaveBeenCalledTimes(1);
+        expect(onSair).not.toHaveBeenCalled();
       } finally {
         jest.useRealTimers();
       }
     });
 
-    it('se o nativo recusar a liberação: não reabre o app nem sai', async () => {
+    it('se o nativo recusar a liberação: não reabre o app nem fecha', async () => {
       jest.useFakeTimers();
       try {
         configurarSaldo(
@@ -265,7 +274,14 @@ describe('InterceptScreen', () => {
           { liberar: jest.fn().mockResolvedValue(false) },
         );
         const onSair = jest.fn();
-        await render(<InterceptScreen {...props} onSair={onSair} />);
+        const onFecharAposAbrir = jest.fn();
+        await render(
+          <InterceptScreen
+            {...props}
+            onSair={onSair}
+            onFecharAposAbrir={onFecharAposAbrir}
+          />,
+        );
         await act(async () => {
           jest.advanceTimersByTime(5000);
         });
@@ -275,6 +291,7 @@ describe('InterceptScreen', () => {
 
         expect(abrirApp).not.toHaveBeenCalled();
         expect(onSair).not.toHaveBeenCalled();
+        expect(onFecharAposAbrir).not.toHaveBeenCalled();
       } finally {
         jest.useRealTimers();
       }
@@ -521,7 +538,14 @@ describe('InterceptScreen', () => {
         },
       );
       const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
+      const onFecharAposAbrir = jest.fn();
+      await render(
+        <InterceptScreen
+          {...props}
+          onSair={onSair}
+          onFecharAposAbrir={onFecharAposAbrir}
+        />,
+      );
 
       await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
       await passar(4);
@@ -530,7 +554,8 @@ describe('InterceptScreen', () => {
 
       expect(liberarAcessoRapido).toHaveBeenCalledTimes(1);
       expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
-      expect(onSair).toHaveBeenCalledTimes(1);
+      expect(onFecharAposAbrir).toHaveBeenCalledTimes(1);
+      expect(onSair).not.toHaveBeenCalled();
     });
 
     it('CA-01: se o nativo recusar o acesso rápido, o app não abre', async () => {
@@ -543,13 +568,21 @@ describe('InterceptScreen', () => {
         },
       );
       const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
+      const onFecharAposAbrir = jest.fn();
+      await render(
+        <InterceptScreen
+          {...props}
+          onSair={onSair}
+          onFecharAposAbrir={onFecharAposAbrir}
+        />,
+      );
 
       await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
       await passar(5);
 
       expect(abrirApp).not.toHaveBeenCalled();
       expect(onSair).not.toHaveBeenCalled();
+      expect(onFecharAposAbrir).not.toHaveBeenCalled();
     });
 
     it('CA-07: reabrir a interceptação depois de uma emergência mostra a mesma cota de acesso rápido', async () => {
@@ -564,8 +597,13 @@ describe('InterceptScreen', () => {
         { ...cota, concluirEmergencia },
       );
       const onSair = jest.fn();
+      const onFecharAposAbrir = jest.fn();
       const { unmount } = await render(
-        <InterceptScreen {...props} onSair={onSair} />,
+        <InterceptScreen
+          {...props}
+          onSair={onSair}
+          onFecharAposAbrir={onFecharAposAbrir}
+        />,
       );
       expect(screen.getByText('Próximo disponível em 20 min')).toBeTruthy();
 
@@ -578,7 +616,8 @@ describe('InterceptScreen', () => {
 
       expect(concluirEmergencia).toHaveBeenCalledTimes(1);
       expect(abrirApp).toHaveBeenCalledWith('com.instagram.android');
-      expect(onSair).toHaveBeenCalledTimes(1);
+      expect(onFecharAposAbrir).toHaveBeenCalledTimes(1);
+      expect(onSair).not.toHaveBeenCalled();
 
       // Reabre: a visão nativa traz a mesma cota (a emergência não a consumiu).
       await unmount();
@@ -601,7 +640,14 @@ describe('InterceptScreen', () => {
         },
       );
       const onSair = jest.fn();
-      await render(<InterceptScreen {...props} onSair={onSair} />);
+      const onFecharAposAbrir = jest.fn();
+      await render(
+        <InterceptScreen
+          {...props}
+          onSair={onSair}
+          onFecharAposAbrir={onFecharAposAbrir}
+        />,
+      );
       await fireEvent.press(
         screen.getByRole('button', { name: /Saída de emergência/ }),
       );
@@ -609,6 +655,7 @@ describe('InterceptScreen', () => {
 
       expect(abrirApp).not.toHaveBeenCalled();
       expect(onSair).not.toHaveBeenCalled();
+      expect(onFecharAposAbrir).not.toHaveBeenCalled();
     });
   });
 

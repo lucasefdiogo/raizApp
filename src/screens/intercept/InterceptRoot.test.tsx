@@ -17,6 +17,7 @@ jest.mock('../../hooks/useAuth');
 jest.mock('../../native/AccessibilityDetection', () => ({
   ...jest.requireActual('../../native/AccessibilityDetection'),
   listarAppsInstalados: jest.fn(),
+  irParaTelaInicial: jest.fn(),
 }));
 
 const mockCapturarProps = jest.fn();
@@ -28,7 +29,10 @@ jest.mock('./InterceptScreen', () => ({
 }));
 
 const { useAuth } = require('../../hooks/useAuth');
-const { listarAppsInstalados } = require('../../native/AccessibilityDetection');
+const {
+  listarAppsInstalados,
+  irParaTelaInicial,
+} = require('../../native/AccessibilityDetection');
 
 const props = {
   packageName: 'com.instagram.android',
@@ -176,15 +180,31 @@ describe('InterceptRoot', () => {
     );
   });
 
-  it('onSair é BackHandler.exitApp', async () => {
+  it('onSair vai pra tela inicial do Android antes de fechar — nunca revela o app bloqueado por baixo', async () => {
     useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    irParaTelaInicial.mockResolvedValue(undefined);
     const exitApp = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
     await render(<InterceptRoot {...props} />);
 
     await waitFor(() => expect(mockCapturarProps).toHaveBeenCalled());
     const { onSair } = mockCapturarProps.mock.calls[0][0];
-    onSair();
+    await onSair();
 
+    expect(irParaTelaInicial).toHaveBeenCalledTimes(1);
+    expect(exitApp).toHaveBeenCalledTimes(1);
+    exitApp.mockRestore();
+  });
+
+  it('onFecharAposAbrir só fecha (BackHandler.exitApp), sem forçar a Home — revela o app que acabou de abrir', async () => {
+    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    const exitApp = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
+    await render(<InterceptRoot {...props} />);
+
+    await waitFor(() => expect(mockCapturarProps).toHaveBeenCalled());
+    const { onFecharAposAbrir } = mockCapturarProps.mock.calls[0][0];
+    onFecharAposAbrir();
+
+    expect(irParaTelaInicial).not.toHaveBeenCalled();
     expect(exitApp).toHaveBeenCalledTimes(1);
     exitApp.mockRestore();
   });
