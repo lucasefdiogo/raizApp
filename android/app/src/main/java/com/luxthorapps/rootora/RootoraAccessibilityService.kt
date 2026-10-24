@@ -1,15 +1,19 @@
 package com.luxthorapps.rootora
 
 import android.accessibilityservice.AccessibilityService
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import android.view.accessibility.AccessibilityEvent
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
@@ -40,6 +44,9 @@ class RootoraAccessibilityService : AccessibilityService() {
 
   private val aoChegarAviso = Runnable { aoAvisarUmMinuto() }
 
+  /** HU-14: marco de 5 em 5 min da notificação de sessão (RN03). */
+  private val aoAtualizarNotificacaoSessao = Runnable { aoAtualizarNotificacao() }
+
   private val receiverTela =
     object : BroadcastReceiver() {
       override fun onReceive(context: Context?, intent: Intent?) {
@@ -54,6 +61,10 @@ class RootoraAccessibilityService : AccessibilityService() {
     super.onServiceConnected()
     // Processo/serviço reiniciou: credita o trecho em aberto antes de zerá-lo.
     SaldoBloqueioPrefs.creditarTrechoEmAberto(applicationContext)
+    // HU-14: o serviço pode ter reiniciado a meio de uma sessão (ou dela já
+    // ter acabado enquanto estava fora) — reconcilia a notificação com o
+    // estado atual nos dois casos.
+    sincronizarNotificacaoSessao()
     registerReceiver(receiverTela, IntentFilter(Intent.ACTION_SCREEN_OFF))
     // RN-01: records the re-enable (if a shutdown was recorded) and marks "already activated".
     AvisoDesligamentoPrefs.registrarConexaoDoServico(applicationContext)
@@ -68,6 +79,7 @@ class RootoraAccessibilityService : AccessibilityService() {
   override fun onDestroy() {
     handler.removeCallbacks(aoEstourarBloco)
     handler.removeCallbacks(aoChegarAviso)
+    handler.removeCallbacks(aoAtualizarNotificacaoSessao)
     try {
       unregisterReceiver(receiverTela)
     } catch (erro: Exception) {
@@ -116,12 +128,15 @@ class RootoraAccessibilityService : AccessibilityService() {
       pacoteBloqueadoEmFoco = pacote
       agendarEstouro()
       agendarAviso()
+      agendarAtualizacaoNotificacao()
+      sincronizarNotificacaoSessao()
     }
   }
 
   private fun pausarRelogio() {
     handler.removeCallbacks(aoEstourarBloco)
     handler.removeCallbacks(aoChegarAviso)
+    handler.removeCallbacks(aoAtualizarNotificacaoSessao)
     if (pacoteBloqueadoEmFoco != null) {
       SaldoBloqueioPrefs.transicionar(applicationContext) { s, cfg, agora, dia ->
         SaldoBloqueioMaquina.saiuDePrimeiroPlano(s, cfg, agora, dia)
@@ -157,12 +172,91 @@ class RootoraAccessibilityService : AccessibilityService() {
     handler.postDelayed(aoChegarAviso, faltam)
   }
 
+  /** RN-04/HU-14 RN03: aviso final de "1 minuto restante" (uma vez por sessão) — hoje atualiza a notificação, não mais um Toast. */
   private fun aoAvisarUmMinuto() {
     if (pacoteBloqueadoEmFoco == null) return
     val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
     if (!SaldoBloqueioMaquina.permiteUso(estado)) return
     SaldoBloqueioPrefs.marcarAvisoSessaoExibido(applicationContext, SaldoBloqueioMaquina.chaveAvisoSessao(estado))
-    Toast.makeText(applicationContext, "1 minuto restante", Toast.LENGTH_SHORT).show()
+    postarNotificacaoSessao(estado, SaldoBloqueioPrefs.configAtual(applicationContext))
+  }
+
+  /** HU-14 (RN03): agenda o próximo marco de 5 em 5 min da notificação de sessão. */
+  private fun agendarAtualizacaoNotificacao() {
+    handler.removeCallbacks(aoAtualizarNotificacaoSessao)
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    val cfg = SaldoBloqueioPrefs.configAtual(applicationContext)
+    val faltam =
+      SaldoBloqueioMaquina.msAteProximaAtualizacaoNotificacao(estado, cfg, System.currentTimeMillis()) ?: return
+    handler.postDelayed(aoAtualizarNotificacaoSessao, faltam)
+  }
+
+  private fun aoAtualizarNotificacao() {
+    if (pacoteBloqueadoEmFoco == null) return
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    if (!SaldoBloqueioMaquina.permiteUso(estado)) return
+    postarNotificacaoSessao(estado, SaldoBloqueioPrefs.configAtual(applicationContext))
+    agendarAtualizacaoNotificacao()
+  }
+
+  /** HU-14 (RN01): mostra/atualiza a notificação em SESSAO_ATIVA, ou a remove fora dela. */
+  private fun sincronizarNotificacaoSessao() {
+    val estado = SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    if (SaldoBloqueioMaquina.permiteUso(estado)) {
+      postarNotificacaoSessao(estado, SaldoBloqueioPrefs.configAtual(applicationContext))
+    } else {
+      cancelarNotificacaoSessao()
+    }
+  }
+
+  /** HU-14 (RN02, RN08, RN09): notificação ongoing, canal reaproveitado do notifee (RN10). */
+  private fun postarNotificacaoSessao(estado: EstadoSaldo, cfg: ConfigBloco) {
+    val gerenciador = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+    if (!gerenciador.areNotificationsEnabled()) return
+    criarCanalNotificacaoSessao(gerenciador)
+
+    val minutos = SaldoBloqueioMaquina.minutosRestantesNotificacao(estado, cfg, System.currentTimeMillis())
+    val texto = SaldoBloqueioMaquina.textoNotificacaoSessao(minutos)
+
+    val abrir =
+      Intent(applicationContext, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+      }
+    val contentIntent =
+      PendingIntent.getActivity(
+        applicationContext,
+        ID_NOTIFICACAO_SESSAO,
+        abrir,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+      )
+
+    val builder =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        Notification.Builder(applicationContext, CANAL_NOTIFICACAO_ID)
+      } else {
+        @Suppress("DEPRECATION") Notification.Builder(applicationContext)
+      }
+    val notificacao =
+      builder
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setContentTitle(texto)
+        .setContentIntent(contentIntent)
+        .setOngoing(true)
+        .build()
+    gerenciador.notify(ID_NOTIFICACAO_SESSAO, notificacao)
+  }
+
+  private fun cancelarNotificacaoSessao() {
+    val gerenciador = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+    gerenciador.cancel(ID_NOTIFICACAO_SESSAO)
+  }
+
+  /** Mesmo canal id de src/services/notifications.ts (notifee) e de AvisoDesligamentoReceiver; criar de novo é no-op. */
+  private fun criarCanalNotificacaoSessao(gerenciador: NotificationManager) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    gerenciador.createNotificationChannel(
+      NotificationChannel(CANAL_NOTIFICACAO_ID, "Lembretes", NotificationManager.IMPORTANCE_DEFAULT),
+    )
   }
 
   /** Sessão ou liberação rápida esgotou com o app ainda em primeiro plano: reconcilia (cooldown / encerra a liberação) e reabre a interceptação por cima dele. */
@@ -170,6 +264,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     val pacote = pacoteBloqueadoEmFoco ?: return
     // reconciliar (dentro de estadoAtual) move pra COOLDOWN e zera o trecho em aberto.
     SaldoBloqueioPrefs.estadoAtual(applicationContext)
+    cancelarNotificacaoSessao()
     pacoteBloqueadoEmFoco = null
     avaliarIntercept(pacote)
   }
@@ -265,5 +360,7 @@ class RootoraAccessibilityService : AccessibilityService() {
 
   companion object {
     const val EVENTO_APP_PRIMEIRO_PLANO = "app-foreground-changed"
+    private const val CANAL_NOTIFICACAO_ID = "lembretes-rootora"
+    private const val ID_NOTIFICACAO_SESSAO = 7400
   }
 }
