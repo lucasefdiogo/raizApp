@@ -1,0 +1,241 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HU-13 · Rootora</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Mono:wght@400;700&family=Zilla+Slab:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet"><style>
+:root{
+  --casca:#EFEAE0; --terra:#2B2318; --terra2:#3E3126; --ts:#6B5E45;
+  --cobre:#B5772E; --cobre-cl:#DA9A63; --musgo:#3E4A34; --musgo-cl:#8A9678;
+  --areia:#E3DACB; --line:#E3D8C3; --erro:#B5473A;
+  --board:#DBD1BD; --board-line:#C7BBA2; --soft:#D3C8B2;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--board);color:var(--terra);font-family:'IBM Plex Sans',system-ui,sans-serif;line-height:1.5}
+a{color:inherit}
+.ic{display:inline-block;vertical-align:middle;flex:none}
+
+/* ---------- página (documentação) ---------- */
+.topnav{position:sticky;top:0;z-index:20;background:var(--terra);color:var(--areia);display:flex;gap:4px;flex-wrap:wrap;padding:10px 16px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.03em}
+.topnav a{text-decoration:none;padding:5px 10px;border-radius:999px;color:var(--areia);opacity:.75}
+.topnav a:hover{opacity:1}
+.topnav a.on{background:var(--terra2);opacity:1;color:var(--cobre-cl)}
+.wrap{max-width:1240px;margin:0 auto;padding:40px 20px 90px}
+.kick{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ts)}
+h1.pg{font-family:'Zilla Slab',serif;font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.15;margin:8px 0 12px;max-width:860px}
+.lead{font-size:16px;color:var(--terra);max-width:760px;margin:0}
+.lead.s{font-size:14px;color:var(--ts)}
+h2.sec{font-family:'Zilla Slab',serif;font-weight:600;font-size:24px;margin:56px 0 6px;padding-top:24px;border-top:1px solid var(--board-line)}
+h3.sub{font-family:'Zilla Slab',serif;font-weight:600;font-size:18px;margin:26px 0 8px}
+p.secnote{color:var(--ts);font-size:14px;margin:0 0 20px;max-width:780px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.pcard{background:var(--casca);border:1px solid var(--board-line);border-radius:18px;padding:18px 20px}
+.pcard h4{margin:0 0 8px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ts);font-weight:400}
+.pcard ul{margin:0;padding-left:18px}
+.pcard li{margin:4px 0;font-size:14px}
+.pcard p{margin:0;font-size:14px}
+.tag{display:inline-block;font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid currentColor;vertical-align:middle;white-space:nowrap}
+.tag.nova{color:var(--musgo)} .tag.alt{color:var(--ts)} .tag.pend{color:var(--erro)} .tag.est{color:var(--cobre)}
+table.hu{width:100%;border-collapse:collapse;background:var(--casca);border-radius:16px;overflow:hidden;font-size:14px}
+table.hu th{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ts);text-align:left;font-weight:400;padding:12px 14px;border-bottom:1px solid var(--board-line)}
+table.hu td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+table.hu tr:last-child td{border-bottom:none}
+table.hu td.id{font-family:'Zilla Slab',serif;font-weight:600;font-size:17px;white-space:nowrap}
+.tablewrap{overflow-x:auto;border-radius:16px}
+
+/* spec da HU */
+.spec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:22px}
+@media (max-width:860px){.spec{grid-template-columns:1fr}}
+.cartao div{font-size:15px;margin:6px 0}
+.cartao b{font-weight:600}
+.rn{list-style:none;margin:0;padding:0}
+.rn li{display:grid;grid-template-columns:52px 1fr;gap:6px;font-size:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.rn li:last-child{border-bottom:none}
+.rn li b{font-family:'Space Mono',monospace;font-weight:400;font-size:11px;color:var(--ts);padding-top:3px}
+.gk{background:var(--casca);border:1px solid var(--board-line);border-radius:14px;padding:14px 16px;margin:0 0 10px;font-family:'Space Mono',monospace;font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-x:auto}
+.gk .k{color:var(--musgo);font-weight:700}
+.gk .n{color:var(--terra);font-weight:700;display:block;margin-bottom:2px}
+.gkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px}
+.pendbox{border:1px dashed var(--erro);border-radius:14px;padding:14px 16px;background:rgba(181,71,58,.05);font-size:14px}
+.pendbox b{font-family:'Space Mono',monospace;font-weight:400;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--erro);display:block;margin-bottom:4px}
+
+/* board de telas */
+.board{display:flex;flex-wrap:wrap;gap:40px 28px;margin-top:18px}
+.shot{width:304px;max-width:100%}
+.cap{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.cap .no{font-family:'Zilla Slab',serif;font-weight:600;font-size:18px;color:var(--terra)}
+.cap .tt{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--ts)}
+.annot{margin-top:12px;font-size:12.5px;line-height:1.6;color:var(--ts)}
+.annot b{color:var(--terra);font-weight:600}
+.annot code{font-family:'Space Mono',monospace;font-size:11px;background:var(--casca);padding:1px 4px;border-radius:4px}
+
+/* ---------- telefone ---------- */
+.phone{width:304px;max-width:100%;min-height:640px;background:var(--casca);border:1px solid var(--board-line);border-radius:34px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.sbar{display:flex;justify-content:space-between;align-items:center;padding:13px 22px 6px;font-family:'Space Mono',monospace;font-size:11px;color:var(--terra)}
+.scr{padding:8px 18px 20px;flex:1;display:flex;flex-direction:column;gap:12px}
+.tabbar{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding:9px 0 15px;background:var(--casca);margin-top:auto}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--ts)}
+.tab.on{color:var(--cobre);font-weight:600}
+.back{display:flex;align-items:center;gap:4px;color:var(--ts);font-size:13px;margin:0 0 -2px -4px}
+
+/* tipografia app */
+.ey{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ts)}
+.d1{font-family:'Zilla Slab',serif;font-weight:600;font-size:24px;line-height:1.2;margin:0}
+.d2{font-family:'Zilla Slab',serif;font-weight:600;font-size:19px;line-height:1.25;margin:0}
+.t{font-size:13.5px;line-height:1.5;margin:0}
+.s{font-size:12px;color:var(--ts);line-height:1.5;margin:0}
+.mono{font-family:'Space Mono',monospace}
+.zs{font-family:'Zilla Slab',serif;font-weight:600}
+.row{display:flex;align-items:center;gap:10px}
+.sp{flex:1}
+.gap4{display:flex;flex-direction:column;gap:4px}
+.gap8{display:flex;flex-direction:column;gap:8px}
+
+/* botões */
+.bp{background:var(--cobre);color:var(--casca);border-radius:14px;padding:13px;text-align:center;font-weight:600;font-size:14px}
+.bp.off{background:var(--soft);color:var(--ts)}
+.bp.mono{font-family:'Space Mono',monospace;font-weight:400;font-size:13px}
+.bs{border:1px solid var(--ts);color:var(--ts);border-radius:14px;padding:12px;text-align:center;font-weight:500;font-size:14px}
+.lk{font-size:12.5px;color:var(--ts);text-decoration:underline;text-underline-offset:3px;text-decoration-color:#B3A68C}
+.lk.c{text-align:center}
+
+/* superfícies */
+.cd{background:var(--areia);border-radius:14px;padding:13px 14px}
+.dv{height:1px;background:var(--ts);opacity:.2;margin:11px -14px}
+.badge{background:var(--areia);border-radius:999px;padding:5px 11px;font-family:'Space Mono',monospace;font-size:12px;white-space:nowrap}
+.selo{display:inline-flex;align-items:center;gap:6px;background:var(--areia);border-radius:999px;padding:4px 10px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--musgo);font-weight:700}
+.cd .selo{background:var(--casca)}
+.selo i{width:6px;height:6px;border-radius:50%;background:var(--musgo)}
+.selo.neu{color:var(--ts)} .selo.neu i{background:var(--ts)}
+
+/* streak card */
+.streak{background:var(--terra);color:var(--casca);border-radius:18px;padding:14px 16px}
+.streak .n{font-family:'Zilla Slab',serif;font-weight:600;font-size:34px;line-height:1}
+.streak .l{font-size:12px;color:#CFC4B0}
+.streak .ft{border-top:1px solid var(--terra2);margin-top:12px;padding-top:10px;font-size:12px;color:var(--musgo-cl);display:flex;justify-content:space-between;gap:8px}
+.streak .ft .ok{color:var(--cobre-cl)}
+
+/* tarefas */
+.task{display:flex;align-items:center;gap:11px;background:var(--areia);border-radius:14px;padding:12px 13px}
+.cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--ts);flex:none;display:grid;place-items:center;color:var(--casca)}
+.cb.on{background:var(--musgo);border-color:var(--musgo)}
+.task .tt{flex:1;font-size:13.5px;line-height:1.35}
+.task .tt small{display:block;font-size:11px;color:var(--ts);font-family:'Space Mono',monospace;margin-top:2px}
+.task.done .tt{color:var(--ts);text-decoration:line-through;text-decoration-color:#A99C82}
+.task .meta{display:flex;gap:6px;color:var(--ts)}
+.add{border:1.3px dashed #B3A68C;border-radius:14px;padding:12px;display:flex;gap:8px;align-items:center;justify-content:center;color:var(--ts);font-size:13px}
+
+/* formulários */
+.fld{background:var(--areia);border-radius:12px;padding:12px 13px;font-size:13px;color:var(--ts)}
+.fld.v{color:var(--terra)}
+.fld.focus{box-shadow:inset 0 0 0 1.5px var(--terra);color:var(--terra)}
+.fld.tall{min-height:72px}
+.cd .fld{background:var(--casca)}
+.lbl{font-size:11.5px;font-weight:600;color:var(--terra);margin-bottom:5px;display:block}
+.tg{width:36px;height:21px;border-radius:999px;background:#CFC3AC;position:relative;flex:none}
+.tg::after{content:'';position:absolute;left:3px;top:3px;width:15px;height:15px;border-radius:50%;background:var(--casca)}
+.tg.on{background:var(--cobre)} .tg.on::after{left:18px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px dashed #A99C82;border-radius:999px;padding:6px 11px;font-size:12px;color:var(--ts)}
+.chip.mine{border-style:solid;border-color:var(--musgo);color:var(--musgo)}
+.tp{display:flex;gap:8px}
+.tb{flex:1;background:var(--areia);border-radius:12px;padding:9px 12px}
+.cd .tb{background:var(--casca)}
+.tb .l{font-size:10.5px;color:var(--ts);display:block}
+.tb .v{font-family:'Zilla Slab',serif;font-size:22px;font-weight:600;line-height:1.2}
+.tb.focus{box-shadow:inset 0 0 0 1.5px var(--terra)}
+.days{display:flex;justify-content:space-between}
+.day{width:30px;height:30px;border-radius:50%;border:1px solid #A99C82;display:grid;place-items:center;font-family:'Space Mono',monospace;font-size:11px;color:var(--ts)}
+.day.on{background:var(--terra);color:var(--casca);border-color:var(--terra)}
+
+/* apps */
+.app{display:flex;align-items:center;gap:10px;padding:8px 0}
+.app + .app{border-top:1px solid rgba(107,94,69,.15)}
+.ai{width:30px;height:30px;border-radius:9px;background:var(--soft);display:grid;place-items:center;font-family:'Space Mono',monospace;font-size:12px;color:var(--terra);flex:none}
+.app .nm{flex:1;font-size:13.5px}
+.app .nm small{display:block;font-size:11px;color:var(--ts)}
+.ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--ts);display:grid;place-items:center;color:var(--casca);flex:none}
+.ck.on{background:var(--musgo);border-color:var(--musgo)}
+.appchip{display:inline-flex;align-items:center;gap:8px;background:var(--areia);border-radius:999px;padding:4px 12px 4px 4px;font-size:12.5px;align-self:flex-start}
+.appchip .ai{width:24px;height:24px;border-radius:50%;font-size:10px}
+
+/* válvulas */
+.valves{background:var(--areia);border-radius:16px;overflow:hidden}
+.vr{display:flex;gap:12px;align-items:center;padding:12px 14px}
+.vr + .vr{border-top:1px solid rgba(107,94,69,.18)}
+.vi{width:36px;height:36px;border-radius:50%;border:1.3px solid var(--musgo);display:grid;place-items:center;color:var(--musgo);flex:none}
+.vr .vt{font-weight:600;font-size:13.5px;line-height:1.3}
+.vr .vd{font-size:11.5px;color:var(--ts);line-height:1.35}
+.vr .vm{font-family:'Space Mono',monospace;font-size:10px;color:var(--ts);text-align:right;line-height:1.35;white-space:nowrap}
+.vr.off .vi{border-color:#B3A68C;color:#A99C82}
+.vr.off .vt{color:var(--ts);font-weight:500}
+
+/* números e gráficos */
+.cdn{font-family:'Zilla Slab',serif;font-weight:600;font-size:60px;line-height:1;letter-spacing:-.01em}
+.bar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--musgo);border-radius:999px}
+.stats{display:flex;gap:8px}
+.st{flex:1;background:var(--areia);border-radius:14px;padding:11px 12px}
+.st .n{font-family:'Zilla Slab',serif;font-weight:600;font-size:28px;line-height:1.1}
+.st .l{font-size:11.5px;color:var(--ts)}
+.pills{display:flex;justify-content:space-between}
+.pl{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:'Space Mono',monospace;font-size:9.5px;color:var(--ts)}
+.pl b{width:26px;height:36px;border-radius:9px;background:var(--musgo);display:block}
+.pl.half b{opacity:.5}
+.pl.lost b{background:#CFC3AC}
+.pl.none b{background:#CFC3AC;opacity:.35}
+.pl.today b{background:var(--cobre)}
+.chart{display:flex;align-items:flex-end;gap:7px;height:58px}
+.chart i{flex:1;background:var(--musgo);opacity:.72;border-radius:4px 4px 2px 2px;display:block}
+.chart i.hj{background:transparent;border:1.3px dashed var(--musgo);opacity:1}
+.chartlbl{display:flex;gap:7px;font-family:'Space Mono',monospace;font-size:9px;color:var(--ts)}
+.chartlbl span{flex:1;text-align:center}
+.cnt{display:flex}
+.cnt div{flex:1;text-align:center}
+.cnt div + div{border-left:1px solid rgba(107,94,69,.2)}
+.cnt .n{font-family:'Zilla Slab',serif;font-weight:600;font-size:20px;line-height:1.2}
+.cnt .l{font-family:'Space Mono',monospace;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ts)}
+.chall .tt{font-size:13px;font-weight:600;margin-bottom:8px}
+.chall .x{font-family:'Space Mono',monospace;font-size:10px;color:var(--ts);margin-top:6px}
+
+/* camadas */
+.dim{position:absolute;inset:0;background:rgba(43,35,24,.45)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--casca);border-radius:22px 22px 0 0;padding:10px 18px 20px;display:flex;flex-direction:column;gap:12px}
+.grab{width:38px;height:4px;border-radius:2px;background:#C3B79E;margin:0 auto 2px}
+.toast{background:var(--terra);color:var(--areia);border-radius:14px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:center}
+.feed{display:flex;flex-direction:column;gap:10px;padding:8px 14px;opacity:.9}
+.feed .fb{background:#CFC9BE;border-radius:10px}
+.quote{border-left:2px solid var(--musgo);padding:2px 0 2px 12px;font-family:'Zilla Slab',serif;font-style:italic;font-size:16px;line-height:1.45}
+.pendbn{border:1px solid var(--ts);border-radius:14px;padding:11px 13px}
+.list .li{display:flex;align-items:center;gap:12px;padding:11px 0}
+.list .li + .li{border-top:1px solid rgba(107,94,69,.18)}
+.list .li .x{flex:1}
+.list .li .x div{font-size:13.5px}
+.list .li .x small{display:block;font-size:11.5px;color:var(--ts)}
+.breath{width:168px;height:168px;border-radius:50%;border:1.5px solid var(--musgo);display:grid;place-items:center;margin:8px auto;animation:br 10s ease-in-out infinite;background:rgba(138,150,120,.18)}
+@keyframes br{0%,100%{transform:scale(.8)}50%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.breath{animation:none}}
+.center{text-align:center;align-items:center}
+.flowmap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+.flowmap .nd{background:var(--casca);border:1px solid var(--board-line);border-radius:12px;padding:8px 12px}
+.flowmap .nd small{display:block;font-family:'Space Mono',monospace;font-size:9.5px;color:var(--ts);letter-spacing:.04em}
+.flowmap .ar{color:var(--ts);font-family:'Space Mono',monospace}
+.navtree{font-family:'Space Mono',monospace;font-size:12px;line-height:1.85;background:var(--casca);border:1px solid var(--board-line);border-radius:16px;padding:18px 20px;white-space:pre;overflow-x:auto}
+.navtree .nv{color:var(--musgo);font-weight:700}
+.navtree .al{color:var(--cobre)}
+.navtree .mu{color:var(--ts)}
+.sw{display:flex;flex-wrap:wrap;gap:10px}
+.sw div{width:138px;border-radius:12px;overflow:hidden;background:var(--casca);border:1px solid var(--board-line);font-size:12px}
+.sw i{display:block;height:54px}
+.sw span{display:block;padding:7px 10px}
+.sw small{display:block;font-family:'Space Mono',monospace;font-size:10px;color:var(--ts)}
+.demo{background:var(--casca);border:1px solid var(--board-line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px}
+@media (max-width:420px){.wrap{padding:28px 16px 70px}.board{gap:32px}}
+</style></head><body><nav class="topnav"><a href="rootora-facelift-visao-geral.html">Visão geral</a><a href="hu-07-hoje-alternativas.html">HU-07</a><a href="hu-08-progresso-redes.html">HU-08</a><a href="hu-09-bloqueio-config.html">HU-09</a><a href="hu-10-rotina-noturna.html">HU-10</a><a href="hu-11-interceptacao.html">HU-11</a><a href="hu-12-janela-dia-todo.html">HU-12</a><a href="hu-13-historico-apps-bloqueados.html" class="on">HU-13</a><a href="hu-14-timers-sessao.html">HU-14</a></nav><div class="wrap"><div class="kick">HU-13 · Facelift Rootora · out/2026</div><h1 class="pg">[Progresso] Tempo nas redes só dos apps bloqueados, por app</h1><p class="lead s">Formato lux-hu: título, cartão, protótipo, regras de negócio e critérios de aceite em Gherkin. As telas seguem o <code>design-system-rootora.md</code>: fundo Casca, superfícies Areia, sem sombra nem gradiente, no máximo 1 Cobre por tela, sem emoji fora do 🌱.</p><div class="spec"><div class="pcard cartao"><h4>Cartão da HU</h4><div><b>Como um(a):</b> Pessoa que bloqueia algumas redes mas usa outras de propósito (ex.: YouTube para estudar)</div><div><b>Eu quero:</b> Ver o tempo de uso separado por app, só dos apps que eu realmente bloqueei</div><div><b>Para que eu possa:</b> Acompanhar o padrão que me importa, sem ele ser inflado por um app que uso de boa vontade</div><h4 style="margin-top:16px">Protótipo / UX UI</h4><p>13.1 Progresso · lista por app, só bloqueados, 13.2 Detalhe do dia · sem teto de 2 apps. Telas desenhadas abaixo, nesta página.</p><h4 style="margin-top:16px">Dependências</h4><p>Corrige a HU-08, já implementada.</p></div><div class="pcard"><h4>Regras de negócio</h4><ul class="rn"><li><b>RN01</b><span><code>ResumoRedesCard</code> e o bloco “NAS REDES” do <code>DayDetailSheet</code> passam a somar e listar só os pacotes presentes em <code>regrasBloqueio.apps</code> — nunca a lista curada inteira. Corrige a RN02/RN07 da HU-08.</span></li><li><b>RN02</b><span>O card ganha uma lista por app abaixo do total, do maior pro menor tempo: “Instagram 4h10min · TikTok 2h30min”. Com só 1 app bloqueado, a lista não aparece.</span></li><li><b>RN03</b><span>O filtro é sempre pela lista de apps bloqueados vigente no momento em que a tela é aberta, não pela lista de cada dia histórico — nenhum <code>dailyLog</code> antigo é reescrito.</span></li><li><b>RN04</b><span>Desmarcar um app o remove do card e do detalhe de qualquer dia (inclusive passado) a partir da próxima abertura do Progresso. O dado continua em <code>usoApps</code>, só não é mais mostrado.</span></li><li><b>RN05</b><span>O teto de “os 2 apps com mais tempo” do detalhe do dia (RN07 da HU-08) é removido: com a lista já filtrada, mostra todos os apps bloqueados do dia.</span></li><li><b>RN06</b><span>Sem nenhum app bloqueado, o card usa o mesmo estado já previsto pra “sem acesso de uso” (RN04 da HU-08).</span></li><li><b>RN07</b><span>Sem efeito colateral: é um filtro de leitura, sem mudança de schema, streak ou <code>statusDia</code>.</span></li></ul></div></div><h3 class="sub">Critérios de aceite</h3><div class="gkgrid"><div class="gk"><span class="n">Cenário 1: Card mostra só apps bloqueados</span>  <span class="k">Dado</span> que bloqueei Instagram e TikTok, com YouTube desmarcado
+  <span class="k">E</span> usei os três apps esta semana
+  <span class="k">Quando</span> abro a aba Progresso
+  <span class="k">Então</span> o total soma só Instagram e TikTok
+  <span class="k">E</span> o YouTube não aparece em nenhum lugar do card</div><div class="gk"><span class="n">Cenário 2: Lista por app ordenada por tempo</span>  <span class="k">Dado</span> que bloqueei Instagram (4h10min) e TikTok (2h30min)
+  <span class="k">Quando</span> vejo o ResumoRedesCard
+  <span class="k">Então</span> vejo “Instagram 4h10min · TikTok 2h30min”, nessa ordem</div><div class="gk"><span class="n">Cenário 3: Desmarcar um app o remove do histórico mostrado</span>  <span class="k">Dado</span> que o TikTok estava bloqueado com uso em dias passados
+  <span class="k">Quando</span> desmarco o TikTok e reabro o Progresso
+  <span class="k">Então</span> o TikTok não aparece mais em nenhum dia
+  <span class="k">E</span> o dado continua existindo no Firestore</div><div class="gk"><span class="n">Cenário 4: Detalhe do dia sem teto de 2 apps</span>  <span class="k">Dado</span> que bloqueei 3 apps e todos têm uso num mesmo dia
+  <span class="k">Quando</span> toco na pílula desse dia
+  <span class="k">Então</span> vejo os 3 apps no bloco “NAS REDES”</div></div><h2 class="sec">Telas</h2><p class="secnote">Cada tela traz o motivo de cada decisão logo abaixo. Tags: <span class="tag nova">Nova</span> tela que não existe hoje · <span class="tag alt">Alterada</span> tela existente redesenhada · <span class="tag est">Novo estado</span> variação de uma tela.</p><div class="board"><div class="shot"><div class="cap"><span class="no">13.1</span><span class="tt">Progresso · lista por app, só bloqueados</span><span class="tag alt">Alterada</span></div><div class="phone" style="min-height:940px"><div class="sbar"><span>14:32</span><svg width="34" height="11" viewBox="0 0 34 11"><g fill="#2B2318"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="18" y="1" width="14" height="9" rx="2.5" fill="none" stroke="#2B2318"/><rect x="20" y="3" width="8" height="5" rx="1"/></g></svg></div><div class="scr"><p class="d1">Seu progresso</p><div class="stats"><div class="st"><div class="n">12</div><div class="l">dias seguidos</div></div><div class="st"><div class="n">34</div><div class="l">dias ativos no total</div></div></div><div class="gap8"><span class="ey">Últimos 7 dias</span><div class="pills"><div class="pl"><b></b>seg</div><div class="pl"><b></b>ter</div><div class="pl half"><b></b>qua</div><div class="pl"><b></b>qui</div><div class="pl lost"><b></b>sex</div><div class="pl"><b></b>sáb</div><div class="pl today"><b></b>dom</div></div></div><div class="cd gap8" style="display:flex"><div class="row"><span class="ey sp">Redes sociais · esta semana</span><span class="lk" style="font-size:11px">Detalhes</span></div><div><span class="zs" style="font-size:30px">6h 40min</span><div class="s">Só Instagram e TikTok — os apps que você bloqueia</div></div><div class="chart"><i style="height:62%"></i><i style="height:80%"></i><i style="height:45%"></i><i style="height:70%"></i><i style="height:38%"></i><i style="height:55%"></i><i class="hj" style="height:30%"></i></div><div class="chartlbl"><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span><span>D</span></div><div class="dv" style="margin:4px -14px"></div><div class="s"><b style="color:#2B2318">Instagram</b> 4h10min · <b style="color:#2B2318">TikTok</b> 2h30min</div><div class="dv" style="margin:4px -14px"></div><div class="cnt"><div><div class="n">18</div><div class="l">sessões</div></div><div><div class="n">5</div><div class="l">acessos rápidos</div></div><div><div class="n">1</div><div class="l">emergência</div></div></div></div><div class="gap8"><span class="ey">Desafios</span><div class="cd chall"><div class="tt">Exercite-se 3x essa semana</div><div class="bar"><i style="width:66%"></i></div><div class="x">2 DE 3</div></div><div class="cd chall"><div class="tt">20 dias ativos esse mês</div><div class="bar"><i style="width:40%"></i></div><div class="x">8 DE 20</div></div></div></div><div class="tabbar"><div class="tab"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span>Hoje</span></div><div class="tab on"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Progresso</span></div><div class="tab"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></div></div></div><div class="annot">O YouTube foi usado 38 min esta semana, mas <b>não entra na soma</b> — está desmarcado do bloqueio (pessoa usa pra estudar). A lista por app só aparece com 2+ apps bloqueados; com 1 só, o total já é esse app. Corrige a RN02/RN07 da HU-08, que somava a lista curada inteira.</div></div><div class="shot"><div class="cap"><span class="no">13.2</span><span class="tt">Detalhe do dia · sem teto de 2 apps</span><span class="tag alt">Alterada</span></div><div class="phone" style="min-height:700px"><div class="sbar"><span>14:32</span><svg width="34" height="11" viewBox="0 0 34 11"><g fill="#2B2318"><rect x="0" y="6" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="7" rx="1"/><rect x="10" y="2" width="3" height="9" rx="1"/><rect x="18" y="1" width="14" height="9" rx="2.5" fill="none" stroke="#2B2318"/><rect x="20" y="3" width="8" height="5" rx="1"/></g></svg></div><div class="scr"><p class="d1">Seu progresso</p><div class="stats"><div class="st"><div class="n">12</div><div class="l">dias seguidos</div></div><div class="st"><div class="n">34</div><div class="l">dias ativos no total</div></div></div><div class="gap8"><span class="ey">Últimos 7 dias</span><div class="pills"><div class="pl"><b></b>seg</div><div class="pl"><b></b>ter</div><div class="pl half"><b></b>qua</div><div class="pl"><b></b>qui</div><div class="pl lost"><b></b>sex</div><div class="pl"><b></b>sáb</div><div class="pl today"><b></b>dom</div></div></div></div><div class="tabbar"><div class="tab"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><span>Hoje</span></div><div class="tab on"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Progresso</span></div><div class="tab"><svg class="ic " width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Perfil</span></div></div><div class="dim"></div><div class="sheet"><div class="grab"></div><div class="row"><p class="d2 sp">Quarta-feira</p><span class="selo"><i style="opacity:.5"></i>PROTEGIDO</span></div><div class="gap8"><div class="task"><div class="cb"></div><div class="tt">Estudar 25 min</div><div class="meta"><span title="Essencial" style="color:#2B2318"><svg class="ic " width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></div></div><div class="task done"><div class="cb on"><svg class="ic " width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><div class="tt">Arrumar a mesa</div><div class="meta"></div></div></div><div class="cd gap8" style="display:flex"><span class="ey">Nas redes · só bloqueados</span><div class="row"><span class="zs" style="font-size:22px">1h 18min</span><span class="s sp" style="text-align:right">6 sessões · 1 acesso rápido</span></div><div class="s">Instagram 31 min · TikTok 21 min · X 26 min</div><div class="dv" style="margin:2px -14px"></div><span class="ey">O que você escreveu na pausa</span><div class="t">“responder a turma” · “ver o story da Bia”</div></div></div></div><div class="annot">Com 3 apps bloqueados usados no mesmo dia, os 3 aparecem — a HU-08 original cortava em “os 2 com mais tempo”. O YouTube, se foi aberto nesse dia, não entra na lista nem na soma de 1h18min: mesmo filtro da tela principal.</div></div></div></div></body></html>
