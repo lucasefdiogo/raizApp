@@ -9,7 +9,7 @@ import { TextField } from '../../components/TextField';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
 import { SessaoFocoScreen } from './SessaoFocoScreen';
-import { logTravadoAberto, logTravadoEstado } from '../../services/analytics';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 const CHIPS: { estado: EstadoTravado; titulo: string }[] = [
   { estado: 'confusao', titulo: 'Não sei por onde começar' },
@@ -85,6 +85,7 @@ export function TravadoFlowScreen({
     tarefaContexto?.titulo ?? '',
   );
   const [rascunhoQuando, setRascunhoQuando] = useState('');
+  const { logTravadoAberto, logTravadoEstado } = useAnalytics();
 
   useEffect(() => {
     logTravadoAberto(origem);
@@ -95,7 +96,7 @@ export function TravadoFlowScreen({
     if (estadoSelecionado) {
       logTravadoEstado(estadoSelecionado);
     }
-  }, [estadoSelecionado]);
+  }, [estadoSelecionado, logTravadoEstado]);
 
   useEffect(() => {
     if (passo === 'concluido') {
