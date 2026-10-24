@@ -235,10 +235,12 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.xs,
   },
+  // Musgo, não Cobre — o ponto de crescimento do StreakCard já é o único
+  // Cobre da Home.
   acao: {
     fontSize: theme.typography.fontSize.xs,
     fontFamily: theme.typography.fontFamily.bodyMedium,
-    color: theme.colors.cobre,
+    color: theme.colors.musgo,
   },
   input: {
     flex: 1,
