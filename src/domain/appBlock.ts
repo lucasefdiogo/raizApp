@@ -85,8 +85,20 @@ export function formatarDiasSemana(diasSemana: number[]): string {
     .join(', ');
 }
 
+/** HU-12: horários que representam "o dia todo" — mesmo formato de `JanelaBloqueio`, sem campo novo. */
+export const HORARIOS_DIA_TODO = { inicio: '00:00', fim: '23:59' } as const;
+
+/** HU-12: janela sem horário fixo — início/fim cobrem o dia inteiro. */
+export function ehJanelaDiaTodo(janela: JanelaBloqueio): boolean {
+  return janela.inicio === HORARIOS_DIA_TODO.inicio && janela.fim === HORARIOS_DIA_TODO.fim;
+}
+
 function resumoJanela(janela: JanelaBloqueio): string {
-  return `${formatarDiasSemana(janela.diasSemana)} das ${janela.inicio} às ${janela.fim}`;
+  const dias = formatarDiasSemana(janela.diasSemana);
+  if (ehJanelaDiaTodo(janela)) {
+    return `${dias}, o dia todo`;
+  }
+  return `${dias} das ${janela.inicio} às ${janela.fim}`;
 }
 
 /** Dias abreviados pro resumo curto (RN10): intervalo contínuo vira "seg a sex". */
@@ -121,7 +133,8 @@ export function resumoCurtoBloqueio(regras: RegrasBloqueio): string {
     return textoApps;
   }
 
-  return `${textoApps} · ${formatarDiasResumoCurto(janela.diasSemana)} · ${janela.inicio}–${janela.fim}`;
+  const textoJanela = ehJanelaDiaTodo(janela) ? 'o dia todo' : `${janela.inicio}–${janela.fim}`;
+  return `${textoApps} · ${formatarDiasResumoCurto(janela.diasSemana)} · ${textoJanela}`;
 }
 
 /** Texto curto pra tela de configuração e pro aviso de alteração pendente. */
