@@ -104,6 +104,20 @@ describe('useBloqueioSaldo', () => {
     expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
   });
 
+  it('liberarBloco rejeitando no nativo: liberar resolve false (nunca rejeita) e registra o erro', async () => {
+    native.liberarBloco.mockRejectedValue(new Error('falha nativa'));
+    const { result } = await renderHook(() => useBloqueioSaldo('uid-1', visao()));
+
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.liberar('x');
+    });
+
+    expect(ok).toBe(false);
+    expect(registrarErro).toHaveBeenCalledWith(expect.any(Error), 'useBloqueioSaldo.liberar');
+    expect(registrarResumoBloqueioNoDia).not.toHaveBeenCalled();
+  });
+
   it('falha ao gravar o resumo vai pro Crashlytics e não derruba o liberar', async () => {
     native.liberarBloco.mockResolvedValue(true);
     registrarResumoBloqueioNoDia.mockRejectedValue(new Error('offline'));

@@ -14,6 +14,7 @@ jest.mock('../../hooks/useIntercept');
 jest.mock('../../hooks/useBloqueioSaldo');
 jest.mock('../../hooks/usePausaNoturna');
 jest.mock('../../hooks/useVoltarFisico');
+jest.mock('../../hooks/useToast');
 jest.mock('../../native/AccessibilityDetection');
 jest.mock('./SessaoFocoScreen', () => ({
   SessaoFocoScreen: (props: Record<string, unknown>) => {
@@ -62,6 +63,7 @@ const { useDailyTasks } = require('../../hooks/useDailyTasks');
 const { useIntercept } = require('../../hooks/useIntercept');
 const { useBloqueioSaldo } = require('../../hooks/useBloqueioSaldo');
 const { usePausaNoturna } = require('../../hooks/usePausaNoturna');
+const { useToast } = require('../../hooks/useToast');
 const { abrirApp } = require('../../native/AccessibilityDetection');
 
 const TAREFA_ESSENCIAL_PENDENTE: Tarefa = {
@@ -162,11 +164,14 @@ const props = {
 
 describe('InterceptScreen', () => {
   let registrarAcao: jest.Mock;
+  let showToast: jest.Mock;
 
   beforeEach(() => {
     jest.resetAllMocks();
     registrarAcao = jest.fn();
+    showToast = jest.fn();
     useIntercept.mockReturnValue({ registrarAcao });
+    useToast.mockReturnValue({ showToast });
     abrirApp.mockResolvedValue(true);
     configurarSaldo();
     // Outside the night window by default: the HU-04 pause, duration from the saldo.
@@ -266,7 +271,7 @@ describe('InterceptScreen', () => {
       }
     });
 
-    it('se o nativo recusar a liberação: não reabre o app nem fecha', async () => {
+    it('se o nativo recusar a liberação: não reabre o app nem fecha, e avisa por toast', async () => {
       jest.useFakeTimers();
       try {
         configurarSaldo(
@@ -292,6 +297,7 @@ describe('InterceptScreen', () => {
         expect(abrirApp).not.toHaveBeenCalled();
         expect(onSair).not.toHaveBeenCalled();
         expect(onFecharAposAbrir).not.toHaveBeenCalled();
+        expect(showToast).toHaveBeenCalledWith('Não conseguimos liberar agora. Tente de novo.');
       } finally {
         jest.useRealTimers();
       }
