@@ -139,7 +139,9 @@ configuração (esta seção) + motor de sessões (seção 5).
   TikTok, Kwai, Facebook, X, Threads, Reddit, Pinterest, Snapchat, YouTube — constante em
   `src/domain/`, nunca `QUERY_ALL_PACKAGES`). Primeira configuração: tudo marcado exceto YouTube.
   Uma única janela de horário (início, fim, dias da semana) para todos os apps selecionados —
-  fim precisa ser depois do início.
+  fim precisa ser depois do início. Seletor "O dia todo" / "Horário específico" (HU-12): "o dia
+  todo" grava a janela como `00:00`–`23:59` (mesmo formato de dado, sem campo novo) e esconde os
+  campos de hora; pré-selecionado só na primeira configuração, sem `regrasBloqueio` ainda.
 - **Medir tempo nas redes:** `UsageStatsManager` independente da interceptação, mede
   tempo/aberturas por app da lista curada. Opt-in (`consentimentoAcessoUso`); sem ele, nada é
   coletado e o bloqueio continua funcionando normalmente.
