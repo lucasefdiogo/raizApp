@@ -8,7 +8,7 @@ import {
   logInterceptShown,
   logMarcoStreakAtingido,
   logOnboardingConcluido,
-  logAlternativaNoturnaEscolhida,
+  logAlternativaEscolhida,
   logAlternativaNoturnaRespondida,
   logPermissaoAccessibility,
   logPermissaoNotificacao,
@@ -169,13 +169,13 @@ describe('services/analytics', () => {
     );
   });
 
-  it('logInterceptShown envia o estado da tela e a janela noturna', () => {
-    logInterceptShown('A', true);
+  it('logInterceptShown envia o estado da tela, a janela noturna e a alternativa', () => {
+    logInterceptShown('A', true, 'noturna');
 
     expect(analyticsMock.logEvent).toHaveBeenCalledWith(
       expect.anything(),
       'intercept_shown',
-      { estado_tela: 'A', janela_noturna: true },
+      { estado_tela: 'A', janela_noturna: true, alternativa: 'noturna' },
     );
   });
 
@@ -277,12 +277,13 @@ describe('services/analytics', () => {
     );
   });
 
-  it('HU-11 RN17: logAlternativaNoturnaEscolhida envia o evento sem parâmetros', () => {
-    logAlternativaNoturnaEscolhida();
+  it('logAlternativaEscolhida envia tipo e tela', () => {
+    logAlternativaEscolhida('tarefa_essencial', 'pausa');
 
     expect(analyticsMock.logEvent).toHaveBeenCalledWith(
       expect.anything(),
-      'alternativa_noturna_escolhida',
+      'alternativa_escolhida',
+      { tipo: 'tarefa_essencial', tela: 'pausa' },
     );
   });
 });

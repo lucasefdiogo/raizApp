@@ -7,6 +7,7 @@ import {
   ResultadoSessaoFoco,
   TipoTarefa,
 } from '../domain/types';
+import { TipoAlternativaDia } from '../domain/alternativaDia';
 
 function analytics() {
   return getAnalytics();
@@ -91,10 +92,15 @@ export function logTravadoEstado(estado: EstadoTravado): void {
   logEvent(analytics(), 'travado_state', { estado });
 }
 
-export function logInterceptShown(estadoTela: EstadoTela, janelaNoturna: boolean): void {
+export function logInterceptShown(
+  estadoTela: EstadoTela,
+  janelaNoturna: boolean,
+  alternativa: TipoAlternativaDia,
+): void {
   logEvent(analytics(), 'intercept_shown', {
     estado_tela: estadoTela,
     janela_noturna: janelaNoturna,
+    alternativa,
   });
 }
 
@@ -110,8 +116,11 @@ export function logValvulaEscolhida(
   logEvent(analytics(), 'valvula_escolhida', { tipo, janela_noturna: janelaNoturna });
 }
 
-export function logAlternativaNoturnaEscolhida(): void {
-  logEvent(analytics(), 'alternativa_noturna_escolhida');
+export function logAlternativaEscolhida(
+  tipo: TipoAlternativaDia | 'noturna',
+  tela: 'pausa' | 'acesso_rapido',
+): void {
+  logEvent(analytics(), 'alternativa_escolhida', { tipo, tela });
 }
 
 /**

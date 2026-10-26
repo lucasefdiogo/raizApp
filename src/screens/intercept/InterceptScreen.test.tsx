@@ -55,6 +55,7 @@ const { useBloqueioSaldo } = require('../../hooks/useBloqueioSaldo');
 const { usePausaNoturna } = require('../../hooks/usePausaNoturna');
 const { useToast } = require('../../hooks/useToast');
 const { abrirApp } = require('../../native/AccessibilityDetection');
+const analyticsMock = require('@react-native-firebase/analytics');
 
 const TAREFA_ESSENCIAL_PENDENTE: Tarefa = {
   id: 'tarefa-1',
@@ -685,6 +686,29 @@ describe('InterceptScreen', () => {
       expect(saldo.liberar).not.toHaveBeenCalled();
       expect(abrirApp).not.toHaveBeenCalled();
       expect(onSair).toHaveBeenCalledTimes(1);
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'alternativa_escolhida',
+        { tipo: 'noturna', tela: 'pausa' },
+      );
+    });
+
+    it('dentro da janela, no acesso rápido, a alternativa noturna loga tela "acesso_rapido"', async () => {
+      configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000 },
+        { acessoRapidoDisponivel: true },
+      );
+      configurarPausaNoturna(NOTURNA);
+      await render(<InterceptScreen {...props} />);
+
+      await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
+      await fireEvent.press(screen.getByText('Ler um pouco em vez disso'));
+
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'alternativa_escolhida',
+        { tipo: 'noturna', tela: 'acesso_rapido' },
+      );
     });
 
     it('CA-04: enquanto a rotina carrega mostra o carregando e não monta a pausa', async () => {

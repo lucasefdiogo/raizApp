@@ -101,8 +101,7 @@ export function InterceptScreen({
   const [sessaoLivre, setSessaoLivre] = useState(false);
   const { registrarAcao } = useIntercept(uid, packageName);
   const { showToast } = useToast();
-  const { logAlternativaNoturnaEscolhida, logValvulaEscolhida } =
-    useAnalytics();
+  const { logAlternativaEscolhida, logValvulaEscolhida } = useAnalytics();
   const temSessaoResumida =
     !!sessaoAtivaResumida && sessaoAtivaResumida.duracaoRestanteSeg > 0;
   const [modo, setModo] = useState<Modo>(
@@ -192,7 +191,7 @@ export function InterceptScreen({
 
   /** Alternativa noturna (RN08): fecha sem liberar, sem avançar a posição da sessão. */
   function handleAlternativaNoturna() {
-    logAlternativaNoturnaEscolhida();
+    logAlternativaEscolhida('noturna', modo === 'acessoRapido' ? 'acesso_rapido' : 'pausa');
     registrarAcao('B', 'saiu');
     onSair();
   }
