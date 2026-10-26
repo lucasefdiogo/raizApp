@@ -33,6 +33,9 @@ export interface InterceptRootProps {
   estadoBloqueioJson?: string;
 }
 
+/** Ícone não resolvido até aqui não deve travar a tela em loading pra sempre. */
+const TIMEOUT_ICONE_MS = 3000;
+
 function parseSnapshot(snapshotJson: string): SnapshotDia {
   try {
     const parsed: unknown = JSON.parse(snapshotJson);
@@ -106,10 +109,13 @@ export function InterceptRoot({
 
   useEffect(() => {
     let ativo = true;
+    const timeout = new Promise<never>((_, rejeitar) => {
+      setTimeout(() => rejeitar(new Error('timeout ao listar apps instalados')), TIMEOUT_ICONE_MS);
+    });
     (async () => {
       let icone = '';
       try {
-        const apps = await listarAppsInstalados();
+        const apps = await Promise.race([listarAppsInstalados(), timeout]);
         icone = apps.find(app => app.packageName === packageName)?.iconeBase64 ?? '';
       } catch {
         icone = '';

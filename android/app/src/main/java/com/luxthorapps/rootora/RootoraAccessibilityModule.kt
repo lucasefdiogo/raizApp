@@ -213,7 +213,7 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
   }
 
   /**
-   * "Voltar ao início" (RN01) — sair de verdade pra tela inicial do Android,
+   * "Sair" (RN01) — sai de verdade pra tela inicial do Android,
    * não só fechar a InterceptActivity. Como o serviço de acessibilidade abre
    * essa Activity numa tarefa nova por cima da tarefa do app bloqueado (sem
    * nunca limpar essa tarefa de baixo), um simples finish() revelaria o

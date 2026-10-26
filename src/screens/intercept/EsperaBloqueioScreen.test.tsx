@@ -77,9 +77,9 @@ describe('HU-11 RN10 · EsperaBloqueioScreen', () => {
     expect(onValvula).toHaveBeenCalledWith('sessao_foco');
   });
 
-  it('"Voltar ao início" dispara o callback', async () => {
+  it('"Sair" dispara o callback', async () => {
     const { props } = await montar();
-    await fireEvent.press(screen.getByText('Voltar ao início'));
+    await fireEvent.press(screen.getByText('Sair'));
     expect(props.onVoltarAoInicio).toHaveBeenCalledTimes(1);
   });
 });

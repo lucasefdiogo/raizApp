@@ -293,12 +293,12 @@ describe('InterceptScreen', () => {
       }
     });
 
-    it('"Voltar ao início" registra a ação e sai, sem liberar', async () => {
+    it('"Sair" registra a ação e sai, sem liberar', async () => {
       const saldo = configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4 });
       const onSair = jest.fn();
       await render(<InterceptScreen {...props} onSair={onSair} />);
 
-      await fireEvent.press(screen.getByText('Voltar ao início'));
+      await fireEvent.press(screen.getByText('Sair'));
 
       expect(registrarAcao).toHaveBeenCalledWith('B', 'saiu');
       expect(saldo.liberar).not.toHaveBeenCalled();

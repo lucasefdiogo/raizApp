@@ -48,7 +48,7 @@ interface InterceptScreenProps {
   /** Ausente/duracaoRestanteSeg <= 0 = segue a fase do saldo normalmente. */
   sessaoAtivaResumida?: SessaoAtivaResumida | null;
   /**
-   * "Voltar ao início"/"Agora não"/alternativa noturna/"Parar aqui" — saída
+   * "Sair"/"Agora não"/alternativa noturna/"Parar aqui" — saída
    * total pra tela inicial do Android (ver InterceptRoot), nunca pra revelar
    * o app bloqueado por baixo.
    */

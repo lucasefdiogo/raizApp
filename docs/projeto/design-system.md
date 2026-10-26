@@ -128,7 +128,7 @@ um botão com borda — único Cobre da tela acima dele é o toggle ligado do le
 `BloqueioAppsScreen` segue a mesma regra: único Cobre é o botão "Salvar".
 | `RecurringTaskActionSheet` | `src/components/home/RecurringTaskActionSheet.tsx` | Menu de 3 opções |
 | `AppChip` | `src/components/intercept/AppChip.tsx` | Ícone do app interceptado (PNG base64) + nome, topo de toda tela da interceptação (HU-11) |
-| `InterceptLayout` | `src/components/intercept/InterceptLayout.tsx` | Esqueleto comum da interceptação (HU-11): `AppChip` + eyebrow (Space Mono) + headline opcional (Zilla Slab, itálico opcional) + `children` + "OUTRAS SAÍDAS" (`valvulas`/`onValvula`) + link "Voltar ao início" (saída total, nunca volta a uma sub-tela) |
+| `InterceptLayout` | `src/components/intercept/InterceptLayout.tsx` | Esqueleto comum da interceptação (HU-11): `AppChip` + eyebrow (Space Mono) + headline opcional (Zilla Slab, itálico opcional) + `children` + "OUTRAS SAÍDAS" (`valvulas`/`onValvula`) + link "Sair" (saída total pra tela inicial do Android, nunca volta a uma sub-tela) |
 | `ValvulaRow` | `src/components/intercept/ValvulaRow.tsx` | Uma linha de "OUTRAS SAÍDAS": ícone em círculo Musgo, título, descrição, meta (Space Mono, à direita). Indisponível usa Terra Suave esmaecida — nunca Cobre, nunca texto de negativa (RN02/RN11) |
 | `ContagemEspera` | `src/components/intercept/ContagemEspera.tsx` | Contagem regressiva formatada (min/s) usada por `PausaIntencaoScreen`, `EsperaBloqueioScreen`, `EsperaAcessoRapidoScreen` |
 

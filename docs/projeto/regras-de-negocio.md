@@ -344,8 +344,8 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
 
 ### Estrutura comum das telas (HU-11)
 - Ordem: `AppChip` (ícone + nome do app) → eyebrow do estado → headline Zilla → conteúdo → ação
-  principal → "OUTRAS SAÍDAS" (quando houver válvula) → link "Voltar ao início" (tela inicial do
-  Android).
+  principal → "OUTRAS SAÍDAS" (quando houver válvula) → link "Sair" (tela inicial do Android —
+  o label é "Sair", não "Voltar ao início", pra não sugerir que volta pra dentro do Rootora).
 - `ValvulaRow`: card Areia; ícone em círculo com borda Musgo (zap = acesso rápido, wind =
   emergência, timer = sessão de foco, list-checks = tarefas extras), título, descrição, meta em
   Space Mono. Indisponível: esmaecido, "Próximo disponível em {n} min", meta "EM {n} MIN".
@@ -398,7 +398,7 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   intervalo mínimo contado do fim do anterior: 15 min após o 1º, 30 após o 2º, 60 após o 3º.
   Disponível também durante o cooldown, sem alterá-lo.
   - Tela própria (`EsperaAcessoRapidoScreen`): eyebrow "ACESSO RÁPIDO", headline "Liberando 2
-    minutos", contagem grande; ao zerar o app abre. "Voltar ao início" cancela sem gastar a cota.
+    minutos", contagem grande; ao zerar o app abre. "Sair" cancela sem gastar a cota.
 - **Saída de emergência:** só quando não há sessão, cooldown liberável nem acesso rápido disponível.
   Respiração guiada de 60s sem pular: eyebrow "SAÍDA DE EMERGÊNCIA", círculo Musgo que cresce 5s
   ("Inspire") e diminui 5s ("Solte o ar"), contagem em Space Mono, "Acompanhe o círculo. No fim, o

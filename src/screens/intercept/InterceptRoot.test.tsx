@@ -1,6 +1,6 @@
 import React from 'react';
 import { BackHandler } from 'react-native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { InterceptRoot } from './InterceptRoot';
 
 // InterceptRoot monta o próprio SafeAreaProvider (é um root separado, sem
@@ -91,6 +91,24 @@ describe('InterceptRoot', () => {
         expect.objectContaining({ appIconeBase64: 'icone-instagram' }),
       ),
     );
+  });
+
+  it('listarAppsInstalados não resolve a tempo: cai pro ícone vazio depois do timeout, sem travar no LoadingIndicator', async () => {
+    jest.useFakeTimers();
+    listarAppsInstalados.mockReturnValue(new Promise(() => {})); // nunca resolve
+    useAuth.mockReturnValue({ carregando: false, user: { uid: 'uid-teste' } });
+    const { unmount } = await act(async () => render(<InterceptRoot {...props} />));
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(mockCapturarProps).toHaveBeenCalledWith(
+      expect.objectContaining({ appIconeBase64: '' }),
+    );
+    unmount();
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   it('app não encontrado na lista: resolve o ícone como string vazia, sem quebrar', async () => {
