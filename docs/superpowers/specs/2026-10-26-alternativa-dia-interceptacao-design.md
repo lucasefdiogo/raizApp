@@ -53,8 +53,19 @@ planejadas para hoje, para trocar a rolagem por algo da própria pessoa com um t
    `InterceptScreen` já grava `registrarAcao('B', 'saiu')`, incluindo o da alternativa noturna. O
    `'A'/'B'/'C'` de `EstadoTela` é, na verdade, do `selecionarTarefaIntercept` (feature do
    TravadoFlow/"O que está pegando agora", usada só por `HomeScreen`/`useTravadoFlow`) — não há
-   distinção real de estado dentro de `InterceptScreen`. `handleAlternativaDia` segue o mesmo
-   padrão e grava `'B'` fixo.
+   distinção real de estado dentro de `InterceptScreen`. `logInterceptShown('B', ...)` segue o
+   mesmo padrão.
+5. **`registrarAcao` ao entrar numa sessão de foco** — `handleSessaoDeFoco` (válvula "Sessão de
+   foco", já existente) nunca chama `registrarAcao` ao entrar numa sessão livre; só `liberar`
+   (acao `'liberou'`) e as saídas sem liberar (acao `'saiu'`) chamam. `handleAlternativaDia` entra
+   numa sessão (não sai da interceptação), então também não chama `registrarAcao` — mantém o
+   mesmo padrão de `handleSessaoDeFoco`.
+6. **Gate `noturna &&` nas telas-base** — hoje `PausaIntencaoScreen`/`EsperaAcessoRapidoScreen` só
+   mostram o botão quando `mensagemNoturna` existe (`{noturna && alternativa && onAlternativa && (...)}`,
+   onde `noturna = !!mensagemNoturna`). Isso bloquearia a alternativa do dia, que precisa aparecer
+   sem mensagem noturna. A condição passa a ser só `alternativa && onAlternativa` — o wrapper já
+   decide completamente quando preencher essas props; a tela-base não precisa mais saber se está
+   na janela.
 
 ## Arquitetura
 
@@ -111,8 +122,9 @@ vez do `LoadingIndicator`).
 
 - Novo estado `tarefaAlternativaId: string | null` (inicial `null`).
 - `handleAlternativaDia(tarefaId: string, tela: 'pausa' | 'acesso_rapido')`: acha a tarefa em
-  `tarefasParaExibir`, loga `alternativa_escolhida({ tipo, tela })`, `registrarAcao('B', 'saiu')`,
-  `setTarefaAlternativaId(tarefaId)`, `setModo('sessao')`.
+  `tarefasParaExibir`, loga `alternativa_escolhida({ tipo, tela })`,
+  `setTarefaAlternativaId(tarefaId)`, `setModo('sessao')`. Sem `registrarAcao` (item 5 das
+  lacunas acima).
 - `parametrosSessao` ganha um ramo antes de `sessaoLivre`: `tarefaAlternativaId` não nulo →
   `{ tarefaId: tarefaAlternativaId, estadoTravado: null, duracaoInicialSeg: DURACAO_SEG_SESSAO_BLOQUEIO }`.
 - `handleFecharSessao` também `setTarefaAlternativaId(null)`.
