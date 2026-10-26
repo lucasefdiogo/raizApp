@@ -34,6 +34,8 @@ import {
   editarHorarioRotinaManual,
   recalcularRotinaAutomatica,
   aplicarEstimativaRotina,
+  criarDesafio,
+  buscarDesafio,
 } from './firestore';
 
 const firestoreMock = require('@react-native-firebase/firestore');
@@ -1203,6 +1205,30 @@ describe('services/firestore', () => {
         apagarTodosOsDadosDoUsuario('uid-1'),
       ).resolves.toBeUndefined();
       expect(await buscarUsuario('uid-1')).toBeNull();
+    });
+  });
+
+  describe('buscarDesafio', () => {
+    it('retorna null quando o documento não existe', async () => {
+      expect(await buscarDesafio('uid-1', 'reducao_tempo_redes-2026-10-12')).toBeNull();
+    });
+
+    it('retorna o desafio gravado por criarDesafio', async () => {
+      const desafio = {
+        id: 'reducao_tempo_redes-2026-10-12',
+        titulo: 'Até 5h 40min nas redes esta semana',
+        tipo: 'reducao_tempo_redes',
+        periodo: 'semanal',
+        dataInicio: '2026-10-12',
+        dataFim: '2026-10-18',
+        meta: 20400,
+        progresso: 0,
+        status: 'ativo',
+        baseSegundos: 22800,
+      };
+      await criarDesafio('uid-1', desafio as any);
+
+      expect(await buscarDesafio('uid-1', desafio.id)).toMatchObject(desafio);
     });
   });
 });
