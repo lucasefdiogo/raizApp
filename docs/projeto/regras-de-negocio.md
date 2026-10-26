@@ -368,6 +368,24 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   `PrimaryButton` "Liberar {duracaoBlocoMin} min". Não há outro timer na tela.
 - Na janela noturna: ver seção 8.
 
+### Alternativa do dia (pausa e espera do acesso rápido)
+- Fora da janela noturna, a pausa de intenção e a espera do acesso rápido podem mostrar o mesmo
+  botão da alternativa noturna (`SecondaryButton` com ícone de livro, "{título} em vez disso"),
+  oferecendo uma tarefa de hoje em vez da alternativa noturna. Nunca no cooldown (já tem "Tarefas
+  extras"), saldo zerado, emergência ou sessão ativa.
+- Tarefa escolhida entre as de hoje não concluídas (subtarefas incluídas): essenciais pendentes
+  primeiro, na ordem da Home; sem essencial pendente, as comuns pendentes. Dentro do grupo,
+  rotaciona pela posição da sessão no dia — `índice = (posição - 1) mod tamanho do grupo`, mesma
+  posição do "{n}ª SESSÃO HOJE". Sem tarefa pendente, nenhum botão aparece — nunca sugestão
+  genérica.
+- Título cortado em 32 caracteres no último espaço antes do limite, com "…"; sem espaço antes do
+  limite, corta em 32 caracteres mesmo assim. O botão fica habilitado desde o início da espera —
+  a alternativa nunca espera a contagem — e nunca usa Cobre.
+- Toque: fecha a pausa sem liberar a sessão, abre a sessão de foco de 5 min com essa tarefa
+  (`origem: 'interceptacao'`). Não avança a posição da sessão no dia. No acesso rápido, cancela
+  sem gastar a cota. Concluir a tarefa pela sessão segue as regras normais (essencial cumpre o
+  dia).
+
 ### Sessão
 - `duracaoBlocoMin` (15 min), tempo **global** (soma dos apps bloqueados), só conta com app
   bloqueado em **primeiro plano**; sair do app ou apagar a tela pausa. Teclado e barra de
@@ -398,7 +416,9 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   intervalo mínimo contado do fim do anterior: 15 min após o 1º, 30 após o 2º, 60 após o 3º.
   Disponível também durante o cooldown, sem alterá-lo.
   - Tela própria (`EsperaAcessoRapidoScreen`): eyebrow "ACESSO RÁPIDO", headline "Liberando 2
-    minutos", contagem grande; ao zerar o app abre. "Sair" cancela sem gastar a cota.
+    minutos", contagem grande; ao zerar o app abre. "Sair" cancela sem gastar a cota. Fora da
+    janela noturna, pode mostrar a alternativa do dia (ver seção "Alternativa do dia" acima),
+    cancelando a espera sem gastar a cota.
 - **Saída de emergência:** só quando não há sessão, cooldown liberável nem acesso rápido disponível.
   Respiração guiada de 60s sem pular: eyebrow "SAÍDA DE EMERGÊNCIA", círculo Musgo que cresce 5s
   ("Inspire") e diminui 5s ("Solte o ar"), contagem em Space Mono, "Acompanhe o círculo. No fim, o
@@ -477,6 +497,8 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
 - Com `alternativaNoturna`: `SecondaryButton` com ícone de livro "{alternativaNoturna} em vez
   disso", acima do principal; fecha a interceptação para a tela inicial do Android sem liberar e
   sem avançar a posição.
+- Dentro da janela, só a alternativa noturna vale — a alternativa do dia (seção 7) nunca aparece,
+  mesmo com tarefa pendente. Sem `alternativaNoturna` cadastrada, nenhum botão aparece.
 - Acesso rápido na janela: espera 30s, headline noturna e botão da alternativa. Cota e intervalos
   não mudam.
 - Sessão ou acesso rápido já em andamento quando a janela começa **segue até o fim**, sem aviso.
@@ -546,13 +568,15 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
 
 - `intencoes` (pausa de intenção) e `estadoTravado` são dado pessoal: ficam só no documento do
   próprio usuário, nunca no Analytics com identificador, logs ou notificações.
-- Nenhum evento leva intenção digitada, texto da alternativa noturna, horário de rotina, nome de app
-  ou número de uso.
+- Nenhum evento leva intenção digitada, texto da alternativa noturna, título da tarefa do dia,
+  horário de rotina, nome de app ou número de uso.
 - Eventos: `intercept_shown` (`estado`: `pausa_intencao` | `cooldown` | `saldo_zerado`,
-  `janela_noturna`), `sessao_liberada` (`posicao_no_dia`, `janela_noturna`), `acesso_rapido_usado`
+  `janela_noturna`, `alternativa`: `tarefa_essencial` | `tarefa_comum` | `noturna` | `nenhuma`),
+  `sessao_liberada` (`posicao_no_dia`, `janela_noturna`), `acesso_rapido_usado`
   (`numero_do_dia`, `janela_noturna`), `emergencia_usada`, `valvula_escolhida` (`tipo`:
   `acesso_rapido` | `emergencia` | `sessao_foco` | `tarefas_extras`, `janela_noturna`),
-  `alternativa_noturna_escolhida`, `travado_opened` (`origem`: `home` | `task_card`),
+  `alternativa_escolhida` (`tipo`: `tarefa_essencial` | `tarefa_comum` | `noturna`, `tela`:
+  `pausa` | `acesso_rapido`), `travado_opened` (`origem`: `home` | `task_card`),
   `travado_state` (`estado`, sem userId), `focus_session_end` (`duracao_planejada`, `resultado`),
   `rotina_confirmada` (`ajustado`), `alternativa_noturna_respondida` (`acao`: `salvou` |
   `agora_nao`), `rotina_recalculo_pedido`, `reflexao_semanal_exibida`, `reflexao_semanal_fechada`
