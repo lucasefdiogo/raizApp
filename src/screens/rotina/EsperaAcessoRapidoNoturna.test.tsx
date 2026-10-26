@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EsperaAcessoRapidoNoturna } from './EsperaAcessoRapidoNoturna';
+import { Tarefa } from '../../domain/types';
 
 jest.mock('../../services/firestore');
 jest.mock('../../services/crashlytics');
@@ -14,19 +15,22 @@ const ROTINA = {
   confirmadoEm: '2026-10-20',
 };
 
-function montar(sobrescritas = {}) {
+async function montar(sobrescritas: Record<string, unknown> = {}) {
   const props = {
     uid: 'uid-1',
     appIconeBase64: 'abc',
     appLabel: 'Instagram',
     blocosUsados: 1,
     esperaSeg: 5,
+    tarefas: [] as Tarefa[],
     onLiberado: jest.fn(),
     onVoltarAoInicio: jest.fn(),
     onAlternativa: jest.fn(),
+    onAlternativaDia: jest.fn(),
     ...sobrescritas,
   };
-  return render(<EsperaAcessoRapidoNoturna {...props} />);
+  const resultado = await render(<EsperaAcessoRapidoNoturna {...props} />);
+  return { props, ...resultado };
 }
 
 describe('HU-11 RN09 · EsperaAcessoRapidoNoturna', () => {
@@ -68,5 +72,32 @@ describe('HU-11 RN09 · EsperaAcessoRapidoNoturna', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeTruthy();
     expect(screen.queryByTestId('intercept-layout')).toBeNull();
+  });
+
+  describe('alternativa do dia', () => {
+    it('fora da janela, com essencial pendente, mostra o botão com o título da tarefa', async () => {
+      jest.setSystemTime(new Date(2026, 9, 21, 14, 0, 0));
+      await montar({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      expect(screen.getByText('Abrir o material em vez disso')).toBeTruthy();
+    });
+
+    it('tocar na alternativa do dia chama onAlternativaDia, não onLiberado', async () => {
+      jest.setSystemTime(new Date(2026, 9, 21, 14, 0, 0));
+      const onAlternativaDia = jest.fn();
+      const { props } = await montar({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+        onAlternativaDia,
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      await fireEvent.press(screen.getByText('Abrir o material em vez disso'));
+
+      expect(onAlternativaDia).toHaveBeenCalledWith('t1');
+      expect(props.onLiberado).not.toHaveBeenCalled();
+    });
   });
 });
