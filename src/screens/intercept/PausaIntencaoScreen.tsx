@@ -79,7 +79,7 @@ export function PausaIntencaoScreen({
       onVoltarAoInicio={onAgoraNao}
       acaoPrincipal={
         <View style={styles.acoes}>
-          {noturna && alternativa && onAlternativa && (
+          {alternativa && onAlternativa && (
             <Pressable
               accessibilityRole="button"
               onPress={onAlternativa}

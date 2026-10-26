@@ -99,10 +99,10 @@ export function InterceptScreen({
   const fase = saldo.visao?.estado.fase ?? 'AGUARDANDO_LIBERACAO';
   const configBloco = resolverConfigBloco(saldo.visao?.config);
   const [sessaoLivre, setSessaoLivre] = useState(false);
+  const [tarefaAlternativaId, setTarefaAlternativaId] = useState<string | null>(null);
   const { registrarAcao } = useIntercept(uid, packageName);
   const { showToast } = useToast();
-  const { logAlternativaNoturnaEscolhida, logValvulaEscolhida } =
-    useAnalytics();
+  const { logAlternativaEscolhida, logValvulaEscolhida } = useAnalytics();
   const temSessaoResumida =
     !!sessaoAtivaResumida && sessaoAtivaResumida.duracaoRestanteSeg > 0;
   const [modo, setModo] = useState<Modo>(
@@ -112,6 +112,12 @@ export function InterceptScreen({
   const tarefasParaExibir = dailyTasks.carregando
     ? snapshot.tarefas
     : dailyTasks.tarefas;
+
+  // A alternativa do dia só usa a lista viva de hoje — o snapshot (SharedPreferences)
+  // pode ainda ser o de ontem se o app não roda o JS desde a virada do dia, e abrir
+  // a sessão de foco com um tarefaId de ontem conclui silenciosamente nada (ver
+  // handleTarefaConcluida). A pausa e a contagem continuam sem esperar por isso.
+  const tarefasAlternativa = dailyTasks.carregando ? [] : tarefasParaExibir;
 
   const extrasPendentes = tarefasParaExibir.filter(
     tarefa => !tarefa.essencial && !tarefa.concluida && !tarefa.tarefaPaiId,
@@ -127,7 +133,13 @@ export function InterceptScreen({
     tarefasExtrasPendentes: extrasPendentes.length,
   });
 
-  const parametrosSessao: ParametrosSessao | null = sessaoLivre
+  const parametrosSessao: ParametrosSessao | null = tarefaAlternativaId
+    ? {
+        tarefaId: tarefaAlternativaId,
+        estadoTravado: null,
+        duracaoInicialSeg: DURACAO_SEG_SESSAO_BLOQUEIO,
+      }
+    : sessaoLivre
     ? {
         tarefaId: null,
         estadoTravado: null,
@@ -192,7 +204,7 @@ export function InterceptScreen({
 
   /** Alternativa noturna (RN08): fecha sem liberar, sem avançar a posição da sessão. */
   function handleAlternativaNoturna() {
-    logAlternativaNoturnaEscolhida();
+    logAlternativaEscolhida('noturna', modo === 'acessoRapido' ? 'acesso_rapido' : 'pausa');
     registrarAcao('B', 'saiu');
     onSair();
   }
@@ -223,7 +235,16 @@ export function InterceptScreen({
 
   function handleFecharSessao() {
     setSessaoLivre(false);
+    setTarefaAlternativaId(null);
     onSair();
+  }
+
+  /** Alternativa do dia: abre a sessão de foco com a tarefa, sem liberar nem avançar a posição. */
+  function handleAlternativaDia(tarefaId: string, tela: 'pausa' | 'acesso_rapido') {
+    const tarefa = tarefasParaExibir.find(item => item.id === tarefaId);
+    logAlternativaEscolhida(tarefa?.essencial ? 'tarefa_essencial' : 'tarefa_comum', tela);
+    setTarefaAlternativaId(tarefaId);
+    setModo('sessao');
   }
 
   function handleTarefaConcluida(tarefaId: string | null) {
@@ -278,9 +299,11 @@ export function InterceptScreen({
           appLabel={appLabel}
           blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
           esperaSeg={saldo.esperaAcessoRapidoSeg}
+          tarefas={tarefasAlternativa}
           onLiberado={handleAcessoRapido}
           onVoltarAoInicio={onSair}
           onAlternativa={handleAlternativaNoturna}
+          onAlternativaDia={id => handleAlternativaDia(id, 'acesso_rapido')}
         />
       </SafeAreaView>
     );
@@ -315,9 +338,11 @@ export function InterceptScreen({
               ? saldoDisponivel(saldo.visao.estado, configBloco)
               : null
           }
+          tarefas={tarefasAlternativa}
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
           onAlternativaNoturna={handleAlternativaNoturna}
+          onAlternativaDia={id => handleAlternativaDia(id, 'pausa')}
         />
       </SafeAreaView>
     );

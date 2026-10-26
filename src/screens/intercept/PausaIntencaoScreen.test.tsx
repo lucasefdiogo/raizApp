@@ -129,11 +129,11 @@ describe('HU-11 · PausaIntencaoScreen', () => {
       expect(screen.queryByText(/em vez disso/)).toBeNull();
     });
 
-    it('sem mensagemNoturna a tela fica no modo padrão, mesmo com alternativa informada', async () => {
+    it('mostra o botão mesmo sem mensagemNoturna, quando alternativa e onAlternativa são informados', async () => {
       await montar({ alternativa: 'Ler um pouco', onAlternativa: jest.fn() });
 
       expect(screen.getByText('O que você vai fazer agora?')).toBeTruthy();
-      expect(screen.queryByText(/em vez disso/)).toBeNull();
+      expect(screen.getByText('Ler um pouco em vez disso')).toBeTruthy();
     });
   });
 });

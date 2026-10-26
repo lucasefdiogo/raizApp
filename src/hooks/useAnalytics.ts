@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import {
   logAcessibilidadeSaibaMais,
-  logAlternativaNoturnaEscolhida,
+  logAlternativaEscolhida,
+  logInterceptShown,
   logReflexaoSemanalExibida,
   logReflexaoSemanalFechada,
   logTravadoAberto,
@@ -19,7 +20,8 @@ export function useAnalytics() {
   return useMemo(
     () => ({
       logAcessibilidadeSaibaMais,
-      logAlternativaNoturnaEscolhida,
+      logAlternativaEscolhida,
+      logInterceptShown,
       logReflexaoSemanalExibida,
       logReflexaoSemanalFechada,
       logTravadoAberto,
