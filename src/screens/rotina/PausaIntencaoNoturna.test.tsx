@@ -5,6 +5,8 @@ import { PausaIntencaoNoturna } from './PausaIntencaoNoturna';
 import { MENSAGENS_NOTURNAS } from '../../domain/mensagensNoturnas';
 import { Tarefa } from '../../domain/types';
 
+const analyticsMock = require('@react-native-firebase/analytics');
+
 jest.mock('../../services/firestore');
 jest.mock('../../services/crashlytics');
 
@@ -39,6 +41,7 @@ describe('PausaIntencaoNoturna', () => {
   beforeEach(async () => {
     buscarUsuario.mockReset();
     buscarUsuario.mockResolvedValue({ rotina: ROTINA });
+    analyticsMock.__reset();
     await AsyncStorage.clear();
     // Fake only Date so waitFor keeps working.
     jest.useFakeTimers({
@@ -127,6 +130,34 @@ describe('PausaIntencaoNoturna', () => {
       await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
 
       expect(screen.queryByText(/em vez disso/)).toBeNull();
+    });
+
+    it('fora da janela, com essencial pendente, loga intercept_shown com alternativa "tarefa_essencial"', async () => {
+      jest.setSystemTime(new Date(2026, 9, 21, 14, 0, 0));
+      await montarPausa({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'intercept_shown',
+        { estado_tela: 'B', janela_noturna: false, alternativa: 'tarefa_essencial' },
+      );
+    });
+
+    it('dentro da janela, sem alternativa noturna cadastrada, loga intercept_shown com alternativa "nenhuma"', async () => {
+      buscarUsuario.mockResolvedValue({ rotina: ROTINA });
+      await montarPausa({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'intercept_shown',
+        { estado_tela: 'B', janela_noturna: true, alternativa: 'nenhuma' },
+      );
     });
   });
 });

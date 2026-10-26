@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { EsperaAcessoRapidoNoturna } from './EsperaAcessoRapidoNoturna';
 import { Tarefa } from '../../domain/types';
 
+const analyticsMock = require('@react-native-firebase/analytics');
+
 jest.mock('../../services/firestore');
 jest.mock('../../services/crashlytics');
 
@@ -37,6 +39,7 @@ describe('HU-11 RN09 · EsperaAcessoRapidoNoturna', () => {
   beforeEach(async () => {
     buscarUsuario.mockReset();
     buscarUsuario.mockResolvedValue({ rotina: ROTINA });
+    analyticsMock.__reset();
     await AsyncStorage.clear();
     jest.useFakeTimers({
       doNotFake: [
@@ -98,6 +101,34 @@ describe('HU-11 RN09 · EsperaAcessoRapidoNoturna', () => {
 
       expect(onAlternativaDia).toHaveBeenCalledWith('t1');
       expect(props.onLiberado).not.toHaveBeenCalled();
+    });
+
+    it('fora da janela, com essencial pendente, loga intercept_shown com alternativa "tarefa_essencial"', async () => {
+      jest.setSystemTime(new Date(2026, 9, 21, 14, 0, 0));
+      await montar({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'intercept_shown',
+        { estado_tela: 'B', janela_noturna: false, alternativa: 'tarefa_essencial' },
+      );
+    });
+
+    it('dentro da janela, sem alternativa noturna cadastrada, loga intercept_shown com alternativa "nenhuma"', async () => {
+      buscarUsuario.mockResolvedValue({ rotina: ROTINA });
+      await montar({
+        tarefas: [{ id: 't1', titulo: 'Abrir o material', essencial: true, concluida: false }],
+      });
+      await waitFor(() => expect(screen.queryByTestId('intercept-layout')).toBeTruthy());
+
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'intercept_shown',
+        { estado_tela: 'B', janela_noturna: true, alternativa: 'nenhuma' },
+      );
     });
   });
 });

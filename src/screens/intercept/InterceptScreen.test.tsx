@@ -329,6 +329,16 @@ describe('InterceptScreen', () => {
         { tipo: 'tarefa_essencial', tela: 'pausa' },
       );
     });
+
+    it('enquanto o dailyLog de hoje ainda carrega, não oferece a alternativa do dia (snapshot pode ser de ontem)', async () => {
+      configurarDailyTasks({ tarefas: [], carregando: true });
+      configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4, blocosUsados: 0 });
+      await render(
+        <InterceptScreen {...props} snapshot={{ tarefas: [TAREFA_ESSENCIAL_PENDENTE] }} />,
+      );
+
+      expect(screen.queryByText(/em vez disso/)).toBeNull();
+    });
   });
 
   describe('COOLDOWN e SALDO_ZERADO', () => {

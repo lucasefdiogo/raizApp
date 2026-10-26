@@ -570,9 +570,11 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   próprio usuário, nunca no Analytics com identificador, logs ou notificações.
 - Nenhum evento leva intenção digitada, texto da alternativa noturna, título da tarefa do dia,
   horário de rotina, nome de app ou número de uso.
-- Eventos: `intercept_shown` (`estado`: `pausa_intencao` | `cooldown` | `saldo_zerado`,
-  `janela_noturna`, `alternativa`: `tarefa_essencial` | `tarefa_comum` | `noturna` | `nenhuma`),
-  `sessao_liberada` (`posicao_no_dia`, `janela_noturna`), `acesso_rapido_usado`
+- Eventos: `intercept_shown` (`estado_tela`: fixo `'B'` — mesmo valor sem distinção real já usado
+  por `registrarAcao` neste fluxo; `janela_noturna`; `alternativa`: `tarefa_essencial` |
+  `tarefa_comum` | `noturna` | `nenhuma`), disparado na pausa de intenção e na espera do acesso
+  rápido, nunca no cooldown ou saldo zerado; `sessao_liberada` (`posicao_no_dia`,
+  `janela_noturna`), `acesso_rapido_usado`
   (`numero_do_dia`, `janela_noturna`), `emergencia_usada`, `valvula_escolhida` (`tipo`:
   `acesso_rapido` | `emergencia` | `sessao_foco` | `tarefas_extras`, `janela_noturna`),
   `alternativa_escolhida` (`tipo`: `tarefa_essencial` | `tarefa_comum` | `noturna`, `tela`:

@@ -113,6 +113,12 @@ export function InterceptScreen({
     ? snapshot.tarefas
     : dailyTasks.tarefas;
 
+  // A alternativa do dia só usa a lista viva de hoje — o snapshot (SharedPreferences)
+  // pode ainda ser o de ontem se o app não roda o JS desde a virada do dia, e abrir
+  // a sessão de foco com um tarefaId de ontem conclui silenciosamente nada (ver
+  // handleTarefaConcluida). A pausa e a contagem continuam sem esperar por isso.
+  const tarefasAlternativa = dailyTasks.carregando ? [] : tarefasParaExibir;
+
   const extrasPendentes = tarefasParaExibir.filter(
     tarefa => !tarefa.essencial && !tarefa.concluida && !tarefa.tarefaPaiId,
   );
@@ -293,7 +299,7 @@ export function InterceptScreen({
           appLabel={appLabel}
           blocosUsados={saldo.visao?.estado.blocosUsados ?? 0}
           esperaSeg={saldo.esperaAcessoRapidoSeg}
-          tarefas={tarefasParaExibir}
+          tarefas={tarefasAlternativa}
           onLiberado={handleAcessoRapido}
           onVoltarAoInicio={onSair}
           onAlternativa={handleAlternativaNoturna}
@@ -332,7 +338,7 @@ export function InterceptScreen({
               ? saldoDisponivel(saldo.visao.estado, configBloco)
               : null
           }
-          tarefas={tarefasParaExibir}
+          tarefas={tarefasAlternativa}
           onLiberar={handleLiberarBloco}
           onAgoraNao={handleAgoraNaoPausa}
           onAlternativaNoturna={handleAlternativaNoturna}
