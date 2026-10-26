@@ -51,7 +51,7 @@ describe('HU-11 RN12 · RespiracaoEmergenciaScreen', () => {
       screen.getByText('Acompanhe o círculo. No fim, o Instagram fica liberado por 2 minutos.'),
     ).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.queryByText('Voltar ao início')).toBeNull();
+    expect(screen.queryByText('Sair')).toBeNull();
   });
 
   it('alterna entre "Inspire" e "Solte o ar" a cada 5 segundos', async () => {

@@ -13,7 +13,7 @@ const VALVULA: Valvula = {
 };
 
 describe('HU-11 RN01 · InterceptLayout', () => {
-  it('Cenário 1: esqueleto comum — chip, eyebrow, headline e "Voltar ao início"', async () => {
+  it('Cenário 1: esqueleto comum — chip, eyebrow, headline e "Sair"', async () => {
     const onVoltarAoInicio = jest.fn();
     await render(
       <InterceptLayout
@@ -32,7 +32,7 @@ describe('HU-11 RN01 · InterceptLayout', () => {
     expect(screen.getByText('32 min')).toBeTruthy();
     expect(screen.getByText('Conteúdo do estado')).toBeTruthy();
 
-    await fireEvent.press(screen.getByText('Voltar ao início'));
+    await fireEvent.press(screen.getByText('Sair'));
     expect(onVoltarAoInicio).toHaveBeenCalledTimes(1);
   });
 
@@ -96,7 +96,7 @@ describe('HU-11 RN01 · InterceptLayout', () => {
       />,
     );
 
-    expect(screen.queryByText('Voltar ao início')).toBeNull();
+    expect(screen.queryByText('Sair')).toBeNull();
   });
 
   it('headline itálico (frase noturna) aplica o estilo sem mudar o texto', async () => {

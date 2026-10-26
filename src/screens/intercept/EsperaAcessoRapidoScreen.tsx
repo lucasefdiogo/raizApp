@@ -24,7 +24,7 @@ interface EsperaAcessoRapidoScreenProps {
 /**
  * Espera do acesso rápido (HU-11, RN09) — tela própria, não mais um widget
  * dentro do cooldown. Sem botão: ao zerar, o app abre por conta própria.
- * "Voltar ao início" cancela sem gastar a cota.
+ * "Sair" cancela sem gastar a cota.
  */
 export function EsperaAcessoRapidoScreen({
   appIconeBase64,

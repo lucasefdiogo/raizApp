@@ -232,7 +232,7 @@ export async function abrirApp(packageName: string): Promise<boolean> {
 }
 
 /**
- * "Voltar ao início" (RN01) — tela inicial do Android de verdade, não só
+ * "Sair" (RN01) — tela inicial do Android de verdade, não só
  * fecha a InterceptActivity. Sem isso, fechar a Activity revela a tarefa do
  * app bloqueado que ficou por baixo (o serviço de acessibilidade nunca
  * limpa essa tarefa), e o AccessibilityService reintercepta na hora — ver

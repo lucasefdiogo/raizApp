@@ -19,9 +19,10 @@ interface InterceptLayoutProps {
   valvulas?: Valvula[];
   onValvula?: (tipo: TipoValvula) => void;
   /**
-   * "Voltar ao início" (RN01). Ausente = o link não aparece — único jeito de
-   * saltar a esqueleto (RN12: a respiração de emergência não tem como
-   * pular, só o voltar físico cancela).
+   * "Sair" (RN01) — sai de verdade pra tela inicial do Android, nunca volta
+   * a revelar o app bloqueado por baixo. Ausente = o link não aparece —
+   * único jeito de saltar a esqueleto (RN12: a respiração de emergência não
+   * tem como pular, só o voltar físico cancela).
    */
   onVoltarAoInicio?: () => void;
 }
@@ -29,8 +30,8 @@ interface InterceptLayoutProps {
 /**
  * Esqueleto único de toda tela do root `Intercept` (HU-11, RN01): chip do
  * app → eyebrow → headline → conteúdo do estado → ação principal →
- * "OUTRAS SAÍDAS" (só com válvulas) → "Voltar ao início". Burro — cada tela
- * decide o que preencher.
+ * "OUTRAS SAÍDAS" (só com válvulas) → "Sair". Burro — cada tela decide o
+ * que preencher.
  */
 export function InterceptLayout({
   appIconeBase64,
@@ -76,7 +77,7 @@ export function InterceptLayout({
           hitSlop={8}
           style={styles.alvo}
         >
-          <Text style={styles.link}>Voltar ao início</Text>
+          <Text style={styles.link}>Sair</Text>
         </Pressable>
       )}
     </ScrollView>

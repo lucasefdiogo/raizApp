@@ -83,10 +83,10 @@ describe('HU-11 RN09 · EsperaAcessoRapidoScreen', () => {
     expect(props.onLiberado).not.toHaveBeenCalled();
   });
 
-  it('"Voltar ao início" cancela sem chamar onLiberado', async () => {
+  it('"Sair" cancela sem chamar onLiberado', async () => {
     const { props } = await montar({ esperaSeg: 30 });
 
-    await fireEvent.press(screen.getByText('Voltar ao início'));
+    await fireEvent.press(screen.getByText('Sair'));
 
     expect(props.onVoltarAoInicio).toHaveBeenCalledTimes(1);
     expect(props.onLiberado).not.toHaveBeenCalled();

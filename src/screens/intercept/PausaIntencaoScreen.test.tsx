@@ -55,10 +55,10 @@ describe('HU-11 · PausaIntencaoScreen', () => {
     expect(screen.getByText('Liberar em 1:02')).toBeTruthy();
   });
 
-  it('Cenário 4: "Voltar ao início" funciona a qualquer momento', async () => {
+  it('Cenário 4: "Sair" funciona a qualquer momento', async () => {
     const { props } = await montar({ duracaoSeg: 60 });
 
-    await fireEvent.press(screen.getByText('Voltar ao início'));
+    await fireEvent.press(screen.getByText('Sair'));
 
     expect(props.onAgoraNao).toHaveBeenCalledTimes(1);
   });
