@@ -5,7 +5,7 @@ import {
   gerarCatalogoDoPeriodo,
 } from './challenges';
 import { DailyLogResumo } from './progress';
-import { Desafio, Tarefa } from './types';
+import { Desafio, Tarefa, TipoDesafio } from './types';
 
 // 2026-09-07 é uma segunda-feira; 2026-09-13 domingo; 2026-09-14 segunda.
 const D = (iso: string, hora = 'T12:00:00Z') => new Date(`${iso}${hora}`);
@@ -143,7 +143,7 @@ describe('gerarCatalogoDoPeriodo', () => {
 });
 
 describe('calcularProgressoDesafio', () => {
-  const semanalExercicio: Desafio = {
+  const semanalExercicio: Desafio & { tipo: TipoDesafio } = {
     id: 'exercicio_3x-2026-09-07',
     titulo: 'Exercite-se 3x essa semana',
     tipo: 'exercicio_3x',
@@ -154,14 +154,14 @@ describe('calcularProgressoDesafio', () => {
     progresso: 0,
     status: 'ativo',
   };
-  const semanalEssencial: Desafio = {
+  const semanalEssencial: Desafio & { tipo: TipoDesafio } = {
     ...semanalExercicio,
     id: 'essencial_todo_dia-2026-09-07',
     tipo: 'essencial_todo_dia',
     titulo: 'Cumpra sua essencial todo dia',
     meta: 7,
   };
-  const mensal: Desafio = {
+  const mensal: Desafio & { tipo: TipoDesafio } = {
     id: 'dias_ativos_20-2026-09-01',
     titulo: '20 dias ativos esse mês',
     tipo: 'dias_ativos_20',

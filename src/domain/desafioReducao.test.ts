@@ -3,7 +3,13 @@ import {
   atingeMinimoParaProposta,
   calcularMetaSegundos,
   montarProposta,
+  calcularProgressoReducao,
+  statusAoFechar,
+  diasRestantes,
+  textoDiasRestantes,
+  textoResultadoAnterior,
 } from './desafioReducao';
+import { Desafio } from './types';
 
 const APPS = ['com.instagram.android'];
 
@@ -33,7 +39,7 @@ describe('calcularBaseSegundos', () => {
       logComUso('2026-10-02', 7200),
       logComUso('2026-10-03', 7200),
       logComUso('2026-10-04', 7200),
-      { data: '2026-10-05' },
+      { data: '2026-10-05', usoApps: undefined },
     ];
     // 4 dias com dado, não 5 — média continua 7200, não 5760.
     expect(calcularBaseSegundos(logs, APPS)).toBe(Math.round((4 * 7200 / 4) * 7));
@@ -64,5 +70,89 @@ describe('montarProposta', () => {
       metaSegundos: 20400,
       baseSegundos: 22800,
     });
+  });
+});
+
+const DESAFIO_ATIVO: Desafio = {
+  id: 'reducao_tempo_redes-2026-10-19',
+  titulo: 'Até 5h 40min nas redes esta semana',
+  tipo: 'reducao_tempo_redes',
+  periodo: 'semanal',
+  dataInicio: '2026-10-19',
+  dataFim: '2026-10-25',
+  meta: 20400,
+  progresso: 0,
+  status: 'ativo',
+  baseSegundos: 22800,
+};
+
+describe('calcularProgressoReducao', () => {
+  it('soma os segundos da semana filtrados pelos apps bloqueados', () => {
+    const logs = [
+      logComUso('2026-10-19', 3600),
+      logComUso('2026-10-20', 1800),
+    ];
+    const resultado = calcularProgressoReducao(DESAFIO_ATIVO, logs, APPS, true);
+    expect(resultado).toEqual({ progressoSegundos: 5400, ultrapassou: false, semMedicaoDesde: null });
+  });
+
+  it('marca ultrapassou quando o progresso já passa da meta, sem travar em 100%', () => {
+    const logs = [logComUso('2026-10-19', 25000)];
+    const resultado = calcularProgressoReducao(DESAFIO_ATIVO, logs, APPS, true);
+    expect(resultado.progressoSegundos).toBe(25000);
+    expect(resultado.ultrapassou).toBe(true);
+  });
+
+  it('progresso igual à meta não conta como ultrapassou', () => {
+    const logs = [logComUso('2026-10-19', 20400)];
+    const resultado = calcularProgressoReducao(DESAFIO_ATIVO, logs, APPS, true);
+    expect(resultado.ultrapassou).toBe(false);
+  });
+
+  it('sem acesso de uso, o progresso congela no último valor gravado e aponta o último dia medido', () => {
+    const logs = [
+      logComUso('2026-10-19', 3600),
+      { data: '2026-10-20' },
+    ];
+    const desafioComProgresso = { ...DESAFIO_ATIVO, progresso: 3600 };
+    const resultado = calcularProgressoReducao(desafioComProgresso, logs, APPS, false);
+    expect(resultado).toEqual({ progressoSegundos: 3600, ultrapassou: false, semMedicaoDesde: 'segunda-feira' });
+  });
+});
+
+describe('statusAoFechar', () => {
+  it('progresso dentro da meta conclui', () => expect(statusAoFechar(20000, 20400)).toBe('concluido'));
+  it('progresso igual à meta conclui', () => expect(statusAoFechar(20400, 20400)).toBe('concluido'));
+  it('progresso acima da meta expira', () => expect(statusAoFechar(21000, 20400)).toBe('expirado'));
+});
+
+describe('diasRestantes', () => {
+  it('segunda-feira (início da semana) até domingo (dataFim) são 6 dias restantes', () => {
+    expect(diasRestantes(new Date(2026, 9, 19), '2026-10-25')).toBe(6);
+  });
+  it('sábado tem 1 dia restante', () => {
+    expect(diasRestantes(new Date(2026, 9, 24), '2026-10-25')).toBe(1);
+  });
+  it('domingo (último dia) tem 0 dias restantes', () => {
+    expect(diasRestantes(new Date(2026, 9, 25), '2026-10-25')).toBe(0);
+  });
+});
+
+describe('textoDiasRestantes', () => {
+  it('0 vira "Último dia"', () => expect(textoDiasRestantes(0)).toBe('Último dia'));
+  it('1 vira singular "1 dia restante"', () => expect(textoDiasRestantes(1)).toBe('1 dia restante'));
+  it('6 vira plural "6 dias restantes"', () => expect(textoDiasRestantes(6)).toBe('6 dias restantes'));
+});
+
+describe('textoResultadoAnterior', () => {
+  it('concluído gera a frase de resultado', () => {
+    expect(textoResultadoAnterior({ ...DESAFIO_ATIVO, status: 'concluido' }))
+      .toBe('Você fechou a semana passada dentro do combinado.');
+  });
+  it('expirado não gera texto', () => {
+    expect(textoResultadoAnterior({ ...DESAFIO_ATIVO, status: 'expirado' })).toBeNull();
+  });
+  it('sem desafio anterior não gera texto', () => {
+    expect(textoResultadoAnterior(null)).toBeNull();
   });
 });

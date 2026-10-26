@@ -133,7 +133,7 @@ function contarDiasAtivos(
  * se algo mudar retroativamente. Progresso é limitado à meta.
  */
 export function calcularProgressoDesafio(
-  desafio: Desafio,
+  desafio: Desafio & { tipo: TipoDesafio },
   dailyLogsDoPeriodo: DailyLogResumo[],
   hoje: Date,
 ): Desafio {

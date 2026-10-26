@@ -161,7 +161,7 @@ export interface Desafio {
   /** Determinístico: `${tipo}-${dataInicio}` — não duplica ao regerar. */
   id: string;
   titulo: string;
-  tipo: TipoDesafio;
+  tipo: TipoDesafio | 'reducao_tempo_redes';
   periodo: PeriodoDesafio;
   /** ISO YYYY-MM-DD (UTC), inclusivo. */
   dataInicio: string;
@@ -170,6 +170,8 @@ export interface Desafio {
   meta: number;
   progresso: number;
   status: StatusDesafio;
+  /** Só no desafio de redução (domain/desafioReducao.ts) — base em segundos da semana anterior. */
+  baseSegundos?: number;
 }
 
 /**
