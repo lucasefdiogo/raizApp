@@ -305,6 +305,30 @@ describe('InterceptScreen', () => {
       expect(saldo.liberar).not.toHaveBeenCalled();
       expect(onSair).toHaveBeenCalledTimes(1);
     });
+
+    it('a alternativa do dia abre a SessaoFocoScreen com a tarefa, sem liberar nem avançar o saldo', async () => {
+      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
+      const saldo = configurarSaldo({ fase: 'AGUARDANDO_LIBERACAO', saldo: 4, blocosUsados: 0 });
+      await render(<InterceptScreen {...props} />);
+
+      await fireEvent.press(
+        screen.getByText(`${TAREFA_ESSENCIAL_PENDENTE.titulo} em vez disso`),
+      );
+
+      const mock = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
+      expect(mock).toMatchObject({
+        tarefaId: TAREFA_ESSENCIAL_PENDENTE.id,
+        duracaoInicialSeg: 300,
+        origem: 'interceptacao',
+      });
+      expect(saldo.liberar).not.toHaveBeenCalled();
+      expect(registrarAcao).not.toHaveBeenCalledWith('B', 'saiu');
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'alternativa_escolhida',
+        { tipo: 'tarefa_essencial', tela: 'pausa' },
+      );
+    });
   });
 
   describe('COOLDOWN e SALDO_ZERADO', () => {
@@ -556,6 +580,31 @@ describe('InterceptScreen', () => {
       expect(abrirApp).not.toHaveBeenCalled();
       expect(onSair).not.toHaveBeenCalled();
       expect(onFecharAposAbrir).not.toHaveBeenCalled();
+    });
+
+    it('a alternativa do dia no acesso rápido abre a sessão sem gastar a cota', async () => {
+      configurarDailyTasks({ tarefas: [TAREFA_ESSENCIAL_PENDENTE] });
+      const liberarAcessoRapido = jest.fn().mockResolvedValue(true);
+      const saldo = configurarSaldo(
+        { fase: 'COOLDOWN', fimCooldownEm: AGORA + 60_000, blocosUsados: 0 },
+        { acessoRapidoDisponivel: true, esperaAcessoRapidoSeg: 5, liberarAcessoRapido },
+      );
+      await render(<InterceptScreen {...props} />);
+
+      await fireEvent.press(screen.getByRole('button', { name: /Acesso rápido/ }));
+      await fireEvent.press(
+        screen.getByText(`${TAREFA_ESSENCIAL_PENDENTE.titulo} em vez disso`),
+      );
+
+      const mock = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
+      expect(mock.tarefaId).toBe(TAREFA_ESSENCIAL_PENDENTE.id);
+      expect(liberarAcessoRapido).not.toHaveBeenCalled();
+      expect(saldo.liberar).not.toHaveBeenCalled();
+      expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        'alternativa_escolhida',
+        { tipo: 'tarefa_essencial', tela: 'acesso_rapido' },
+      );
     });
 
     it('CA-07: reabrir a interceptação depois de uma emergência mostra a mesma cota de acesso rápido', async () => {
