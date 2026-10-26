@@ -75,7 +75,7 @@ export function gerarCatalogoDoPeriodo(
   periodo: PeriodoDesafio,
   inicio: string,
   fim: string,
-): Desafio[] {
+): Array<Desafio & { tipo: TipoDesafio }> {
   let tipo: TipoDesafio;
   if (periodo === 'mensal') {
     tipo = 'dias_ativos_20';

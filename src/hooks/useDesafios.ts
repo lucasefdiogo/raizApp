@@ -13,7 +13,7 @@ import {
 } from '../domain/challenges';
 import { DailyLogResumo } from '../domain/progress';
 import { hojeISOLocal } from '../domain/data';
-import { DailyLog, Desafio, PeriodoDesafio } from '../domain/types';
+import { DailyLog, Desafio, PeriodoDesafio, TipoDesafio } from '../domain/types';
 import { logDesafioConcluido } from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
 import { useToast } from './useToast';
@@ -61,7 +61,7 @@ export function useDesafios(uid: string): UseDesafiosResultado {
     async (
       periodo: PeriodoDesafio,
       datas: Periodo,
-      ativos: Desafio[],
+      ativos: Array<Desafio & { tipo: TipoDesafio }>,
       hoje: Date,
     ): Promise<Desafio> => {
       const existente = ativos.find(
@@ -70,7 +70,7 @@ export function useDesafios(uid: string): UseDesafiosResultado {
           desafio.dataInicio === datas.inicio,
       );
 
-      let base: Desafio;
+      let base: Desafio & { tipo: TipoDesafio };
       if (existente) {
         base = existente;
       } else {
@@ -115,7 +115,14 @@ export function useDesafios(uid: string): UseDesafiosResultado {
     const hoje = new Date();
     const limite = hojeISOLocal();
 
-    const ativos = await buscarDesafiosAtivos(uid);
+    const todosAtivos = await buscarDesafiosAtivos(uid);
+    // O desafio de redução (domain/desafioReducao.ts) vive fora desse pool — tem o
+    // mesmo periodo/dataInicio do semanal do catálogo e confundiria resolverDesafio,
+    // além de calcularProgressoDesafio não ter case pra esse tipo.
+    const ativos = todosAtivos.filter(
+      (desafio): desafio is Desafio & { tipo: TipoDesafio } =>
+        desafio.tipo !== 'reducao_tempo_redes',
+    );
 
     // Desafios ativos de períodos já encerrados: recalcula uma última vez e
     // fecha (concluido / expirado) pra sair da tela.
