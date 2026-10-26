@@ -64,7 +64,7 @@ export function EsperaAcessoRapidoScreen({
             texto={`${restante} s`}
             accessibilityLabel={`Liberando em ${restante} ${restante === 1 ? 'segundo' : 'segundos'}`}
           />
-          {noturna && alternativa && onAlternativa && (
+          {alternativa && onAlternativa && (
             <Pressable
               accessibilityRole="button"
               onPress={onAlternativa}

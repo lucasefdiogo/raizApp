@@ -92,9 +92,9 @@ describe('HU-11 RN09 · EsperaAcessoRapidoScreen', () => {
     expect(props.onLiberado).not.toHaveBeenCalled();
   });
 
-  it('sem mensagemNoturna não mostra o botão de alternativa mesmo com alternativa informada', async () => {
+  it('mostra o botão mesmo sem mensagemNoturna, quando alternativa e onAlternativa são informados', async () => {
     await montar({ alternativa: 'Ler um pouco', onAlternativa: jest.fn() });
 
-    expect(screen.queryByText(/em vez disso/)).toBeNull();
+    expect(screen.getByText('Ler um pouco em vez disso')).toBeTruthy();
   });
 });
