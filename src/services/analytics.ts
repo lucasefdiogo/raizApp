@@ -123,6 +123,23 @@ export function logAlternativaEscolhida(
   logEvent(analytics(), 'alternativa_escolhida', { tipo, tela });
 }
 
+export function logDesafioReducaoProposto(): void {
+  logEvent(analytics(), 'desafio_reducao_proposto');
+}
+
+export function logDesafioReducaoRespondido(
+  acao: 'aceitou' | 'agora_nao',
+): void {
+  logEvent(analytics(), 'desafio_reducao_respondido', { acao });
+}
+
+/** Nenhum parâmetro leva tempo de uso, meta, base ou nome de app. */
+export function logDesafioReducaoFechado(
+  resultado: 'concluido' | 'expirado',
+): void {
+  logEvent(analytics(), 'desafio_reducao_fechado', { resultado });
+}
+
 /**
  * Toque em "Saiba o que é" (status sempre visível, BloqueioAppsScreen) ou no
  * botão "Ativar" (status desativado) — os dois levam à mesma rota

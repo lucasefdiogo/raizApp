@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import {
   logAcessibilidadeSaibaMais,
   logAlternativaEscolhida,
+  logDesafioReducaoFechado,
+  logDesafioReducaoProposto,
+  logDesafioReducaoRespondido,
   logInterceptShown,
   logReflexaoSemanalExibida,
   logReflexaoSemanalFechada,
@@ -21,6 +24,9 @@ export function useAnalytics() {
     () => ({
       logAcessibilidadeSaibaMais,
       logAlternativaEscolhida,
+      logDesafioReducaoFechado,
+      logDesafioReducaoProposto,
+      logDesafioReducaoRespondido,
       logInterceptShown,
       logReflexaoSemanalExibida,
       logReflexaoSemanalFechada,
