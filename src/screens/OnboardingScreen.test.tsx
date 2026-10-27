@@ -325,6 +325,20 @@ describe('OnboardingScreen', () => {
       expect(screen.getByText('Pular por hoje')).toBeTruthy();
     });
 
+    it('com foco redes_sociais, repassa pra OnboardingStepPrimeiraTarefa mostrar a linguagem da HU-07', async () => {
+      buscarUsuario.mockResolvedValue(
+        usuario({
+          focoProcrastinacao: 'redes_sociais',
+          tempoTelaEstimado: 4,
+          porqueTexto: 'Quero usar menos o celular',
+        }),
+      );
+      await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+      expect(
+        await screen.findByText('O que você vai fazer no lugar da rolagem hoje?'),
+      ).toBeTruthy();
+    });
+
     it('"Começar" desabilitado com o campo vazio', async () => {
       await chegarNaPrimeiraTarefa();
 

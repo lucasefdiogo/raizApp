@@ -140,6 +140,7 @@ export function OnboardingScreen({ uid, onConcluir }: OnboardingScreenProps) {
             <OnboardingStepPrimeiraTarefa
               valor={tituloPrimeiraTarefa}
               onAlterar={definirTituloPrimeiraTarefa}
+              foco={dados.focoProcrastinacao}
             />
           )}
           {mostrarAvisoPorque && (
