@@ -579,6 +579,18 @@ describe('ProgressoScreen', () => {
       await waitFor(() => expect(screen.getByText('Até 5h 40min nas redes')).toBeTruthy());
     });
 
+    it('mostrar a proposta registra o evento de analytics desafio_reducao_proposto uma única vez', async () => {
+      const { logDesafioReducaoProposto } = require('../../services/analytics');
+      logDesafioReducaoProposto.mockClear();
+      configurarResumoRedes({ comAcessoDeUso: true, reflexao: REFLEXAO });
+      configurarDesafioReducao({ proposta: PROPOSTA_PADRAO });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+      await waitFor(() => expect(screen.getByText('Até 5h 40min nas redes')).toBeTruthy());
+
+      expect(logDesafioReducaoProposto).toHaveBeenCalledTimes(1);
+    });
+
     it('aceitar a proposta chama aceitar() do hook e mostra o toast de combinado', async () => {
       configurarResumoRedes({ comAcessoDeUso: true, reflexao: REFLEXAO });
       configurarDesafioReducao({ proposta: PROPOSTA_PADRAO });

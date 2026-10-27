@@ -59,6 +59,9 @@ describe('calcularMetaSegundos', () => {
   it('não sofre erro de ponto flutuante quando ×0,9 cai exatamente num múltiplo de 5min', () => {
     expect(calcularMetaSegundos(20000)).toBe(18000);
   });
+  it('não arredonda base×0,9 pra cima antes do floor (base 4333s: 0,9× = 3899,7, floor de 300 é 3600, não 3900)', () => {
+    expect(calcularMetaSegundos(4333)).toBe(3600);
+  });
 });
 
 describe('montarProposta', () => {

@@ -4,7 +4,6 @@ import { inicioDaSemana } from '../domain/streak';
 import { buscarUsuario, criarDesafio, salvarDailyLog } from '../services/firestore';
 
 const BASE_SEGUNDOS_SEMEADO = 22800; // 6h20min — mesmo exemplo do spec.
-const SEGUNDOS_POR_DIA = BASE_SEGUNDOS_SEMEADO / 7;
 
 function somarDias(data: Date, dias: number): Date {
   return new Date(data.getFullYear(), data.getMonth(), data.getDate() + dias);
@@ -29,6 +28,13 @@ export async function semearSemanaDesafioReducao(
   const inicioSemanaAtual = inicioDaSemana(new Date());
   const inicioSemanaAnterior = somarDias(inicioSemanaAtual, -7);
 
+  const meta = calcularMetaSegundos(BASE_SEGUNDOS_SEMEADO);
+  const progresso = resultado === 'concluido' ? meta - 300 : meta + 300;
+  // O fechamento recalcula do usoApps semeado, não do campo progresso abaixo
+  // — os logs precisam somar o valor que o resultado pedido exige, não a
+  // base fixa.
+  const segundosPorDia = Math.round(progresso / 7);
+
   for (let i = 0; i < 7; i++) {
     const data = paraISOLocal(somarDias(inicioSemanaAnterior, i));
     await salvarDailyLog(uid, data, {
@@ -36,12 +42,10 @@ export async function semearSemanaDesafioReducao(
       tarefas: [],
       statusDia: 'pendente',
       escudoUsado: false,
-      usoApps: { [app]: { segundos: SEGUNDOS_POR_DIA, aberturas: 1 } },
+      usoApps: { [app]: { segundos: segundosPorDia, aberturas: 1 } },
     });
   }
 
-  const meta = calcularMetaSegundos(BASE_SEGUNDOS_SEMEADO);
-  const progresso = resultado === 'concluido' ? meta - 300 : meta + 300;
   const dataInicio = paraISOLocal(inicioSemanaAnterior);
   const dataFim = paraISOLocal(somarDias(inicioSemanaAnterior, 6));
 

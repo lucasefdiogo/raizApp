@@ -54,12 +54,14 @@ export function atingeMinimoParaProposta(baseSegundos: number): boolean {
 
 /**
  * Meta = base × 0,9, arredondada pra baixo ao múltiplo de 5min (300s).
- * `Math.round` antes do `/300` absorve o erro de ponto flutuante do `* 0.9`
- * (ex.: 20000 * 0.9 deveria ser 18000 exato, mas pode chegar como
- * 17999.999999998 — sem o round, o floor seguinte cairia pro múltiplo errado).
+ * `base × 9 / 3000` em vez de `base × 0,9 / 300`: multiplicar por 9 (inteiro)
+ * antes de dividir evita o erro de ponto flutuante do `* 0.9` (ex.: 20000 *
+ * 0.9 pode chegar como 17999.999999998) sem precisar de `Math.round`, que
+ * arredondaria base×0,9 pra cima antes do floor e dava meta errada (ex.:
+ * base 4333 → 0,9× = 3899,7 → floor certo é 3600, `round` antes dava 3900).
  */
 export function calcularMetaSegundos(baseSegundos: number): number {
-  return Math.floor(Math.round(baseSegundos * 0.9) / 300) * 300;
+  return Math.floor((baseSegundos * 9) / 3000) * 300;
 }
 
 export function montarProposta(baseSegundos: number): PropostaDesafioReducao {

@@ -90,14 +90,16 @@ export function useDesafioReducao(
     // revogar o acesso de uso não some com os apps configurados.
     const comAcessoDeUso = !!usuario?.consentimentoAcessoUso && appsBloqueados.length > 0;
 
-    const desafioAnterior = await buscarDesafio(
-      uid,
-      `reducao_tempo_redes-${inicioSemanaAnteriorISO}`,
-    );
-
     const todosAtivos = await buscarDesafiosAtivos(uid);
     let desafioAtivoCru =
       todosAtivos.find(desafio => desafio.tipo === 'reducao_tempo_redes') ?? null;
+
+    // Checado antes de fechar (não só depois): duas chamadas de carregar()
+    // em corrida (ex.: reflexaoVisivel vira true pouco depois do mount) não
+    // podem fechar e logar o mesmo desafio duas vezes.
+    if (leituraRef.current !== leitura) {
+      return;
+    }
 
     // Fechamento preguiçoso: cobre qualquer desafio de redução esquecido, não
     // só o da semana imediatamente anterior (ver dataFim vs hoje, nunca
@@ -114,7 +116,11 @@ export function useDesafioReducao(
         appsBloqueados,
         comAcessoDeUso,
       );
-      const status = statusAoFechar(progresso.progressoSegundos, desafioAtivoCru.meta);
+      // Sem acesso de uso, o fechamento é sempre 'expirado' (congelado, sem
+      // texto de resultado) — nunca 'concluido' por um progresso parado.
+      const status = comAcessoDeUso
+        ? statusAoFechar(progresso.progressoSegundos, desafioAtivoCru.meta)
+        : 'expirado';
       await atualizarProgressoDesafio(
         uid,
         desafioAtivoCru.id,
@@ -124,6 +130,18 @@ export function useDesafioReducao(
       logDesafioReducaoFechado(status);
       desafioAtivoCru = null;
     }
+
+    if (leituraRef.current !== leitura) {
+      return;
+    }
+
+    // Lido só agora (depois do fechamento preguiçoso acima): se o desafio da
+    // semana anterior acabou de ser fechado nesta mesma passada, já reflete
+    // o status novo, sem precisar de uma segunda leitura de carregar().
+    const desafioAnterior = await buscarDesafio(
+      uid,
+      `reducao_tempo_redes-${inicioSemanaAnteriorISO}`,
+    );
 
     if (leituraRef.current !== leitura) {
       return;

@@ -94,8 +94,12 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
   const [atualizando, setAtualizando] = useState(false);
   const [mostrarReflexao, setMostrarReflexao] = useState(false);
   const avaliouReflexaoRef = useRef(false);
-  const { logReflexaoSemanalExibida, logReflexaoSemanalFechada } =
-    useAnalytics();
+  const {
+    logReflexaoSemanalExibida,
+    logReflexaoSemanalFechada,
+    logDesafioReducaoProposto,
+  } = useAnalytics();
+  const propostaLogadaRef = useRef(false);
 
   const handleTocarDia = useCallback(
     (data: string, status: string) => {
@@ -144,6 +148,20 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
       }
     })();
   }, [carregandoResumoRedes, reflexao, logReflexaoSemanalExibida]);
+
+  // Evento de analytics só uma vez por abertura da sheet com proposta — um
+  // recarregar() que troca a referência de `proposta` sem reabrir a sheet
+  // não deve logar de novo.
+  useEffect(() => {
+    if (!mostrarReflexao) {
+      propostaLogadaRef.current = false;
+      return;
+    }
+    if (proposta && !propostaLogadaRef.current) {
+      propostaLogadaRef.current = true;
+      logDesafioReducaoProposto();
+    }
+  }, [mostrarReflexao, proposta, logDesafioReducaoProposto]);
 
   const fecharReflexao = useCallback(async (acao: 'entendi' | 'agora_nao') => {
     await salvarItem(STORAGE_KEYS.reflexaoSemanalVista, paraISOLocal(inicioDaSemana(new Date())));
