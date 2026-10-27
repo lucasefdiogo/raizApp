@@ -14,6 +14,8 @@ import { useDesafios } from '../../hooks/useDesafios';
 import { useVoltarParaAbaHoje } from '../../hooks/useVoltarParaAbaHoje';
 import { useDayDetail } from '../../hooks/useDayDetail';
 import { useResumoRedes } from '../../hooks/useResumoRedes';
+import { useDesafioReducao } from '../../hooks/useDesafioReducao';
+import { useToast } from '../../hooks/useToast';
 import { DayStatusPill } from '../../components/progress/DayStatusPill';
 import { DayDetailSheet } from '../../components/progress/DayDetailSheet';
 import { ResumoRedesCard } from '../../components/progress/ResumoRedesCard';
@@ -73,6 +75,15 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
     recarregar: recarregarResumoRedes,
   } = useResumoRedes(uid);
   const {
+    proposta,
+    desafioAtivo,
+    resultadoAnteriorTexto,
+    aceitar: aceitarDesafioReducao,
+    recusar: recusarDesafioReducao,
+    recarregar: recarregarDesafioReducao,
+  } = useDesafioReducao(uid, !!reflexao);
+  const { showToast } = useToast();
+  const {
     dataSelecionada,
     tarefasDoDia,
     statusDoDia,
@@ -101,11 +112,16 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
     try {
       // as releituras já tratam a própria falha (toast) e resolvem sem
       // rejeitar — o gesto só espera todas terminarem.
-      await Promise.all([recarregar(), recarregarDesafios(), recarregarResumoRedes()]);
+      await Promise.all([
+        recarregar(),
+        recarregarDesafios(),
+        recarregarResumoRedes(),
+        recarregarDesafioReducao(),
+      ]);
     } finally {
       setAtualizando(false);
     }
-  }, [recarregar, recarregarDesafios, recarregarResumoRedes]);
+  }, [recarregar, recarregarDesafios, recarregarResumoRedes, recarregarDesafioReducao]);
 
   // Reflexão semanal (HU-08, RN10/RN12): avalia uma única vez por abertura
   // da tela — se já não foi mostrada nesta semana (AsyncStorage) e há dados
@@ -132,8 +148,18 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
   const fecharReflexao = useCallback(async (acao: 'entendi' | 'agora_nao') => {
     await salvarItem(STORAGE_KEYS.reflexaoSemanalVista, paraISOLocal(inicioDaSemana(new Date())));
     logReflexaoSemanalFechada(acao);
+    if (proposta) {
+      await recusarDesafioReducao();
+    }
     setMostrarReflexao(false);
-  }, [logReflexaoSemanalFechada]);
+  }, [logReflexaoSemanalFechada, proposta, recusarDesafioReducao]);
+
+  const aceitarPropostaDesafio = useCallback(async () => {
+    await salvarItem(STORAGE_KEYS.reflexaoSemanalVista, paraISOLocal(inicioDaSemana(new Date())));
+    await aceitarDesafioReducao();
+    showToast('Combinado. Aparece no seu Progresso.');
+    setMostrarReflexao(false);
+  }, [aceitarDesafioReducao, showToast]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -198,7 +224,7 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
               />
             )}
 
-            {(desafioSemanal || desafioMensal) && (
+            {(desafioSemanal || desafioMensal || desafioAtivo) && (
               <>
                 <Text style={styles.secaoTitulo}>Desafios</Text>
                 {desafioSemanal && (
@@ -215,6 +241,18 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
                     progresso={desafioMensal.progresso}
                     meta={desafioMensal.meta}
                     status={desafioMensal.status}
+                  />
+                )}
+                {desafioAtivo && (
+                  <ChallengeCard
+                    titulo={desafioAtivo.titulo}
+                    progresso={desafioAtivo.progresso}
+                    meta={desafioAtivo.meta}
+                    status={desafioAtivo.status}
+                    variante="teto"
+                    diasRestantesTexto={desafioAtivo.diasRestantesTexto}
+                    ultrapassou={desafioAtivo.ultrapassou}
+                    semMedicaoDesde={desafioAtivo.semMedicaoDesde ?? undefined}
                   />
                 )}
               </>
@@ -238,8 +276,11 @@ export function ProgressoScreen({ uid, aoTocarMedirTempo }: ProgressoScreenProps
         <ReflexaoSemanalSheet
           visible
           dados={reflexao}
+          proposta={proposta}
+          resultadoAnteriorTexto={resultadoAnteriorTexto}
           onEntendi={() => fecharReflexao('entendi')}
           onAgoraNao={() => fecharReflexao('agora_nao')}
+          onAceitarProposta={aceitarPropostaDesafio}
         />
       )}
     </SafeAreaView>

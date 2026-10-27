@@ -14,11 +14,15 @@ jest.mock('../../hooks/useDesafios');
 jest.mock('../../hooks/useVoltarParaAbaHoje');
 jest.mock('../../hooks/useDayDetail');
 jest.mock('../../hooks/useResumoRedes');
+jest.mock('../../hooks/useDesafioReducao');
+jest.mock('../../hooks/useToast');
 jest.mock('../../services/analytics');
 const { useProgressoSemanal } = require('../../hooks/useProgressoSemanal');
 const { useDesafios } = require('../../hooks/useDesafios');
 const { useDayDetail } = require('../../hooks/useDayDetail');
 const { useResumoRedes } = require('../../hooks/useResumoRedes');
+const { useDesafioReducao } = require('../../hooks/useDesafioReducao');
+const { useToast } = require('../../hooks/useToast');
 const AsyncStorage = require('@react-native-async-storage/async-storage');
 
 // DayDetailSheet (aberto) lê useSafeAreaInsets, mesmo padrão de
@@ -109,6 +113,24 @@ function configurarDesafios(sobrescritas = {}) {
   });
 }
 
+const aceitarDesafioReducaoPadrao = jest.fn().mockResolvedValue(undefined);
+const recusarDesafioReducaoPadrao = jest.fn().mockResolvedValue(undefined);
+const recarregarDesafioReducaoPadrao = jest.fn().mockResolvedValue(undefined);
+const showToastPadrao = jest.fn();
+
+function configurarDesafioReducao(sobrescritas = {}) {
+  useDesafioReducao.mockReturnValue({
+    proposta: null,
+    desafioAtivo: null,
+    resultadoAnteriorTexto: null,
+    carregando: false,
+    aceitar: aceitarDesafioReducaoPadrao,
+    recusar: recusarDesafioReducaoPadrao,
+    recarregar: recarregarDesafioReducaoPadrao,
+    ...sobrescritas,
+  });
+}
+
 describe('ProgressoScreen', () => {
   beforeEach(async () => {
     recarregarPadrao.mockClear();
@@ -117,10 +139,16 @@ describe('ProgressoScreen', () => {
     buscarDiaPadrao.mockClear();
     limparSelecaoPadrao.mockClear();
     aoTocarMedirTempoPadrao.mockClear();
+    aceitarDesafioReducaoPadrao.mockClear();
+    recusarDesafioReducaoPadrao.mockClear();
+    recarregarDesafioReducaoPadrao.mockClear();
+    showToastPadrao.mockClear();
     await AsyncStorage.clear();
     configurarDesafios();
     configurarDayDetail();
     configurarResumoRedes();
+    configurarDesafioReducao();
+    useToast.mockReturnValue({ showToast: showToastPadrao });
   });
   it('mostra os 2 números de resumo e um DayStatusPill por dia do histórico', async () => {
     useProgressoSemanal.mockReturnValue({
@@ -533,6 +561,68 @@ describe('ProgressoScreen', () => {
       await fireEvent.press(screen.getByText('Entendi'));
 
       expect(logReflexaoSemanalFechada).toHaveBeenCalledWith('entendi');
+    });
+
+    const PROPOSTA_PADRAO = {
+      titulo: 'Até 5h 40min nas redes',
+      linha: 'Cerca de 40 min a menos que a semana passada. Pequeno de propósito.',
+      metaSegundos: 20400,
+      baseSegundos: 22800,
+    };
+
+    it('mostra a proposta do desafio de redução dentro da reflexão quando elegível', async () => {
+      configurarResumoRedes({ comAcessoDeUso: true, reflexao: REFLEXAO });
+      configurarDesafioReducao({ proposta: PROPOSTA_PADRAO });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+
+      await waitFor(() => expect(screen.getByText('Até 5h 40min nas redes')).toBeTruthy());
+    });
+
+    it('aceitar a proposta chama aceitar() do hook e mostra o toast de combinado', async () => {
+      configurarResumoRedes({ comAcessoDeUso: true, reflexao: REFLEXAO });
+      configurarDesafioReducao({ proposta: PROPOSTA_PADRAO });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+      await waitFor(() => expect(screen.getByText('Aceitar')).toBeTruthy());
+
+      await fireEvent.press(screen.getByText('Aceitar'));
+
+      expect(aceitarDesafioReducaoPadrao).toHaveBeenCalledTimes(1);
+      expect(showToastPadrao).toHaveBeenCalledWith('Combinado. Aparece no seu Progresso.');
+    });
+
+    it('"Agora não" com proposta visível chama recusar() do hook, além de fechar a reflexão como antes', async () => {
+      configurarResumoRedes({ comAcessoDeUso: true, reflexao: REFLEXAO });
+      configurarDesafioReducao({ proposta: PROPOSTA_PADRAO });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+      await waitFor(() => expect(screen.getByText('Agora não')).toBeTruthy());
+
+      await fireEvent.press(screen.getByText('Agora não'));
+
+      expect(recusarDesafioReducaoPadrao).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Sua semana nas redes')).toBeNull();
+    });
+
+    it('com desafio de redução ativo, mostra o ChallengeCard na variante teto', async () => {
+      configurarResumoRedes({ comAcessoDeUso: true, reflexao: null });
+      configurarDesafioReducao({
+        desafioAtivo: {
+          titulo: 'Até 5h 40min nas redes esta semana',
+          progresso: 3600,
+          meta: 20400,
+          status: 'ativo',
+          diasRestantesTexto: '4 dias restantes',
+          ultrapassou: false,
+          semMedicaoDesde: null,
+        },
+      });
+
+      await render(<ProgressoScreen uid="uid-1" aoTocarMedirTempo={aoTocarMedirTempoPadrao} />);
+
+      expect(screen.getByText('Até 5h 40min nas redes esta semana')).toBeTruthy();
+      expect(screen.getByText('4 dias restantes')).toBeTruthy();
     });
   });
 });
