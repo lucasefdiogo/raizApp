@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
    * RN15). Sem campo novo no Firestore: fica só no aparelho.
    */
   rotinaRecalculoPendente: 'rotina_recalculo_pendente',
+  /** Segunda-feira (YYYY-MM-DD) da semana em que a proposta do desafio de redução foi recusada. */
+  desafioReducaoPropostaRecusadaEm: 'desafio_reducao_proposta_recusada_em',
 } as const;
 
 export async function salvarItem<T>(chave: string, valor: T): Promise<void> {

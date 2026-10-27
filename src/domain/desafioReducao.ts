@@ -1,6 +1,6 @@
 import { somarSegundosBloqueados, diasComUsoApps, formatarDuracao } from './resumoRedes';
 import { paraISOLocal, dataLocalDeISO } from './data';
-import { Desafio, StatusDesafio, UsoApps } from './types';
+import { Desafio, UsoApps } from './types';
 
 interface LogComUso {
   usoApps?: UsoApps;
@@ -112,7 +112,10 @@ export function calcularProgressoReducao(
   };
 }
 
-export function statusAoFechar(progressoSegundos: number, metaSegundos: number): StatusDesafio {
+export function statusAoFechar(
+  progressoSegundos: number,
+  metaSegundos: number,
+): 'concluido' | 'expirado' {
   return progressoSegundos <= metaSegundos ? 'concluido' : 'expirado';
 }
 
