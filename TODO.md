@@ -37,6 +37,15 @@ Histórico das HUs antigas (formato lux kit, abandonado): `docs/historico/`.
       instante antes do status real carregar. Nenhum cenário Gherkin cobre esse
       estado transitório. Origem: revisão da HU-09 (`docs/hu/hu-09-bloqueio-config.md`).
 
+- [ ] **Guard `salvando` não bloqueia duplo toque genuinamente simultâneo:** `avancar`,
+      `comecarComTarefa`, `pularPrimeiraTarefa` (`useOnboarding.ts`) e outros handlers
+      async do app usam `useState` pra bloquear a segunda chamada — isso só funciona
+      depois do React comitar o estado (um "tap" real depois do botão desabilitar).
+      Duas chamadas disparadas no mesmo tick síncrono (sem um render entre elas)
+      passam as duas pelo guard. Pior caso visto: 1 evento de Analytics a mais por
+      passo do onboarding. Considerar guard por `useRef` se incomodar. Origem: revisão
+      final de `docs/superpowers/plans/2026-10-27-onboarding-ativacao.md`.
+
 ## Ambiente local
 
 - [ ] Acrescentar `.bash_profile` ao `.git/info/exclude` (nó `/dev/null` criado pelo
