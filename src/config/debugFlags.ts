@@ -9,3 +9,11 @@
  * como `true`.
  */
 export const MOSTRAR_TESTAR_CRASHLYTICS = false;
+
+/**
+ * MOSTRAR_SEMEAR_DESAFIO_REDUCAO: os botões de semeadura do desafio de
+ * redução de tempo nas redes só rodam em `__DEV__` — mesmo motivo de
+ * MOSTRAR_TESTAR_CRASHLYTICS acima (device físico via WSL não alcança o
+ * Metro). Ligar à mão só pra gerar o APK de teste, nunca commitar como `true`.
+ */
+export const MOSTRAR_SEMEAR_DESAFIO_REDUCAO = false;

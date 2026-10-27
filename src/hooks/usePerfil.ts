@@ -7,6 +7,7 @@ import {
   cancelarLembreteDiario,
 } from '../services/notifications';
 import { registrarErro, testarCrash } from '../services/crashlytics';
+import { semearSemanaDesafioReducao } from '../dev/semearDesafioReducao';
 import { useToast } from './useToast';
 
 const MENSAGEM_FALHA_PORQUE =
@@ -15,6 +16,9 @@ const MENSAGEM_FALHA_NOTIFICACOES =
   'Não conseguimos atualizar as notificações agora. Tente de novo.';
 const MENSAGEM_FALHA_HORARIO =
   'Não conseguimos salvar o horário agora. Tente de novo.';
+const MENSAGEM_SUCESSO_SEMEADURA = 'Semeado — abra o Progresso pra ver.';
+const MENSAGEM_FALHA_SEMEADURA =
+  'Não foi possível semear. Configure um app bloqueado primeiro.';
 
 interface UsePerfilResultado {
   porqueTexto: string;
@@ -27,6 +31,9 @@ interface UsePerfilResultado {
   alterarHorario: (horario: string) => Promise<void>;
   /** Só tem efeito em __DEV__ (ver services/crashlytics.ts). */
   testarCrash: () => void;
+  /** Só tem efeito em __DEV__ (ver dev/semearDesafioReducao.ts). */
+  semearDesafioReducaoConcluido: () => Promise<void>;
+  semearDesafioReducaoExpirado: () => Promise<void>;
 }
 
 /**
@@ -127,6 +134,28 @@ export function usePerfil(uid: string): UsePerfilResultado {
     [uid, notificacoesAtivas, showToast],
   );
 
+  const semearDesafioReducao = useCallback(
+    async (resultado: 'concluido' | 'expirado') => {
+      try {
+        await semearSemanaDesafioReducao(uid, resultado);
+        showToast(MENSAGEM_SUCESSO_SEMEADURA);
+      } catch (erro) {
+        registrarErro(erro as Error, 'usePerfil.semearDesafioReducao');
+        showToast(MENSAGEM_FALHA_SEMEADURA);
+      }
+    },
+    [uid, showToast],
+  );
+
+  const semearDesafioReducaoConcluido = useCallback(
+    () => semearDesafioReducao('concluido'),
+    [semearDesafioReducao],
+  );
+  const semearDesafioReducaoExpirado = useCallback(
+    () => semearDesafioReducao('expirado'),
+    [semearDesafioReducao],
+  );
+
   return {
     porqueTexto,
     notificacoesAtivas,
@@ -136,5 +165,7 @@ export function usePerfil(uid: string): UsePerfilResultado {
     alternarNotificacoes,
     alterarHorario,
     testarCrash,
+    semearDesafioReducaoConcluido,
+    semearDesafioReducaoExpirado,
   };
 }
