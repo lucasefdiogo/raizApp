@@ -13,7 +13,7 @@ Ler o arquivo relevante **antes** de mudar código. Não existe outra pasta de e
 
 | Arquivo | Quando consultar |
 |---|---|
-| `docs/projeto/regras-de-negocio.md` | **Toda regra de negócio do app**, textos exatos de UI, privacidade/Analytics e pendências em aberto (§13) |
+| `docs/projeto/regras-de-negocio.md` | **Toda regra de negócio do app**, textos exatos de UI, privacidade/Analytics e pendências em aberto (§14) |
 | `docs/projeto/spec.md` | O que é o produto, público, princípios, decisões já tomadas, restrições (LGPD, Play Store), loja e assinatura |
 | `docs/projeto/arquitetura.md` | Stack, camadas, comandos, serviços, dependências, estrutura de pastas, dívida técnica |
 | `docs/projeto/schema.md` | Coleções e campos do Firestore, regras de segurança, mapeamento telas → coleções |
@@ -120,4 +120,4 @@ rodar em aparelho físico — dizer isso no resumo final quando não der para va
   vêm de HUs já encerradas (a HU de origem aparece nos títulos de `regras-de-negocio.md`) —
   não renomear em massa.
 - Pendência que não for resolvida na tarefa vai para `TODO.md` ou para
-  `regras-de-negocio.md` §13 (se for decisão de produto).
+  `regras-de-negocio.md` §14 (se for decisão de produto).

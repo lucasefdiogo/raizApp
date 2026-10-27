@@ -60,7 +60,7 @@ Só a conclusão de tarefa essencial mexe no streak.
 
 A contagem de proteções **não é exibida na Home** desde a HU-07 (o rodapé do `StreakCard` mostra
 a garantia do dia). `escudosDisponiveis` continua no Firestore. Onde/se voltar a mostrar a
-contagem é decisão em aberto (seção 13).
+contagem é decisão em aberto (seção 14).
 
 ### Sem proteção
 - **1 dia perdido:** streak = `Math.max(1, Math.floor(streak * 0.5))` enquanto streak > 0
@@ -612,13 +612,53 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   `travado_state` (`estado`, sem userId), `focus_session_end` (`duracao_planejada`, `resultado`),
   `rotina_confirmada` (`ajustado`), `alternativa_noturna_respondida` (`acao`: `salvou` |
   `agora_nao`), `rotina_recalculo_pedido`, `reflexao_semanal_exibida`, `reflexao_semanal_fechada`
-  (`acao`: `entendi` | `agora_nao`).
+  (`acao`: `entendi` | `agora_nao`), `onboarding_passo_concluido` (`passo`), `onboarding_concluido`
+  (`criouPrimeiraTarefa`), `ativacao_bloqueio_convite` (`acao`: `configurar` | `agora_nao`) — ver
+  seção 13 pros detalhes.
 - Qualquer campo novo gravado em `users/{uid}`, SDK novo que colete dados ou mudança no que o
   Accessibility Service lê exige atualizar `docs/legal/` (ver `spec.md`, Restrições).
 
 ---
 
-## 13. Pendências e decisões em aberto
+## 13. Onboarding e ativação do bloqueio
+
+### Primeira tarefa (passo final do onboarding)
+
+- Com `focoProcrastinacao === 'redes_sociais'`: título "O que você vai fazer no lugar da
+  rolagem hoje?" (mesma linguagem da HU-07, seção 2), placeholder "O que você faria em vez
+  de abrir o feed?", chips "Ler 10 páginas", "Caminhar 15 min", "Alongar 5 min", "Arrumar a
+  mesa" (toque preenche o título, mesmo comportamento do `AddTaskForm`).
+- Qualquer outro foco (`estudos`, `trabalho`, `organizacao_pessoal`, `outro`, ou sem resposta):
+  título "Vamos começar pequeno de propósito.", placeholder "ex: separar a roupa de treino",
+  sem chips.
+- "Começar" cria a tarefa de hoje e conclui o onboarding; "Pular por hoje" conclui sem criar
+  tarefa nenhuma — os dois sempre avançam, nunca ficam bloqueados por validação.
+
+### Convite de ativação do bloqueio (`AtivacaoConviteScreen`)
+
+- Aparece uma única vez, logo depois do onboarding ser concluído — inclusive para quem já
+  tinha `onboardingConcluido` antes desta mudança (gate é a flag local
+  `ativacao_bloqueio_mostrada`, independente da data de conclusão do onboarding).
+- Título "Agora, o bloqueio das redes", texto "Pra pausar antes de abrir as redes que mais
+  tiram seu foco, o Rootora precisa que você escolha os apps e ative a permissão de
+  acessibilidade.". Botões "Configurar bloqueio" (abre a tela de escolha de apps/Accessibility,
+  mesmas telas já usadas no Perfil) e "Agora não" (pula sem fricção).
+- As duas escolhas gravam a flag e nunca mais mostram essa tela de novo; "Agora não" não bloqueia
+  nada do resto do app.
+- Não substitui nem muda as telas de divulgação do Play Store
+  (`DivulgacaoAcessibilidadeScreen`/`DivulgacaoAcessoUsoScreen`) — só é um ponto de entrada
+  novo pra elas.
+
+### Analytics do onboarding e da ativação
+
+- `onboarding_passo_concluido` (`passo`: índice 0-2, só nos 3 primeiros passos — foco, tempo de
+  tela, porquê). `onboarding_concluido` (`criouPrimeiraTarefa`: diferencia "Começar" de "Pular
+  por hoje"). `ativacao_bloqueio_convite` (`acao`: `configurar` | `agora_nao`). Nenhum dos três
+  leva texto digitado (foco, porquê ou título da tarefa).
+
+---
+
+## 14. Pendências e decisões em aberto
 
 **Não implementar sem decidir o escopo com o Lucas antes:**
 - XP e níveis (risco de métrica vazia)

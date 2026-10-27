@@ -1,6 +1,6 @@
 # Banco de Versículos e Frases Bíblicas — Toggle Opcional (futuro)
 
-> **Escopo:** este conteúdo NÃO está no app hoje. O conteúdo bíblico (toggle opcional) está em "pendente de decisão" (`regras-de-negocio.md` §13). Se entrar, fica disponível apenas com o toggle de conteúdo religioso ativado pelo usuário (`spec.md`, Decisões-chave).
+> **Escopo:** este conteúdo NÃO está no app hoje. O conteúdo bíblico (toggle opcional) está em "pendente de decisão" (`regras-de-negocio.md` §14). Se entrar, fica disponível apenas com o toggle de conteúdo religioso ativado pelo usuário (`spec.md`, Decisões-chave).
 >
 > **Princípio inegociável:** os mesmos cinco princípios do produto valem aqui. Versículo que gere culpa, vergonha ou comparação está proibido, por mais conhecido que seja — ver seção 8 deste documento.
 
