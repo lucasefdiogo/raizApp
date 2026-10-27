@@ -6,10 +6,24 @@ jest.mock('../hooks/useTutorialStatus');
 jest.mock('../hooks/useAuth');
 jest.mock('../hooks/useOnboardingStatus');
 jest.mock('../hooks/useLocalNotifications');
+jest.mock('../hooks/useAtivacaoBloqueio');
 jest.mock('./MainTabNavigator', () => ({
   MainTabNavigator: ({ uid }: { uid: string }) => {
     const { Text } = require('react-native');
     return <Text>MainTabNavigator uid={uid}</Text>;
+  },
+}));
+// A AtivacaoStack (telas de configurar bloqueio) tem cobertura própria via
+// as telas que reaproveita — aqui só interessa que ela apareça no lugar
+// certo do roteamento, antes do priming/Main.
+jest.mock('./AtivacaoStack', () => ({
+  AtivacaoStack: ({ uid, onConcluir }: { uid: string; onConcluir: () => void }) => {
+    const { Text, Pressable } = require('react-native');
+    return (
+      <Pressable onPress={onConcluir}>
+        <Text>AtivacaoStack uid={uid}</Text>
+      </Pressable>
+    );
   },
 }));
 // A NotificationPrimingScreen tem teste próprio
@@ -71,6 +85,7 @@ const { useTutorialStatus } = require('../hooks/useTutorialStatus');
 const { useAuth } = require('../hooks/useAuth');
 const { useOnboardingStatus } = require('../hooks/useOnboardingStatus');
 const { useLocalNotifications } = require('../hooks/useLocalNotifications');
+const { useAtivacaoBloqueio } = require('../hooks/useAtivacaoBloqueio');
 
 function authAutenticado() {
   return {
@@ -99,6 +114,10 @@ function configurarHooksPadrao() {
     avaliarAlertaRisco: jest.fn(),
     deveExibirPriming: false,
     concluirPriming: jest.fn(),
+  });
+  useAtivacaoBloqueio.mockReturnValue({
+    deveExibirAtivacao: false,
+    concluirAtivacao: jest.fn(),
   });
 }
 
@@ -330,6 +349,57 @@ describe('RootNavigator', () => {
 
       expect(screen.queryByText('NotificationPrimingScreen')).toBeNull();
       expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
+    });
+  });
+
+  describe('ativação do bloqueio', () => {
+    it('deveExibirAtivacao true: mostra a AtivacaoStack antes do priming/Main', async () => {
+      useAtivacaoBloqueio.mockReturnValue({
+        deveExibirAtivacao: true,
+        concluirAtivacao: jest.fn(),
+      });
+      useLocalNotifications.mockReturnValue({
+        avaliarAlertaRisco: jest.fn(),
+        deveExibirPriming: true,
+        concluirPriming: jest.fn(),
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.getByText('AtivacaoStack uid=uid-teste')).toBeTruthy();
+      expect(screen.queryByText('NotificationPrimingScreen')).toBeNull();
+      expect(screen.queryByText('MainTabNavigator uid=uid-teste')).toBeNull();
+    });
+
+    it('deveExibirAtivacao false: comportamento de priming/Main fica como está', async () => {
+      useAtivacaoBloqueio.mockReturnValue({
+        deveExibirAtivacao: false,
+        concluirAtivacao: jest.fn(),
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.queryByText(/AtivacaoStack/)).toBeNull();
+      expect(screen.getByText('MainTabNavigator uid=uid-teste')).toBeTruthy();
+    });
+
+    it('usuário que já tinha onboardingConcluido antes desta mudança também vê a AtivacaoStack uma vez', async () => {
+      useOnboardingStatus.mockReturnValue({
+        carregando: false,
+        completo: true,
+        marcarComoCompleto: jest.fn(),
+      });
+      useAtivacaoBloqueio.mockReturnValue({
+        deveExibirAtivacao: true,
+        concluirAtivacao: jest.fn(),
+      });
+
+      await render(<RootNavigator />);
+      await passarSplash();
+
+      expect(screen.getByText('AtivacaoStack uid=uid-teste')).toBeTruthy();
     });
   });
 });

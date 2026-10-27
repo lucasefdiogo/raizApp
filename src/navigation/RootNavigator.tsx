@@ -10,10 +10,12 @@ import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 import { useTutorialStatus } from '../hooks/useTutorialStatus';
 import { useAuth } from '../hooks/useAuth';
 import { useLocalNotifications } from '../hooks/useLocalNotifications';
+import { useAtivacaoBloqueio } from '../hooks/useAtivacaoBloqueio';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { TutorialScreen } from '../screens/tutorial/TutorialScreen';
 import { SplashScreen } from '../screens/splash/SplashScreen';
 import { NotificationPrimingScreen } from '../screens/permissions/NotificationPrimingScreen';
+import { AtivacaoStack } from './AtivacaoStack';
 import { MainTabNavigator } from './MainTabNavigator';
 import { SignInScreen } from '../screens/auth/SignInScreen';
 import { SignUpScreen } from '../screens/auth/SignUpScreen';
@@ -26,6 +28,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   Onboarding: undefined;
   NotificationPriming: undefined;
+  Ativacao: undefined;
   Main: undefined;
 };
 
@@ -45,6 +48,12 @@ export function RootNavigator() {
   // autenticado + onboarding completo) — useLocalNotifications só age a
   // partir daqui, nunca antes.
   const notificacoes = useLocalNotifications(
+    auth.user?.uid ?? null,
+    !!auth.user && onboarding.completo,
+  );
+  // Mesma condição `pronto` de notificações — mostra uma vez, inclusive pra
+  // quem já tinha onboardingConcluido antes desta mudança (ver spec).
+  const ativacao = useAtivacaoBloqueio(
     auth.user?.uid ?? null,
     !!auth.user && onboarding.completo,
   );
@@ -134,7 +143,16 @@ export function RootNavigator() {
                 </Stack.Screen>
               </>
             ) : onboarding.completo ? (
-              notificacoes.deveExibirPriming ? (
+              ativacao.deveExibirAtivacao ? (
+                <Stack.Screen name="Ativacao">
+                  {() => (
+                    <AtivacaoStack
+                      uid={auth.user!.uid}
+                      onConcluir={ativacao.concluirAtivacao}
+                    />
+                  )}
+                </Stack.Screen>
+              ) : notificacoes.deveExibirPriming ? (
                 <Stack.Screen name="NotificationPriming">
                   {() => (
                     <NotificationPrimingScreen
