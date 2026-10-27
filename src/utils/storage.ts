@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
   rotinaRecalculoPendente: 'rotina_recalculo_pendente',
   /** Segunda-feira (YYYY-MM-DD) da semana em que a proposta do desafio de redução foi recusada. */
   desafioReducaoPropostaRecusadaEm: 'desafio_reducao_proposta_recusada_em',
+  ativacaoBloqueioMostrada: 'ativacao_bloqueio_mostrada',
 } as const;
 
 export async function salvarItem<T>(chave: string, valor: T): Promise<void> {
