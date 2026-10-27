@@ -20,7 +20,7 @@ const {
   adicionarTarefaAoDailyLog,
   marcarOnboardingConcluido,
 } = require('../services/firestore');
-const { logOnboardingConcluido } = require('../services/analytics');
+const { logOnboardingConcluido, logOnboardingPassoConcluido } = require('../services/analytics');
 const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('../hooks/useToast');
 
@@ -301,6 +301,7 @@ describe('OnboardingScreen', () => {
     ]);
     expect(await screen.findByText(TITULO_PRIMEIRA_TAREFA)).toBeTruthy();
     expect(marcarOnboardingConcluido).not.toHaveBeenCalled();
+    expect(logOnboardingPassoConcluido.mock.calls).toEqual([[0], [1], [2]]);
   });
 
   describe('passo de primeira tarefa', () => {
@@ -354,7 +355,7 @@ describe('OnboardingScreen', () => {
       });
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
-      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledWith(true);
     });
 
     it('"Pular por hoje": não cria tarefa nenhuma, mas marca concluído e chama onConcluir', async () => {
@@ -365,7 +366,7 @@ describe('OnboardingScreen', () => {
       expect(adicionarTarefaAoDailyLog).not.toHaveBeenCalled();
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
-      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledWith(false);
     });
 
     it('sem "Voltar" — o secundário aqui é "Pular por hoje"', async () => {

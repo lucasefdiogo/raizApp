@@ -14,7 +14,10 @@ import {
   adicionarTarefaAoDailyLog,
   marcarOnboardingConcluido,
 } from '../services/firestore';
-import { logOnboardingConcluido } from '../services/analytics';
+import {
+  logOnboardingConcluido,
+  logOnboardingPassoConcluido,
+} from '../services/analytics';
 import { registrarErro } from '../services/crashlytics';
 import { useOnboardingProgress } from './useOnboardingProgress';
 import { useToast } from './useToast';
@@ -112,12 +115,15 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     try {
       if (passo === PASSO_ONBOARDING.foco) {
         await progresso.salvarFoco(dados.focoProcrastinacao!);
+        logOnboardingPassoConcluido(PASSO_ONBOARDING.foco);
         setPasso(PASSO_ONBOARDING.tempoTela);
       } else if (passo === PASSO_ONBOARDING.tempoTela) {
         await progresso.salvarTempoTela(dados.tempoTelaEstimado!);
+        logOnboardingPassoConcluido(PASSO_ONBOARDING.tempoTela);
         setPasso(PASSO_ONBOARDING.porque);
       } else if (passo === PASSO_ONBOARDING.porque) {
         await progresso.salvarPorque(dados.porqueTexto);
+        logOnboardingPassoConcluido(PASSO_ONBOARDING.porque);
         setPasso(PASSO_ONBOARDING.primeiraTarefa);
       }
     } catch (erro) {
@@ -133,18 +139,21 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
   // Ponto único de conclusão de fato do onboarding — chamado pelos dois
   // caminhos do passo de primeira tarefa (criar a tarefa ou pular), nunca
   // mais ao final do porquê (esse agora é só mais um passo intermediário).
-  const concluirOnboarding = useCallback(async () => {
-    await marcarOnboardingConcluido(uid);
-    // Resposta otimista local — cobre o instante entre terminar o wizard e
-    // a escrita no Firestore confirmar (ver useOnboardingStatus).
-    await salvarItem(STORAGE_KEYS.onboarding, {
-      porqueTexto: dados.porqueTexto.trim(),
-      focoProcrastinacao: dados.focoProcrastinacao,
-      tempoTelaEstimado: dados.tempoTelaEstimado,
-    });
-    logOnboardingConcluido();
-    onConcluir();
-  }, [uid, dados, onConcluir]);
+  const concluirOnboarding = useCallback(
+    async (criouPrimeiraTarefa: boolean) => {
+      await marcarOnboardingConcluido(uid);
+      // Resposta otimista local — cobre o instante entre terminar o wizard e
+      // a escrita no Firestore confirmar (ver useOnboardingStatus).
+      await salvarItem(STORAGE_KEYS.onboarding, {
+        porqueTexto: dados.porqueTexto.trim(),
+        focoProcrastinacao: dados.focoProcrastinacao,
+        tempoTelaEstimado: dados.tempoTelaEstimado,
+      });
+      logOnboardingConcluido(criouPrimeiraTarefa);
+      onConcluir();
+    },
+    [uid, dados, onConcluir],
+  );
 
   const comecarComTarefa = useCallback(async () => {
     if (!podeComecar || salvando) {
@@ -158,7 +167,7 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
         essencial: true,
         concluida: false,
       });
-      await concluirOnboarding();
+      await concluirOnboarding(true);
     } catch (erro) {
       registrarErro(erro as Error, 'useOnboarding.comecarComTarefa');
       showToast(MENSAGEM_FALHA_ONBOARDING);
@@ -173,7 +182,7 @@ export function useOnboarding({ uid, onConcluir }: UseOnboardingParams) {
     }
     setSalvando(true);
     try {
-      await concluirOnboarding();
+      await concluirOnboarding(false);
     } catch (erro) {
       registrarErro(erro as Error, 'useOnboarding.pularPrimeiraTarefa');
       showToast(MENSAGEM_FALHA_ONBOARDING);
