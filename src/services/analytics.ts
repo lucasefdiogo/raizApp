@@ -50,8 +50,18 @@ export function logDesafioConcluido(tipo: string): void {
   logEvent(analytics(), 'desafio_concluido', { tipo });
 }
 
-export function logOnboardingConcluido(): void {
-  logEvent(analytics(), 'onboarding_concluido');
+export function logOnboardingConcluido(criouPrimeiraTarefa: boolean): void {
+  logEvent(analytics(), 'onboarding_concluido', { criouPrimeiraTarefa });
+}
+
+export function logOnboardingPassoConcluido(passo: number): void {
+  logEvent(analytics(), 'onboarding_passo_concluido', { passo });
+}
+
+export function logAtivacaoBloqueioConvite(
+  acao: 'configurar' | 'agora_nao',
+): void {
+  logEvent(analytics(), 'ativacao_bloqueio_convite', { acao });
 }
 
 /** Só ao concluir o último slide — não ao pular nos slides anteriores (ver

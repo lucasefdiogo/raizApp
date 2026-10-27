@@ -8,6 +8,8 @@ import {
   logInterceptShown,
   logMarcoStreakAtingido,
   logOnboardingConcluido,
+  logOnboardingPassoConcluido,
+  logAtivacaoBloqueioConvite,
   logAlternativaEscolhida,
   logAlternativaNoturnaRespondida,
   logDesafioReducaoProposto,
@@ -95,12 +97,33 @@ describe('services/analytics', () => {
     );
   });
 
-  it('logOnboardingConcluido envia o evento sem parâmetros', () => {
-    logOnboardingConcluido();
+  it('logOnboardingConcluido envia se criou a primeira tarefa', () => {
+    logOnboardingConcluido(true);
 
     expect(analyticsMock.logEvent).toHaveBeenCalledWith(
       expect.anything(),
       'onboarding_concluido',
+      { criouPrimeiraTarefa: true },
+    );
+  });
+
+  it('logOnboardingPassoConcluido envia o índice do passo', () => {
+    logOnboardingPassoConcluido(1);
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'onboarding_passo_concluido',
+      { passo: 1 },
+    );
+  });
+
+  it('logAtivacaoBloqueioConvite envia a ação escolhida', () => {
+    logAtivacaoBloqueioConvite('configurar');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'ativacao_bloqueio_convite',
+      { acao: 'configurar' },
     );
   });
 
