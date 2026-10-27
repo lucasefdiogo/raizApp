@@ -282,4 +282,30 @@ describe('useDesafios', () => {
       'useDesafios.recarregar',
     );
   });
+
+  it('ignora um desafio de redução ativo no pool — não é tratado como o semanal do catálogo nem fechado por ela', async () => {
+    const desafioReducao = {
+      id: 'reducao_tempo_redes-2026-09-14',
+      titulo: 'Até 5h 40min nas redes esta semana',
+      tipo: 'reducao_tempo_redes',
+      periodo: 'semanal',
+      dataInicio: '2026-09-14',
+      dataFim: '2026-09-20',
+      meta: 20400,
+      progresso: 10000,
+      status: 'ativo',
+    };
+    firestore.buscarDesafiosAtivos.mockResolvedValue([desafioReducao]);
+
+    const { result } = await renderHook(() => useDesafios('uid-1'));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+
+    expect(result.current.desafioSemanal).toMatchObject({ tipo: 'essencial_todo_dia' });
+    expect(firestore.atualizarProgressoDesafio).not.toHaveBeenCalledWith(
+      'uid-1',
+      'reducao_tempo_redes-2026-09-14',
+      expect.anything(),
+      expect.anything(),
+    );
+  });
 });

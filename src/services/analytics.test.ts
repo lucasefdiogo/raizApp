@@ -10,6 +10,9 @@ import {
   logOnboardingConcluido,
   logAlternativaEscolhida,
   logAlternativaNoturnaRespondida,
+  logDesafioReducaoProposto,
+  logDesafioReducaoRespondido,
+  logDesafioReducaoFechado,
   logPermissaoAccessibility,
   logPermissaoNotificacao,
   logReflexaoSemanalExibida,
@@ -284,6 +287,35 @@ describe('services/analytics', () => {
       expect.anything(),
       'alternativa_escolhida',
       { tipo: 'tarefa_essencial', tela: 'pausa' },
+    );
+  });
+
+  it('logDesafioReducaoProposto envia o evento sem parâmetros', () => {
+    logDesafioReducaoProposto();
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'desafio_reducao_proposto',
+    );
+  });
+
+  it('logDesafioReducaoRespondido envia a ação', () => {
+    logDesafioReducaoRespondido('aceitou');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'desafio_reducao_respondido',
+      { acao: 'aceitou' },
+    );
+  });
+
+  it('logDesafioReducaoFechado envia o resultado, sem tempo/meta/base/app', () => {
+    logDesafioReducaoFechado('concluido');
+
+    expect(analyticsMock.logEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      'desafio_reducao_fechado',
+      { resultado: 'concluido' },
     );
   });
 });

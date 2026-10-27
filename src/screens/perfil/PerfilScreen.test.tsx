@@ -37,6 +37,8 @@ function configurarPerfilPadrao(sobrescritas = {}) {
     alternarNotificacoes: jest.fn().mockResolvedValue(undefined),
     alterarHorario: jest.fn().mockResolvedValue(undefined),
     testarCrash: jest.fn(),
+    semearDesafioReducaoConcluido: jest.fn().mockResolvedValue(undefined),
+    semearDesafioReducaoExpirado: jest.fn().mockResolvedValue(undefined),
     ...sobrescritas,
   });
 }
@@ -529,6 +531,47 @@ describe('PerfilScreen', () => {
           <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />,
         );
         expect(screen.queryByText('🔧 Testar Crashlytics')).toBeNull();
+      } finally {
+        // @ts-expect-error ver acima
+        __DEV__ = devOriginal;
+      }
+    });
+  });
+
+  describe('"Semear semana" do desafio de redução (dev)', () => {
+    it('aparece em __DEV__ e chama semearDesafioReducaoConcluido do hook ao tocar', async () => {
+      const semearDesafioReducaoConcluido = jest.fn().mockResolvedValue(undefined);
+      configurarPerfilPadrao({ semearDesafioReducaoConcluido });
+
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('🌱 Semear semana (fecha concluído)'));
+
+      expect(semearDesafioReducaoConcluido).toHaveBeenCalledTimes(1);
+    });
+
+    it('aparece em __DEV__ e chama semearDesafioReducaoExpirado do hook ao tocar', async () => {
+      const semearDesafioReducaoExpirado = jest.fn().mockResolvedValue(undefined);
+      configurarPerfilPadrao({ semearDesafioReducaoExpirado });
+
+      await render(<PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />);
+
+      await fireEvent.press(screen.getByText('🌱 Semear semana (fecha expirado)'));
+
+      expect(semearDesafioReducaoExpirado).toHaveBeenCalledTimes(1);
+    });
+
+    it('não aparece fora de __DEV__', async () => {
+      const devOriginal = __DEV__;
+      // @ts-expect-error __DEV__ é `declare var` só-leitura no ambiente RN
+      __DEV__ = false;
+
+      try {
+        await render(
+          <PerfilScreen uid="uid-teste" aoAbrirBloqueioApps={jest.fn()} />,
+        );
+        expect(screen.queryByText('🌱 Semear semana (fecha concluído)')).toBeNull();
+        expect(screen.queryByText('🌱 Semear semana (fecha expirado)')).toBeNull();
       } finally {
         // @ts-expect-error ver acima
         __DEV__ = devOriginal;

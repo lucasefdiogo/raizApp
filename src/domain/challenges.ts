@@ -75,7 +75,7 @@ export function gerarCatalogoDoPeriodo(
   periodo: PeriodoDesafio,
   inicio: string,
   fim: string,
-): Desafio[] {
+): Array<Desafio & { tipo: TipoDesafio }> {
   let tipo: TipoDesafio;
   if (periodo === 'mensal') {
     tipo = 'dias_ativos_20';
@@ -133,7 +133,7 @@ function contarDiasAtivos(
  * se algo mudar retroativamente. Progresso é limitado à meta.
  */
 export function calcularProgressoDesafio(
-  desafio: Desafio,
+  desafio: Desafio & { tipo: TipoDesafio },
   dailyLogsDoPeriodo: DailyLogResumo[],
   hoje: Date,
 ): Desafio {

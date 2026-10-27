@@ -94,12 +94,13 @@ evitar condição de corrida.
 
 | Campo | Tipo | Descrição |
 |---|---|---|
-| `id` / `titulo` | string | Um dos 3 do catálogo fixo (`src/domain/challenges.ts`) |
-| `tipo` | string | Qual regra de cálculo de progresso aplicar |
+| `id` / `titulo` | string | Um dos 3 do catálogo fixo (`src/domain/challenges.ts`), ou o desafio de redução (`src/domain/desafioReducao.ts`, fora do catálogo) |
+| `tipo` | string | Qual regra de cálculo de progresso aplicar — um dos 3 do catálogo, ou `'reducao_tempo_redes'` (fora do catálogo; `useDesafios` filtra esse tipo do pool automático) |
 | `periodo` | string | `semanal` \| `mensal` |
 | `dataInicio` / `dataFim` | string (`YYYY-MM-DD`) | |
 | `meta` / `progresso` | number | `progresso` sempre recalculado dos `dailyLogs` reais |
 | `status` | string | `ativo` \| `concluido` \| `expirado` |
+| `baseSegundos` | number, opcional | Só no desafio de redução — tempo bloqueado da semana anterior usado para calcular `meta` (ver `calcularBaseSegundos`) |
 
 ## `phrases/{phraseId}` (coleção global)
 

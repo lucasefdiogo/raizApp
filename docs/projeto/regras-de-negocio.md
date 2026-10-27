@@ -146,6 +146,35 @@ automaticamente no início do período (segunda-feira / dia 1).
 - Progresso sempre recalculado dos `dailyLogs` reais, nunca incrementado manualmente.
 - Meta não atingida no fim do período → `status: 'expirado'`, sem afetar nada mais.
 
+### Desafio de redução de tempo nas redes
+
+Terceiro desafio, opcional e fora do catálogo fixo acima — proposto dentro da
+`ReflexaoSemanalSheet` (seção 5), nunca digitado pelo usuário. Lógica pura em
+`domain/desafioReducao.ts`, orquestrada por `hooks/useDesafioReducao.ts`.
+
+- **Elegibilidade** (as 4 precisam valer): a reflexão já está aparecendo; o tempo bloqueado da
+  semana anterior é ≥ 1h; não há desafio de redução ativo; a proposta desta semana ainda não foi
+  respondida (aceite cria o desafio; recusa grava a semana em AsyncStorage e não volta).
+- **Base:** tempo bloqueado (mesmo filtro do card) da semana anterior. 7 dias com `usoApps` →
+  soma; 4-6 dias → média dos dias com dado × 7. Um dia sem `usoApps` nunca conta como zero (fora
+  da média).
+- **Meta:** base × 0,9, arredondada pra baixo ao múltiplo de 5 min mais próximo (ex.: base
+  6h20min → meta 5h40min).
+- **Progresso:** sempre recalculado do `usoApps` da semana, filtrado pelos apps bloqueados
+  atuais — nunca incrementado. Sem acesso de uso (revogado no meio da semana), o progresso
+  congela no último valor e o card mostra "Sem medição desde {dia da semana}".
+- **Fechamento** (ao abrir o app depois de `dataFim`): progresso ≤ meta → `concluido`; senão →
+  `expirado` (também `expirado`, sem texto de resultado, se congelou por falta de acesso de uso).
+  Se a semana anterior fechou `concluido`, a próxima reflexão mostra "Você fechou a semana
+  passada dentro do combinado." acima do título; se `expirado`, não diz nada sobre isso.
+- Ultrapassar a meta antes do fim da semana não fecha o desafio nem muda a cor da barra — só
+  troca o texto por "Passou do combinado desta semana. Na segunda tem outra proposta.".
+- Convive com o catálogo sem interferir: `useDesafios` filtra `tipo: 'reducao_tempo_redes'` fora
+  do pool de desafios automáticos (não entra na regra de 1 semanal + 1 mensal, nem é fechado por
+  `calcularProgressoDesafio`).
+- Analytics: `desafio_reducao_proposto`, `desafio_reducao_respondido` (`acao`), `desafio_reducao_fechado`
+  (`resultado`) — nenhum parâmetro leva tempo de uso, meta, base ou nome de app.
+
 ---
 
 ## 5. Progresso — tempo nas redes e reflexão da semana (HU-08, HU-13)
@@ -193,7 +222,8 @@ automaticamente no início do período (segunda-feira / dia 1).
   > 50%, senão "O {app} foi o que mais ocupou."), e 3 números: média por dia, dia mais longo
   ("qui") e total de aberturas. "Entendi" e "Agora não" só fecham.
 - Controle: semana já mostrada em AsyncStorage `reflexao_semanal_vista` (data da segunda).
-- Não propõe desafio nem meta.
+- Quando elegível, mostra também a proposta do desafio de redução de tempo nas redes — ver
+  seção 4, "Desafio de redução de tempo nas redes".
 
 ### Privacidade e tom
 - Nenhum número revela horário de dormir/acordar (`primeiroUsoDia`, `ultimoUsoAntesPausaLonga` e

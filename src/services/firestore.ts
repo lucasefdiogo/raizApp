@@ -911,6 +911,14 @@ export async function criarDesafio(
   await setDoc(documentoDesafio(uid, desafio.id), desafio);
 }
 
+export async function buscarDesafio(
+  uid: string,
+  challengeId: string,
+): Promise<Desafio | null> {
+  const snapshot = await getDoc(documentoDesafio(uid, challengeId));
+  return snapshot.exists() ? (snapshot.data() as Desafio) : null;
+}
+
 export async function atualizarProgressoDesafio(
   uid: string,
   challengeId: string,

@@ -31,7 +31,10 @@ import {
   URL_POLITICA_PRIVACIDADE,
   URL_TERMOS_DE_USO,
 } from '../../config/legalLinks';
-import { MOSTRAR_TESTAR_CRASHLYTICS } from '../../config/debugFlags';
+import {
+  MOSTRAR_SEMEAR_DESAFIO_REDUCAO,
+  MOSTRAR_TESTAR_CRASHLYTICS,
+} from '../../config/debugFlags';
 
 const DURACAO_FEEDBACK_SALVO_MS = 2000;
 const HORARIO_PADRAO = '08:00';
@@ -73,6 +76,8 @@ export function PerfilScreen({
     alterarHorario,
     carregando,
     testarCrash,
+    semearDesafioReducaoConcluido,
+    semearDesafioReducaoExpirado,
   } = usePerfil(uid);
   const { signOut } = useAuth();
   const {
@@ -291,6 +296,27 @@ export function PerfilScreen({
           >
             <Text style={styles.debugTexto}>🔧 Testar Crashlytics</Text>
           </Pressable>
+        )}
+
+        {(__DEV__ || MOSTRAR_SEMEAR_DESAFIO_REDUCAO) && (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              onPress={semearDesafioReducaoConcluido}
+              style={styles.debugLink}
+              hitSlop={8}
+            >
+              <Text style={styles.debugTexto}>🌱 Semear semana (fecha concluído)</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={semearDesafioReducaoExpirado}
+              style={styles.debugLink}
+              hitSlop={8}
+            >
+              <Text style={styles.debugTexto}>🌱 Semear semana (fecha expirado)</Text>
+            </Pressable>
+          </>
         )}
       </ScrollView>
 

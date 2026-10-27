@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { ReflexaoSemanalDados } from '../../domain/resumoRedes';
+import { PropostaDesafioReducao } from '../../domain/desafioReducao';
 import { PrimaryButton } from '../PrimaryButton';
 
 interface ReflexaoSemanalSheetProps {
@@ -10,6 +11,9 @@ interface ReflexaoSemanalSheetProps {
   dados: ReflexaoSemanalDados;
   onEntendi: () => void;
   onAgoraNao: () => void;
+  proposta?: PropostaDesafioReducao | null;
+  resultadoAnteriorTexto?: string | null;
+  onAceitarProposta?: () => void;
 }
 
 /**
@@ -23,6 +27,9 @@ export function ReflexaoSemanalSheet({
   dados,
   onEntendi,
   onAgoraNao,
+  proposta,
+  resultadoAnteriorTexto,
+  onAceitarProposta,
 }: ReflexaoSemanalSheetProps) {
   const insets = useSafeAreaInsets();
 
@@ -33,6 +40,9 @@ export function ReflexaoSemanalSheet({
           style={[styles.cartao, { paddingBottom: theme.spacing.xl + insets.bottom }]}
           onPress={() => {}}
         >
+          {resultadoAnteriorTexto && (
+            <Text style={styles.resultadoAnterior}>{resultadoAnteriorTexto}</Text>
+          )}
           <Text style={styles.eyebrow}>{dados.periodoLabel}</Text>
           <Text style={styles.titulo}>Sua semana nas redes</Text>
           <Text style={styles.paragrafo}>
@@ -55,7 +65,16 @@ export function ReflexaoSemanalSheet({
             </View>
           </View>
 
-          <PrimaryButton titulo="Entendi" onPress={onEntendi} />
+          {proposta ? (
+            <>
+              <Text style={styles.eyebrow}>PROPOSTA PARA ESTA SEMANA</Text>
+              <Text style={styles.titulo}>{proposta.titulo}</Text>
+              <Text style={styles.paragrafo}>{proposta.linha}</Text>
+              <PrimaryButton titulo="Aceitar" onPress={onAceitarProposta ?? (() => {})} />
+            </>
+          ) : (
+            <PrimaryButton titulo="Entendi" onPress={onEntendi} />
+          )}
           <Pressable
             accessibilityRole="button"
             onPress={onAgoraNao}
@@ -83,6 +102,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
     gap: theme.spacing.sm,
+  },
+  resultadoAnterior: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.body,
+    color: theme.colors.textSecondary,
   },
   eyebrow: {
     fontSize: theme.typography.fontSize.xs,
