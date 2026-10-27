@@ -28,6 +28,11 @@ describe('TutorialScreen', () => {
     expect(screen.getByText('Vamos começar pequeno.')).toBeTruthy();
     expect(screen.getByText('Começar')).toBeTruthy();
     expect(screen.getByText('Já tenho conta')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Antes de tudo, queremos entender o que mais pesa pra você hoje. Mais adiante, você configura o bloqueio das redes que mais tiram seu foco. Leva menos de 2 minutos.',
+      ),
+    ).toBeTruthy();
   });
 
   it('chama onConcluir(false) ao pular a partir do primeiro slide', async () => {
