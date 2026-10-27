@@ -49,7 +49,7 @@ export function AtivacaoStack({ uid, onConcluir }: AtivacaoStackProps) {
             aoTocarAtivar={() => navigation.navigate('DivulgacaoAcessibilidade')}
             aoTocarSaibaOQueE={() => navigation.navigate('DivulgacaoAcessibilidade')}
             aoTocarMedirTempo={() => navigation.navigate('DivulgacaoAcessoUso')}
-            onVoltar={() => navigation.goBack()}
+            onVoltar={onConcluir}
           />
         )}
       </Stack.Screen>
