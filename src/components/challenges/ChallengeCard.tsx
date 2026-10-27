@@ -2,12 +2,18 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { StatusDesafio } from '../../domain/types';
+import { formatarDuracao } from '../../domain/resumoRedes';
 
 interface ChallengeCardProps {
   titulo: string;
   progresso: number;
   meta: number;
   status: StatusDesafio;
+  /** 'piso' (default): quanto maior, melhor. 'teto': quanto menos, melhor. */
+  variante?: 'piso' | 'teto';
+  diasRestantesTexto?: string;
+  ultrapassou?: boolean;
+  semMedicaoDesde?: string;
 }
 
 const MENSAGEM_STATUS: Partial<Record<StatusDesafio, string>> = {
@@ -25,10 +31,21 @@ export function ChallengeCard({
   progresso,
   meta,
   status,
+  variante = 'piso',
+  diasRestantesTexto,
+  ultrapassou,
+  semMedicaoDesde,
 }: ChallengeCardProps) {
   const fracao = meta > 0 ? Math.max(0, Math.min(1, progresso / meta)) : 0;
   const expirado = status === 'expirado';
-  const mensagem = MENSAGEM_STATUS[status];
+  const teto = variante === 'teto';
+  const mensagem = teto
+    ? ultrapassou
+      ? 'Passou do combinado desta semana. Na segunda tem outra proposta.'
+      : semMedicaoDesde
+      ? `Sem medição desde ${semMedicaoDesde}`
+      : undefined
+    : MENSAGEM_STATUS[status];
 
   return (
     <View
@@ -45,8 +62,14 @@ export function ChallengeCard({
       </View>
 
       <Text style={styles.contagem}>
-        {progresso} de {meta}
+        {teto
+          ? `${formatarDuracao(progresso)} de ${formatarDuracao(meta)}`
+          : `${progresso} de ${meta}`}
       </Text>
+
+      {teto && diasRestantesTexto && (
+        <Text style={styles.contagem}>{diasRestantesTexto}</Text>
+      )}
 
       {mensagem && <Text style={styles.status}>{mensagem}</Text>}
     </View>

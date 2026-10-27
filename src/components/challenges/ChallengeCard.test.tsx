@@ -66,4 +66,48 @@ describe('ChallengeCard', () => {
     );
     expect(larguraBarra()).toBe('100%');
   });
+
+  it('variante teto: mostra a duração formatada e os dias restantes em vez de "X de Y"', async () => {
+    await render(
+      <ChallengeCard
+        titulo="Até 5h 40min nas redes esta semana"
+        progresso={3600} meta={20400} status="ativo"
+        variante="teto" diasRestantesTexto="4 dias restantes"
+      />,
+    );
+
+    expect(screen.getByText('1h de 5h 40min')).toBeTruthy();
+    expect(screen.getByText('4 dias restantes')).toBeTruthy();
+  });
+
+  it('variante teto, ultrapassou: barra cheia e a frase de ultrapassagem, sem Concluído nem cor de erro', async () => {
+    await render(
+      <ChallengeCard
+        titulo="Até 5h 40min nas redes esta semana"
+        progresso={21600} meta={20400} status="ativo"
+        variante="teto" diasRestantesTexto="1 dia restante" ultrapassou
+      />,
+    );
+
+    expect(larguraBarra()).toBe('100%');
+    expect(screen.getByText('Passou do combinado desta semana. Na segunda tem outra proposta.')).toBeTruthy();
+    expect(screen.queryByText('Concluído.')).toBeNull();
+  });
+
+  it('variante teto, sem medição: mostra a frase de interrupção', async () => {
+    await render(
+      <ChallengeCard
+        titulo="Até 5h 40min nas redes esta semana"
+        progresso={3600} meta={20400} status="ativo"
+        variante="teto" diasRestantesTexto="2 dias restantes" semMedicaoDesde="quarta-feira"
+      />,
+    );
+
+    expect(screen.getByText('Sem medição desde quarta-feira')).toBeTruthy();
+  });
+
+  it('variante piso (default) continua igual a antes', async () => {
+    await render(<ChallengeCard titulo="Exercite-se 3x essa semana" progresso={2} meta={3} status="ativo" />);
+    expect(screen.getByText('2 de 3')).toBeTruthy();
+  });
 });
