@@ -94,4 +94,83 @@ describe('HU-08 · ReflexaoSemanalSheet', () => {
 
     expect(screen.getByText('6h 40min no total.')).toBeTruthy();
   });
+
+  const PROPOSTA = {
+    titulo: 'Até 5h 40min nas redes',
+    linha: 'Cerca de 40 min a menos que a semana passada. Pequeno de propósito.',
+    metaSegundos: 20400,
+    baseSegundos: 22800,
+  };
+
+  it('com proposta, mostra o bloco no lugar de Entendi/Agora não', async () => {
+    await render(
+      <ReflexaoSemanalSheet
+        visible
+        dados={DADOS}
+        proposta={PROPOSTA}
+        onEntendi={jest.fn()}
+        onAgoraNao={jest.fn()}
+        onAceitarProposta={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('PROPOSTA PARA ESTA SEMANA')).toBeTruthy();
+    expect(screen.getByText('Até 5h 40min nas redes')).toBeTruthy();
+    expect(
+      screen.getByText('Cerca de 40 min a menos que a semana passada. Pequeno de propósito.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Aceitar')).toBeTruthy();
+    expect(screen.getByText('Agora não')).toBeTruthy();
+    expect(screen.queryByText('Entendi')).toBeNull();
+  });
+
+  it('"Aceitar" chama onAceitarProposta, não onEntendi', async () => {
+    const onAceitarProposta = jest.fn();
+    const onEntendi = jest.fn();
+    await render(
+      <ReflexaoSemanalSheet
+        visible
+        dados={DADOS}
+        proposta={PROPOSTA}
+        onEntendi={onEntendi}
+        onAgoraNao={jest.fn()}
+        onAceitarProposta={onAceitarProposta}
+      />,
+    );
+
+    await fireEvent.press(screen.getByText('Aceitar'));
+
+    expect(onAceitarProposta).toHaveBeenCalledTimes(1);
+    expect(onEntendi).not.toHaveBeenCalled();
+  });
+
+  it('sem proposta, continua mostrando Entendi/Agora não como antes', async () => {
+    await render(
+      <ReflexaoSemanalSheet
+        visible
+        dados={DADOS}
+        onEntendi={jest.fn()}
+        onAgoraNao={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Entendi')).toBeTruthy();
+    expect(screen.queryByText('PROPOSTA PARA ESTA SEMANA')).toBeNull();
+  });
+
+  it('com resultadoAnteriorTexto, mostra a frase acima do título', async () => {
+    await render(
+      <ReflexaoSemanalSheet
+        visible
+        dados={DADOS}
+        resultadoAnteriorTexto="Você fechou a semana passada dentro do combinado."
+        onEntendi={jest.fn()}
+        onAgoraNao={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText('Você fechou a semana passada dentro do combinado.'),
+    ).toBeTruthy();
+  });
 });
