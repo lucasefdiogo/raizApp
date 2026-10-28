@@ -1,10 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { theme } from '../../theme';
+import { FocoProcrastinacao } from '../../domain/types';
+import { SUGESTOES_ALTERNATIVAS } from '../../domain/sugestoesAlternativas';
+import { Chip } from '../intercept/Chip';
 
 interface OnboardingStepPrimeiraTarefaProps {
   valor: string;
   onAlterar: (titulo: string) => void;
+  foco: FocoProcrastinacao | null;
 }
 
 /**
@@ -18,23 +22,45 @@ interface OnboardingStepPrimeiraTarefaProps {
 export function OnboardingStepPrimeiraTarefa({
   valor,
   onAlterar,
+  foco,
 }: OnboardingStepPrimeiraTarefaProps) {
+  const ehRedesSociais = foco === 'redes_sociais';
+
   return (
     <View>
-      <Text style={styles.titulo}>Vamos começar pequeno de propósito.</Text>
+      <Text style={styles.titulo}>
+        {ehRedesSociais
+          ? 'O que você vai fazer no lugar da rolagem hoje?'
+          : 'Vamos começar pequeno de propósito.'}
+      </Text>
       <Text style={styles.descricao}>
         Escolha 1 coisa simples que você consegue terminar hoje em menos de
         10 minutos.
       </Text>
       <TextInput
         style={styles.input}
-        placeholder="ex: separar a roupa de treino"
+        placeholder={
+          ehRedesSociais
+            ? 'O que você faria em vez de abrir o feed?'
+            : 'ex: separar a roupa de treino'
+        }
         placeholderTextColor={theme.colors.textSecondary}
         value={valor}
         onChangeText={onAlterar}
         accessibilityLabel="Sua primeira tarefa"
         returnKeyType="done"
       />
+      {ehRedesSociais && (
+        <View style={styles.chips}>
+          {SUGESTOES_ALTERNATIVAS.map(sugestao => (
+            <Chip
+              key={sugestao}
+              titulo={sugestao}
+              onPress={() => onAlterar(sugestao)}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -61,5 +87,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.body,
     color: theme.colors.textPrimary,
     backgroundColor: theme.colors.surface,
+  },
+  chips: {
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
 });

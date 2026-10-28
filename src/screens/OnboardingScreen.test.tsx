@@ -20,7 +20,7 @@ const {
   adicionarTarefaAoDailyLog,
   marcarOnboardingConcluido,
 } = require('../services/firestore');
-const { logOnboardingConcluido } = require('../services/analytics');
+const { logOnboardingConcluido, logOnboardingPassoConcluido } = require('../services/analytics');
 const { registrarErro } = require('../services/crashlytics');
 const { useToast } = require('../hooks/useToast');
 
@@ -301,6 +301,7 @@ describe('OnboardingScreen', () => {
     ]);
     expect(await screen.findByText(TITULO_PRIMEIRA_TAREFA)).toBeTruthy();
     expect(marcarOnboardingConcluido).not.toHaveBeenCalled();
+    expect(logOnboardingPassoConcluido.mock.calls).toEqual([[0], [1], [2]]);
   });
 
   describe('passo de primeira tarefa', () => {
@@ -322,6 +323,20 @@ describe('OnboardingScreen', () => {
       await chegarNaPrimeiraTarefa();
       expect(screen.getByText('Começar')).toBeTruthy();
       expect(screen.getByText('Pular por hoje')).toBeTruthy();
+    });
+
+    it('com foco redes_sociais, repassa pra OnboardingStepPrimeiraTarefa mostrar a linguagem da HU-07', async () => {
+      buscarUsuario.mockResolvedValue(
+        usuario({
+          focoProcrastinacao: 'redes_sociais',
+          tempoTelaEstimado: 4,
+          porqueTexto: 'Quero usar menos o celular',
+        }),
+      );
+      await render(<OnboardingScreen uid="uid-1" onConcluir={jest.fn()} />);
+      expect(
+        await screen.findByText('O que você vai fazer no lugar da rolagem hoje?'),
+      ).toBeTruthy();
     });
 
     it('"Começar" desabilitado com o campo vazio', async () => {
@@ -354,7 +369,7 @@ describe('OnboardingScreen', () => {
       });
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
-      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledWith(true);
     });
 
     it('"Pular por hoje": não cria tarefa nenhuma, mas marca concluído e chama onConcluir', async () => {
@@ -365,7 +380,7 @@ describe('OnboardingScreen', () => {
       expect(adicionarTarefaAoDailyLog).not.toHaveBeenCalled();
       expect(marcarOnboardingConcluido).toHaveBeenCalledWith('uid-1');
       expect(onConcluir).toHaveBeenCalledTimes(1);
-      expect(logOnboardingConcluido).toHaveBeenCalledTimes(1);
+      expect(logOnboardingConcluido).toHaveBeenCalledWith(false);
     });
 
     it('sem "Voltar" — o secundário aqui é "Pular por hoje"', async () => {

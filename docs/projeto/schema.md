@@ -130,7 +130,7 @@ glorificação de sofrimento, responsabilização punitiva) — nunca adicionar 
 **Conteúdo bíblico (toggle futuro, fora do app hoje):** `banco-de-versiculos.md` (nesta pasta)
 descreve uma coleção separada planejada, `biblicalPhrases/{phraseId}` (`referencia`, `texto`,
 `traducao`, `tema`, `contexto`, `ativa`), usando a tradução Almeida (domínio público) para
-evitar custo de licenciamento. Pendente de decisão de produto (ver `regras-de-negocio.md` §13) — mesma regra de exibição e mesmo critério de triagem contra conteúdo
+evitar custo de licenciamento. Pendente de decisão de produto (ver `regras-de-negocio.md` §14) — mesma regra de exibição e mesmo critério de triagem contra conteúdo
 culpabilizante do banco neutro.
 
 ## `systemMessages/{messageKey}` (coleção global)

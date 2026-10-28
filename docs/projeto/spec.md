@@ -65,7 +65,7 @@ Se uma tarefa pedir algo que contradiga isso, apontar o conflito antes de implem
 | Identidade visual | Raiz, tema único no MVP | Metáfora de fundação/consistência |
 | Monetização | Assinatura do app inteiro, 7 dias grátis, verificação via Cloud Function | Ver seção "Loja e publicação" abaixo |
 | Pacote Android | `com.luxthorapps.rootora` (permanente após 1ª publicação) | — |
-| Pendente de decisão | XP/níveis, micro-reflexão pós-recaída, conteúdo bíblico (toggle), seleção de tema | Ver `regras-de-negocio.md` §13 |
+| Pendente de decisão | XP/níveis, micro-reflexão pós-recaída, conteúdo bíblico (toggle), seleção de tema | Ver `regras-de-negocio.md` §14 |
 
 ## Regras de Negócio
 

@@ -117,7 +117,7 @@ export function TutorialScreen({ onConcluir }: TutorialScreenProps) {
           passoAtual={3}
           totalPassos={TOTAL_PASSOS}
           titulo="Vamos começar pequeno."
-          rodape="Antes de tudo, queremos entender o que mais pesa pra você hoje. Leva menos de 2 minutos."
+          rodape="Antes de tudo, queremos entender o que mais pesa pra você hoje. Mais adiante, você configura o bloqueio das redes que mais tiram seu foco. Leva menos de 2 minutos."
           botaoPrimario={{ titulo: 'Começar', onPress: concluir }}
           botaoSecundario={{ titulo: 'Já tenho conta', onPress: concluir }}
         />

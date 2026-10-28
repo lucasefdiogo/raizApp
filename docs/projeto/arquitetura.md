@@ -18,6 +18,7 @@ pelas fixtures compartilhadas.
   `RootNavigator` é um `Stack.Navigator` único (não stacks separados por arquivo):
   ```
   Splash → Tutorial → Auth (SignIn/SignUp/ForgotPassword) → Onboarding
+    → AtivacaoStack (uma vez, inclusive pra quem já tinha onboardingConcluido antes)
     → NotificationPriming (uma vez) → Main
   Main → MainTabNavigator (Hoje / Progresso / Perfil)
   Interceptação de apps bloqueados: root RN separado ('Intercept', InterceptActivity nativa),
@@ -92,6 +93,10 @@ Bloqueio de apps e coleta de uso rodam em módulos Kotlin dedicados:
 | Accessibility Service | Manual, via Configurações do sistema (sem diálogo nativo) | `DivulgacaoAcessibilidadeScreen`, ANTES de abrir as configurações |
 | `PACKAGE_USAGE_STATS` | Especial, manual nas configurações do Android | `DivulgacaoAcessoUsoScreen` |
 | Notificações (`POST_NOTIFICATIONS`, Android 13+) | Runtime, diálogo nativo | `NotificationPrimingScreen`, uma vez no primeiro boot pós-onboarding |
+
+Accessibility Service e `PACKAGE_USAGE_STATS` agora têm um ponto de entrada único logo depois
+do onboarding (`AtivacaoConviteScreen` → `AtivacaoStack`, reaproveitando as mesmas telas acima),
+além do já existente via Perfil → Bloqueio de apps.
 
 Não usamos `QUERY_ALL_PACKAGES` — a lista de apps da tela de bloqueio é resolvida via `<queries>`
 no manifesto (`MAIN`/`LAUNCHER` para a lista curada), que não exige formulário de justificativa
