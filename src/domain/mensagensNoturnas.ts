@@ -6,9 +6,9 @@ export const MENSAGENS_NOTURNAS: string[] = [
   'Esta hora costuma ser de tela. Dá para escolher outra coisa.',
   'Noites mais calmas deixam as manhãs mais leves.',
   'Respirar fundo antes de abrir também é uma escolha.',
-  'O que pode esperar até amanhã costuma esperar bem.',
+  'O que pode esperar até amanhã, deixa esperar.',
   'Quem dorme melhor começa o dia com menos esforço.',
-  'Fechar o dia devagar ajuda a mente a descer.',
+  'Fechar o dia devagar ajuda a mente a desacelerar.',
   'Um gesto pequeno agora: água, luz baixa, silêncio.',
   'O feed continua lá amanhã. O seu descanso é agora.',
 ];
