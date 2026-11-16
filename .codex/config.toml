@@ -1,0 +1,24 @@
+# Configuracao local do projeto Rootora. Carregada pelo Codex ao confiar no repositorio.
+# O modo bypassPermissions do Claude nao e copiado: manter aprovacao para excecoes
+# preserva os limites de escrita e permite liberar operacoes pontuais quando preciso.
+approval_policy = "on-request"
+default_permissions = "rootora"
+
+[features]
+network_proxy = true
+
+[permissions.rootora]
+description = "Edicao do Rootora com configuracoes do Claude somente para leitura e rede limitada."
+extends = ":workspace"
+
+[permissions.rootora.filesystem.":workspace_roots"]
+".claude" = "read"
+".git/hooks" = "read"
+
+[permissions.rootora.network]
+enabled = true
+
+[permissions.rootora.network.domains]
+"*.github.com" = "allow"
+"*.npmjs.com" = "allow"
+"*.pypi.org" = "allow"
