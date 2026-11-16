@@ -22,6 +22,15 @@ Todos os 5 arquivos são abríveis direto no navegador (sem build), usam as mesm
 hardcoded em `:root` — refletir qualquer mudança de paleta aqui também, se o protótipo
 continuar em uso como referência.
 
+## Proposta em avaliação
+
+`docs/design/prototipo/plano-primeiro-passo.html` exemplifica um plano opcional associado a uma
+tarefa e a um app da lista de bloqueio: preparar um primeiro gesto, encontrá-lo na pausa de
+intenção e iniciar 2 minutos de foco. É um protótipo interativo local, sem persistência. O
+fluxo, a copy e as regras dessa proposta **não estão implementados nem aprovados como regra de
+negócio**; as telas reais e a escolha atual da alternativa continuam descritas em
+`regras-de-negocio.md` §7.
+
 ## Lista de telas reais (estado atual do app)
 
 A composição detalhada de cada tela é a do código (`src/screens/`, `src/navigation/`).
