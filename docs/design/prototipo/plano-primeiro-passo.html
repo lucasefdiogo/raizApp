@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rootora — plano para o momento da distração</title>
+  <style>
+    @font-face { font-family: "IBM Plex Sans"; src: url("../../../android/app/src/main/assets/fonts/IBMPlexSans-Regular.ttf") format("truetype"); font-weight: 400; }
+    @font-face { font-family: "IBM Plex Sans"; src: url("../../../android/app/src/main/assets/fonts/IBMPlexSans-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "IBM Plex Sans"; src: url("../../../android/app/src/main/assets/fonts/IBMPlexSans-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    @font-face { font-family: "Zilla Slab"; src: url("../../../android/app/src/main/assets/fonts/ZillaSlab-Medium.ttf") format("truetype"); font-weight: 500; }
+    @font-face { font-family: "Zilla Slab"; src: url("../../../android/app/src/main/assets/fonts/ZillaSlab-SemiBold.ttf") format("truetype"); font-weight: 600; }
+    @font-face { font-family: "Space Mono"; src: url("../../../android/app/src/main/assets/fonts/SpaceMono-Regular.ttf") format("truetype"); font-weight: 400; }
+
+    :root {
+      --casca: #EFEAE0;
+      --areia: #E3DACB;
+      --terra-escura: #2B2318;
+      --terra-suave: #6B5E45;
+      --cobre: #B5772E;
+      --musgo: #3E4A34;
+      --border: #E3D8C3;
+      --sombra: rgba(43, 35, 24, .12);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--areia);
+      color: var(--terra-escura);
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--cobre);
+      outline-offset: 3px;
+    }
+    .page { max-width: 1240px; margin: 0 auto; padding: 34px 24px 58px; }
+    .page-head { max-width: 740px; margin: 0 auto 30px; text-align: center; }
+    .brand { display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--musgo); font-weight: 600; letter-spacing: -.03em; font-size: 18px; }
+    .brand svg { width: 25px; height: 25px; }
+    .eyebrow { margin: 0; color: var(--terra-suave); font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .page-head .eyebrow { margin-top: 22px; }
+    .page-head h1 { margin: 9px 0 8px; font: 600 clamp(29px, 4vw, 42px)/1.08 "Zilla Slab", serif; }
+    .page-head p:last-child { margin: 0 auto; max-width: 570px; color: var(--terra-suave); }
+    .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    .step-label { display: flex; align-items: center; gap: 10px; min-height: 34px; margin-bottom: 10px; font: 400 11px "Space Mono", monospace; letter-spacing: .04em; color: var(--terra-suave); text-transform: uppercase; }
+    .step-number { display: grid; place-items: center; width: 27px; height: 27px; flex: 0 0 27px; border: 1px solid var(--terra-suave); border-radius: 50%; color: var(--terra-escura); }
+    .phone { max-width: 365px; min-height: 686px; margin: 0 auto; border: 1px solid var(--border); border-radius: 23px; overflow: hidden; background: var(--casca); box-shadow: 0 10px 28px var(--sombra); display: flex; flex-direction: column; }
+    .status-bar { display: flex; justify-content: space-between; padding: 12px 23px 3px; font: 400 11px "Space Mono", monospace; color: var(--terra-escura); }
+    .status-icons { display: flex; gap: 4px; align-items: end; }
+    .status-icons span { display: block; width: 5px; border-radius: 1px 1px 0 0; background: var(--terra-escura); }
+    .status-icons span:nth-child(1) { height: 5px; } .status-icons span:nth-child(2) { height: 8px; } .status-icons span:nth-child(3) { height: 11px; }
+    .phone-content { flex: 1; display: flex; flex-direction: column; padding: 16px 22px 22px; }
+    .topline { display: flex; align-items: center; justify-content: space-between; min-height: 42px; }
+    .back { color: var(--terra-escura); font-size: 23px; line-height: 1; padding: 7px 9px 7px 0; }
+    .topline-name { color: var(--terra-suave); font-size: 13px; }
+    .screen-title { margin: 18px 0 9px; font: 600 28px/1.06 "Zilla Slab", serif; letter-spacing: -.02em; }
+    .screen-intro { margin: 0 0 24px; color: var(--terra-suave); font-size: 14px; line-height: 1.48; }
+    .field { margin: 0 0 20px; }
+    .field-apps { border: 0; padding: 0; margin-left: 0; margin-right: 0; }
+    .field-label { display: block; margin-bottom: 8px; font: 400 11px "Space Mono", monospace; letter-spacing: .05em; color: var(--terra-suave); text-transform: uppercase; }
+    .field-help { margin: 7px 0 0; color: var(--terra-suave); font-size: 12px; }
+    .select-wrap { position: relative; }
+    .select-wrap::after { content: "⌄"; position: absolute; right: 14px; top: 7px; color: var(--terra-suave); font-size: 24px; pointer-events: none; }
+    select, input[type="text"] { width: 100%; min-height: 49px; appearance: none; border: 1px solid var(--border); border-radius: 14px; background: var(--areia); color: var(--terra-escura); padding: 11px 14px; font-size: 14px; }
+    select { padding-right: 38px; }
+    input::placeholder { color: var(--terra-suave); opacity: 1; }
+    .app-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .app-option { position: relative; }
+    .app-option input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .app-option span { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--casca); color: var(--terra-suave); font-size: 13px; }
+    .app-option input:checked + span { border-color: var(--musgo); background: var(--areia); color: var(--terra-escura); font-weight: 500; }
+    .app-option input:focus-visible + span { outline: 2px solid var(--cobre); outline-offset: 3px; }
+    .small-note { margin: 0 0 17px; color: var(--terra-suave); font-size: 12px; }
+    .actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+    .button { width: 100%; min-height: 49px; border-radius: 14px; padding: 11px 14px; font-weight: 600; font-size: 14px; text-align: center; }
+    /* Cobre/casca tem 3,10:1. Texto de 24px atende ao critério de texto grande. */
+    .button-primary { border: 1px solid var(--cobre); background: var(--cobre); color: var(--casca); font-size: 24px; }
+    .button-primary:disabled { border-color: var(--border); background: var(--border); color: var(--terra-suave); cursor: not-allowed; }
+    .button-secondary { border: 1px solid var(--terra-suave); background: transparent; color: var(--terra-suave); }
+    .link-button { min-height: 44px; border: 0; background: transparent; color: var(--terra-suave); text-decoration: underline; font-weight: 500; font-size: 13px; }
+    .save-status { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--musgo); }
+
+    .intercept .phone-content { align-items: center; text-align: center; padding-top: 43px; }
+    .app-chip { display: flex; gap: 9px; align-items: center; border: 1px solid var(--border); border-radius: 999px; background: var(--areia); padding: 7px 12px 7px 7px; font-size: 13px; font-weight: 500; }
+    .app-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--terra-escura); color: var(--casca); font: 600 15px "Zilla Slab", serif; }
+    .intercept .eyebrow { margin-top: 31px; }
+    .intercept .screen-title { margin: 11px 0 10px; font-size: 27px; }
+    .intercept .screen-intro { margin-bottom: 19px; }
+    .plan-card { width: 100%; padding: 14px; border: 1px solid var(--border); border-left: 3px solid var(--musgo); border-radius: 13px; background: var(--areia); text-align: left; }
+    .plan-card .eyebrow { margin: 0; }
+    .plan-card p { margin: 10px 0 0; font: 500 19px/1.22 "Zilla Slab", serif; }
+    .plan-card small { display: block; margin-top: 10px; color: var(--terra-suave); font-size: 12px; }
+    .intercept .actions { width: 100%; margin-top: 19px; }
+    .intercept .button-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .intercept .release-note { margin: 15px 0 1px; color: var(--terra-suave); font-size: 12px; }
+    .intercept .link-button { margin-top: 6px; }
+    .exit-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    .exit-state .screen-title { margin-top: 13px; }
+    .exit-state .button { margin-top: 20px; }
+
+    .focus .phone-content { align-items: center; text-align: center; padding-top: 41px; }
+    .focus-icon { display: grid; place-items: center; width: 57px; height: 57px; border: 1px solid var(--musgo); border-radius: 18px; color: var(--musgo); }
+    .focus-icon svg { width: 29px; height: 29px; }
+    .focus .eyebrow { margin-top: 25px; }
+    .focus .screen-title { margin-top: 11px; font-size: 27px; }
+    .focus .screen-intro { margin-bottom: 24px; }
+    .focus-step { width: 100%; padding: 14px; background: var(--areia); border: 1px solid var(--border); border-radius: 14px; text-align: left; }
+    .focus-step .eyebrow { margin: 0 0 9px; }
+    .focus-step p { margin: 0; font-weight: 500; font-size: 14px; }
+    .timer { margin: 28px 0 3px; font: 400 46px/1 "Space Mono", monospace; letter-spacing: -.07em; }
+    .timer-hint { margin: 0; color: var(--terra-suave); font-size: 12px; }
+    .focus .actions { width: 100%; }
+    .screen-foot { margin: 0; color: var(--terra-suave); font-size: 12px; text-align: center; }
+    .prototype-note { max-width: 1040px; margin: 23px auto 0; padding: 14px 17px; border: 1px solid var(--border); border-radius: 14px; background: var(--casca); color: var(--terra-suave); font-size: 13px; }
+    .prototype-note strong { color: var(--terra-escura); }
+
+    @media (max-width: 1060px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { .page { padding: 25px 13px 36px; } .flow { grid-template-columns: 1fr; gap: 28px; } .phone { width: min(100%, 365px); } .page-head { margin-bottom: 26px; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <div class="brand" aria-label="Rootora">
+        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 3v15m0 0-8 9m8-9 8 9M16 12l-6-5m6 9 7-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        rootora
+      </div>
+      <p class="eyebrow">Protótipo de produto · proposta para validação</p>
+      <h1>Um primeiro passo pronto para a hora da distração</h1>
+      <p>Escolha uma tarefa, descreva o menor começo possível e veja como esse plano apareceria ao tentar abrir uma rede.</p>
+    </header>
+
+    <div class="flow">
+      <div>
+        <div class="step-label"><span class="step-number">1</span> Preparar na aba Hoje</div>
+        <section class="phone" aria-label="Proposta de tela para preparar o plano" data-estado="normal">
+          <div class="status-bar"><span>9:41</span><span class="status-icons" aria-hidden="true"><span></span><span></span><span></span></span></div>
+          <div class="phone-content">
+            <div class="topline"><span class="back" aria-hidden="true">‹</span><span class="topline-name">Hoje</span></div>
+            <h2 class="screen-title">Deixe um primeiro passo pronto</h2>
+            <p class="screen-intro">Se a vontade de abrir uma rede aparecer, você pode começar por aqui.</p>
+            <form id="plan-form">
+              <div class="field">
+                <label class="field-label" for="task">Tarefa de hoje</label>
+                <div class="select-wrap"><select id="task" name="task"><option>Revisar relatório</option><option>Estudar para a prova</option><option>Organizar a mesa</option></select></div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="microstep">Primeiro gesto</label>
+                <input id="microstep" name="microstep" type="text" maxlength="80" value="Abrir o arquivo e escrever uma frase" placeholder="Ex.: abrir o arquivo e escrever uma frase" required>
+                <p class="field-help">Escolha algo que caiba em 2 minutos.</p>
+              </div>
+              <fieldset class="field field-apps">
+                <legend class="field-label">Quando aparecer</legend>
+                <div class="app-options">
+                  <label class="app-option"><input type="radio" name="app" value="Instagram" checked><span>Instagram</span></label>
+                  <label class="app-option"><input type="radio" name="app" value="TikTok"><span>TikTok</span></label>
+                  <label class="app-option"><input type="radio" name="app" value="Facebook"><span>Facebook</span></label>
+                </div>
+              </fieldset>
+              <p class="small-note">O plano aparece só na pausa do app escolhido. Você pode seguir para a rede.</p>
+              <div class="actions"><button class="button button-primary" type="submit">Salvar plano</button></div>
+              <p class="save-status" id="save-status" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <div class="step-label"><span class="step-number">2</span> Encontrar o plano na pausa</div>
+        <section class="phone intercept" aria-label="Proposta de pausa ao abrir uma rede" data-estado="pausa">
+          <div class="status-bar"><span>9:41</span><span class="status-icons" aria-hidden="true"><span></span><span></span><span></span></span></div>
+          <div class="phone-content">
+            <div class="app-chip"><span class="app-icon" aria-hidden="true" id="app-initial">I</span><span id="app-name">Instagram</span></div>
+            <p class="eyebrow">1ª SESSÃO HOJE</p>
+            <h2 class="screen-title">O que você vai fazer agora?</h2>
+            <p class="screen-intro">Uma pausa curta antes de abrir. Você pode escolher seu próximo passo.</p>
+            <div class="plan-card">
+              <p class="eyebrow">SEU PLANO</p>
+              <p id="plan-action">Abrir o arquivo e escrever uma frase</p>
+              <small id="plan-task">Para revisar relatório</small>
+            </div>
+            <div class="actions">
+              <button class="button button-secondary" id="start-focus" type="button"><span aria-hidden="true">↗</span> Fazer por 2 min</button>
+              <button class="button button-primary" id="release" type="button" disabled>Liberar em 0:10</button>
+            </div>
+            <p class="release-note">O plano pode ser escolhido antes do fim da espera.</p>
+            <button class="link-button" id="exit-intercept" type="button">Sair</button>
+          </div>
+          <div class="exit-state" id="exit-state" role="status" hidden>
+            <p class="eyebrow">SIMULAÇÃO</p>
+            <h2 class="screen-title">Você voltou ao início</h2>
+            <p class="screen-intro">No app, “Sair” fecha a interceptação e abre a tela inicial do Android.</p>
+            <button class="button button-secondary" id="reopen-intercept" type="button">Ver a pausa de novo</button>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <div class="step-label"><span class="step-number">3</span> Começar sem cobrança</div>
+        <section class="phone focus" aria-label="Proposta de sessão de foco de dois minutos" data-estado="pronto">
+          <div class="status-bar"><span>9:41</span><span class="status-icons" aria-hidden="true"><span></span><span></span><span></span></span></div>
+          <div class="phone-content">
+            <div class="focus-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="2"/><path d="M16 9v7l4 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <p class="eyebrow">SESSÃO DE FOCO · 2 MIN</p>
+            <h2 class="screen-title" id="focus-heading" tabindex="-1">Só o primeiro passo</h2>
+            <p class="screen-intro">Dois minutos já contam como começo. Você pode parar depois.</p>
+            <div class="focus-step"><p class="eyebrow">AGORA</p><p id="focus-action">Abrir o arquivo e escrever uma frase</p></div>
+            <p class="timer" id="focus-timer" role="timer" aria-live="off">2:00</p>
+            <p class="timer-hint" id="focus-hint" role="status" aria-live="polite">Toque em “Fazer por 2 min” na pausa para simular.</p>
+            <div class="actions">
+              <button class="button button-secondary" id="stop-focus" type="button" disabled>Parar aqui</button>
+              <p class="screen-foot">Uma sessão de foco não altera sua sequência.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <aside class="prototype-note"><strong>Protótipo interativo:</strong> editar e salvar atualiza os exemplos. “Fazer por 2 min” inicia uma contagem visual. Nada é gravado e nenhuma rede é aberta. A posição, os textos e a regra do plano ainda dependem de validação de produto.</aside>
+  </main>
+  <script>
+    const form = document.getElementById('plan-form');
+    const task = document.getElementById('task');
+    const microstep = document.getElementById('microstep');
+    const saveStatus = document.getElementById('save-status');
+    const appName = document.getElementById('app-name');
+    const appInitial = document.getElementById('app-initial');
+    const planAction = document.getElementById('plan-action');
+    const planTask = document.getElementById('plan-task');
+    const focusAction = document.getElementById('focus-action');
+    const focusTimer = document.getElementById('focus-timer');
+    const focusHint = document.getElementById('focus-hint');
+    const stopFocus = document.getElementById('stop-focus');
+    const release = document.getElementById('release');
+    const focusScreen = document.querySelector('.focus');
+    const interceptContent = document.querySelector('.intercept .phone-content');
+    const exitState = document.getElementById('exit-state');
+    let focusInterval = null;
+    let releaseInterval = null;
+    let focusSeconds = 120;
+    let releaseSeconds = 10;
+
+    function selectedApp() { return document.querySelector('input[name="app"]:checked').value; }
+    function showPlan() {
+      const app = selectedApp();
+      const action = microstep.value.trim() || microstep.placeholder.replace('Ex.: ', '');
+      appName.textContent = app;
+      appInitial.textContent = app.charAt(0);
+      planAction.textContent = action;
+      planTask.textContent = `Para ${task.value.charAt(0).toLowerCase()}${task.value.slice(1)}`;
+      focusAction.textContent = action;
+    }
+    function clock(seconds) { return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; }
+    function resetFocus() {
+      clearInterval(focusInterval);
+      focusInterval = null;
+      focusSeconds = 120;
+      focusTimer.textContent = '2:00';
+      focusHint.textContent = 'Toque em “Fazer por 2 min” na pausa para simular.';
+      stopFocus.disabled = true;
+      focusScreen.dataset.estado = 'pronto';
+    }
+    function resetRelease() {
+      clearInterval(releaseInterval);
+      releaseSeconds = 10;
+      release.disabled = true;
+      release.textContent = 'Liberar em 0:10';
+      releaseInterval = setInterval(() => {
+        releaseSeconds -= 1;
+        if (releaseSeconds <= 0) {
+          clearInterval(releaseInterval);
+          releaseInterval = null;
+          release.disabled = false;
+          release.textContent = 'Liberar 15 min';
+        } else {
+          release.textContent = `Liberar em ${clock(releaseSeconds)}`;
+        }
+      }, 1000);
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      if (!microstep.value.trim()) { microstep.focus(); return; }
+      showPlan();
+      saveStatus.textContent = 'Plano salvo nesta demonstração.';
+      resetFocus();
+      resetRelease();
+    });
+    document.getElementById('start-focus').addEventListener('click', () => {
+      resetFocus();
+      focusScreen.dataset.estado = 'em-andamento';
+      focusHint.textContent = 'O começo já está em andamento.';
+      stopFocus.disabled = false;
+      focusInterval = setInterval(() => {
+        focusSeconds -= 1;
+        focusTimer.textContent = clock(focusSeconds);
+        if (focusSeconds <= 0) {
+          clearInterval(focusInterval);
+          focusInterval = null;
+          focusHint.textContent = 'Dois minutos feitos. Pode parar aqui.';
+          focusScreen.dataset.estado = 'concluido';
+        }
+      }, 1000);
+      const narrow = window.matchMedia('(max-width: 1060px)').matches;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (narrow) {
+        focusScreen.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      }
+      document.getElementById('focus-heading').focus({ preventScroll: true });
+    });
+    stopFocus.addEventListener('click', resetFocus);
+    release.addEventListener('click', () => {
+      if (!release.disabled) {
+        release.textContent = 'Sessão liberada nesta demonstração';
+        release.disabled = true;
+      }
+    });
+    document.getElementById('exit-intercept').addEventListener('click', () => {
+      clearInterval(releaseInterval);
+      releaseInterval = null;
+      interceptContent.hidden = true;
+      exitState.hidden = false;
+      document.getElementById('reopen-intercept').focus();
+    });
+    document.getElementById('reopen-intercept').addEventListener('click', () => {
+      exitState.hidden = true;
+      interceptContent.hidden = false;
+      resetRelease();
+      document.getElementById('start-focus').focus();
+    });
+    showPlan();
+    resetRelease();
+  </script>
+</body>
+</html>
