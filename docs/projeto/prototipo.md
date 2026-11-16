@@ -29,7 +29,9 @@ tarefa e a um app da lista de bloqueio: preparar um primeiro gesto, encontrá-lo
 intenção e iniciar 2 minutos de foco. É um protótipo interativo local, sem persistência. O
 fluxo, a copy e as regras dessa proposta **não estão implementados nem aprovados como regra de
 negócio**; as telas reais e a escolha atual da alternativa continuam descritas em
-`regras-de-negocio.md` §7.
+`regras-de-negocio.md` §7. O HTML usa texto maior no botão primário para manter o contraste
+legível com a dupla `cobre`/`casca`; a revisão desse contraste no componente real está em
+`TODO.md`.
 
 ## Lista de telas reais (estado atual do app)
 

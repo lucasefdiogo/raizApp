@@ -24,6 +24,7 @@
     }
 
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
@@ -57,7 +58,7 @@
     .status-icons span:nth-child(1) { height: 5px; } .status-icons span:nth-child(2) { height: 8px; } .status-icons span:nth-child(3) { height: 11px; }
     .phone-content { flex: 1; display: flex; flex-direction: column; padding: 16px 22px 22px; }
     .topline { display: flex; align-items: center; justify-content: space-between; min-height: 42px; }
-    .back { border: 0; background: transparent; color: var(--terra-escura); font-size: 23px; line-height: 1; padding: 7px 9px 7px 0; }
+    .back { color: var(--terra-escura); font-size: 23px; line-height: 1; padding: 7px 9px 7px 0; }
     .topline-name { color: var(--terra-suave); font-size: 13px; }
     .screen-title { margin: 18px 0 9px; font: 600 28px/1.06 "Zilla Slab", serif; letter-spacing: -.02em; }
     .screen-intro { margin: 0 0 24px; color: var(--terra-suave); font-size: 14px; line-height: 1.48; }
@@ -79,7 +80,8 @@
     .small-note { margin: 0 0 17px; color: var(--terra-suave); font-size: 12px; }
     .actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
     .button { width: 100%; min-height: 49px; border-radius: 14px; padding: 11px 14px; font-weight: 600; font-size: 14px; text-align: center; }
-    .button-primary { border: 1px solid var(--cobre); background: var(--cobre); color: var(--casca); }
+    /* Cobre/casca tem 3,10:1. Texto de 24px atende ao critério de texto grande. */
+    .button-primary { border: 1px solid var(--cobre); background: var(--cobre); color: var(--casca); font-size: 24px; }
     .button-primary:disabled { border-color: var(--border); background: var(--border); color: var(--terra-suave); cursor: not-allowed; }
     .button-secondary { border: 1px solid var(--terra-suave); background: transparent; color: var(--terra-suave); }
     .link-button { min-height: 44px; border: 0; background: transparent; color: var(--terra-suave); text-decoration: underline; font-weight: 500; font-size: 13px; }
@@ -99,6 +101,9 @@
     .intercept .button-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; }
     .intercept .release-note { margin: 15px 0 1px; color: var(--terra-suave); font-size: 12px; }
     .intercept .link-button { margin-top: 6px; }
+    .exit-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+    .exit-state .screen-title { margin-top: 13px; }
+    .exit-state .button { margin-top: 20px; }
 
     .focus .phone-content { align-items: center; text-align: center; padding-top: 41px; }
     .focus-icon { display: grid; place-items: center; width: 57px; height: 57px; border: 1px solid var(--musgo); border-radius: 18px; color: var(--musgo); }
@@ -139,7 +144,7 @@
         <section class="phone" aria-label="Proposta de tela para preparar o plano" data-estado="normal">
           <div class="status-bar"><span>9:41</span><span class="status-icons" aria-hidden="true"><span></span><span></span><span></span></span></div>
           <div class="phone-content">
-            <div class="topline"><button class="back" type="button" aria-label="Voltar à aba Hoje">‹</button><span class="topline-name">Hoje</span></div>
+            <div class="topline"><span class="back" aria-hidden="true">‹</span><span class="topline-name">Hoje</span></div>
             <h2 class="screen-title">Deixe um primeiro passo pronto</h2>
             <p class="screen-intro">Se a vontade de abrir uma rede aparecer, você pode começar por aqui.</p>
             <form id="plan-form">
@@ -189,6 +194,12 @@
             <p class="release-note">O plano pode ser escolhido antes do fim da espera.</p>
             <button class="link-button" id="exit-intercept" type="button">Sair</button>
           </div>
+          <div class="exit-state" id="exit-state" role="status" hidden>
+            <p class="eyebrow">SIMULAÇÃO</p>
+            <h2 class="screen-title">Você voltou ao início</h2>
+            <p class="screen-intro">No app, “Sair” fecha a interceptação e abre a tela inicial do Android.</p>
+            <button class="button button-secondary" id="reopen-intercept" type="button">Ver a pausa de novo</button>
+          </div>
         </section>
       </div>
 
@@ -199,11 +210,11 @@
           <div class="phone-content">
             <div class="focus-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="2"/><path d="M16 9v7l4 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
             <p class="eyebrow">SESSÃO DE FOCO · 2 MIN</p>
-            <h2 class="screen-title">Só o primeiro passo</h2>
+            <h2 class="screen-title" id="focus-heading" tabindex="-1">Só o primeiro passo</h2>
             <p class="screen-intro">Dois minutos já contam como começo. Você pode parar depois.</p>
             <div class="focus-step"><p class="eyebrow">AGORA</p><p id="focus-action">Abrir o arquivo e escrever uma frase</p></div>
             <p class="timer" id="focus-timer" role="timer" aria-live="off">2:00</p>
-            <p class="timer-hint" id="focus-hint">Toque em “Fazer por 2 min” na pausa para simular.</p>
+            <p class="timer-hint" id="focus-hint" role="status" aria-live="polite">Toque em “Fazer por 2 min” na pausa para simular.</p>
             <div class="actions">
               <button class="button button-secondary" id="stop-focus" type="button" disabled>Parar aqui</button>
               <p class="screen-foot">Uma sessão de foco não altera sua sequência.</p>
@@ -230,6 +241,8 @@
     const stopFocus = document.getElementById('stop-focus');
     const release = document.getElementById('release');
     const focusScreen = document.querySelector('.focus');
+    const interceptContent = document.querySelector('.intercept .phone-content');
+    const exitState = document.getElementById('exit-state');
     let focusInterval = null;
     let releaseInterval = null;
     let focusSeconds = 120;
@@ -296,9 +309,12 @@
           focusScreen.dataset.estado = 'concluido';
         }
       }, 1000);
-      if (window.matchMedia('(max-width: 1060px)').matches) {
-        focusScreen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const narrow = window.matchMedia('(max-width: 1060px)').matches;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (narrow) {
+        focusScreen.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
       }
+      document.getElementById('focus-heading').focus({ preventScroll: true });
     });
     stopFocus.addEventListener('click', resetFocus);
     release.addEventListener('click', () => {
@@ -307,7 +323,19 @@
         release.disabled = true;
       }
     });
-    document.getElementById('exit-intercept').addEventListener('click', resetRelease);
+    document.getElementById('exit-intercept').addEventListener('click', () => {
+      clearInterval(releaseInterval);
+      releaseInterval = null;
+      interceptContent.hidden = true;
+      exitState.hidden = false;
+      document.getElementById('reopen-intercept').focus();
+    });
+    document.getElementById('reopen-intercept').addEventListener('click', () => {
+      exitState.hidden = true;
+      interceptContent.hidden = false;
+      resetRelease();
+      document.getElementById('start-focus').focus();
+    });
     showPlan();
     resetRelease();
   </script>

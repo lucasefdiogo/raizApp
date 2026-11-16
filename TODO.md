@@ -23,6 +23,11 @@ Histórico das HUs antigas (formato lux kit, abandonado): `docs/historico/`.
 
 ## Dívida técnica
 
+- [ ] **Contraste do botão primário:** `PrimaryButton` usa texto `casca` de 16 px sobre fundo
+      `cobre` (aproximadamente 3,10:1), abaixo de 4,5:1 para texto normal. Rever o par de cores
+      no design system e no componente, incluindo os estados desabilitados, antes de alterar a
+      identidade visual. Encontrado na revisão do protótipo de plano de primeiro passo.
+
 - [ ] **Leitura duplicada de Firestore/nativo em Perfil + Bloqueio de apps:**
       `PerfilScreen` passou a chamar `useRegrasBloqueio(uid)` e `useRotina(uid)` (HU-09,
       pras linhas "Bloqueio de apps"/"Rotina noturna" com estado atual) além de
