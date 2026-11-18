@@ -12,8 +12,30 @@ apply plugin: "com.google.firebase.crashlytics"
 // gerar o release build.
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
+def playRelease = providers.gradleProperty("playRelease").orNull == "true"
+def ciVersionCode = providers.gradleProperty("androidVersionCode").orNull
+if (ciVersionCode != null && !(ciVersionCode ==~ /[1-9][0-9]*/) ) {
+    throw new GradleException("androidVersionCode deve ser um inteiro positivo")
+}
+if (ciVersionCode != null && (new BigInteger(ciVersionCode) > 2100000000)) {
+    throw new GradleException("androidVersionCode excede o limite da Google Play")
+}
 if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+if (playRelease) {
+    def requiredKeys = ['RELEASE_STORE_FILE', 'RELEASE_STORE_PASSWORD', 'RELEASE_KEY_ALIAS', 'RELEASE_KEY_PASSWORD']
+    if (requiredKeys.any { !keystoreProperties[it]?.toString()?.trim() }) {
+        throw new GradleException("Release Play exige keystore.properties e todas as credenciais de assinatura")
+    }
+    def releaseStore = file(keystoreProperties['RELEASE_STORE_FILE'])
+    if (!releaseStore.isFile() || releaseStore.canonicalFile == file('debug.keystore').canonicalFile ||
+            keystoreProperties['RELEASE_KEY_ALIAS'] == 'androiddebugkey') {
+        throw new GradleException("Release Play exige uma keystore de upload válida, diferente da debug")
+    }
+    if (ciVersionCode == null) {
+        throw new GradleException("Release Play exige androidVersionCode explícito")
+    }
 }
 
 /**
@@ -96,7 +118,7 @@ android {
         applicationId "com.luxthorapps.rootora"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
+        versionCode ciVersionCode != null ? ciVersionCode.toInteger() : 14
         versionName "1.13"
     }
     signingConfigs {

@@ -1,0 +1,137 @@
+name: Android release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-play-release
+  queue: max
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --runInBand
+      - run: npx tsc --noEmit
+
+  android:
+    needs: checks
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - run: npm ci
+      - name: Configurar SDK Android
+        run: |
+          sdkmanager 'platforms;android-37' 'build-tools;37.0.0' 'ndk;27.1.12297006'
+      - name: Preparar Firebase para testes Android
+        env:
+          FIREBASE_CONFIG: ${{ secrets.FIREBASE_GOOGLE_SERVICES_BASE64 }}
+        run: |
+          set -eu
+          if [ -n "$FIREBASE_CONFIG" ]; then
+            printf '%s' "$FIREBASE_CONFIG" | base64 --decode > android/app/google-services.json
+            test -s android/app/google-services.json
+          else
+            echo 'Firebase não configurado: testes Kotlin ignorados; configure FIREBASE_GOOGLE_SERVICES_BASE64.'
+          fi
+      - name: Testes Android
+        if: hashFiles('android/app/google-services.json') != ''
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest
+      - name: Preparar release assinada
+        if: vars.ANDROID_RELEASE_ENABLED == 'true'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION_BASE: ${{ vars.ANDROID_VERSION_CODE_BASE }}
+          TRACK: ${{ vars.GOOGLE_PLAY_CLOSED_TRACK }}
+          PLAY_CREDENTIALS: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -eu
+          test "$GITHUB_RUN_ATTEMPT" = 1 || { echo 'Reexecução bloqueada: inicie um novo workflow.'; exit 1; }
+          test -s android/app/google-services.json || { echo 'Firebase ausente.'; exit 1; }
+          for name in KEYSTORE STORE_PASSWORD KEY_ALIAS KEY_PASSWORD VERSION_BASE TRACK PLAY_CREDENTIALS; do
+            test -n "${!name}" || { echo "Configuração ausente: $name"; exit 1; }
+          done
+          [[ "$VERSION_BASE" =~ ^[0-9]+$ ]] && (( ${#VERSION_BASE} <= 9 )) || { echo 'Base de versão inválida.'; exit 1; }
+          [[ "$TRACK" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]] || { echo 'Faixa inválida.'; exit 1; }
+          case "${TRACK,,}" in production|beta|qa|internal|internalsharing) echo 'Faixa proibida.'; exit 1;; esac
+          code=$((10#$VERSION_BASE + GITHUB_RUN_NUMBER))
+          (( code > 14 && code <= 2100000000 )) || { echo 'versionCode fora do intervalo permitido.'; exit 1; }
+          echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/rootora-upload.keystore"
+          test -s "$RUNNER_TEMP/rootora-upload.keystore"
+          # Properties escapa caracteres especiais sem registrar credenciais.
+          python3 - <<'PY'
+          import os
+          def escape(s):
+              return ''.join('\\u%04x' % ord(c) if ord(c) < 32 or ord(c) > 126 else '\\' + c if c in '\\:=#! ' else c for c in s)
+          values = {'RELEASE_STORE_FILE': os.environ['RUNNER_TEMP'] + '/rootora-upload.keystore', 'RELEASE_STORE_PASSWORD': os.environ['STORE_PASSWORD'], 'RELEASE_KEY_ALIAS': os.environ['KEY_ALIAS'], 'RELEASE_KEY_PASSWORD': os.environ['KEY_PASSWORD']}
+          with open('android/keystore.properties', 'w') as f:
+              for key, value in values.items(): f.write(key + '=' + escape(value) + '\n')
+          PY
+      - name: Gerar e verificar AAB assinado
+        if: vars.ANDROID_RELEASE_ENABLED == 'true'
+        working-directory: android
+        run: |
+          set -eu
+          ./gradlew :app:bundleRelease -PplayRelease=true -PandroidVersionCode="$ANDROID_VERSION_CODE"
+          aab=app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$aab" | grep -q 'jar verified.' || { echo 'Assinatura do AAB inválida ou ausente.'; exit 1; }
+          release_fingerprint=$(keytool -printcert -jarfile "$aab" | grep 'SHA256:' | head -1)
+          debug_fingerprint=$(keytool -list -v -keystore app/debug.keystore -storepass android -alias androiddebugkey | grep 'SHA256:' | head -1)
+          test -n "$release_fingerprint" && test "$release_fingerprint" != "$debug_fingerprint" || { echo 'Certificado de debug ou assinatura não identificada.'; exit 1; }
+      - name: Disponibilizar AAB
+        if: vars.ANDROID_RELEASE_ENABLED == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rootora-release-${{ env.ANDROID_VERSION_CODE }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+      - name: Confirmar commit atual da main
+        if: vars.ANDROID_RELEASE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          current=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          test "$current" = "$GITHUB_SHA" || { echo 'Commit ultrapassado pela main; publicação cancelada.'; exit 1; }
+      - name: Publicar na faixa fechada
+        if: vars.ANDROID_RELEASE_ENABLED == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.luxthorapps.rootora
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ vars.GOOGLE_PLAY_CLOSED_TRACK }}
+          status: completed
+      - name: Remover credenciais temporárias
+        if: always()
+        run: rm -f "$RUNNER_TEMP/rootora-upload.keystore" android/keystore.properties android/app/google-services.json serviceAccountJson.json
