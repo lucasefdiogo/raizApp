@@ -57,6 +57,13 @@ describe('InterceptRoot', () => {
     expect(mockCapturarProps).not.toHaveBeenCalled();
   });
 
+  it('mostra a saída do momento de foco sem passar pela tela normal de liberação', async () => {
+    useAuth.mockReturnValue({ carregando: true, user: null });
+    await render(<InterceptRoot {...props} momentoFocoAtivo momentoFocoFimEm={Date.now() + 120_000} />);
+    expect(screen.getByText('Seu momento de foco está em andamento')).toBeTruthy();
+    expect(mockCapturarProps).not.toHaveBeenCalled();
+  });
+
   it('sem usuário logado (não deveria acontecer na prática): também não monta a InterceptScreen', async () => {
     useAuth.mockReturnValue({ carregando: false, user: null });
     await render(<InterceptRoot {...props} />);

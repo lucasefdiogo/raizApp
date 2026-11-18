@@ -237,7 +237,7 @@
 </ul>
 
 <h3>2.5 Dados que ficam só no seu aparelho</h3>
-<p>Uma cópia das regras de bloqueio (para que funcionem mesmo com o app fechado), o controle do seu saldo de blocos do dia (blocos restantes, tempo já usado no bloco atual e horário em que termina a espera entre blocos), a indicação de que você já viu o tutorial e o agendamento das notificações locais. Esses dados são apagados quando você desinstala o app.</p>
+<p>Uma cópia das regras de bloqueio (para que funcionem mesmo com o app fechado), o prazo temporário de um momento de foco iniciado por você (para encerrar a interceptação no horário certo), o controle do seu saldo de blocos do dia (blocos restantes, tempo já usado no bloco atual e horário em que termina a espera entre blocos), a indicação de que você já viu o tutorial e o agendamento das notificações locais. Esses dados são apagados quando você desinstala o app.</p>
 
 <h3>2.6 O que <em>não</em> coletamos</h3>
 <p>Localização precisa, contatos, fotos, câmera, microfone, ID de publicidade, histórico de navegação, conteúdo de outros apps, mensagens, o que você digita fora do Rootora e dados de cartão de pagamento.</p>
@@ -245,7 +245,7 @@
 <h2 id="acessibilidade">3. Serviço de acessibilidade do Android</h2>
 <p>O bloqueio de apps usa a API de Serviço de Acessibilidade (AccessibilityService) do Android. Por ser um recurso sensível, explicamos em detalhe:</p>
 <ul>
-  <li><strong>Para que serve:</strong> identificar quando um app que <em>você escolheu bloquear</em> é aberto, para mostrar no lugar dele a sua tarefa do dia.</li>
+  <li><strong>Para que serve:</strong> identificar quando um app que <em>você escolheu bloquear</em> é aberto, para mostrar no lugar dele a sua tarefa do dia ou lembrar um momento de foco iniciado por você. Durante esse momento, os apps escolhidos podem ser interceptados também fora dos horários habituais, até você encerrar o momento ou o prazo terminar.</li>
   <li><strong>O que ele percebe:</strong> apenas o nome do pacote do app que passa a ocupar a tela, no momento em que a janela muda.</li>
   <li><strong>O que ele não faz:</strong> não lê o conteúdo das telas (o serviço é configurado sem permissão para isso), não registra o que você digita, não vê senhas, mensagens ou notificações e não controla outros apps em seu nome.</li>
   <li><strong>O que fica registrado:</strong> somente as interceptações dos apps que você escolheu (item 2.3). A abertura de qualquer outro app não é guardada nem enviada.</li>

@@ -203,6 +203,14 @@ beforeEach(() => {
 });
 
 describe('HomeScreen', () => {
+  it('abre o momento de foco pela tarefa pendente sem concluí-la', async () => {
+    await render(<HomeScreen {...PROPS_PADRAO} />);
+    await fireEvent.press(screen.getAllByText('Começar')[0]);
+    expect(screen.getByText('Momento de foco')).toBeTruthy();
+    expect(screen.getByText('Por quanto tempo quer começar?')).toBeTruthy();
+    expect(screen.getAllByRole('checkbox')[0].props.accessibilityState.checked).toBe(false);
+  });
+
   it('CA-01: a Home dispara a coleta de uso das redes com o uid do usuário', async () => {
     await render(<HomeScreen {...PROPS_PADRAO} />);
     expect(useColetaUsoApps).toHaveBeenCalledWith('uid-teste');

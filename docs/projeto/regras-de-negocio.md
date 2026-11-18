@@ -112,6 +112,11 @@ contagem é decisão em aberto (seção 14).
 - "Estou travado" (botão discreto abaixo da lista), toque longo na tarefa (→ TravadoFlow),
   recorrência (↻), tipo exercício e overlays (`TaskCompletedOverlay`, `RootWateringOverlay`,
   `StreakMilestoneModal`) seguem como estão.
+- Cada tarefa pendente mostra **Começar** abaixo do título, separado da caixa de conclusão. Abre
+  **Momento de foco** com o título da tarefa, pergunta "Por quanto tempo quer começar?", opções
+  **2 min**, **5 min** (inicial), **10 min**, **Iniciar momento de foco**, **Estou travado** e **Voltar**.
+  **Estou travado** abre o TravadoFlow com aquela tarefa. Iniciar não marca a tarefa como feita.
+  Voltar pelo Android durante a contagem encerra e registra a sessão, sem concluir a tarefa.
 - **Banner de cooldown:** com o motor em `COOLDOWN`, card no topo da Home (entre cabeçalho e lista)
   "Próxima sessão em {N} min", lido do estado nativo ao abrir/focar a tela e atualizado a cada
   1 min só enquanto a Home está em foco. Some quando o estado sai de `COOLDOWN`. Sem escrita no
@@ -561,13 +566,28 @@ qualquer estado → reinicia em AGUARDANDO_LIBERACAO na virada do dia
   seção 1.
 
 ### Sessão de foco (`SessaoFocoScreen`)
-- Durante: "Só [N] minutos. Pode parar depois." Sair para um app bloqueado reabre a interceptação
-  com o timer em andamento.
+- Durante: "Só [N] minutos. Pode parar depois." e **Parar aqui** encerra sem concluir a tarefa.
+  A contagem usa prazo absoluto, inclusive após o app voltar do segundo plano. Sessões iniciadas
+  pela tarefa da Home, inclusive via **Estou travado**, ativam um modo temporário nos apps já
+  selecionados em **Bloqueio de apps** se o serviço de Acessibilidade estiver ativo. Ele ignora
+  as janelas habituais enquanto a sessão corre, sem alterar regras permanentes, saldo de blocos
+  ou streak. Se não houver serviço ou apps selecionados, o timer continua e mostra "O cronômetro
+  está ativo. O bloqueio de apps não está disponível agora."; com bloqueio ativo, mostra "Apps
+  selecionados pausados durante este momento.". Apps não selecionados e o sistema continuam
+  acessíveis. Sair para um app escolhido durante esse modo mostra "Seu momento de foco está em
+  andamento", **Voltar à tarefa** e **Encerrar momento de foco**; encerrar libera imediatamente
+  o modo e para o cronômetro ao retornar ao Rootora. A sessão antiga iniciada pela interceptação
+  continua usando seu próprio espelho de timer por pacote.
 - Ao terminar: "[N] minutos feitos. O começo era a parte difícil." Ações: **Continuar mais 10
   minutos** (primária) · Marcar a tarefa como feita (se houver `tarefaId` → "Feito. Isso conta.")
   · Parar aqui (volta à Home/cooldown, sem cobrança).
 - Sessões de foco (2/5/10 min, qualquer origem) **nunca alteram `streakAtual`** e **não liberam
   nenhum app**.
+- O prazo do modo temporário fica só em SharedPreferences e expira mesmo com o processo React
+  Native suspenso; ao vencer, uma tela de interceptação ainda aberta fecha. Encerrar ou desmontar
+  a tela da sessão remove o prazo. O Firestore conserva apenas o
+  registro de sessão já previsto, com `tarefaId` e a duração realmente percorrida. O modo não
+  impede a pessoa de desligar a Acessibilidade ou desinstalar o app.
 
 ---
 

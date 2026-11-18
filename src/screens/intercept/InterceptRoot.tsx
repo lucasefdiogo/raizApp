@@ -11,6 +11,7 @@ import {
 } from '../../native/AccessibilityDetection';
 import { InterceptScreen, SessaoAtivaResumida } from './InterceptScreen';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { MomentoFocoInterceptScreen } from './MomentoFocoInterceptScreen';
 
 export interface InterceptRootProps {
   packageName: string;
@@ -31,6 +32,8 @@ export interface InterceptRootProps {
   sessaoAtivaJson?: string;
   /** Estado do saldo de blocos (extra `estadoBloqueioJson` da InterceptActivity). Ausente = a tela lê do nativo. */
   estadoBloqueioJson?: string;
+  momentoFocoAtivo?: boolean;
+  momentoFocoFimEm?: number;
 }
 
 /** Ícone não resolvido até aqui não deve travar a tela em loading pra sempre. */
@@ -100,6 +103,8 @@ export function InterceptRoot({
   snapshotJson,
   sessaoAtivaJson,
   estadoBloqueioJson,
+  momentoFocoAtivo = false,
+  momentoFocoFimEm = 0,
 }: InterceptRootProps) {
   const { user, carregando } = useAuth();
   // Nenhum extra traz o ícone hoje (só appLabel) — resolvido via o mesmo
@@ -132,7 +137,9 @@ export function InterceptRoot({
   return (
     <SafeAreaProvider>
       <ToastProvider>
-        {carregando || !user || appIconeBase64 === null ? (
+        {momentoFocoAtivo ? (
+          <MomentoFocoInterceptScreen fimEm={momentoFocoFimEm} />
+        ) : carregando || !user || appIconeBase64 === null ? (
           <LoadingIndicator variant="fullscreen" />
         ) : (
           <InterceptScreen

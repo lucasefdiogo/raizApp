@@ -80,6 +80,7 @@ export function TravadoFlowScreen({
   });
 
   const [rascunhoSubtarefa, setRascunhoSubtarefa] = useState('');
+  const [pararAoVoltar, setPararAoVoltar] = useState(false);
   const [acaoEnergia, setAcaoEnergia] = useState<AcaoEnergia>('nenhuma');
   const [rascunhoVersaoMenor, setRascunhoVersaoMenor] = useState(
     tarefaContexto?.titulo ?? '',
@@ -118,7 +119,7 @@ export function TravadoFlowScreen({
     <Modal
       visible
       animationType="slide"
-      onRequestClose={onFechar}
+      onRequestClose={() => passo === 'sessao' ? setPararAoVoltar(true) : onFechar()}
       testID="travado-flow-modal"
     >
       <SafeAreaView style={styles.container}>
@@ -249,6 +250,8 @@ export function TravadoFlowScreen({
             tarefaId={parametrosSessao.tarefaId}
             origem={origem}
             estadoTravado={parametrosSessao.estadoTravado}
+            bloquearAppsSelecionados={origem === 'travado' && parametrosSessao.tarefaId !== null}
+            pararAoVoltar={pararAoVoltar}
             onMarcarTarefaComoFeita={() =>
               handleTarefaConcluida(parametrosSessao.tarefaId)
             }

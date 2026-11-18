@@ -1,6 +1,11 @@
 import { DeviceEventEmitter, NativeModules } from 'react-native';
 import {
   abrirApp,
+  iniciarMomentoFoco,
+  consultarMomentoFoco,
+  encerrarMomentoFoco,
+  encerrarMomentoFocoNaInterceptacao,
+  consumirEncerramentoFocoExterno,
   isAccessibilityServiceEnabled,
   limparSessaoAtiva,
   listarAppsInstalados,
@@ -26,6 +31,11 @@ const moduloMock = {
   liberarAcessoRapido: jest.fn(),
   concluirEmergencia: jest.fn(),
   abrirApp: jest.fn(),
+  iniciarMomentoFoco: jest.fn(),
+  consultarMomentoFoco: jest.fn(),
+  encerrarMomentoFoco: jest.fn(),
+  encerrarMomentoFocoNaInterceptacao: jest.fn(),
+  consumirEncerramentoFocoExterno: jest.fn(),
   salvarSnapshotDoDia: jest.fn(),
   salvarRegrasBloqueio: jest.fn(),
   salvarRegrasBloqueioPendentes: jest.fn(),
@@ -43,6 +53,24 @@ describe('AccessibilityDetection', () => {
 
   afterEach(() => {
     delete (NativeModules as Record<string, unknown>).RootoraAccessibility;
+  });
+
+  it('liga o modo de foco com prazo e permite consumir o encerramento externo', async () => {
+    moduloMock.iniciarMomentoFoco.mockResolvedValue(true);
+    moduloMock.consumirEncerramentoFocoExterno.mockResolvedValue(123456);
+    await expect(iniciarMomentoFoco(123456)).resolves.toBe(true);
+    expect(moduloMock.iniciarMomentoFoco).toHaveBeenCalledWith(123456);
+    encerrarMomentoFocoNaInterceptacao();
+    expect(moduloMock.encerrarMomentoFocoNaInterceptacao).toHaveBeenCalled();
+    await expect(consumirEncerramentoFocoExterno()).resolves.toBe(123456);
+    encerrarMomentoFoco();
+    expect(moduloMock.encerrarMomentoFoco).toHaveBeenCalled();
+  });
+
+  it('consulta o bloqueio temporário ativo na ponte nativa', async () => {
+    moduloMock.consultarMomentoFoco.mockResolvedValue(false);
+    await expect(consultarMomentoFoco()).resolves.toBe(false);
+    expect(moduloMock.consultarMomentoFoco).toHaveBeenCalledTimes(1);
   });
 
   describe('isAccessibilityServiceEnabled', () => {

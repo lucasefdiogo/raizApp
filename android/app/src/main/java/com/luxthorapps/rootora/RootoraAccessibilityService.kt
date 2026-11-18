@@ -121,7 +121,10 @@ class RootoraAccessibilityService : AccessibilityService() {
   /** Soma o trecho do app que saiu de foco e, se o novo for bloqueado, retoma o relógio. */
   private fun atualizarRelogio(pacote: String) {
     pausarRelogio()
-    if (BloqueioPrefs.ehAppBloqueado(applicationContext, pacote)) {
+    if (BloqueioPrefs.deveContarSaldoDuranteFoco(
+        BloqueioPrefs.ehAppBloqueado(applicationContext, pacote),
+        BloqueioPrefs.momentoFocoAtivo(applicationContext),
+      )) {
       SaldoBloqueioPrefs.transicionar(applicationContext) { s, cfg, agora, dia ->
         SaldoBloqueioMaquina.entrouEmPrimeiroPlano(s, cfg, agora, dia)
       }
@@ -285,6 +288,7 @@ class RootoraAccessibilityService : AccessibilityService() {
     val appLabel = resolverAppLabel(pacote)
     val snapshotJson = BloqueioPrefs.lerSnapshotDia(applicationContext) ?: "{\"tarefas\":[]}"
     val sessaoAtivaJson = sessaoAtivaValidaPara(pacote)
+    val momentoFocoAtivo = BloqueioPrefs.momentoFocoIntercepta(applicationContext, pacote)
 
     val intent =
       Intent(applicationContext, InterceptActivity::class.java).apply {
@@ -292,6 +296,10 @@ class RootoraAccessibilityService : AccessibilityService() {
         putExtra(InterceptActivity.EXTRA_PACKAGE_NAME, pacote)
         putExtra(InterceptActivity.EXTRA_APP_LABEL, appLabel)
         putExtra(InterceptActivity.EXTRA_SNAPSHOT_JSON, snapshotJson)
+        putExtra(InterceptActivity.EXTRA_MOMENTO_FOCO_ATIVO, momentoFocoAtivo)
+        if (momentoFocoAtivo) {
+          putExtra(InterceptActivity.EXTRA_FIM_MOMENTO_FOCO, BloqueioPrefs.lerFimMomentoFoco(applicationContext))
+        }
         putExtra(
           InterceptActivity.EXTRA_ESTADO_BLOQUEIO_JSON,
           SaldoBloqueioPrefs.visaoJson(applicationContext),

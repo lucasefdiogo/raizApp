@@ -231,6 +231,54 @@ class RootoraAccessibilityModule(reactContext: ReactApplicationContext) :
     promise.resolve(null)
   }
 
+  @ReactMethod
+  fun abrirRootora(promise: Promise) {
+    val intent = Intent(reactApplicationContext, MainActivity::class.java).apply {
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    }
+    reactApplicationContext.startActivity(intent)
+    promise.resolve(null)
+  }
+
+  /** Só ativa a interceptação temporária quando há serviço e apps escolhidos. */
+  @ReactMethod
+  fun iniciarMomentoFoco(fimEm: Double, promise: Promise) {
+    try {
+      val pronto = servicoAcessibilidadeHabilitado() && BloqueioPrefs.temAppsSelecionados(reactApplicationContext)
+      if (pronto && fimEm > System.currentTimeMillis()) {
+        BloqueioPrefs.iniciarMomentoFoco(reactApplicationContext, fimEm.toLong())
+        promise.resolve(true)
+      } else {
+        promise.resolve(false)
+      }
+    } catch (erro: Exception) {
+      promise.reject("INICIAR_MOMENTO_FOCO_FAILED", erro)
+    }
+  }
+
+  @ReactMethod
+  fun consultarMomentoFoco(promise: Promise) {
+    val ativo = servicoAcessibilidadeHabilitado() &&
+      BloqueioPrefs.temAppsSelecionados(reactApplicationContext) &&
+      BloqueioPrefs.momentoFocoAtivo(reactApplicationContext)
+    promise.resolve(ativo)
+  }
+
+  @ReactMethod
+  fun encerrarMomentoFoco() {
+    BloqueioPrefs.encerrarMomentoFoco(reactApplicationContext)
+  }
+
+  @ReactMethod
+  fun encerrarMomentoFocoNaInterceptacao() {
+    BloqueioPrefs.encerrarMomentoFocoNaInterceptacao(reactApplicationContext)
+  }
+
+  @ReactMethod
+  fun consumirEncerramentoFocoExterno(promise: Promise) {
+    promise.resolve(BloqueioPrefs.consumirEncerramentoFocoExterno(reactApplicationContext).toDouble())
+  }
+
   /**
    * Espelha o snapshot do dia em SharedPreferences (ver BloqueioPrefs) —
    * falha silenciosa: um JSON malformado não derruba o app, e o snapshot

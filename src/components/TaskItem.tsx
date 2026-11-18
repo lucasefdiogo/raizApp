@@ -17,6 +17,7 @@ const ATRASO_LONG_PRESS_MS = 350;
 interface TaskItemProps {
   tarefa: Tarefa;
   onAlternar: (id: string) => void;
+  onComecar?: (id: string) => void;
   /** TravadoFlow (ver TaskActionsSheet/RecurringTaskActionSheet) — não aparece pra tarefa já concluída. */
   onEstouTravado?: (id: string) => void;
   onEditar?: (id: string, titulo: string) => void;
@@ -30,6 +31,7 @@ interface TaskItemProps {
 export function TaskItem({
   tarefa,
   onAlternar,
+  onComecar,
   onEstouTravado,
   onEditar,
   onRemover,
@@ -132,6 +134,17 @@ export function TaskItem({
         </View>
       </Pressable>
 
+      {!tarefa.concluida && onComecar && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onComecar(tarefa.id)}
+          hitSlop={8}
+          style={styles.botaoComecar}
+        >
+          <Text style={styles.textoComecar}>Começar</Text>
+        </Pressable>
+      )}
+
       {ehRecorrente ? (
         <RecurringTaskActionSheet
           visible={menuAberto}
@@ -194,6 +207,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.md,
     gap: theme.spacing.sm,
+  },
+  botaoComecar: {
+    alignSelf: 'flex-start',
+    marginLeft: 22 + theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.surface,
+  },
+  textoComecar: {
+    fontFamily: theme.typography.fontFamily.bodyMedium,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.musgo,
   },
   checkbox: {
     width: 22,

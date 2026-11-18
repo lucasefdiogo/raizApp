@@ -28,6 +28,24 @@ const tarefaBase: Tarefa = {
 };
 
 describe('TaskItem', () => {
+  it('oferece Começar apenas na tarefa pendente e mantém a conclusão separada', async () => {
+    const onComecar = jest.fn();
+    const onAlternar = jest.fn();
+    await render(
+      <TaskItem tarefa={tarefaBase} onAlternar={onAlternar} onComecar={onComecar} />,
+    );
+    await fireEvent.press(screen.getByText('Começar'));
+    expect(onComecar).toHaveBeenCalledWith('1');
+    expect(onAlternar).not.toHaveBeenCalled();
+  });
+
+  it('não oferece Começar na tarefa concluída', async () => {
+    await render(
+      <TaskItem tarefa={{ ...tarefaBase, concluida: true }} onAlternar={jest.fn()} onComecar={jest.fn()} />,
+    );
+    expect(screen.queryByText('Começar')).toBeNull();
+  });
+
   it('mostra o título da tarefa', async () => {
     await render(<TaskItem tarefa={tarefaBase} onAlternar={jest.fn()} />);
     expect(

@@ -5,6 +5,9 @@ Histórico das HUs antigas (formato lux kit, abandonado): `docs/historico/`.
 
 ## Teste manual em aparelho
 
+- [ ] Validar o momento de foco em aparelho físico: interceptação dos apps selecionados,
+      expiração com o app em segundo plano e encerramento pela interceptação ou pelo botão Voltar.
+
 - [ ] **Aviso de bloqueio desligado** (origem: `docs/historico/HU-03/progress.md`), com APK
       release standalone:
   - [ ] disparo do alarme com o aparelho em Doze

@@ -51,6 +51,13 @@ Bloqueio de apps e coleta de uso rodam em módulos Kotlin dedicados:
 
 - `AccessibilityService` + `InterceptActivity` — intercepta app bloqueado, monta root RN
   separado (`AppRegistry.registerComponent('Intercept', ...)`)
+- `BloqueioPrefs` guarda o prazo absoluto do Momento de foco em `SharedPreferences`; durante esse
+  prazo `deveInterceptar` prioriza os apps já selecionados, sem depender da janela habitual ou
+  do saldo. O extra `momentoFocoAtivo` seleciona uma tela de interceptação com retorno e saída
+  explícita. A ponte `AccessibilityDetection.ts` inicia/encerra o prazo e consome o sinal de
+  encerramento externo quando a MainActivity volta ao primeiro plano. O prazo absoluto segue
+  no extra da Activity para fechar a interceptação aberta ao expirar; a ponte consulta o estado
+  do serviço ao retornar ao app para atualizar a mensagem sobre o bloqueio.
 - `SaldoBloqueioMaquina.kt` — autoridade da máquina de estados de sessão/cooldown, roda sem JS;
   espelha `domain/saldoBloqueio.ts`, mesmas fixtures (`domain/__fixtures__/saldoBloqueio.json`)
 - `RootoraUsoAppsModule.kt` — lê eventos do `UsageStatsManager` (permissão especial

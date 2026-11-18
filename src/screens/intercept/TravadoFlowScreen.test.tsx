@@ -89,6 +89,16 @@ describe('TravadoFlowScreen', () => {
   });
 
   describe('medo', () => {
+    it('ao voltar durante a sessão solicita o registro da parada', async () => {
+      const onFechar = jest.fn();
+      await render(<TravadoFlowScreen {...props({ onFechar })} />);
+      await fireEvent.press(screen.getByText('Tenho medo de ficar ruim'));
+      await fireEvent.press(screen.getByText('Começar rascunho'));
+      await fireEvent(screen.getByTestId('travado-flow-modal'), 'requestClose');
+      const sessao = JSON.parse(screen.getByTestId('sessao-foco-mock').props.children);
+      expect(sessao.pararAoVoltar).toBe(true);
+      expect(onFechar).not.toHaveBeenCalled();
+    });
     it('"Começar rascunho" abre a SessaoFocoScreen com 300s e a tarefa de contexto', async () => {
       await render(<TravadoFlowScreen {...props()} />);
       await fireEvent.press(screen.getByText('Tenho medo de ficar ruim'));
