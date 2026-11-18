@@ -19,6 +19,8 @@ object BloqueioPrefs {
   private const val CHAVE_REGRAS_BLOQUEIO = "regras_bloqueio"
   private const val CHAVE_REGRAS_BLOQUEIO_PENDENTES = "regras_bloqueio_pendentes"
   private const val CHAVE_SESSAO_ATIVA = "sessao_ativa"
+  private const val CHAVE_FIM_MOMENTO_FOCO = "fim_momento_foco"
+  private const val CHAVE_FOCO_ENCERRADO_NA_INTERCEPTACAO = "foco_encerrado_na_interceptacao"
   private const val CHAVE_ROTINA = "rotina"
 
   private fun prefs(context: Context) =
@@ -93,6 +95,64 @@ object BloqueioPrefs {
 
   fun lerSessaoAtiva(context: Context): String? = prefs(context).getString(CHAVE_SESSAO_ATIVA, null)
 
+  /** Prazo local e absoluto; não altera regras permanentes nem o saldo diário. */
+  fun iniciarMomentoFoco(context: Context, fimEm: Long) {
+    prefs(context).edit()
+      .putLong(CHAVE_FIM_MOMENTO_FOCO, fimEm)
+      .remove(CHAVE_FOCO_ENCERRADO_NA_INTERCEPTACAO)
+      .apply()
+  }
+
+  fun encerrarMomentoFoco(context: Context) {
+    prefs(context).edit().remove(CHAVE_FIM_MOMENTO_FOCO).apply()
+  }
+
+  fun lerFimMomentoFoco(context: Context): Long =
+    prefs(context).getLong(CHAVE_FIM_MOMENTO_FOCO, 0L)
+
+  fun encerrarMomentoFocoNaInterceptacao(context: Context) {
+    prefs(context).edit()
+      .remove(CHAVE_FIM_MOMENTO_FOCO)
+      .putLong(CHAVE_FOCO_ENCERRADO_NA_INTERCEPTACAO, System.currentTimeMillis())
+      .apply()
+  }
+
+  fun consumirEncerramentoFocoExterno(context: Context): Long {
+    val houve = prefs(context).getLong(CHAVE_FOCO_ENCERRADO_NA_INTERCEPTACAO, 0L)
+    if (houve > 0) prefs(context).edit().remove(CHAVE_FOCO_ENCERRADO_NA_INTERCEPTACAO).apply()
+    return houve
+  }
+
+  fun momentoFocoAtivo(context: Context, agora: Long = System.currentTimeMillis()): Boolean {
+    return interceptarDuranteFoco(true, lerFimMomentoFoco(context), agora)
+  }
+
+  fun interceptarDuranteFoco(appSelecionado: Boolean, fimEm: Long, agora: Long): Boolean =
+    appSelecionado && fimEm > agora
+
+  fun deveContarSaldoDuranteFoco(appSelecionado: Boolean, focoTemporarioAtivo: Boolean): Boolean =
+    appSelecionado && !focoTemporarioAtivo
+
+  fun decidirInterceptacao(
+    appSelecionado: Boolean,
+    focoTemporarioAtivo: Boolean,
+    dentroDaJanela: () -> Boolean,
+    appPodeAbrirPeloSaldo: () -> Boolean,
+  ): Boolean {
+    if (!appSelecionado) return false
+    if (focoTemporarioAtivo) return true
+    return dentroDaJanela() && !appPodeAbrirPeloSaldo()
+  }
+
+  fun momentoFocoIntercepta(context: Context, packageName: String): Boolean =
+    ehAppBloqueado(context, packageName) && momentoFocoAtivo(context)
+
+  fun temAppsSelecionados(context: Context): Boolean {
+    promoverPendentesSeVencidas(context)
+    val regras = try { JSONObject(lerRegrasBloqueio(context) ?: return false) } catch (erro: Exception) { return false }
+    return (regras.optJSONArray("apps")?.length() ?: 0) > 0
+  }
+
   /** `packageName` está em `regrasBloqueio.apps` (vigente, já com pendência promovida se vencida). */
   fun ehAppBloqueado(context: Context, packageName: String): Boolean {
     promoverPendentesSeVencidas(context)
@@ -132,13 +192,14 @@ object BloqueioPrefs {
    * a madrugada.
    */
   fun deveInterceptar(context: Context, packageName: String): Boolean {
-    if (!ehAppBloqueado(context, packageName)) {
-      return false
-    }
-    if (!dentroDaJanelaVigente(context)) {
-      return false
-    }
-    return !SaldoBloqueioMaquina.appPodeAbrir(SaldoBloqueioPrefs.estadoAtual(context))
+    return decidirInterceptacao(
+      appSelecionado = ehAppBloqueado(context, packageName),
+      focoTemporarioAtivo = momentoFocoAtivo(context),
+      dentroDaJanela = { dentroDaJanelaVigente(context) },
+      appPodeAbrirPeloSaldo = {
+        SaldoBloqueioMaquina.appPodeAbrir(SaldoBloqueioPrefs.estadoAtual(context))
+      },
+    )
   }
 
   /**

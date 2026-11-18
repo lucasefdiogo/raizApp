@@ -50,6 +50,7 @@ import { contarEssenciais, textoPlacarEssenciais } from '../domain/dailyTasks';
 import { selecionarTarefaIntercept } from '../domain/intercept';
 import { obterMensagemTarefaConcluida } from '../utils/taskFeedbackMessages';
 import { TravadoFlowScreen } from './intercept/TravadoFlowScreen';
+import { MomentoFocoScreen } from './MomentoFocoScreen';
 
 // No Android com edge-to-edge (RN 0.81+) o `adjustResize` não encolhe mais a
 // janela — o teclado entra por cima. Então acompanhamos a altura do teclado à
@@ -163,6 +164,7 @@ export function HomeScreen({
     [],
   );
   const [travadoAberto, setTravadoAberto] = useState(false);
+  const [tarefaEmFoco, setTarefaEmFoco] = useState<Tarefa | null>(null);
   const [travadoAberturaId, setTravadoAberturaId] = useState(0);
   const [travadoTarefaContexto, setTravadoTarefaContexto] =
     useState<Tarefa | null>(null);
@@ -271,6 +273,23 @@ export function HomeScreen({
   }, [tarefas, abrirTravado]);
 
   const fecharTravado = useCallback(() => setTravadoAberto(false), []);
+
+  const abrirMomentoFoco = useCallback((id: string) => {
+    const tarefa = tarefas.find(item => item.id === id && !item.concluida);
+    if (tarefa) setTarefaEmFoco(tarefa);
+  }, [tarefas]);
+
+  const abrirAjudaDoFoco = useCallback(() => {
+    const tarefa = tarefaEmFoco;
+    setTarefaEmFoco(null);
+    if (tarefa) abrirTravado(tarefa);
+  }, [tarefaEmFoco, abrirTravado]);
+
+  const marcarTarefaDoFoco = useCallback(() => {
+    if (tarefaEmFoco && tarefas.some(item => item.id === tarefaEmFoco.id && !item.concluida)) {
+      alternarTarefa(tarefaEmFoco.id);
+    }
+  }, [tarefaEmFoco, tarefas, alternarTarefa]);
 
   const handleScroll = useCallback(
     (evento: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -444,6 +463,7 @@ export function HomeScreen({
             <TaskList
               tarefas={tarefas}
               onAlternar={handleAlternarTarefa}
+              onComecar={abrirMomentoFoco}
               onEstouTravado={abrirTravadoComTarefa}
               onEditar={(id, titulo) => editarTarefa(id, { titulo })}
               onRemover={removerTarefa}
@@ -513,6 +533,16 @@ export function HomeScreen({
           moverTarefaParaAmanha={moverTarefaParaAmanha}
           alternarTarefa={alternarTarefa}
           onFechar={fecharTravado}
+        />
+      )}
+      {tarefaEmFoco && (
+        <MomentoFocoScreen
+          key={tarefaEmFoco.id}
+          uid={uid}
+          tarefa={tarefaEmFoco}
+          onEstouTravado={abrirAjudaDoFoco}
+          onMarcarTarefaComoFeita={marcarTarefaDoFoco}
+          onFechar={() => setTarefaEmFoco(null)}
         />
       )}
     </SafeAreaView>

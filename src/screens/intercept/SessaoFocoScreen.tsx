@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { theme } from '../../theme';
 import { EstadoTravado, OrigemSessaoFoco } from '../../domain/types';
@@ -26,6 +26,8 @@ interface SessaoFocoScreenProps {
    * origem !== 'interceptacao'.
    */
   packageName?: string;
+  bloquearAppsSelecionados?: boolean;
+  pararAoVoltar?: boolean;
 }
 
 function formatarMMSS(segundos: number): string {
@@ -52,6 +54,8 @@ export function SessaoFocoScreen({
   onMarcarTarefaComoFeita,
   onFechar,
   packageName,
+  bloquearAppsSelecionados = false,
+  pararAoVoltar = false,
 }: SessaoFocoScreenProps) {
   const {
     fase,
@@ -61,16 +65,28 @@ export function SessaoFocoScreen({
     continuarMais10Minutos,
     marcarTarefaComoFeita,
     pararAqui,
+    bloqueioAtivo,
+    encerradoExternamente,
   } = useFocusSession({
     uid,
     duracaoInicialSeg,
     packageName,
+    bloquearAppsSelecionados,
     tarefaId,
     origem,
     estadoTravado,
     onTarefaConcluida: onMarcarTarefaComoFeita,
   });
   const [overlayFeitoVisivel, setOverlayFeitoVisivel] = useState(false);
+  const encerramentoTratadoRef = useRef(false);
+
+  useEffect(() => {
+    if ((encerradoExternamente || pararAoVoltar) && !encerramentoTratadoRef.current) {
+      encerramentoTratadoRef.current = true;
+      pararAqui();
+      onFechar();
+    }
+  }, [encerradoExternamente, pararAoVoltar, pararAqui, onFechar]);
 
   const minutos = Math.round(duracaoPlanejadaSeg / 60);
 
@@ -93,6 +109,14 @@ export function SessaoFocoScreen({
           <Text style={styles.textoContando}>
             Só {minutos} minutos. Pode parar depois.
           </Text>
+          {bloquearAppsSelecionados && bloqueioAtivo !== null && (
+            <Text style={styles.textoContando}>
+              {bloqueioAtivo
+                ? 'Apps selecionados pausados durante este momento.'
+                : 'O cronômetro está ativo. O bloqueio de apps não está disponível agora.'}
+            </Text>
+          )}
+          <SecondaryButton titulo="Parar aqui" onPress={handlePararAqui} />
         </View>
       )}
 

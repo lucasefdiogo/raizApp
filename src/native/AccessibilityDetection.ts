@@ -42,6 +42,12 @@ interface RootoraAccessibilityNative {
   concluirEmergencia(): Promise<string>;
   abrirApp(packageName: string): Promise<boolean>;
   irParaTelaInicial(): Promise<void>;
+  abrirRootora(): Promise<void>;
+  iniciarMomentoFoco(fimEm: number): Promise<boolean>;
+  consultarMomentoFoco(): Promise<boolean>;
+  encerrarMomentoFoco(): void;
+  encerrarMomentoFocoNaInterceptacao(): void;
+  consumirEncerramentoFocoExterno(): Promise<number>;
   salvarSnapshotDoDia(snapshotJson: string): void;
   salvarRegrasBloqueio(regrasJson: string): void;
   salvarRegrasBloqueioPendentes(pendenteJson: string | null): void;
@@ -246,6 +252,32 @@ export async function irParaTelaInicial(): Promise<void> {
     return;
   }
   await modulo.irParaTelaInicial();
+}
+
+/** Ativa a interceptação local até o prazo; false sem permissão ou apps selecionados. */
+export async function iniciarMomentoFoco(fimEm: number): Promise<boolean> {
+  const modulo = moduloNativo();
+  return modulo ? modulo.iniciarMomentoFoco(fimEm) : false;
+}
+
+export async function consultarMomentoFoco(): Promise<boolean> {
+  return moduloNativo()?.consultarMomentoFoco() ?? false;
+}
+
+export function encerrarMomentoFoco(): void {
+  moduloNativo()?.encerrarMomentoFoco();
+}
+
+export function encerrarMomentoFocoNaInterceptacao(): void {
+  moduloNativo()?.encerrarMomentoFocoNaInterceptacao();
+}
+
+export async function consumirEncerramentoFocoExterno(): Promise<number> {
+  return moduloNativo()?.consumirEncerramentoFocoExterno() ?? 0;
+}
+
+export async function abrirRootora(): Promise<void> {
+  await moduloNativo()?.abrirRootora();
 }
 
 /**

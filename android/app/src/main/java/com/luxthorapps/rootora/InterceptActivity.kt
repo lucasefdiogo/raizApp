@@ -33,6 +33,8 @@ class InterceptActivity : ReactActivity() {
         return Bundle().apply {
           putString("packageName", extras?.getString(EXTRA_PACKAGE_NAME) ?: "")
           putString("appLabel", extras?.getString(EXTRA_APP_LABEL) ?: "")
+          putBoolean("momentoFocoAtivo", extras?.getBoolean(EXTRA_MOMENTO_FOCO_ATIVO) ?: false)
+          putDouble("momentoFocoFimEm", extras?.getLong(EXTRA_FIM_MOMENTO_FOCO)?.toDouble() ?: 0.0)
           putString(
             "snapshotJson",
             extras?.getString(EXTRA_SNAPSHOT_JSON) ?: "{\"tarefas\":[]}",
@@ -55,5 +57,7 @@ class InterceptActivity : ReactActivity() {
     const val EXTRA_SNAPSHOT_JSON = "snapshotJson"
     const val EXTRA_ESTADO_BLOQUEIO_JSON = "estadoBloqueioJson"
     const val EXTRA_SESSAO_ATIVA_JSON = "sessaoAtivaJson"
+    const val EXTRA_MOMENTO_FOCO_ATIVO = "momentoFocoAtivo"
+    const val EXTRA_FIM_MOMENTO_FOCO = "momentoFocoFimEm"
   }
 }

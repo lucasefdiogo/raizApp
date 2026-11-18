@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import {
   EstadoTravado,
   OrigemSessaoFoco,
@@ -9,7 +10,14 @@ import { hojeISOLocal } from '../domain/data';
 import { registrarSessaoFocoNoDia } from '../services/firestore';
 import { registrarErro } from '../services/crashlytics';
 import { logFocusSessionEnd } from '../services/analytics';
-import { limparSessaoAtiva, salvarSessaoAtiva } from '../native/AccessibilityDetection';
+import {
+  encerrarMomentoFoco,
+  iniciarMomentoFoco,
+  consultarMomentoFoco,
+  consumirEncerramentoFocoExterno,
+  limparSessaoAtiva,
+  salvarSessaoAtiva,
+} from '../native/AccessibilityDetection';
 
 export type FaseSessaoFoco = 'contando' | 'concluida';
 
@@ -27,6 +35,7 @@ interface UseFocusSessionParams {
    * tem um app de origem pra reabrir).
    */
   packageName?: string;
+  bloquearAppsSelecionados?: boolean;
   /**
    * Chamado ao escolher "Marcar a tarefa como feita" — quem usa o hook
    * decide o que "concluir" significa (ex: useDailyTasks.alternarTarefa,
@@ -45,6 +54,8 @@ interface UseFocusSessionResultado {
   continuarMais10Minutos: () => void;
   marcarTarefaComoFeita: () => void;
   pararAqui: () => void;
+  bloqueioAtivo: boolean | null;
+  encerradoExternamente: boolean;
 }
 
 const DURACAO_CONTINUAR_SEG = 10 * 60;
@@ -63,28 +74,59 @@ export function useFocusSession({
   origem,
   estadoTravado,
   packageName,
+  bloquearAppsSelecionados = false,
   onTarefaConcluida,
 }: UseFocusSessionParams): UseFocusSessionResultado {
   const [duracaoPlanejadaSeg, setDuracaoPlanejadaSeg] =
     useState(duracaoInicialSeg);
   const [segundosRestantes, setSegundosRestantes] = useState(duracaoInicialSeg);
   const [fase, setFase] = useState<FaseSessaoFoco>('contando');
+  const [prazoEm, setPrazoEm] = useState(() => Date.now() + duracaoInicialSeg * 1000);
+  const [bloqueioAtivo, setBloqueioAtivo] = useState<boolean | null>(null);
+  const [encerradoExternamente, setEncerradoExternamente] = useState(false);
   // Uma sessão já registrada (parou/continuou/concluiu) não registra de
   // novo — os botões de FimSessao ficam desabilitados depois do primeiro
   // toque no chamador, mas isso protege contra duplo toque em voo.
   const registrandoRef = useRef(false);
+  const encerradoEmRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (fase !== 'contando') {
-      return;
-    }
-    if (segundosRestantes <= 0) {
-      setFase('concluida');
-      return;
-    }
-    const id = setTimeout(() => setSegundosRestantes(s => s - 1), 1000);
-    return () => clearTimeout(id);
-  }, [fase, segundosRestantes]);
+    const atualizar = () => {
+      if (fase !== 'contando') return;
+      const restante = Math.max(0, Math.ceil((prazoEm - Date.now()) / 1000));
+      setSegundosRestantes(restante);
+      if (restante === 0) setFase('concluida');
+    };
+    atualizar();
+    const id = fase === 'contando' ? setInterval(atualizar, 1000) : undefined;
+    const appState = AppState.addEventListener('change', estado => {
+      if (estado === 'active') {
+        atualizar();
+        if (bloquearAppsSelecionados) {
+          consumirEncerramentoFocoExterno()
+            .then(encerrado => {
+              if (encerrado) {
+                encerradoEmRef.current = encerrado;
+                setEncerradoExternamente(true);
+              } else {
+                consultarMomentoFoco().then(setBloqueioAtivo).catch(() => setBloqueioAtivo(false));
+              }
+            })
+            .catch(() => undefined);
+        }
+      }
+    });
+    return () => { clearInterval(id); appState?.remove(); };
+  }, [fase, prazoEm, bloquearAppsSelecionados]);
+
+  useEffect(() => {
+    if (!bloquearAppsSelecionados || fase !== 'contando') return;
+    let ativo = true;
+    iniciarMomentoFoco(prazoEm)
+      .then(valor => { if (ativo) setBloqueioAtivo(valor); })
+      .catch(() => { if (ativo) setBloqueioAtivo(false); });
+    return () => { ativo = false; encerrarMomentoFoco(); };
+  }, [bloquearAppsSelecionados, fase, prazoEm]);
 
   // Espelha "sessão ativa" em SharedPreferences — só uma vez por perna do
   // timer (não a cada segundo, por isso a dependência é duracaoPlanejadaSeg,
@@ -100,7 +142,7 @@ export function useFocusSession({
         packageName,
         tarefaId,
         estadoTravado,
-        fimEm: Date.now() + duracaoPlanejadaSeg * 1000,
+        fimEm: prazoEm,
       });
     } else {
       limparSessaoAtiva();
@@ -110,7 +152,7 @@ export function useFocusSession({
         limparSessaoAtiva();
       }
     };
-  }, [fase, duracaoPlanejadaSeg, packageName, tarefaId, estadoTravado]);
+  }, [fase, prazoEm, packageName, tarefaId, estadoTravado]);
 
   const registrar = useCallback(
     async (resultado: ResultadoSessaoFoco) => {
@@ -125,7 +167,8 @@ export function useFocusSession({
         origem,
         estadoTravado,
         duracaoPlanejadaSeg,
-        duracaoRealSeg: duracaoPlanejadaSeg,
+        duracaoRealSeg: Math.min(duracaoPlanejadaSeg, Math.max(0,
+          Math.floor(((encerradoEmRef.current ?? Date.now()) - (prazoEm - duracaoPlanejadaSeg * 1000)) / 1000))),
         resultado,
         criadoEm: new Date().toISOString(),
       };
@@ -135,7 +178,7 @@ export function useFocusSession({
         registrarErro(erro as Error, 'useFocusSession.registrar');
       }
     },
-    [uid, tarefaId, origem, estadoTravado, duracaoPlanejadaSeg],
+    [uid, tarefaId, origem, estadoTravado, duracaoPlanejadaSeg, prazoEm],
   );
 
   const continuarMais10Minutos = useCallback(() => {
@@ -143,6 +186,7 @@ export function useFocusSession({
     registrandoRef.current = false;
     setDuracaoPlanejadaSeg(DURACAO_CONTINUAR_SEG);
     setSegundosRestantes(DURACAO_CONTINUAR_SEG);
+    setPrazoEm(Date.now() + DURACAO_CONTINUAR_SEG * 1000);
     setFase('contando');
   }, [registrar]);
 
@@ -163,5 +207,7 @@ export function useFocusSession({
     continuarMais10Minutos,
     marcarTarefaComoFeita,
     pararAqui,
+    bloqueioAtivo,
+    encerradoExternamente,
   };
 }

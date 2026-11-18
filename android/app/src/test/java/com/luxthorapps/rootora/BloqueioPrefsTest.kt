@@ -9,6 +9,37 @@ import org.junit.Test
 /** mesclarRegraVigente — parte pura de promoverPendentesSeVencidas, sem Context. */
 class BloqueioPrefsTest {
   @Test
+  fun `foco temporario nao consome saldo de blocos do app selecionado`() {
+    assertFalse(BloqueioPrefs.deveContarSaldoDuranteFoco(true, true))
+    assertTrue(BloqueioPrefs.deveContarSaldoDuranteFoco(true, false))
+    assertFalse(BloqueioPrefs.deveContarSaldoDuranteFoco(false, false))
+  }
+
+  @Test
+  fun `foco temporario intercepta somente app selecionado antes do prazo`() {
+    assertTrue(BloqueioPrefs.interceptarDuranteFoco(true, 2000L, 1000L))
+    assertFalse(BloqueioPrefs.interceptarDuranteFoco(false, 2000L, 1000L))
+    assertFalse(BloqueioPrefs.interceptarDuranteFoco(true, 2000L, 2000L))
+    assertFalse(BloqueioPrefs.interceptarDuranteFoco(true, 0L, 1000L))
+  }
+
+  @Test
+  fun `foco intercepta fora da janela sem consultar o saldo`() {
+    var saldoConsultado = false
+    val intercepta = BloqueioPrefs.decidirInterceptacao(
+      appSelecionado = true,
+      focoTemporarioAtivo = true,
+      dentroDaJanela = { false },
+      appPodeAbrirPeloSaldo = {
+        saldoConsultado = true
+        true
+      },
+    )
+    assertTrue(intercepta)
+    assertFalse(saldoConsultado)
+  }
+
+  @Test
   fun `mescla a pendencia descartando efetivaEm`() {
     val pendente = JSONObject(
       """{"apps":["com.instagram.android"],"janelas":[],"efetivaEm":"2026-10-11"}""",
